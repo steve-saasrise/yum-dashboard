@@ -1,0 +1,25 @@
+name: Deployment Status
+
+on:
+  deployment_status:
+
+jobs:
+  notify:
+    name: Deployment Notification
+    runs-on: ubuntu-latest
+    if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
+
+    steps:
+      - name: Deployment Success
+        if: github.event.deployment_status.state == 'success'
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Environment: ${{ github.event.deployment.environment }}"
+          echo "URL: ${{ github.event.deployment_status.target_url }}"
+
+      - name: Deployment Failure
+        if: github.event.deployment_status.state == 'failure'
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Environment: ${{ github.event.deployment.environment }}"
+          echo "Details: ${{ github.event.deployment_status.description }}"

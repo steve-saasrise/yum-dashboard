@@ -1,0 +1,43 @@
+# Task ID: 8
+# Title: Implement Advanced Filtering and Search
+# Status: pending
+# Dependencies: 1, 2, 7
+# Priority: medium
+# Description: Develop advanced filtering and full-text search capabilities.
+# Details:
+Build multi-select filtering by platform, creator, topic, and date range. Support saved filter presets and AND/OR logic. Implement full-text search using PostgreSQL with ranking and relevance scoring. Add search suggestions and history. Use Supabase for search queries and indexing.
+
+# Test Strategy:
+Test filtering combinations and persistence. Verify search results, ranking, and suggestions. Check search history and empty states.
+
+# Subtasks:
+## 1. Design and Implement Multi-Select Filter Backend [pending]
+### Dependencies: None
+### Description: Develop backend logic and data models to support multi-select filters, ensuring efficient querying and scalability.
+### Details:
+Define filterable fields, update database schemas if needed, and implement API endpoints to handle multiple simultaneous filter selections.
+
+## 2. Integrate AND/OR Logic for Filter Combinations [pending]
+### Dependencies: 8.1
+### Description: Enable advanced filter logic (AND/OR) in the backend to allow users to combine multiple filter criteria flexibly.
+### Details:
+Update query builders and API endpoints to interpret and process AND/OR logic between selected filters, ensuring correct results.
+
+## 3. Implement Saved Presets Functionality [pending]
+### Dependencies: 8.1, 8.2
+### Description: Allow users to save, retrieve, and manage sets of filter and search configurations as reusable presets.
+### Details:
+Design data structures for storing user presets, create API endpoints for CRUD operations, and ensure security and privacy of user data.
+
+## 4. Develop Full-Text Search Engine Integration [pending]
+### Dependencies: 8.1
+### Description: Integrate a full-text search engine (e.g., Elasticsearch) to support fast and relevant search across all indexed content.
+### Details:
+Index relevant data, configure analyzers for language support, and expose search APIs that work seamlessly with filters and logic. Before implementation, use Supabase MCP to check project configuration and apply necessary setup.
+
+## 5. Build Search Suggestions and History UI/Backend [pending]
+### Dependencies: 8.4
+### Description: Implement frontend and backend components for real-time search suggestions and user search history tracking.
+### Details:
+Capture user queries, provide autocomplete suggestions based on indexed data and history, and ensure privacy controls for user search data.
+

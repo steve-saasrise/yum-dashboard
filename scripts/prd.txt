@@ -1,0 +1,662 @@
+<PRD>
+# Yum Content Aggregation Platform - Product Requirements Document
+
+## 1. Introduction
+
+This Product Requirements Document (PRD) outlines the comprehensive specifications for Yum, a content aggregation platform designed to help users efficiently track, organize, and consume content from their favorite creators across multiple platforms. This document serves as the definitive guide for development teams, stakeholders, and quality assurance teams to understand the product vision, requirements, and success criteria.
+
+The Yum platform addresses the growing challenge of content fragmentation across social media platforms by providing a unified interface where users can follow creators from YouTube, Twitter, LinkedIn, Threads, and RSS feeds, while receiving intelligent summaries and personalized digests.
+
+## 2. Product overview
+
+Yum is a web-based content aggregation platform that centralizes content consumption from multiple sources into a single, streamlined experience. The platform leverages artificial intelligence to provide content summaries, organizes creators by topics, and delivers personalized email digests to users.
+
+### 2.1 Core functionality
+
+- **Multi-platform content ingestion**: Automatically fetches content from YouTube, Twitter, LinkedIn, Threads, and RSS feeds
+- **AI-powered summarization**: Generates concise summaries for long-form content using large language models
+- **Topic-based organization**: Groups creators and content by user-defined topics for better discovery
+- **Personalized feed**: Provides a customizable dashboard with filtering capabilities
+- **Email digest system**: Delivers daily content summaries via email based on user preferences
+- **Creator management**: Allows users to add, edit, and organize their favorite content creators
+
+### 2.2 Key differentiators
+
+- Unified content consumption across multiple platforms
+- AI-enhanced content summarization for efficient consumption
+- Topic-based content organization and discovery
+- Automated daily digest delivery
+- Simple, intuitive user interface focused on content consumption
+
+## 3. Goals and objectives
+
+### 3.1 Primary goals
+
+- **Reduce content consumption time**: Enable users to stay updated with their favorite creators 3x faster through AI summaries and centralized feeds
+- **Increase content discovery**: Help users discover relevant content through topic-based organization and cross-platform aggregation
+- **Improve user engagement**: Maintain daily active usage through personalized email digests and streamlined browsing experience
+- **Simplify content management**: Provide effortless creator management and content organization tools
+
+### 3.2 Success metrics
+
+- **User engagement**: 70% daily email digest open rate within 3 months of launch
+- **Platform adoption**: Support for 5+ content platforms with 99% uptime
+- **Performance**: Initial page load time under 2 seconds
+- **Cost efficiency**: Maintain operational costs under $25/month per 100 active users
+- **User satisfaction**: Achieve 4.5+ star rating in user feedback within 6 months
+
+### 3.3 Business objectives
+
+- Establish Yum as the leading content aggregation platform for knowledge workers
+- Build a sustainable freemium business model with premium features
+- Create a scalable platform architecture supporting 10,000+ concurrent users
+- Develop strategic partnerships with content platforms and creators
+
+## 4. Target audience
+
+### 4.1 Primary users
+
+**Knowledge Workers and Professionals**
+- Demographics: Ages 25-45, college-educated, technology-savvy
+- Pain points: Information overload, fragmented content consumption, time constraints
+- Goals: Stay informed about industry trends, learn from thought leaders, optimize content consumption time
+
+**Content Enthusiasts and Learners**
+- Demographics: Ages 18-65, diverse educational backgrounds, active social media users
+- Pain points: Missing content from favorite creators, difficulty organizing information sources
+- Goals: Never miss important content, discover new creators, learn efficiently
+
+### 4.2 Secondary users
+
+**Entrepreneurs and Business Leaders**
+- Use case: Market research, competitive intelligence, thought leadership tracking
+- Specific needs: Industry-specific content filtering, trend identification, expert insights
+
+**Students and Researchers**
+- Use case: Academic research, staying current with field developments
+- Specific needs: Reliable content sources, easy reference management, topic-based organization
+
+### 4.3 User personas
+
+**"Sarah the Strategy Consultant"**
+- Follows 50+ thought leaders across platforms
+- Needs daily industry insights for client work
+- Values time efficiency and content quality over quantity
+
+**"Mike the Startup Founder"**
+- Tracks venture capital, technology, and business content
+- Uses insights for strategic decision-making
+- Requires mobile-friendly access and quick updates
+
+## 5. Features and requirements
+
+### 5.1 User authentication and management
+
+**FR-1.1 User Registration and Authentication**
+- Users can create accounts using email and magic link authentication via Supabase Auth
+- OAuth integration available for Google, GitHub, and other major providers
+- Secure session management with automatic logout after inactivity
+
+**FR-1.2 User Profile Management**
+- Comprehensive user profiles including name, avatar, email, timezone, and digest preferences
+- Profile settings for notification preferences, content filtering, and display options
+- Account deletion and data export functionality for privacy compliance
+
+### 5.2 Creator management system
+
+**FR-2.1 Smart URL-Based Creator Addition**
+- **Single intelligent URL input field** that accepts any valid URL from supported platforms
+- **Automatic platform detection** using URL parsing libraries:
+  - Utilizes `social-network-detector` library for recognizing 30+ social platforms
+  - RSS/feed detection via `feed-locator` and `rss-finder` libraries
+  - Custom validation for platform-specific URL formats
+- **Multi-URL support per creator** with "Add another URL" functionality
+- **URL categorization system**:
+  - **Supported platforms**: YouTube, Twitter, LinkedIn, Threads → Auto-detected and validated
+  - **RSS feeds**: Blog URLs, podcast feeds → Auto-discovered or direct feed URLs accepted
+  - **Generic websites**: Unsupported but valid URLs → Categorized as "Website" with RSS discovery attempted
+  - **Invalid URLs**: Real-time validation with helpful error messages and format suggestions
+- **Bulk creator import** via CSV or OPML files with intelligent URL parsing
+- **Creator verification system** with status indicators for successful/failed URL validation
+
+**FR-2.2 URL Processing and Validation**
+- **Real-time URL validation** using JavaScript `URL()` constructor and try/catch error handling
+- **Platform-specific URL normalization**:
+  - YouTube: Accepts channel URLs, @handles, video URLs → Extracts channel information
+  - Twitter: Accepts profile URLs, @handles → Normalizes to canonical format
+  - LinkedIn: Accepts various profile URL formats → Standardizes to /in/profile format
+  - RSS: Validates feed URLs and attempts auto-discovery from website URLs
+- **Duplicate detection** across URL variations (different formats of same profile)
+- **URL preview cards** showing detected platform, profile information, and validation status
+- **Smart suggestions** for common URL format mistakes with auto-correction options
+
+**FR-2.3 Enhanced Creator Profile Management**
+- **Auto-populated creator details** from successfully validated URLs:
+  - Profile images, names, and descriptions extracted from platform APIs where available
+  - Manual override capability for all auto-populated fields
+- **Multiple URL management per creator**:
+  - Visual cards showing each connected platform with validation status
+  - Individual URL removal and editing capabilities
+  - Platform-specific icons and branding for clear identification
+- **Creator activity tracking** with last update timestamps and content frequency metrics
+- **URL health monitoring** with automatic re-validation and error notifications
+
+**FR-2.4 Topic Organization System**
+- Flexible topic assignment with multiple topics per creator
+- Custom topic creation and management
+- Topic hierarchy support for subcategories
+- Topic-based content filtering and organization
+
+**FR-2.5 Pre-loaded Sample Data**
+- Default topic categories: Venture Capital, AI, SaaS, Science, Politics, Investing, Future, Philosophy, Spirituality, Relationships, Biohacking
+- Sample creator profiles with pre-assigned topics and validated URLs:
+  - Barack Obama (Politics) - Twitter, YouTube
+  - Dave Asprey (Biohacking) - Blog RSS, YouTube, Twitter
+  - Marc Andreessen (Venture Capital) - Twitter, Blog RSS
+  - Warren Buffett (Investing) - Berkshire Hathaway reports RSS
+  - Sam Altman (AI) - Twitter, Blog RSS
+  - Ryan Allis (SaaS) - LinkedIn, Blog RSS
+
+### 5.3 Content ingestion and processing
+
+**FR-3.1 Automated Content Scheduling**
+- Configurable scheduler running every hour (default) with admin-adjustable intervals
+- Intelligent rate limiting to respect platform API limits
+- Error handling and retry mechanisms for failed content fetches
+- Content deduplication across platforms
+
+**FR-3.2 Multi-platform Content Support**
+- **YouTube Data API Integration**: Video metadata, titles, descriptions, publish dates, thumbnails
+- **RSS/Atom Feed Processing**: Blog posts, articles, podcast episodes with full content extraction
+- **Twitter API Integration**: Tweets, retweets, media content with engagement metrics
+- **LinkedIn Scraping**: Public posts, articles, and updates via headless browser automation
+- **Threads Integration**: Posts and media content via automated scraping
+
+**FR-3.3 Content Storage and Management**
+- Comprehensive content metadata storage in Supabase:
+  - Title, URL, author, platform, published date
+  - Raw HTML/text content with media attachments
+  - Processing status and error logs
+  - Content categorization and tags
+
+**FR-3.4 AI-Powered Content Summarization**
+- Automatic summarization for content exceeding 500 words
+- LLM integration with fallback providers (OpenAI, Anthropic, local models)
+- Summary caching and versioning for performance optimization
+- Summary quality scoring and feedback mechanisms
+
+### 5.4 Feed and content browsing
+
+**FR-4.1 Dashboard Feed Interface**
+- Chronological content feed with newest content first
+- Infinite scroll pagination with performance optimization
+- Real-time content updates via WebSocket connections
+- Mobile-responsive design with touch-friendly interactions
+
+**FR-4.2 Advanced Filtering System**
+- Multi-select filtering by platform, creator, topic, date range
+- Saved filter presets for quick access
+- Filter combinations with AND/OR logic
+- Filter state persistence across sessions
+
+**FR-4.3 Content Card Design**
+- Consistent card layout across all content types:
+  - Creator avatar and name
+  - Platform-specific icons and branding
+  - Content title and snippet preview
+  - AI-generated summary (when available)
+  - Publish date with relative time formatting
+  - Direct link to original content
+  - Save/bookmark functionality
+
+**FR-4.4 Creator-Specific Pages**
+- Dedicated creator profile pages with bio and statistics
+- Creator-specific content feed with historical data
+- Creator activity timeline and posting frequency analysis
+- Follow/unfollow functionality with notification options
+
+**FR-4.5 Topic-Based Content Pages**
+- Topic overview pages with creator lists and content statistics
+- Cross-creator content aggregation by topic
+- Topic trending analysis and popular content identification
+- Topic subscription management for personalized experiences
+
+**FR-4.6 Saved Content Management**
+- Users can save/bookmark individual content items for later reference
+- Saved content filter allows users to view only bookmarked items
+- Saved content state persists across sessions and devices
+- Users can unsave/unbookmark content items
+- Saved content can be combined with other filters (platform, creator, topic, date range)
+
+### 5.5 Search functionality
+
+**FR-5.1 Content Search System**
+- Full-text search across content titles, summaries, and creator names
+- PostgreSQL-based search with ranking and relevance scoring
+- Search suggestions and autocomplete functionality
+- Search history and saved searches for registered users
+- Advanced search filters by date, platform, creator, and topic
+
+### 5.6 Email digest system
+
+**FR-7.1 Automated Daily Digests**
+- Daily email delivery at 8:00 AM in user's local timezone
+- Intelligent content curation based on user engagement history
+- Responsive email template design for all devices
+- Unsubscribe and frequency management options
+
+**FR-7.2 Digest Content Organization**
+- Topic-based content grouping with clear section headers
+- Content prioritization based on user interaction patterns
+- Summary previews with direct links to full content
+- Creator attribution and platform identification
+
+**FR-7.3 Digest Preference Management**
+- Granular digest settings in user profile
+- Topic-specific digest subscriptions
+- Frequency options (daily, weekly, bi-weekly)
+- Digest preview functionality before scheduling
+
+### 5.7 Administration and settings
+
+**FR-8.1 Topic Management System**
+- Full CRUD operations for topic creation, editing, and deletion
+- Topic merge and split functionality for organization
+- Topic usage analytics and creator assignment tracking
+- Bulk topic operations for administrative efficiency
+
+**FR-8.2 Rate Limiting and Usage Controls**
+- Creator addition limits (10 creators per day per user for free tier)
+- API usage tracking and quota management
+- Anti-abuse mechanisms for content scraping
+- Usage analytics and reporting dashboard
+
+## 6. User stories and acceptance criteria
+
+### 6.1 Authentication and user management
+
+**ST-101: User Account Creation**
+As a new user, I want to create an account using my email address so that I can access the platform and save my preferences.
+
+*Acceptance Criteria:*
+- User can enter email address and receive magic link
+- Magic link expires after 15 minutes
+- Account creation includes default profile setup
+- User receives welcome email with platform overview
+- Profile includes timezone detection and default digest preferences
+
+**ST-102: User Login**
+As a returning user, I want to log in securely so that I can access my personalized content feed.
+
+*Acceptance Criteria:*
+- User can log in via magic link or OAuth providers
+- Session remains active for 30 days with remember me option
+- Failed login attempts are rate-limited after 5 attempts
+- User can reset password through email recovery
+- Two-factor authentication option available in settings
+
+**ST-103: Profile Management**
+As a logged-in user, I want to manage my profile settings so that I can customize my experience.
+
+*Acceptance Criteria:*
+- User can update name, avatar, email, and timezone
+- Profile changes are saved immediately with confirmation
+- Avatar upload supports common image formats (JPG, PNG, WebP)
+- Email changes require verification of new address
+- User can delete account with data export option
+
+### 6.2 Creator management
+
+**ST-201: Smart URL-Based Creator Addition**
+As a user, I want to add creators by simply pasting any URL from their social media profiles or websites so that I can follow their content without worrying about specific formats.
+
+*Acceptance Criteria:*
+- Single URL input field accepts any valid URL format
+- System automatically detects and validates YouTube, Twitter, LinkedIn, Threads, and RSS URLs
+- Invalid URLs show immediate error feedback with format suggestions
+- Supported URLs display platform detection confirmation with preview information
+- Unsupported but valid URLs are categorized as "Website" with RSS feed discovery attempted
+- Users receive clear feedback about URL processing status and any errors
+
+**ST-202: Multi-URL Creator Management**
+As a user, I want to add multiple URLs for the same creator so that I can follow their content across different platforms.
+
+*Acceptance Criteria:*
+- "Add another URL" button allows multiple URLs per creator
+- Each URL displays as a separate card with platform icon and validation status
+- Users can remove individual URLs without affecting other URLs for the same creator
+- Duplicate URL detection prevents adding the same URL twice
+- URL cards show last validation date and health status
+- Platform-specific icons clearly identify each connected service
+
+**ST-203: Intelligent URL Processing**
+As a user, I want the system to automatically extract creator information from valid URLs so that I don't have to manually enter details.
+
+*Acceptance Criteria:*
+- Creator name, avatar, and description are auto-populated when available from platform APIs
+- Users can manually override any auto-populated information
+- System handles different URL formats for the same platform (e.g., youtube.com/@channel vs youtube.com/channel/...)
+- RSS feed discovery attempts to find feeds from blog/website URLs automatically
+- URL normalization ensures consistent storage format regardless of input variation
+- Failed auto-population allows manual entry with helpful placeholder suggestions
+
+**ST-204: Topic Assignment and Organization**
+As a user, I want to assign topics to creators so that I can organize and filter content effectively.
+
+*Acceptance Criteria:*
+- User can assign multiple topics to a single creator
+- Topic selection interface shows existing topics with search functionality
+- New topics can be created during assignment process
+- Topic assignments are immediately reflected in filtering options
+- Bulk topic assignment available for multiple creators
+
+### 6.3 Content ingestion and browsing
+
+**ST-301: Automated Content Fetching**
+As a user, I want the system to automatically fetch new content from my followed creators so that I don't miss any updates.
+
+*Acceptance Criteria:*
+- Content is fetched hourly from all active sources
+- New content appears in feed within 2 hours of publication
+- Failed fetches are retried with exponential backoff
+- User notifications for creators with posting interruptions
+- Content deduplication across platforms is automatic
+
+**ST-302: View Dashboard Feed**
+As a user, I want to see all my content in a chronological feed so that I can quickly browse the latest updates.
+
+*Acceptance Criteria:*
+- Feed displays newest content first with clear timestamps
+- Infinite scroll loads additional content seamlessly
+- Each card shows creator, platform, title, summary, and publish date
+- Loading states are shown during content fetch operations
+- Feed maintains scroll position when navigating back
+
+**ST-303: Filter Content by Criteria**
+As a user, I want to filter content by platform, creator, or topic so that I can focus on specific types of content.
+
+*Acceptance Criteria:*
+- Multiple filter options can be combined simultaneously
+- Filter state persists during session and across page navigation
+- Clear filter indicators show active filters
+- Filter results update immediately without page reload
+- Reset filters option clears all active filters
+
+**ST-304: Search Content**
+As a user, I want to search through my content so that I can find specific information quickly.
+
+*Acceptance Criteria:*
+- Search returns results from titles, summaries, and creator names
+- Results are ranked by relevance and recency
+- Search suggestions appear as user types
+- Search history is saved for logged-in users
+- Empty search states provide helpful suggestions
+
+**ST-305: Save and Access Content**
+As a user, I want to save interesting content items so that I can easily find and reference them later.
+
+*Acceptance Criteria:*
+- User can click bookmark icon on any content card to save it
+- Bookmark icon changes state to indicate saved vs unsaved
+- User can filter feed to show only saved content via toggle in filter panel
+- Saved content filter can be combined with other active filters
+- User can unsave content by clicking the bookmark icon again
+- Saved content persists across browser sessions and devices
+- Saved content count is visible in user interface
+
+### 6.4 Email digest system
+
+**ST-401: Receive Daily Email Digest**
+As a user, I want to receive a daily email digest so that I can stay updated even when not actively using the platform.
+
+*Acceptance Criteria:*
+- Digest arrives at 8:00 AM in user's local timezone
+- Email contains new content from the past 24 hours
+- Content is organized by topics with clear section headers
+- Each item includes title, summary, creator, and direct link
+- Unsubscribe link is prominently displayed
+
+**ST-402: Customize Digest Preferences**
+As a user, I want to control my email digest settings so that I can receive relevant content at my preferred frequency.
+
+*Acceptance Criteria:*
+- User can enable/disable digest delivery
+- Frequency options include daily, weekly, and bi-weekly
+- Topic-specific subscriptions allow granular control
+- Changes take effect for the next scheduled digest
+- Digest preview shows sample content before confirming settings
+
+### 6.5 Administrative functions
+
+**ST-501: Manage Topics**
+As a user, I want to create and manage topics so that I can organize creators according to my interests.
+
+*Acceptance Criteria:*
+- User can create new topics with custom names and descriptions
+- Existing topics can be edited or deleted (with creator reassignment)
+- Topic usage statistics show number of creators and content items
+- Topic merging functionality combines similar topics
+- Deleted topics require confirmation to prevent accidental loss
+
+**ST-502: Database Modeling and Data Integrity**
+As a system administrator, I want robust database modeling so that the platform maintains data consistency and performance.
+
+*Acceptance Criteria:*
+- User data is properly normalized with appropriate foreign key relationships
+- Content data includes proper indexing for search and filtering performance
+- Data migrations are versioned and reversible
+- Backup and recovery procedures are automated and tested
+- Database queries are optimized with monitoring and alerting
+
+### 6.6 Platform performance and reliability
+
+**ST-601: Fast Initial Load Time**
+As a user, I want the platform to load quickly so that I can access my content without delay.
+
+*Acceptance Criteria:*
+- Initial page load completes in under 2 seconds on broadband connections
+- Critical rendering path is optimized with inline CSS for above-fold content
+- JavaScript bundles are code-split and loaded on demand
+- Images are optimized and served via CDN with appropriate caching headers
+- Performance monitoring tracks and alerts on regression
+
+**ST-602: Cross-Browser Compatibility**
+As a user, I want the platform to work consistently across different browsers so that I can use my preferred browser.
+
+*Acceptance Criteria:*
+- Full functionality in latest versions of Chrome, Safari, Firefox, and Edge
+- Mobile browsers (Safari iOS, Chrome Android) provide identical feature set
+- Graceful degradation for older browser versions with feature detection
+- Responsive design adapts to screen sizes from 320px to 4K displays
+- Accessibility standards (WCAG 2.1 AA) are met across all browsers
+
+## 7. Technical requirements / stack
+
+### 7.1 Architecture overview
+
+**Frontend Framework**
+- Next.js 14+ with App Router for server-side rendering and optimal performance
+- React 18+ with TypeScript for type safety and developer experience
+- Tailwind CSS for utility-first styling and design system consistency
+
+**Backend Services**
+- Supabase for authentication, database, and real-time subscriptions
+- PostgreSQL with full-text search capabilities and optimized indexing
+- Supabase Edge Functions for serverless API endpoints and background processing
+
+**Content Processing**
+- Node.js-based ingestion services with queue management
+- Puppeteer for headless browser automation (LinkedIn, Threads scraping)
+- OpenAI/Anthropic API integration for content summarization
+- Redis for caching and rate limiting
+
+**URL Processing and Validation Libraries**
+- `social-network-detector`: Platform detection for 30+ social media services
+- `feed-locator`: RSS/Atom feed discovery from website URLs
+- `rss-finder`: RSS feed URL extraction and validation
+- `@extractus/feed-extractor`: RSS/Atom/JSON feed parsing and normalization
+- Custom URL validation utilities built on JavaScript URL() constructor
+
+**Infrastructure**
+- Vercel for frontend deployment with global CDN
+- Supabase cloud for managed PostgreSQL and authentication
+- Resend or SendGrid for transactional email delivery
+- Upstash Redis for caching and session management
+
+### 7.2 API integrations
+
+**Third-Party APIs**
+- YouTube Data API v3 for video metadata and channel information
+- Twitter API v2 for tweet fetching and user timeline access
+- RSS/Atom parser libraries for blog and podcast content
+- LinkedIn and Threads via authenticated headless browser sessions
+
+**URL Processing Pipeline**
+- Real-time URL validation using try/catch with JavaScript URL() constructor
+- Platform detection via regex patterns and domain matching
+- RSS feed discovery through HTML parsing and common feed URL patterns
+- URL normalization for consistent storage and duplicate detection
+
+**Rate Limiting Strategy**
+- API quotas managed with exponential backoff and retry logic
+- Request queuing for high-volume content sources
+- User-based rate limiting for creator additions and API calls
+- Monitoring and alerting for API quota usage
+
+### 7.3 Performance requirements
+
+**Response Time Targets**
+- Initial page load: < 2 seconds (95th percentile)
+- API responses: < 500ms for cached content, < 2 seconds for uncached
+- Search results: < 1 second for standard queries
+- Content ingestion: < 5 minutes from source publication to platform availability
+- URL validation: < 1 second for real-time feedback
+
+**Scalability Requirements**
+- Support 10,000 concurrent users with 99.9% uptime
+- Handle 1M+ content items with sub-second search performance
+- Process 100,000+ API calls per hour during peak ingestion periods
+- Auto-scaling infrastructure with load balancing
+
+**Storage and Bandwidth Optimization**
+- Content images served via CDN with WebP optimization
+- Database connection pooling and query optimization
+- Gzip compression for all text-based responses
+- Browser caching strategies for static assets
+
+### 7.4 Security and compliance
+
+**Data Protection**
+- End-to-end encryption for sensitive user data
+- GDPR compliance with data export and deletion capabilities
+- Regular security audits and vulnerability assessments
+- Secure API key management with rotation policies
+
+**Authentication Security**
+- Multi-factor authentication option for enhanced security
+- Session management with secure cookie handling
+- OAuth integration with major providers (Google, GitHub, Twitter)
+- Rate limiting for authentication attempts and password resets
+
+**URL Security and Validation**
+- XSS protection for user-submitted URLs
+- Domain whitelist/blacklist management for security
+- URL sanitization to prevent malicious redirects
+- Content Security Policy headers for iframe protection
+
+## 8. Design and user interface
+
+### 8.1 Design principles
+
+**Simplicity and Clarity**
+- Clean, minimal interface focused on content consumption
+- Consistent visual hierarchy with clear information architecture
+- Reduced cognitive load through progressive disclosure
+- Intuitive navigation with familiar interaction patterns
+
+**Performance-Driven Design**
+- Lightweight components with optimized rendering
+- Progressive image loading with blur-up placeholders
+- Skeleton screens for loading states
+- Mobile-first responsive design approach
+
+**Accessibility and Inclusivity**
+- WCAG 2.1 AA compliance for screen readers and assistive technologies
+- High contrast color ratios and scalable typography
+- Keyboard navigation support for all interactive elements
+- Alternative text for images and media content
+
+### 8.2 Visual design system
+
+**Color Palette**
+- Primary: Blue (#0066CC) for links and primary actions
+- Secondary: Gray (#6B7280) for secondary text and UI elements
+- Success: Green (#10B981) for positive feedback and confirmations
+- Warning: Orange (#F59E0B) for cautions and important notices
+- Error: Red (#EF4444) for errors and destructive actions
+
+**Typography**
+- Primary: Inter font family for optimal readability
+- Headings: Font weights 600-700 with appropriate line spacing
+- Body text: Font weight 400 with 1.6 line height for readability
+- Code: Monospace font for technical content and URLs
+
+**Component Library**
+- Reusable components for buttons, forms, cards, and navigation
+- Consistent spacing using 8px grid system
+- Standardized border radius and shadow tokens
+- Icon library with consistent stroke width and visual weight
+
+### 8.3 Layout and navigation
+
+**Navigation Structure**
+- Top navigation bar with user profile, search, and main navigation links
+- Sidebar navigation for feed filters and creator management
+- Breadcrumb navigation for deep content pages
+- Mobile navigation with collapsible hamburger menu
+
+**Content Layout**
+- Card-based layout for content items with consistent spacing
+- Two-column layout on desktop with single column on mobile
+- Sticky navigation elements for constant access to key functions
+- Infinite scroll with "load more" fallback for accessibility
+
+**Responsive Breakpoints**
+- Mobile: 320px - 767px (single column, touch-optimized)
+- Tablet: 768px - 1023px (hybrid layout with collapsible sidebar)
+- Desktop: 1024px+ (full two-column layout with expanded navigation)
+- Large screens: 1440px+ (max-width container with centered content)
+
+### 8.4 User experience considerations
+
+**Onboarding Flow**
+- Progressive onboarding with guided creator addition using smart URL input
+- Interactive tutorial highlighting key features including URL auto-detection
+- Sample content and creators for immediate value demonstration
+- Optional advanced features introduction after basic usage
+
+**Creator Addition Experience**
+- Single, prominent URL input field with helpful placeholder text
+- Real-time validation feedback with loading indicators
+- Platform detection confirmation with visual icons
+- Clear error messaging with format suggestions for invalid URLs
+- Success states showing detected platform and creator preview
+
+**Content Discovery**
+- Smart recommendations based on user behavior and similar users
+- Trending content indicators for popular items
+- Related creator suggestions based on topic overlap
+- Content freshness indicators and publication timestamps
+
+**Feedback and Error Handling**
+- Immediate feedback for user actions with loading states
+- Clear error messages with actionable resolution steps
+- Success confirmations for important actions
+- Graceful degradation for offline or low-connectivity scenarios
+
+**Performance Feedback**
+- Loading skeletons for content cards during fetch operations
+- Progress indicators for long-running operations
+- Optimistic UI updates for immediate perceived performance
+- Background sync with conflict resolution for offline actions
+</PRD>

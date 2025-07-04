@@ -1,0 +1,210 @@
+---
+description: Tech stack overview and best practices for this Next.js project
+globs: **/*.{ts,tsx,js,jsx,css}
+alwaysApply: true
+---
+
+# Tech Stack & Best Practices
+
+## **Core Framework Stack**
+
+### **Next.js 15.2.4** (App Router)
+- **✅ Latest Version**: Using cutting-edge features
+- **Server Components**: Prefer server components by default, use `"use client"` only when necessary
+- **App Router**: All routes in `app/` directory with `page.tsx`, `layout.tsx`, `loading.tsx` patterns
+- **Best Practices**:
+  - Use Server Components for data fetching and static content
+  - Client Components only for interactivity (forms, event handlers, browser APIs)
+  - Leverage built-in optimization (Image, Link, Font optimization)
+  - Use `metadata` API for SEO instead of `next/head`
+
+### **React 19**
+- **✅ Latest Version**: Includes concurrent features, automatic batching, and new hooks
+- **Best Practices**:
+  - Use `useActionState` for form state management
+  - Leverage `use()` hook for promises and context
+  - Prefer `startTransition` for non-urgent updates
+  - Use `useDeferredValue` for expensive calculations
+
+### **TypeScript 5**
+- **✅ Latest Version**: Advanced type inference and performance improvements
+- **Best Practices**:
+  - Use `satisfies` operator for better type checking
+  - Leverage template literal types for string patterns
+  - Use `const` assertions for immutable data
+  - Prefer interfaces over types for object shapes
+
+## **Styling & UI Architecture**
+
+### **Tailwind CSS 3.4.17**
+- **✅ Latest Version**: Modern CSS-in-JS alternative with JIT compilation
+- **Best Practices**:
+  - Use `@apply` sparingly, prefer utility classes
+  - Leverage CSS variables for theming
+  - Use arbitrary values `[value]` for one-off styles
+  - Configure in `tailwind.config.ts` for design system consistency
+
+### **Shadcn/UI + Radix UI Foundation**
+- **Component Architecture**: Unstyled Radix primitives + Tailwind styling
+- **Radix UI Components**: Comprehensive accessible primitives (v1.x stable)
+- **Best Practices**:
+  - Always use components from `components/ui/` directory
+  - Customize via CVA (Class Variance Authority) variants
+  - Maintain accessibility attributes from Radix
+  - Use `cn()` utility for conditional class merging
+
+```typescript
+// ✅ DO: Use shadcn/ui components
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+
+// ✅ DO: Use CVA for variants
+const buttonVariants = cva("base-classes", {
+  variants: {
+    variant: {
+      default: "default-classes",
+      outline: "outline-classes"
+    }
+  }
+})
+
+// ❌ DON'T: Style Radix components directly
+import * as Dialog from "@radix-ui/react-dialog"
+```
+
+### **Utility Libraries**
+- **`clsx`**: Conditional class names
+- **`tailwind-merge`**: Merge conflicting Tailwind classes
+- **`class-variance-authority`**: Component variants with type safety
+
+## **Form Handling**
+
+### **React Hook Form 7.54.1 + Zod 3.24.1**
+- **✅ Modern Stack**: Performant forms with type-safe validation
+- **Best Practices**:
+  - Use `@hookform/resolvers/zod` for schema validation
+  - Leverage `Controller` for complex UI components
+  - Use `watch` sparingly to avoid re-renders
+  - Implement server actions for form submission
+
+```typescript
+// ✅ DO: Type-safe form with Zod
+const formSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8)
+})
+
+const form = useForm<z.infer<typeof formSchema>>({
+  resolver: zodResolver(formSchema)
+})
+
+// ✅ DO: Use with shadcn/ui Form components
+<Form {...form}>
+  <FormField
+    control={form.control}
+    name="email"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Email</FormLabel>
+        <FormControl>
+          <Input {...field} />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</Form>
+```
+
+## **Data Visualization**
+
+### **Recharts 2.15.0**
+- **✅ Stable Version**: React-based charting library
+- **Best Practices**:
+  - Use `ResponsiveContainer` for responsive charts
+  - Implement loading states for chart data
+  - Use Tailwind classes for chart theming
+  - Leverage `recharts` with `components/ui/chart.tsx` wrapper
+
+## **Icons & Assets**
+
+### **Lucide React 0.454.0**
+- **✅ Latest Version**: Modern icon library with tree-shaking
+- **Best Practices**:
+  - Import individual icons to optimize bundle size
+  - Use consistent icon sizing (16px, 20px, 24px)
+  - Apply Tailwind classes for styling
+
+```typescript
+// ✅ DO: Import specific icons
+import { ChevronDown, User, Settings } from "lucide-react"
+
+// ❌ DON'T: Import entire library
+import * as Icons from "lucide-react"
+```
+
+## **State Management & Utilities**
+
+### **Date Handling**
+- **`date-fns`**: Modern date utility library
+- **`react-day-picker`**: Calendar component
+- **Best Practices**:
+  - Use `date-fns` for date formatting and manipulation
+  - Leverage `format`, `isAfter`, `isBefore` functions
+  - Handle timezone considerations
+
+### **Theme Management**
+- **`next-themes`**: Theme switching with SSR support
+- **Best Practices**:
+  - Use `useTheme` hook for theme state
+  - Implement theme toggle with system preference detection
+  - Use CSS variables for theme-aware styling
+
+## **Performance & Optimization**
+
+### **Bundle Optimization**
+- **Tree Shaking**: Import only used functions/components
+- **Code Splitting**: Use dynamic imports for heavy components
+- **Image Optimization**: Use Next.js `Image` component
+
+### **Development Tools**
+- **PostCSS**: CSS processing with autoprefixer
+- **ESLint**: Next.js recommended configuration
+- **TypeScript**: Strict mode enabled
+
+## **Version Management Notes**
+
+### **⚠️ Attention Required**
+- **`@radix-ui/react-slot`**: Using `"latest"` - should pin to specific version
+- **`date-fns`**: Using `"latest"` - should pin to specific version
+- **`react-day-picker`**: Using `"latest"` - should pin to specific version
+
+### **Recommended Actions**
+```bash
+# Pin loose versions
+npm install @radix-ui/react-slot@^1.1.0 date-fns@^3.6.0 react-day-picker@^8.10.0
+```
+
+## **Architecture Patterns**
+
+### **Component Organization**
+```
+components/
+├── ui/           # Shadcn/UI components
+├── icons.tsx     # Custom icon components
+└── feature/      # Feature-specific components
+```
+
+### **Styling Patterns**
+- Use `cn()` utility for conditional classes
+- Implement design system via Tailwind config
+- Use CSS variables for dynamic theming
+- Prefer composition over inheritance
+
+### **Type Safety**
+- Use Zod for runtime validation
+- Leverage TypeScript strict mode
+- Implement proper error boundaries
+- Use generic types for reusable components
+
+This stack provides a modern, performant, and maintainable foundation for React applications with excellent developer experience and production-ready features.

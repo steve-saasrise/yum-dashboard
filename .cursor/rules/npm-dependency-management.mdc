@@ -1,0 +1,92 @@
+---
+description: NPM dependency management patterns and React 19 compatibility requirements
+globs: package.json, package-lock.json, .npmrc
+alwaysApply: true
+---
+
+# NPM Dependency Management
+
+## **React 19 Compatibility Requirements**
+
+- **Always use `--legacy-peer-deps` flag** when installing npm packages
+- **Reason**: React 19 has peer dependency conflicts with some packages (e.g., vaul@0.9.9 requires React ^16.8 || ^17.0 || ^18.0)
+- **Required for all npm install commands**:
+  ```bash
+  # ✅ DO: Always use legacy peer deps
+  npm install package-name --legacy-peer-deps
+  npm install --save-dev package-name --legacy-peer-deps
+  
+  # ❌ DON'T: Install without the flag (will cause ERESOLVE errors)
+  npm install package-name
+  ```
+
+## **Package Management Best Practices**
+
+- **Use npm as primary package manager** (not pnpm, yarn)
+- **Lock file**: Maintain `package-lock.json` for consistent installs
+- **Version pinning**: Pin critical dependencies to specific versions
+- **Audit regularly**: Run `npm audit` to check for vulnerabilities
+
+## **Current Project Dependencies**
+
+### **Core Stack (Already Installed)**
+- Next.js 15.2.4
+- React 19
+- TypeScript 5
+- Tailwind CSS 3.4.17
+- Supabase JS 2.50.3
+- Upstash Redis 1.35.1
+
+### **UI & Form Libraries**
+- Comprehensive Radix UI components (25+ components)
+- React Hook Form 7.54.1 + Zod 3.24.1
+- Lucide React 0.454.0
+- Shadcn/UI component library
+
+### **Development Tools**
+- Husky 9.1.7 (git hooks)
+- Prettier 3.6.2 (code formatting)
+- ESLint (via Next.js)
+
+## **Installation Commands**
+
+```bash
+# ✅ Production dependencies
+npm install @supabase/supabase-js @upstash/redis --legacy-peer-deps
+
+# ✅ Development dependencies  
+npm install --save-dev husky prettier eslint --legacy-peer-deps
+
+# ✅ UI components (if adding new ones)
+npm install @radix-ui/react-component-name --legacy-peer-deps
+```
+
+## **Troubleshooting**
+
+- **ERESOLVE errors**: Always add `--legacy-peer-deps`
+- **Peer dependency warnings**: Expected with React 19, safe to ignore with legacy flag
+- **Version conflicts**: Check if newer versions support React 19, otherwise use legacy flag
+
+## **Scripts Configuration**
+
+Standard scripts in package.json:
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build", 
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  }
+}
+```
+
+## **Future Dependency Additions**
+
+- **Always check React 19 compatibility first**
+- **Use `--legacy-peer-deps` as default approach**
+- **Test thoroughly after adding new dependencies**
+- **Update this rule if patterns change**

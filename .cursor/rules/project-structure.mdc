@@ -1,0 +1,171 @@
+---
+description: Complete project directory structure and important files reference
+globs: **/*
+alwaysApply: true
+---
+
+# Project Structure Reference
+
+This document outlines the complete directory structure and important files in the yum-dashboard project.
+
+## **Root Directory Structure**
+
+```
+yum-dashboard/
+├── .cursor/                    # Cursor IDE configuration
+├── .github/                    # GitHub configuration and workflows
+├── .taskmaster/               # Task management system files
+├── app/                       # Next.js App Router directory
+├── components/                # React components
+├── hooks/                     # Custom React hooks
+├── lib/                       # Utility functions and libraries
+├── public/                    # Static assets
+├── scripts/                   # Build and utility scripts
+├── styles/                    # Global CSS files
+├── [config files]             # Configuration files at root
+└── [package files]            # Package management files
+```
+
+## **Key Directories**
+
+### **`app/` - Next.js App Router**
+- **Purpose**: Next.js 13+ App Router structure
+- **Files**:
+  - `layout.tsx` - Root layout component
+  - `page.tsx` - Homepage component
+  - `globals.css` - Global styles (125 lines)
+
+### **`components/` - React Components**
+- **Purpose**: Reusable React components
+- **Key Files**:
+  - `yum-dashboard.tsx` - **Main dashboard component (1,476 lines)**
+  - `date-picker-with-range.tsx` - Date picker component
+  - `icons.tsx` - Icon components collection
+  - `theme-provider.tsx` - Theme context provider
+  - `ui/` - **UI component library (43 components)**
+
+### **`components/ui/` - UI Component Library**
+- **Purpose**: Shadcn/ui based component library
+- **Complete Component Set** (43 components):
+  - **Form Controls**: `button.tsx`, `input.tsx`, `textarea.tsx`, `checkbox.tsx`, `radio-group.tsx`, `select.tsx`, `switch.tsx`, `slider.tsx`
+  - **Layout**: `card.tsx`, `separator.tsx`, `sidebar.tsx`, `sheet.tsx`, `drawer.tsx`, `resizable.tsx`
+  - **Navigation**: `breadcrumb.tsx`, `navigation-menu.tsx`, `menubar.tsx`, `pagination.tsx`, `tabs.tsx`
+  - **Feedback**: `alert.tsx`, `toast.tsx`, `toaster.tsx`, `progress.tsx`, `skeleton.tsx`
+  - **Overlays**: `dialog.tsx`, `alert-dialog.tsx`, `popover.tsx`, `tooltip.tsx`, `hover-card.tsx`
+  - **Data Display**: `table.tsx`, `chart.tsx` (10KB), `badge.tsx`, `avatar.tsx`, `calendar.tsx`
+  - **Interactive**: `accordion.tsx`, `carousel.tsx`, `command.tsx`, `collapsible.tsx`
+  - **Menus**: `context-menu.tsx`, `dropdown-menu.tsx`
+  - **Form**: `form.tsx`, `label.tsx`, `input-otp.tsx`
+  - **Utility**: `scroll-area.tsx`, `aspect-ratio.tsx`, `toggle.tsx`, `toggle-group.tsx`
+  - **Hooks**: `use-mobile.tsx`, `use-toast.ts`
+
+### **`hooks/` - Custom React Hooks**
+- **Purpose**: Reusable React hooks
+- **Files**:
+  - `use-mobile.tsx` - Mobile detection hook
+  - `use-toast.ts` - Toast notification hook (195 lines)
+
+### **`lib/` - Utility Functions**
+- **Purpose**: Utility functions and helper libraries
+- **Files**:
+  - `utils.ts` - Common utility functions
+
+### **`public/` - Static Assets**
+- **Purpose**: Static files served directly
+- **Files**:
+  - `placeholder-logo.png` & `placeholder-logo.svg` - Logo assets
+  - `placeholder-user.jpg` - User avatar placeholder
+  - `placeholder.jpg` & `placeholder.svg` - General placeholders
+
+### **`styles/` - Global Styles**
+- **Purpose**: Global CSS files
+- **Files**:
+  - `globals.css` - Global styles (95 lines, different from app/globals.css)
+
+### **`scripts/` - Build and Utility Scripts**
+- **Purpose**: Build scripts and project documentation
+- **Files**:
+  - `prd.txt` - **Product Requirements Document (30KB, 662 lines)**
+
+## **Configuration Files**
+
+### **Core Configuration**
+- **`package.json`** - Project dependencies and scripts (70 lines)
+- **`tsconfig.json`** - TypeScript configuration (28 lines)
+- **`tailwind.config.ts`** - Tailwind CSS configuration (94 lines)
+- **`next.config.mjs`** - Next.js configuration (15 lines)
+- **`postcss.config.mjs`** - PostCSS configuration (9 lines)
+- **`components.json`** - Shadcn/ui component configuration (21 lines)
+
+### **Package Management**
+- **`pnpm-lock.yaml`** - PNPM lock file (5 lines)
+
+### **Development Tools**
+- **`.gitignore`** - Git ignore patterns (50 lines)
+
+## **Development Tool Directories**
+
+### **`.cursor/` - Cursor IDE Configuration**
+- **`mcp.json`** - Model Context Protocol configuration (20 lines)
+- **`rules/`** - Cursor rules directory
+  - `cursor-rules.mdc` - Rule creation guidelines
+  - `self_improve.mdc` - Self-improvement patterns
+  - `cursor_rules.mdc` - Rule formatting standards
+  - `taskmaster/` - Task management rules
+
+### **`.github/` - GitHub Configuration**
+- **`instructions/`** - GitHub-specific instructions
+
+### **`.taskmaster/` - Task Management System**
+- **`config.json`** - Task management configuration (33 lines)
+- **`state.json`** - Current task state (6 lines)
+- **`tasks/`** - Task definition files
+- **`templates/`** - Task templates
+- **`docs/`** - Task documentation
+- **`reports/`** - Task analysis reports
+
+## **Important Files by Size/Complexity**
+
+### **Large Files (Key Implementation)**
+1. **`components/yum-dashboard.tsx`** - 62KB, 1,476 lines (Main dashboard)
+2. **`scripts/prd.txt`** - 30KB, 662 lines (Product requirements)
+3. **`components/ui/sidebar.tsx`** - 21KB, 622 lines (Sidebar component)
+4. **`components/ui/chart.tsx`** - 10KB, 366 lines (Chart components)
+
+### **Key UI Components**
+- **`components/ui/`** - Complete UI library with 43 components
+- **Form components** - Comprehensive form handling
+- **Layout components** - Flexible layout system
+- **Data visualization** - Charts and tables
+
+### **Configuration Hotspots**
+- **`tailwind.config.ts`** - Styling configuration (94 lines)
+- **`package.json`** - Dependencies and scripts (70 lines)
+- **`.cursor/rules/`** - Development rules and patterns
+
+## **Development Patterns**
+
+### **Component Organization**
+- **Atomic Design**: UI components in `components/ui/`
+- **Feature Components**: Main features in `components/`
+- **Hooks**: Custom hooks in `hooks/`
+- **Utilities**: Helper functions in `lib/`
+
+### **Styling Approach**
+- **Tailwind CSS**: Utility-first CSS framework
+- **Shadcn/ui**: Pre-built component library
+- **Global Styles**: Custom CSS in `styles/` and `app/`
+
+### **Project Management**
+- **Taskmaster**: Comprehensive task management system
+- **Cursor Rules**: Development guidelines and patterns
+- **GitHub Integration**: Workflow automation
+
+## **Key Takeaways**
+
+1. **Next.js 13+ App Router** structure with modern React patterns
+2. **Comprehensive UI Library** with 43 pre-built components
+3. **Large Main Component** (`yum-dashboard.tsx`) - likely needs refactoring
+4. **Well-Organized** development tools and configuration
+5. **Task Management** system integrated for project tracking
+6. **Modern Tooling** with TypeScript, Tailwind, and Cursor IDE integration
