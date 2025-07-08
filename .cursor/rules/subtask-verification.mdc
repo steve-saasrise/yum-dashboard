@@ -1,3 +1,118 @@
+---
+alwaysApply: true
+---
+
+# Subtask Verification Protocol
+
+## **Core Requirement**
+- **NEVER automatically proceed to a new subtask without explicit user verification**
+- **ALWAYS pause and ask for confirmation before starting the next subtask**
+- **MUST complete current subtask fully before suggesting next steps**
+
+## **Verification Process**
+
+### **✅ DO: Proper Subtask Completion Flow**
+```markdown
+1. Complete current subtask implementation
+2. Update subtask with findings/results
+3. Mark subtask as "done" 
+4. PAUSE and ask user: "Subtask X.Y is complete. Would you like me to proceed to the next task, or would you prefer to review the work first?"
+5. Wait for explicit user confirmation
+6. Only then proceed to next subtask
+```
+
+### **❌ DON'T: Automatic Continuation**
+```markdown
+❌ "Now I'll move on to the next subtask..."
+❌ "Let me continue with subtask X.Y..."
+❌ "Next, I'll work on..."
+❌ Automatically calling next_task without user input
+```
+
+## **Required Verification Patterns**
+
+### **After Subtask Completion**
+- **Status Update**: Mark subtask as "done" using `set_task_status`
+- **Summary**: Provide clear summary of what was accomplished
+- **Verification Request**: Ask user if they want to proceed or review
+- **Wait**: Do not take any further action until user responds
+
+### **Example Verification Messages**
+```markdown
+✅ "Subtask 1.3 'Monorepo Configuration' is now complete. I've enhanced the development configuration with ESLint and confirmed the single-repo architecture decision. 
+
+Would you like me to:
+1. Proceed to the next subtask (1.4 CI/CD Pipeline Setup)
+2. Review the current work first
+3. Make any adjustments to the completed subtask
+
+Please let me know how you'd like to proceed."
+```
+
+## **Exception Cases**
+
+### **When Verification is NOT Required**
+- **Within same subtask**: Continuing work on the current subtask
+- **User explicitly requests**: "Continue to next task" or similar directive
+- **Sequential operations**: Multiple operations within the same subtask scope
+
+### **When Verification IS Required**
+- **Subtask completion**: Any time a subtask is marked "done"
+- **Task completion**: When all subtasks of a task are complete
+- **Major milestones**: Significant implementation phases
+- **Error recovery**: After resolving issues that affected the plan
+
+## **Implementation Guidelines**
+
+### **Use Taskmaster Status Updates**
+```typescript
+// ✅ DO: Update status and pause for verification
+await set_task_status(subtaskId, "done");
+// Then ask user for verification before proceeding
+```
+
+### **Clear Communication**
+- **Be specific**: State exactly what was completed
+- **Provide options**: Give user clear choices for next steps
+- **Show progress**: Reference task/subtask numbers and titles
+- **Maintain context**: Keep user informed of overall progress
+
+## **Quality Assurance**
+
+### **Before Requesting Verification**
+- ✅ Subtask is functionally complete
+- ✅ All code changes are implemented
+- ✅ Status is updated in Taskmaster
+- ✅ Summary of work is provided
+- ✅ Next steps are identified but not started
+
+### **Verification Request Format**
+```markdown
+## Subtask [ID] Complete: [Title]
+
+**Work Completed:**
+- [Specific accomplishment 1]
+- [Specific accomplishment 2]
+- [Any important decisions made]
+
+**Next Available:**
+- Subtask [ID]: [Title]
+- OR Task [ID]: [Title] (if all subtasks complete)
+
+**How would you like to proceed?**
+```
+
+## **Benefits of This Approach**
+
+- **User Control**: Maintains user agency in task progression
+- **Quality Review**: Allows review of each completed phase
+- **Flexible Workflow**: User can adjust priorities or approach
+- **Clear Communication**: Prevents assumptions about next steps
+- **Error Prevention**: Reduces risk of proceeding with incorrect assumptions
+
+## **Integration with Taskmaster**
+
+This rule works in conjunction with [taskmaster workflow](mdc:.cursor/rules/taskmaster/dev_workflow.mdc) to ensure proper task management flow while maintaining user control over the development process.
 # Subtask Verification Protocol
 
 ## **Core Requirement**

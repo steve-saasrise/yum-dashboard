@@ -1,0 +1,67 @@
+---
+description: Ensures subtasks are fully completed and verified before proceeding to next tasks
+globs: **/*
+alwaysApply: true
+---
+
+# Subtask Completion Verification Rule
+
+## **Critical Workflow Requirement**
+
+- **Never proceed to the next subtask without completing the current one fully**
+- **Never create infrastructure files for future tasks until current subtask is verified**
+- **Always test and verify implementation before marking subtask as complete**
+
+## **Subtask Completion Checklist**
+
+### **Before Marking Any Subtask as Complete:**
+1. **Implementation Check**: All code/configuration is implemented
+2. **Testing Check**: Functionality has been tested (locally when possible)
+3. **Verification Check**: User has confirmed the result works as expected
+4. **Documentation Check**: Update subtask with completion details
+
+### **Deployment/Infrastructure Subtasks:**
+- **Never assume deployment worked** - always verify with actual testing
+- **Get user confirmation** for external service setup (Supabase, Redis, etc.)
+- **Test endpoints** locally before claiming deployment verification
+- **Confirm live deployment** works before marking complete
+
+## **Red Flags to Avoid**
+
+### **❌ DO NOT:**
+- Create files for Task 2 when still working on Task 1
+- Mark infrastructure setup as complete without testing connections
+- Proceed to database schema before deployment verification is done
+- Skip user confirmation for external service configuration
+
+### **✅ DO:**
+- Complete each subtask fully before moving to the next
+- Test locally before claiming deployment works
+- Ask user to confirm external services are set up
+- Update subtask with detailed completion notes
+
+## **Example Workflow**
+
+```
+Current: Task 1.5 (Deployment Verification)
+Status: In Progress
+
+Steps:
+1. ✅ Create infrastructure files
+2. ❌ Test health endpoint locally  
+3. ❌ Deploy to Vercel
+4. ❌ Verify live deployment
+5. ❌ Get user confirmation
+
+Result: DO NOT proceed to Task 2 until ALL steps are complete
+```
+
+## **Communication Pattern**
+
+When a subtask requires user action:
+- **Stop and ask** for user confirmation
+- **Explain what needs to be done** by the user
+- **Wait for user completion** before proceeding
+- **Test the result** once user confirms
+
+This ensures quality delivery and prevents getting ahead of the actual implementation progress.
