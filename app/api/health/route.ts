@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createBrowserSupabaseClient } from '@/lib/supabase';
 import { testRedisConnection } from '@/lib/redis';
 
 export async function GET() {
@@ -13,33 +13,23 @@ export async function GET() {
   };
 
   // Test Supabase connection
-  if (!supabase) {
+  try {
+    const supabase = createBrowserSupabaseClient();
+    const { error } = await supabase.from('_health_check').select('*').limit(1);
+    if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
+      // PGRST116 is "table not found", 42P01 is "relation does not exist" - both are expected
+      throw error;
+    }
     healthStatus.services.supabase = {
-      status: 'unconfigured',
-      message: 'Supabase client not configured - missing environment variables',
+      status: 'healthy',
+      message: 'Connection successful',
+    };
+  } catch (error) {
+    healthStatus.services.supabase = {
+      status: 'unhealthy',
+      message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
     healthStatus.status = 'degraded';
-  } else {
-    try {
-      const { data, error } = await supabase
-        .from('_health_check')
-        .select('*')
-        .limit(1);
-      if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
-        // PGRST116 is "table not found", 42P01 is "relation does not exist" - both are expected
-        throw error;
-      }
-      healthStatus.services.supabase = {
-        status: 'healthy',
-        message: 'Connection successful',
-      };
-    } catch (error) {
-      healthStatus.services.supabase = {
-        status: 'unhealthy',
-        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      };
-      healthStatus.status = 'degraded';
-    }
   }
 
   // Test Redis connection

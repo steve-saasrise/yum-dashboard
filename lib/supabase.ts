@@ -1,146 +1,135 @@
-import { createClient } from '@supabase/supabase-js';
 import { createBrowserClient } from '@supabase/ssr';
-import { NextRequest, NextResponse } from 'next/server';
-import type { Session } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Supabase configuration
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Browser client for client-side operations
-export const createBrowserSupabaseClient = () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return null;
-  }
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+// Email configuration for magic links
+export const emailConfig = {
+  redirectTo: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
+  resetPasswordRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password`,
 };
 
-// Legacy clients for backward compatibility
-export const supabase = createBrowserSupabaseClient();
+// Rate limiting configuration
+export const rateLimitConfig = {
+  maxAttempts: 5,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  magicLinkCooldown: 60 * 1000, // 1 minute between magic link requests
+};
 
-// Admin client for elevated permissions
-export const supabaseAdmin =
-  supabaseUrl && supabaseServiceKey
-    ? createClient(supabaseUrl, supabaseServiceKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      })
-    : null;
+// Magic link configuration
+export const magicLinkConfig = {
+  expiresIn: 3600, // 1 hour in seconds
+  shouldCreateUser: true, // Create user if they don't exist
+  data: {
+    // Additional metadata can be added here
+  },
+};
 
-// OAuth provider configurations
+// Authentication error helpers
+export function getAuthErrorMessage(error: any): string {
+  if (!error) return 'An unknown error occurred';
+
+  const message =
+    error.message ||
+    error.error_description ||
+    error.error ||
+    'Authentication failed';
+
+  // Handle specific error types
+  if (message.includes('expired') || message.includes('invalid_grant')) {
+    return 'This magic link has expired. Please request a new one.';
+  }
+
+  if (message.includes('Email link is invalid')) {
+    return 'This magic link is invalid or has already been used. Please request a new one.';
+  }
+
+  if (message.includes('rate limit') || message.includes('too many requests')) {
+    return 'Too many requests. Please wait before trying again.';
+  }
+
+  if (message.includes('Invalid login credentials')) {
+    return 'Invalid authentication. Please try again.';
+  }
+
+  if (message.includes('Email not confirmed')) {
+    return 'Please check your email and click the confirmation link.';
+  }
+
+  if (message.includes('User already registered')) {
+    return 'This email is already registered. Please sign in instead.';
+  }
+
+  // Return the original message if no specific handling is needed
+  return message;
+}
+
+export function isExpiredLinkError(error: any): boolean {
+  if (!error) return false;
+
+  const message = error.message || error.error_description || error.error || '';
+  return message.includes('expired') || message.includes('invalid_grant');
+}
+
+export function isRateLimitError(error: any): boolean {
+  if (!error) return false;
+
+  const message = error.message || error.error_description || error.error || '';
+  return (
+    message.includes('rate limit') || message.includes('too many requests')
+  );
+}
+
+// Create browser client
+export function createBrowserSupabaseClient() {
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+}
+
+// OAuth provider configuration
 export const oauthProviders = {
   google: {
-    enabled: true,
-    scopes: ['openid', 'email', 'profile'],
-    additionalParams: {
-      access_type: 'offline',
-      prompt: 'consent',
-    },
-  },
-} as const;
-
-export type OAuthProvider = keyof typeof oauthProviders;
-
-// Authentication configuration
-export const authConfig = {
-  redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
-  providers: {
-    google: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
-      scopes: 'openid email profile',
-    },
-  },
-  // Password requirements
-  password: {
-    minLength: 8,
-    requireSpecialChar: true,
-    requireNumber: true,
-    requireUppercase: true,
-  },
-  // Session configuration
-  session: {
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    refreshThreshold: 60 * 60, // 1 hour
-  },
-  // Magic link configuration
-  magicLink: {
-    enabled: true,
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
-  },
-  // OAuth-specific settings
-  oauth: {
-    // Enable PKCE for enhanced security (required for mobile apps)
-    pkce: true,
-    // Flow type (implicit or code)
-    flowType: 'pkce' as const,
-    // Redirect settings
-    redirects: {
-      success: '/dashboard',
-      error: '/auth/error',
-      signOut: '/',
+    provider: 'google' as const,
+    options: {
+      redirectTo: emailConfig.emailRedirectTo,
+      scopes: 'email profile',
     },
   },
 };
 
-// Helper function to get OAuth sign-in URL
-export const getOAuthSignInUrl = async (
-  provider: OAuthProvider,
-  options?: {
-    redirectTo?: string;
-    scopes?: string;
-  }
-) => {
+// Auth configuration
+export const authConfig = {
+  providers: ['google', 'email'] as const,
+  redirectTo: emailConfig.redirectTo,
+  emailRedirectTo: emailConfig.emailRedirectTo,
+  resetPasswordRedirectTo: emailConfig.resetPasswordRedirectTo,
+};
+
+// Helper function to handle magic link with enhanced configuration
+export async function sendMagicLink(email: string, additionalOptions?: any) {
   const supabase = createBrowserSupabaseClient();
 
-  if (!supabase) {
-    return {
-      data: null,
-      error: {
-        message:
-          'Supabase client not configured - missing environment variables',
-      },
-    };
-  }
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
+  return await supabase.auth.signInWithOtp({
+    email,
     options: {
-      redirectTo:
-        options?.redirectTo || authConfig.providers[provider].redirectTo,
-      scopes: options?.scopes || authConfig.providers[provider].scopes,
+      emailRedirectTo: emailConfig.emailRedirectTo,
+      shouldCreateUser: magicLinkConfig.shouldCreateUser,
+      data: magicLinkConfig.data,
+      ...additionalOptions,
     },
   });
+}
 
-  return { data, error };
-};
+// Helper function to handle OAuth sign in
+export async function signInWithOAuth(provider: keyof typeof oauthProviders) {
+  const supabase = createBrowserSupabaseClient();
+  const config = oauthProviders[provider];
 
-// Authentication error types
-export type AuthError = {
-  message: string;
-  status?: number;
-  code?: string;
-};
+  return await supabase.auth.signInWithOAuth({
+    provider: config.provider,
+    options: config.options,
+  });
+}
 
-// User type with additional profile fields
-export type UserProfile = {
-  id: string;
-  email: string;
-  full_name?: string;
-  avatar_url?: string;
-  username?: string;
-  created_at: string;
-  updated_at: string;
-  last_sign_in_at?: string;
-  provider?: string;
-  provider_id?: string;
-};
-
-// Authentication state type
-export type AuthState = {
-  user: UserProfile | null;
-  session: Session | null;
-  loading: boolean;
-  error: AuthError | null;
-};
+export default createBrowserSupabaseClient;

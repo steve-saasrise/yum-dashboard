@@ -44,7 +44,10 @@ interface AuthContextType {
   ) => Promise<{ error?: AuthError }>;
   signOut: () => Promise<{ error?: AuthError }>;
   signInWithOAuth: (provider: 'google') => Promise<void>;
-  signInWithMagicLink: (email: string) => Promise<{ error?: AuthError }>;
+  signInWithMagicLink: (
+    email: string,
+    redirectTo?: string
+  ) => Promise<{ error?: AuthError }>;
   resetPassword: (email: string) => Promise<{ error?: AuthError }>;
   updateProfile: (
     updates: Partial<UserProfile>
@@ -275,19 +278,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [supabase]
   );
 
-  const signInWithMagicLink = async (email: string) => {
+  const signInWithMagicLink = async (email: string, redirectTo?: string) => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+      // First check if user is rate limited
+      const rateLimitResponse = await fetch(
+        `/api/auth/magic-link?email=${encodeURIComponent(email)}`
+      );
+      if (rateLimitResponse.ok) {
+        const rateLimitData = await rateLimitResponse.json();
+        if (rateLimitData.rateLimited) {
+          const remainingTime = rateLimitData.remainingTime;
+          const error = {
+            message: `Rate limit exceeded. Please wait ${remainingTime} seconds before trying again.`,
+          } as AuthError;
+          setState((prev) => ({ ...prev, loading: false, error }));
+          return { error };
+        }
+      }
+
+      // Send magic link through our enhanced API
+      const response = await fetch('/api/auth/magic-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+        }),
       });
 
-      setState((prev) => ({ ...prev, loading: false, error: error || null }));
-      return { error: error || undefined };
+      const data = await response.json();
+
+      if (!response.ok) {
+        let errorMessage = data.message || 'Failed to send magic link';
+
+        if (response.status === 429) {
+          errorMessage =
+            data.message ||
+            'Too many requests. Please wait before trying again.';
+        }
+
+        const error = { message: errorMessage } as AuthError;
+        setState((prev) => ({ ...prev, loading: false, error }));
+        return { error };
+      }
+
+      // Success - magic link sent
+      setState((prev) => ({ ...prev, loading: false, error: null }));
+      return { error: undefined };
     } catch (error) {
       const authError = error as AuthError;
       setState((prev) => ({ ...prev, loading: false, error: authError }));

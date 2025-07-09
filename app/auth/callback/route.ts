@@ -57,8 +57,29 @@ export async function GET(request: NextRequest) {
 
       if (exchangeError) {
         console.error('Session exchange error:', exchangeError);
+
+        // Handle specific auth errors with user-friendly messages
+        let userMessage = exchangeError.message;
+
+        if (
+          exchangeError.message?.includes('expired') ||
+          exchangeError.message?.includes('invalid_grant')
+        ) {
+          userMessage =
+            'This magic link has expired. Please request a new one.';
+        } else if (exchangeError.message?.includes('Email link is invalid')) {
+          userMessage =
+            'This magic link is invalid or has already been used. Please request a new one.';
+        } else if (exchangeError.message?.includes('rate limit')) {
+          userMessage = 'Too many requests. Please wait before trying again.';
+        } else if (
+          exchangeError.message?.includes('Invalid login credentials')
+        ) {
+          userMessage = 'Invalid authentication. Please try again.';
+        }
+
         return NextResponse.redirect(
-          `${origin}/auth/error?error=session_exchange_failed&description=${encodeURIComponent(exchangeError.message)}`
+          `${origin}/auth/error?error=session_exchange_failed&description=${encodeURIComponent(userMessage)}`
         );
       }
 
