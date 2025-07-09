@@ -3,12 +3,15 @@ import { createBrowserClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Session } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Browser client for client-side operations
 export const createBrowserSupabaseClient = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
 };
 
@@ -42,10 +45,10 @@ export type OAuthProvider = keyof typeof oauthProviders;
 
 // Authentication configuration
 export const authConfig = {
-  redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+  redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
   providers: {
     google: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
       scopes: 'openid email profile',
     },
   },
@@ -64,7 +67,7 @@ export const authConfig = {
   // Magic link configuration
   magicLink: {
     enabled: true,
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
   },
   // OAuth-specific settings
   oauth: {
@@ -90,6 +93,16 @@ export const getOAuthSignInUrl = async (
   }
 ) => {
   const supabase = createBrowserSupabaseClient();
+
+  if (!supabase) {
+    return {
+      data: null,
+      error: {
+        message:
+          'Supabase client not configured - missing environment variables',
+      },
+    };
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
