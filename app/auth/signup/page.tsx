@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth, useUser, useAuthLoading } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 import { Mail, Eye, EyeOff, Check, X } from 'lucide-react';
 import Link from 'next/link';
@@ -39,6 +40,7 @@ export default function SignupPage() {
   const user = useUser();
   const loading = useAuthLoading();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -99,6 +101,10 @@ export default function SignupPage() {
         setError(error.message);
       } else {
         setSuccess(true);
+        toast({
+          title: 'Magic Link Sent',
+          description: `A magic link has been sent to ${formData.email}. Please check your inbox.`,
+        });
       }
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
@@ -132,6 +138,10 @@ export default function SignupPage() {
         setError(error.message);
       } else {
         setSuccess(true);
+        toast({
+          title: 'Magic Link Sent',
+          description: `A magic link has been sent to ${formData.email}. Please check your inbox.`,
+        });
       }
     } catch (error) {
       setError('Failed to send magic link. Please try again.');
