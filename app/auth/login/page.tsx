@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth, useUser, useAuthLoading } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 import { Mail, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const user = useUser();
   const loading = useAuthLoading();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -31,6 +33,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -43,6 +46,11 @@ export default function LoginPage() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setError(null);
+
+    // Clear email error when user starts typing in email field
+    if (name === 'email') {
+      setEmailError(null);
+    }
   };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
@@ -83,7 +91,7 @@ export default function LoginPage() {
 
   const handleMagicLinkSignIn = async () => {
     if (!formData.email) {
-      setError('Please enter your email address first');
+      setEmailError('Please enter your email address first');
       return;
     }
 
@@ -94,7 +102,10 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        alert('Check your email for the magic link!');
+        toast({
+          title: 'Magic link sent!',
+          description: 'Check your email to sign in.',
+        });
       }
     } catch (error) {
       setError('Failed to send magic link. Please try again.');
@@ -144,6 +155,9 @@ export default function LoginPage() {
                 disabled={isLoading}
                 required
               />
+              {emailError && (
+                <p className="text-sm text-destructive">{emailError}</p>
+              )}
             </div>
 
             <div className="space-y-2">
