@@ -12,7 +12,7 @@ UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_rest_token_here
 
 # Optional: Additional Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_APP_NAME=Yum Dashboard
+NEXT_PUBLIC_APP_NAME=Daily News
 
 # Development
 NODE_ENV=development 

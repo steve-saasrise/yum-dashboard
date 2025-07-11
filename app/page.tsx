@@ -45,11 +45,10 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center space-y-6 mb-16">
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            Welcome to <span className="text-primary">Yum</span>
+            Welcome to <span className="text-primary">Daily News</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your comprehensive analytics and management platform. Track,
-            analyze, and optimize your business with powerful insights.
+          The Daily Newspaper Reinvented
           </p>
           <div className="flex gap-4 justify-center">
             <Button size="lg" asChild>
@@ -119,7 +118,7 @@ export default function Home() {
         <div className="text-center bg-primary/5 rounded-lg p-8">
           <h2 className="text-2xl font-bold mb-4">Ready to get started?</h2>
           <p className="text-muted-foreground mb-6">
-            Join thousands of users who trust Yum Dashboard for their analytics
+            Join thousands of users who trust Daily News for their news aggregation
             needs.
           </p>
           <Button size="lg" asChild>

@@ -1,34 +1,30 @@
-# Yum Dashboard
+# Daily News
 
-A modern Next.js dashboard application built with React 19, TypeScript, and Tailwind CSS.
+A modern, responsive dashboard built with Next.js 15, React 19, TypeScript, and Tailwind CSS.
 
-## 🚀 Tech Stack
+## Features
 
-- **Framework**: Next.js 15.2.4 with App Router
-- **Frontend**: React 19, TypeScript 5
-- **Styling**: Tailwind CSS 3.4.17
-- **UI Components**: Shadcn/UI + Radix UI
-- **Icons**: Lucide React
-- **Package Manager**: pnpm
+- **Modern Tech Stack**: Next.js 15 with App Router, React 19, TypeScript 5
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
+- **UI Components**: Comprehensive Shadcn/UI component library
+- **Authentication**: Supabase Auth with magic link support
+- **Database**: Supabase PostgreSQL with Row Level Security
+- **Caching**: Upstash Redis for session management
+- **Deployment**: Optimized for Vercel with CI/CD pipeline
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-yum-dashboard/
-├── app/                    # Next.js App Router pages
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Homepage
+daily-news/
+├── app/                    # Next.js App Router
+│   ├── dashboard/         # Dashboard pages
+│   ├── auth/             # Authentication pages
+│   └── api/              # API routes
 ├── components/            # React components
-│   ├── ui/               # Shadcn/UI component library (43 components)
-│   ├── icons.tsx         # Custom icons
-│   ├── theme-provider.tsx # Theme management
-│   └── yum-dashboard.tsx # Main dashboard component
-├── hooks/                # Custom React hooks
+│   ├── ui/               # Shadcn/UI components
+│   └── daily-news-dashboard.tsx # Main dashboard component
 ├── lib/                  # Utility functions
-├── public/               # Static assets
-├── styles/               # Additional styles
-└── scripts/              # Build scripts and documentation
+└── hooks/               # Custom React hooks
 ```
 
 ## 🛠️ Development

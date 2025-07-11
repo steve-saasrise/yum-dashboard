@@ -340,7 +340,7 @@ function AppSidebar({
         <div className="flex items-center gap-2">
           <Icons.logo className="w-7 h-7 text-primary" />
           <span className="text-xl font-bold text-gray-800 dark:text-white group-data-[collapsible=icon]:hidden">
-            Yum
+            Daily News
           </span>
         </div>
       </SidebarHeader>
@@ -1390,7 +1390,7 @@ function MobileFiltersSheet({
 
 // --- MAIN DASHBOARD COMPONENT ---
 
-export function YumDashboard() {
+export function DailyNewsDashboard() {
   const { signOut } = useAuth();
 
   const handleSignOut = async () => {

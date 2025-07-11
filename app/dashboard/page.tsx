@@ -1,9 +1,7 @@
-import { YumDashboard } from '@/components/yum-dashboard';
+import { DailyNewsDashboard } from '@/components/daily-news-dashboard';
 
-export default function DashboardPage() {
+export default function Dashboard() {
   return (
-    <div className="bg-gray-50 dark:bg-gray-950 min-h-screen">
-      <YumDashboard />
-    </div>
+    <DailyNewsDashboard />
   );
 }

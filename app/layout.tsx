@@ -4,9 +4,8 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.dev',
+  title: 'Daily News',
+  description: 'Your personalized news aggregation platform',
 };
 
 export default function RootLayout({
