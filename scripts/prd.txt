@@ -94,7 +94,7 @@ Yum is a web-based content aggregation platform that centralizes content consump
 
 **FR-1.1 User Registration and Authentication**
 - Users can create accounts using email and magic link authentication via Supabase Auth
-- OAuth integration available for Google, GitHub, and other major providers
+- OAuth integration available for Google and other major providers
 - Secure session management with automatic logout after inactivity
 
 **FR-1.2 User Profile Management**
@@ -555,7 +555,7 @@ As a user, I want the platform to work consistently across different browsers so
 **Authentication Security**
 - Multi-factor authentication option for enhanced security
 - Session management with secure cookie handling
-- OAuth integration with major providers (Google, GitHub, Twitter)
+- OAuth integration with major providers (Google, Twitter)
 - Rate limiting for authentication attempts and password resets
 
 **URL Security and Validation**

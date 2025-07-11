@@ -7,9 +7,10 @@ import React, {
   useState,
   ReactNode,
   useCallback,
+  useRef,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserSupabaseClient } from '@/lib/supabase';
+import { createBrowserSupabaseClient, SessionUtils, SESSION_CONFIG } from '@/lib/supabase';
 import type { Session, User, AuthError } from '@supabase/supabase-js';
 
 // User Profile interface
@@ -62,6 +63,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const supabase = createBrowserSupabaseClient();
+  const sessionCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const activityUpdateInterval = useRef<NodeJS.Timeout | null>(null);
 
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -97,6 +100,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           error,
         } = await supabase.auth.getSession();
 
+        // Check if session has timed out due to inactivity
+        if (session && SessionUtils.hasSessionTimedOut()) {
+          console.log('Session timed out due to inactivity, logging out');
+          await SessionUtils.enhancedLogout(supabase);
+          setState((prev) => ({
+            ...prev,
+            session: null,
+            user: null,
+            profile: null,
+            loading: false,
+            error: null,
+          }));
+          return;
+        }
+
         setState((prev) => ({
           ...prev,
           session,
@@ -105,6 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           loading: false,
           error: error || null,
         }));
+
+        // If we have a session, update last activity and start monitoring
+        if (session) {
+          SessionUtils.updateLastActivity();
+          startSessionMonitoring(session);
+        }
       } catch (error) {
         setState((prev) => ({
           ...prev,
@@ -114,7 +138,103 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Start session monitoring for automatic refresh and timeout checking
+    const startSessionMonitoring = (session: Session) => {
+      // Clear any existing intervals
+      if (sessionCheckInterval.current) {
+        clearInterval(sessionCheckInterval.current);
+      }
+      if (activityUpdateInterval.current) {
+        clearInterval(activityUpdateInterval.current);
+      }
+
+      // Check session status every 30 seconds
+      sessionCheckInterval.current = setInterval(async () => {
+        const currentSession = state.session;
+        if (!currentSession) return;
+
+        // Check for inactivity timeout
+        if (SessionUtils.hasSessionTimedOut()) {
+          console.log('Session timed out due to inactivity');
+          await handleSessionTimeout();
+          return;
+        }
+
+        // Check if session needs refresh
+        if (SessionUtils.isSessionNearExpiry(currentSession)) {
+          console.log('Session near expiry, attempting refresh');
+          await handleSessionRefresh();
+        }
+      }, 30000); // Check every 30 seconds
+
+      // Update activity every 10 seconds when user is active
+      activityUpdateInterval.current = setInterval(() => {
+        SessionUtils.updateLastActivity();
+      }, SESSION_CONFIG.SYNC_CHECK_INTERVAL);
+    };
+
+    // Handle session timeout
+    const handleSessionTimeout = async () => {
+      await SessionUtils.enhancedLogout(supabase);
+      setState((prev) => ({
+        ...prev,
+        session: null,
+        user: null,
+        profile: null,
+        error: { message: 'Session timed out due to inactivity' } as AuthError,
+      }));
+      router.push('/auth/login?reason=session_timeout');
+    };
+
+    // Handle session refresh
+    const handleSessionRefresh = async () => {
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (error || !data.session) {
+          console.log('Session refresh failed, logging out');
+          await handleSessionTimeout();
+        } else {
+          console.log('Session refreshed successfully');
+          SessionUtils.updateLastActivity();
+        }
+      } catch (error) {
+        console.error('Session refresh error:', error);
+        await handleSessionTimeout();
+      }
+    };
+
+    // Listen for cross-tab logout events
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === SESSION_CONFIG.STORAGE_KEYS.LOGOUT_EVENT && e.newValue) {
+        console.log('Cross-tab logout detected');
+        setState((prev) => ({
+          ...prev,
+          session: null,
+          user: null,
+          profile: null,
+          error: null,
+        }));
+        router.push('/');
+      }
+    };
+
+    // Listen for user activity to update last activity timestamp
+    const updateActivity = () => {
+      if (state.session) {
+        SessionUtils.updateLastActivity();
+      }
+    };
+
+    // Activity events to track
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+
     getInitialSession();
+
+    // Add event listeners
+    window.addEventListener('storage', handleStorageChange);
+    activityEvents.forEach(event => {
+      document.addEventListener(event, updateActivity, { passive: true });
+    });
 
     // Listen for auth state changes
     const {
@@ -131,8 +251,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Handle routing based on auth state
       if (event === 'SIGNED_IN') {
+        SessionUtils.updateLastActivity();
+        if (session) {
+          startSessionMonitoring(session);
+        }
         router.refresh();
       } else if (event === 'SIGNED_OUT') {
+        // Clear intervals
+        if (sessionCheckInterval.current) {
+          clearInterval(sessionCheckInterval.current);
+        }
+        if (activityUpdateInterval.current) {
+          clearInterval(activityUpdateInterval.current);
+        }
+        SessionUtils.clearSessionStorage();
         router.push('/');
         router.refresh();
       }
@@ -140,6 +272,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       subscription.unsubscribe();
+      
+      // Clear intervals
+      if (sessionCheckInterval.current) {
+        clearInterval(sessionCheckInterval.current);
+      }
+      if (activityUpdateInterval.current) {
+        clearInterval(activityUpdateInterval.current);
+      }
+
+      // Remove event listeners
+      window.removeEventListener('storage', handleStorageChange);
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, updateActivity);
+      });
     };
   }, [supabase, router]);
 
@@ -242,12 +388,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const { error } = await supabase.auth.signOut();
-      setState((prev) => ({ ...prev, loading: false, error: error || null }));
+      // Clear session monitoring intervals
+      if (sessionCheckInterval.current) {
+        clearInterval(sessionCheckInterval.current);
+        sessionCheckInterval.current = null;
+      }
+      if (activityUpdateInterval.current) {
+        clearInterval(activityUpdateInterval.current);
+        activityUpdateInterval.current = null;
+      }
+
+      // Use enhanced logout with proper cleanup
+      const { error } = await SessionUtils.enhancedLogout(supabase);
+      
+      // Clear local auth state regardless of logout result
+      setState((prev) => ({
+        ...prev,
+        user: null,
+        session: null,
+        profile: null,
+        loading: false,
+        error: error || null,
+      }));
+      
       return { error: error || undefined };
     } catch (error) {
       const authError = error as AuthError;
-      setState((prev) => ({ ...prev, loading: false, error: authError }));
+      // Still clear the local state even if logout failed
+      setState((prev) => ({
+        ...prev,
+        user: null,
+        session: null,
+        profile: null,
+        loading: false,
+        error: authError,
+      }));
       return { error: authError };
     }
   };
@@ -375,6 +550,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { error } = await supabase.auth.refreshSession();
+      
+      // Update last activity on successful refresh
+      if (!error) {
+        SessionUtils.updateLastActivity();
+      }
+      
       setState((prev) => ({ ...prev, loading: false, error: error || null }));
       return { error: error || undefined };
     } catch (error) {
@@ -431,6 +612,40 @@ export function useAuthLoading() {
 export function useAuthError() {
   const { state } = useAuth();
   return state.error;
+}
+
+// Enhanced session utilities hooks
+export function useSessionInfo() {
+  const { state } = useAuth();
+  
+  if (!state.session) {
+    return {
+      isAuthenticated: false,
+      timeUntilExpiry: 0,
+      isNearExpiry: false,
+      isExpired: false,
+    };
+  }
+
+  const timeUntilExpiry = SessionUtils.getTimeUntilExpiry(state.session);
+  
+  return {
+    isAuthenticated: true,
+    timeUntilExpiry,
+    isNearExpiry: SessionUtils.isSessionNearExpiry(state.session),
+    isExpired: SessionUtils.isSessionExpired(state.session),
+    lastActivity: SessionUtils.getLastActivity(),
+  };
+}
+
+export function useSessionTimeout() {
+  const { state } = useAuth();
+  
+  return {
+    hasTimedOut: SessionUtils.hasSessionTimedOut(),
+    timeRemaining: Math.max(0, SESSION_CONFIG.DEFAULT_TIMEOUT - (Date.now() - SessionUtils.getLastActivity())),
+    isActive: !!state.session,
+  };
 }
 
 export default useAuth;

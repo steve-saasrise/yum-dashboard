@@ -4,6 +4,142 @@ import { createBrowserClient } from '@supabase/ssr';
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+// Session configuration constants
+export const SESSION_CONFIG = {
+  // Session timeout: 30 minutes default, 24 hours maximum
+  DEFAULT_TIMEOUT: 30 * 60 * 1000, // 30 minutes in milliseconds
+  MAX_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+  
+  // Auto-refresh when session expires in less than 5 minutes
+  REFRESH_THRESHOLD: 5 * 60 * 1000, // 5 minutes in milliseconds
+  
+  // Cross-tab session sync check interval
+  SYNC_CHECK_INTERVAL: 10 * 1000, // 10 seconds
+  
+  // Session storage keys for cross-tab sync
+  STORAGE_KEYS: {
+    SESSION_STATE: 'supabase_session_state',
+    LAST_ACTIVITY: 'supabase_last_activity',
+    LOGOUT_EVENT: 'supabase_logout_event',
+  },
+};
+
+// Session utilities
+export const SessionUtils = {
+  // Check if session is near expiry
+  isSessionNearExpiry: (session: any): boolean => {
+    if (!session?.expires_at) return false;
+    
+    const now = Date.now();
+    const sessionExpiry = new Date(session.expires_at * 1000).getTime();
+    const timeUntilExpiry = sessionExpiry - now;
+    
+    return timeUntilExpiry <= SESSION_CONFIG.REFRESH_THRESHOLD;
+  },
+
+  // Check if session has expired
+  isSessionExpired: (session: any): boolean => {
+    if (!session?.expires_at) return false;
+    
+    const now = Date.now();
+    const sessionExpiry = new Date(session.expires_at * 1000).getTime();
+    
+    return now >= sessionExpiry;
+  },
+
+  // Get time until session expires (in milliseconds)
+  getTimeUntilExpiry: (session: any): number => {
+    if (!session?.expires_at) return 0;
+    
+    const now = Date.now();
+    const sessionExpiry = new Date(session.expires_at * 1000).getTime();
+    
+    return Math.max(0, sessionExpiry - now);
+  },
+
+  // Update last activity timestamp
+  updateLastActivity: (): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(SESSION_CONFIG.STORAGE_KEYS.LAST_ACTIVITY, Date.now().toString());
+    }
+  },
+
+  // Get last activity timestamp
+  getLastActivity: (): number => {
+    if (typeof window === 'undefined') return Date.now();
+    
+    const lastActivity = localStorage.getItem(SESSION_CONFIG.STORAGE_KEYS.LAST_ACTIVITY);
+    return lastActivity ? parseInt(lastActivity, 10) : Date.now();
+  },
+
+  // Check if session has timed out due to inactivity
+  hasSessionTimedOut: (): boolean => {
+    const lastActivity = SessionUtils.getLastActivity();
+    const timeSinceActivity = Date.now() - lastActivity;
+    
+    return timeSinceActivity > SESSION_CONFIG.DEFAULT_TIMEOUT;
+  },
+
+  // Trigger cross-tab logout event
+  triggerCrossTabLogout: (): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(SESSION_CONFIG.STORAGE_KEYS.LOGOUT_EVENT, Date.now().toString());
+      // Clear the event after a short delay to allow other tabs to detect it
+      setTimeout(() => {
+        localStorage.removeItem(SESSION_CONFIG.STORAGE_KEYS.LOGOUT_EVENT);
+      }, 1000);
+    }
+  },
+
+  // Clear all session-related storage
+  clearSessionStorage: (): void => {
+    if (typeof window !== 'undefined') {
+      Object.values(SESSION_CONFIG.STORAGE_KEYS).forEach(key => {
+        localStorage.removeItem(key);
+      });
+    }
+  },
+
+  // Enhanced logout with proper cleanup
+  enhancedLogout: async (supabaseClient: any): Promise<{ error?: any }> => {
+    try {
+      // Clear local storage first
+      SessionUtils.clearSessionStorage();
+      
+      // Trigger cross-tab logout
+      SessionUtils.triggerCrossTabLogout();
+      
+      // Sign out from Supabase
+      const { error } = await supabaseClient.auth.signOut();
+      
+      // Clear any remaining cookies/storage
+      if (typeof window !== 'undefined') {
+        // Clear any auth-related items from sessionStorage
+        sessionStorage.clear();
+        
+        // Clear specific cookies if accessible
+        try {
+          document.cookie.split(";").forEach((c) => {
+            const eqPos = c.indexOf("=");
+            const name = eqPos > -1 ? c.substr(0, eqPos) : c;
+            if (name.trim().startsWith('sb-')) {
+              document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+            }
+          });
+        } catch (e) {
+          // Cookie clearing may fail in some browsers, but that's okay
+          console.warn('Could not clear auth cookies:', e);
+        }
+      }
+      
+      return { error };
+    } catch (error) {
+      console.error('Enhanced logout error:', error);
+      return { error };
+    }
+  },
+};
+
 // Email configuration for magic links
 export const emailConfig = {
   redirectTo: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',

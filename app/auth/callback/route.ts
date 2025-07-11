@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
+  // Check for redirectTo first (our app's parameter), then next, then default to /dashboard
+  const redirectTo = searchParams.get('redirectTo') ?? searchParams.get('next') ?? '/dashboard';
   const error = searchParams.get('error');
   const error_description = searchParams.get('error_description');
 
@@ -119,7 +120,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Successful authentication - redirect to the intended page
-        return NextResponse.redirect(`${origin}${next}`);
+        return NextResponse.redirect(`${origin}${redirectTo}`);
       }
     } catch (error) {
       console.error('Callback processing error:', error);

@@ -83,3 +83,25 @@ Create data deletion workflows, implement cascading deletions, handle data anony
 ### Details:
 Create consent forms and tracking, implement granular consent options, handle consent withdrawal, implement consent audit logging
 
+## 13. CSRF Protection Implementation [pending]
+### Dependencies: None
+### Description: Implement CSRF protection for all authentication forms to prevent cross-site request forgery attacks
+### Details:
+Create comprehensive CSRF protection system:
+1. Create server-side CSRF token generation/validation using crypto.randomUUID()
+2. Add CSRF tokens to login, signup, forgot-password, and magic-link forms
+3. Validate CSRF tokens in API routes before processing requests
+4. Use secure HTTP-only cookies for token storage with SameSite=strict
+5. Implement proper error handling for invalid/missing CSRF tokens
+6. Add cleanup for expired tokens
+7. Test all authentication flows with CSRF protection enabled
+
+Focus on: app/auth/login/page.tsx, app/auth/signup/page.tsx, app/auth/forgot-password/page.tsx, app/api/auth/magic-link/route.ts
+
+Security Requirements:
+- CSRF tokens must be unique per session
+- Tokens must expire after reasonable time (1 hour)
+- All authentication forms must include CSRF validation
+- API endpoints must validate tokens before processing
+- Proper error messages for CSRF failures without information leakage
+
