@@ -15,19 +15,19 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  User, 
-  Mail, 
-  Calendar, 
-  Settings, 
-  Edit3, 
-  Save, 
+import {
+  User,
+  Mail,
+  Calendar,
+  Settings,
+  Edit3,
+  Save,
   X,
   Download,
   Trash2,
   ArrowLeft,
   Shield,
-  Clock
+  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ProfileEditForm } from '@/components/profile/profile-edit-form';
@@ -42,7 +42,7 @@ export default function ProfilePage() {
   const loading = useAuthLoading();
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -69,7 +69,7 @@ export default function ProfilePage() {
     setIsUpdating(true);
     try {
       const { error } = await updateProfile(updates);
-      
+
       if (error) {
         toast({
           title: 'Error',
@@ -96,7 +96,12 @@ export default function ProfilePage() {
 
   const getInitials = (name?: string) => {
     if (!name) return profile.email?.[0]?.toUpperCase() || 'U';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const formatDate = (dateString?: string) => {
@@ -126,7 +131,7 @@ export default function ProfilePage() {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {!isEditing ? (
               <Button onClick={() => setIsEditing(true)} className="gap-2">
@@ -164,59 +169,63 @@ export default function ProfilePage() {
                   <>
                     {/* Profile Display */}
                     <div className="flex items-start gap-6">
-                                             <div className="flex-shrink-0">
-                         <Avatar className="h-24 w-24">
-                           <AvatarImage 
-                             src={profile.avatar_url} 
-                             alt={profile.full_name || profile.email} 
-                           />
-                           <AvatarFallback className="text-lg">
-                             {getInitials(profile.full_name)}
-                           </AvatarFallback>
-                         </Avatar>
-                       </div>
-                       
-                       <div className="flex-1 space-y-4">
-                         <div>
-                           <h3 className="text-xl font-semibold">
-                             {profile.full_name || 'No name set'}
-                           </h3>
-                           <p className="text-muted-foreground flex items-center gap-2">
-                             <Mail className="h-4 w-4" />
-                             {profile.email}
-                           </p>
-                           {profile.username && (
-                             <p className="text-muted-foreground">
-                               @{profile.username}
-                             </p>
-                           )}
-                         </div>
+                      <div className="flex-shrink-0">
+                        <Avatar className="h-24 w-24">
+                          <AvatarImage
+                            src={profile.avatar_url}
+                            alt={profile.full_name || profile.email}
+                          />
+                          <AvatarFallback className="text-lg">
+                            {getInitials(profile.full_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
 
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                           <div className="flex items-center gap-2">
-                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                             <span className="text-muted-foreground">Joined:</span>
-                             <span>{formatDate(profile.created_at)}</span>
-                           </div>
-                           
-                           <div className="flex items-center gap-2">
-                             <Clock className="h-4 w-4 text-muted-foreground" />
-                             <span className="text-muted-foreground">Last login:</span>
-                             <span>{formatDate(profile.last_sign_in_at)}</span>
-                           </div>
-                         </div>
+                      <div className="flex-1 space-y-4">
+                        <div>
+                          <h3 className="text-xl font-semibold">
+                            {profile.full_name || 'No name set'}
+                          </h3>
+                          <p className="text-muted-foreground flex items-center gap-2">
+                            <Mail className="h-4 w-4" />
+                            {profile.email}
+                          </p>
+                          {profile.username && (
+                            <p className="text-muted-foreground">
+                              @{profile.username}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">
+                              Joined:
+                            </span>
+                            <span>{formatDate(profile.created_at)}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">
+                              Last login:
+                            </span>
+                            <span>{formatDate(profile.last_sign_in_at)}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </>
-                                 ) : (
-                   /* Profile Edit Form */
-                   <ProfileEditForm
-                     profile={profile}
-                     onSave={handleProfileUpdate}
-                     onCancel={() => setIsEditing(false)}
-                     isLoading={isUpdating}
-                   />
-                 )}
+                ) : (
+                  /* Profile Edit Form */
+                  <ProfileEditForm
+                    profile={profile}
+                    onSave={handleProfileUpdate}
+                    onCancel={() => setIsEditing(false)}
+                    isLoading={isUpdating}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
@@ -227,17 +236,15 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Profile Picture</CardTitle>
-                <CardDescription>
-                  Upload a new avatar image
-                </CardDescription>
+                <CardDescription>Upload a new avatar image</CardDescription>
               </CardHeader>
-                             <CardContent>
-                 <AvatarUpload
-                   currentAvatar={profile.avatar_url}
-                   userInitials={getInitials(profile.full_name)}
-                   onAvatarUpdate={handleProfileUpdate}
-                 />
-               </CardContent>
+              <CardContent>
+                <AvatarUpload
+                  currentAvatar={profile.avatar_url}
+                  userInitials={getInitials(profile.full_name)}
+                  onAvatarUpdate={handleProfileUpdate}
+                />
+              </CardContent>
             </Card>
 
             {/* Account Actions */}
@@ -249,19 +256,23 @@ export default function ProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start gap-2" asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  asChild
+                >
                   <Link href="/settings">
                     <Shield className="h-4 w-4" />
                     Privacy & Security
                   </Link>
                 </Button>
-                
+
                 <Separator />
-                
+
                 <ProfileDataExport />
-                
+
                 <Separator />
-                
+
                 <AccountDeletion />
               </CardContent>
             </Card>
@@ -274,23 +285,31 @@ export default function ProfilePage() {
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Status</span>
-                  <Badge variant="default" className="bg-green-100 text-green-800">
+                  <Badge
+                    variant="default"
+                    className="bg-green-100 text-green-800"
+                  >
                     Active
                   </Badge>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Email verified</span>
-                  <Badge variant="default" className="bg-green-100 text-green-800">
+                  <span className="text-sm text-muted-foreground">
+                    Email verified
+                  </span>
+                  <Badge
+                    variant="default"
+                    className="bg-green-100 text-green-800"
+                  >
                     Verified
                   </Badge>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">2FA enabled</span>
-                  <Badge variant="outline">
-                    Not configured
-                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    2FA enabled
+                  </span>
+                  <Badge variant="outline">Not configured</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -299,4 +318,4 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-} 
+}

@@ -1,6 +1,5 @@
 'use client';
 
-
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -35,7 +34,7 @@ export function ProfileEditForm({
   profile,
   onSave,
   onCancel,
-  isLoading
+  isLoading,
 }: ProfileEditFormProps) {
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -81,11 +80,7 @@ export function ProfileEditForm({
         />
 
         <div className="flex gap-3 pt-4">
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="gap-2"
-          >
+          <Button type="submit" disabled={isLoading} className="gap-2">
             <Save className="h-4 w-4" />
             {isLoading ? 'Saving...' : 'Save Changes'}
           </Button>
@@ -103,4 +98,4 @@ export function ProfileEditForm({
       </form>
     </Form>
   );
-} 
+}

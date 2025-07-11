@@ -511,14 +511,25 @@ function AppSidebar({
   );
 }
 
-function Header({ onSettingsClick, onSignOut }: { onSettingsClick: () => void; onSignOut: () => void }) {
+function Header({
+  onSettingsClick,
+  onSignOut,
+}: {
+  onSettingsClick: () => void;
+  onSignOut: () => void;
+}) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const user = useUser();
   const profile = useProfile();
-  
+
   const getInitials = (name?: string) => {
     if (!name) return profile?.email?.[0]?.toUpperCase() || 'U';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
   return (
     <header className="flex items-center h-16 px-3 md:px-6 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
@@ -565,8 +576,10 @@ function Header({ onSettingsClick, onSignOut }: { onSettingsClick: () => void; o
           <DropdownMenuTrigger asChild>
             <Avatar className="h-9 w-9 cursor-pointer">
               <AvatarImage
-                src={profile?.avatar_url || "/placeholder.svg?height=40&width=40"}
-                alt={profile?.full_name || profile?.email || "User"}
+                src={
+                  profile?.avatar_url || '/placeholder.svg?height=40&width=40'
+                }
+                alt={profile?.full_name || profile?.email || 'User'}
               />
               <AvatarFallback>{getInitials(profile?.full_name)}</AvatarFallback>
             </Avatar>
@@ -574,8 +587,12 @@ function Header({ onSettingsClick, onSignOut }: { onSettingsClick: () => void; o
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{profile?.full_name || 'User'}</p>
-                <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                <p className="text-sm font-medium">
+                  {profile?.full_name || 'User'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {profile?.email}
+                </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -1460,7 +1477,7 @@ function MobileFiltersSheet({
 
 export function YumDashboard() {
   const { signOut } = useAuth();
-  
+
   const handleSignOut = async () => {
     await signOut();
     window.location.href = '/auth/login';
@@ -1512,7 +1529,10 @@ export function YumDashboard() {
           onCreatorEdit={handleEditCreator}
         />
         <SidebarInset className="flex-1 flex flex-col">
-          <Header onSettingsClick={() => setSettingsModalOpen(true)} onSignOut={handleSignOut} />
+          <Header
+            onSettingsClick={() => setSettingsModalOpen(true)}
+            onSignOut={handleSignOut}
+          />
           <main className="flex-1 p-4 md:p-6 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">

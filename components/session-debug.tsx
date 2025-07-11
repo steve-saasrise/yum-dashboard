@@ -10,7 +10,9 @@ interface SessionDebugProps {
   show?: boolean;
 }
 
-export function SessionDebug({ show = process.env.NODE_ENV === 'development' }: SessionDebugProps) {
+export function SessionDebug({
+  show = process.env.NODE_ENV === 'development',
+}: SessionDebugProps) {
   const sessionInfo = useSessionInfo();
   const timeoutInfo = useSessionTimeout();
 
@@ -50,8 +52,12 @@ export function SessionDebug({ show = process.env.NODE_ENV === 'development' }: 
             <User className="h-3 w-3" />
             Status:
           </span>
-          <Badge variant={sessionInfo.isAuthenticated ? 'default' : 'destructive'}>
-            {sessionInfo.isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
+          <Badge
+            variant={sessionInfo.isAuthenticated ? 'default' : 'destructive'}
+          >
+            {sessionInfo.isAuthenticated
+              ? 'Authenticated'
+              : 'Not Authenticated'}
           </Badge>
         </div>
 
@@ -64,11 +70,16 @@ export function SessionDebug({ show = process.env.NODE_ENV === 'development' }: 
                 Expires in:
               </span>
               <div className="text-right">
-                <div className={sessionInfo.isNearExpiry ? 'text-orange-500' : ''}>
+                <div
+                  className={sessionInfo.isNearExpiry ? 'text-orange-500' : ''}
+                >
                   {formatTime(sessionInfo.timeUntilExpiry)}
                 </div>
                 {sessionInfo.isNearExpiry && (
-                  <Badge variant="outline" className="text-orange-500 border-orange-500">
+                  <Badge
+                    variant="outline"
+                    className="text-orange-500 border-orange-500"
+                  >
                     Near Expiry
                   </Badge>
                 )}
@@ -88,19 +99,24 @@ export function SessionDebug({ show = process.env.NODE_ENV === 'development' }: 
                 Timeout in:
               </span>
               <div className="text-right">
-                <div className={timeoutInfo.timeRemaining < 5 * 60 * 1000 ? 'text-red-500' : ''}>
+                <div
+                  className={
+                    timeoutInfo.timeRemaining < 5 * 60 * 1000
+                      ? 'text-red-500'
+                      : ''
+                  }
+                >
                   {formatTime(timeoutInfo.timeRemaining)}
                 </div>
                 {timeoutInfo.hasTimedOut && (
-                  <Badge variant="destructive">
-                    Timed Out
-                  </Badge>
+                  <Badge variant="destructive">Timed Out</Badge>
                 )}
               </div>
             </div>
 
             {/* Session Warnings */}
-            {(sessionInfo.isNearExpiry || timeoutInfo.timeRemaining < 5 * 60 * 1000) && (
+            {(sessionInfo.isNearExpiry ||
+              timeoutInfo.timeRemaining < 5 * 60 * 1000) && (
               <div className="pt-2 border-t">
                 <div className="flex items-center gap-1 text-orange-600">
                   <AlertTriangle className="h-3 w-3" />
@@ -129,4 +145,4 @@ export function SessionDebug({ show = process.env.NODE_ENV === 'development' }: 
   );
 }
 
-export default SessionDebug; 
+export default SessionDebug;

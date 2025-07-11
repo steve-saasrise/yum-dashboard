@@ -6,7 +6,8 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   // Check for redirectTo first (our app's parameter), then next, then default to /dashboard
-  const redirectTo = searchParams.get('redirectTo') ?? searchParams.get('next') ?? '/dashboard';
+  const redirectTo =
+    searchParams.get('redirectTo') ?? searchParams.get('next') ?? '/dashboard';
   const error = searchParams.get('error');
   const error_description = searchParams.get('error_description');
 

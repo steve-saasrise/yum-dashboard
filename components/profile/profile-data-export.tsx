@@ -34,7 +34,7 @@ export function ProfileDataExport() {
 
       // Convert to JSON
       const dataStr = JSON.stringify(exportData, null, 2);
-      
+
       // Create and download file
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -72,4 +72,4 @@ export function ProfileDataExport() {
       {isExporting ? 'Exporting...' : 'Export My Data'}
     </Button>
   );
-} 
+}

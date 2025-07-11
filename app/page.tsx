@@ -4,7 +4,13 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useAuthLoading } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import Link from 'next/link';
 import { ArrowRight, BarChart3, Users, Shield, Zap } from 'lucide-react';
 
@@ -42,8 +48,8 @@ export default function Home() {
             Welcome to <span className="text-primary">Yum</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your comprehensive analytics and management platform. 
-            Track, analyze, and optimize your business with powerful insights.
+            Your comprehensive analytics and management platform. Track,
+            analyze, and optimize your business with powerful insights.
           </p>
           <div className="flex gap-4 justify-center">
             <Button size="lg" asChild>
@@ -78,7 +84,8 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Collaborate effectively with role-based access and team features.
+                Collaborate effectively with role-based access and team
+                features.
               </CardDescription>
             </CardContent>
           </Card>
@@ -112,7 +119,8 @@ export default function Home() {
         <div className="text-center bg-primary/5 rounded-lg p-8">
           <h2 className="text-2xl font-bold mb-4">Ready to get started?</h2>
           <p className="text-muted-foreground mb-6">
-            Join thousands of users who trust Yum Dashboard for their analytics needs.
+            Join thousands of users who trust Yum Dashboard for their analytics
+            needs.
           </p>
           <Button size="lg" asChild>
             <Link href="/auth/signup" className="gap-2">

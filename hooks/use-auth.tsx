@@ -10,7 +10,11 @@ import React, {
   useRef,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserSupabaseClient, SessionUtils, SESSION_CONFIG } from '@/lib/supabase';
+import {
+  createBrowserSupabaseClient,
+  SessionUtils,
+  SESSION_CONFIG,
+} from '@/lib/supabase';
 import type { Session, User, AuthError } from '@supabase/supabase-js';
 
 // User Profile interface
@@ -226,13 +230,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Activity events to track
-    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    const activityEvents = [
+      'mousedown',
+      'mousemove',
+      'keypress',
+      'scroll',
+      'touchstart',
+      'click',
+    ];
 
     getInitialSession();
 
     // Add event listeners
     window.addEventListener('storage', handleStorageChange);
-    activityEvents.forEach(event => {
+    activityEvents.forEach((event) => {
       document.addEventListener(event, updateActivity, { passive: true });
     });
 
@@ -272,7 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       subscription.unsubscribe();
-      
+
       // Clear intervals
       if (sessionCheckInterval.current) {
         clearInterval(sessionCheckInterval.current);
@@ -283,7 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Remove event listeners
       window.removeEventListener('storage', handleStorageChange);
-      activityEvents.forEach(event => {
+      activityEvents.forEach((event) => {
         document.removeEventListener(event, updateActivity);
       });
     };
@@ -400,7 +411,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Use enhanced logout with proper cleanup
       const { error } = await SessionUtils.enhancedLogout(supabase);
-      
+
       // Clear local auth state regardless of logout result
       setState((prev) => ({
         ...prev,
@@ -410,7 +421,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading: false,
         error: error || null,
       }));
-      
+
       return { error: error || undefined };
     } catch (error) {
       const authError = error as AuthError;
@@ -550,12 +561,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { error } = await supabase.auth.refreshSession();
-      
+
       // Update last activity on successful refresh
       if (!error) {
         SessionUtils.updateLastActivity();
       }
-      
+
       setState((prev) => ({ ...prev, loading: false, error: error || null }));
       return { error: error || undefined };
     } catch (error) {
@@ -617,7 +628,7 @@ export function useAuthError() {
 // Enhanced session utilities hooks
 export function useSessionInfo() {
   const { state } = useAuth();
-  
+
   if (!state.session) {
     return {
       isAuthenticated: false,
@@ -628,7 +639,7 @@ export function useSessionInfo() {
   }
 
   const timeUntilExpiry = SessionUtils.getTimeUntilExpiry(state.session);
-  
+
   return {
     isAuthenticated: true,
     timeUntilExpiry,
@@ -640,10 +651,14 @@ export function useSessionInfo() {
 
 export function useSessionTimeout() {
   const { state } = useAuth();
-  
+
   return {
     hasTimedOut: SessionUtils.hasSessionTimedOut(),
-    timeRemaining: Math.max(0, SESSION_CONFIG.DEFAULT_TIMEOUT - (Date.now() - SessionUtils.getLastActivity())),
+    timeRemaining: Math.max(
+      0,
+      SESSION_CONFIG.DEFAULT_TIMEOUT -
+        (Date.now() - SessionUtils.getLastActivity())
+    ),
     isActive: !!state.session,
   };
 }

@@ -6,16 +6,16 @@ const SESSION_CONFIG = {
   // Session timeout: 30 minutes default, 24 hours maximum
   DEFAULT_TIMEOUT: 30 * 60 * 1000, // 30 minutes in milliseconds
   MAX_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
-  
+
   // Auto-refresh when session expires in less than 5 minutes
   REFRESH_THRESHOLD: 5 * 60 * 1000, // 5 minutes in milliseconds
-  
+
   // Protected routes that require authentication
   PROTECTED_ROUTES: ['/dashboard', '/profile', '/settings'],
-  
+
   // Auth routes that should redirect if already authenticated
   AUTH_ROUTES: ['/auth/login', '/auth/signup', '/auth/forgot-password'],
-  
+
   // Public routes that don't require any checks
   PUBLIC_ROUTES: ['/', '/auth/callback', '/auth/error', '/api/health'],
 };
@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
 
   // Skip session checks for API routes (except auth APIs) and static files
   if (
-    pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/') ||
+    (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/favicon') ||
     pathname.includes('.')
@@ -75,10 +75,13 @@ export async function middleware(request: NextRequest) {
     );
 
     // Get current session
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
 
     // Check if route is protected
-    const isProtectedRoute = SESSION_CONFIG.PROTECTED_ROUTES.some(route => 
+    const isProtectedRoute = SESSION_CONFIG.PROTECTED_ROUTES.some((route) =>
       pathname.startsWith(route)
     );
 
@@ -94,7 +97,8 @@ export async function middleware(request: NextRequest) {
 
     // Handle authenticated access to auth routes
     if (isAuthRoute && session && !error) {
-      const redirectTo = request.nextUrl.searchParams.get('redirectTo') || '/dashboard';
+      const redirectTo =
+        request.nextUrl.searchParams.get('redirectTo') || '/dashboard';
       return NextResponse.redirect(new URL(redirectTo, origin));
     }
 
@@ -107,11 +111,11 @@ export async function middleware(request: NextRequest) {
       // Check if session has expired
       if (timeUntilExpiry <= 0) {
         console.log('Session expired, redirecting to login');
-        
+
         // Clear auth cookies
         response.cookies.delete('sb-access-token');
         response.cookies.delete('sb-refresh-token');
-        
+
         const redirectUrl = new URL('/auth/login', origin);
         redirectUrl.searchParams.set('redirectTo', pathname);
         redirectUrl.searchParams.set('reason', 'session_expired');
@@ -122,15 +126,16 @@ export async function middleware(request: NextRequest) {
       if (timeUntilExpiry <= SESSION_CONFIG.REFRESH_THRESHOLD) {
         try {
           console.log('Attempting session refresh - expires soon');
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          
+          const { data: refreshData, error: refreshError } =
+            await supabase.auth.refreshSession();
+
           if (refreshError || !refreshData.session) {
             console.log('Session refresh failed, redirecting to login');
-            
+
             // Clear auth cookies
             response.cookies.delete('sb-access-token');
             response.cookies.delete('sb-refresh-token');
-            
+
             const redirectUrl = new URL('/auth/login', origin);
             redirectUrl.searchParams.set('redirectTo', pathname);
             redirectUrl.searchParams.set('reason', 'refresh_failed');
@@ -140,7 +145,7 @@ export async function middleware(request: NextRequest) {
           console.log('Session refreshed successfully');
         } catch (refreshError) {
           console.error('Session refresh error:', refreshError);
-          
+
           // On refresh error for protected routes, redirect to login
           if (isProtectedRoute) {
             const redirectUrl = new URL('/auth/login', origin);
@@ -156,7 +161,10 @@ export async function middleware(request: NextRequest) {
 
       // Add session info to response headers for debugging (in development)
       if (process.env.NODE_ENV === 'development') {
-        response.headers.set('X-Session-Expires-In', Math.floor(timeUntilExpiry / 1000).toString());
+        response.headers.set(
+          'X-Session-Expires-In',
+          Math.floor(timeUntilExpiry / 1000).toString()
+        );
         response.headers.set('X-Session-User-Id', session.user.id);
       }
     }
@@ -164,12 +172,12 @@ export async function middleware(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Middleware error:', error);
-    
+
     // On middleware errors for protected routes, redirect to login
-    const isProtectedRoute = SESSION_CONFIG.PROTECTED_ROUTES.some(route => 
+    const isProtectedRoute = SESSION_CONFIG.PROTECTED_ROUTES.some((route) =>
       pathname.startsWith(route)
     );
-    
+
     if (isProtectedRoute) {
       const redirectUrl = new URL('/auth/login', origin);
       redirectUrl.searchParams.set('redirectTo', pathname);
@@ -192,4 +200,4 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-}; 
+};

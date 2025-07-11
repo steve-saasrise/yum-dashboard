@@ -15,7 +15,7 @@ interface AvatarUploadProps {
 export function AvatarUpload({
   currentAvatar,
   userInitials,
-  onAvatarUpdate
+  onAvatarUpdate,
 }: AvatarUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export function AvatarUpload({
       // For now, we'll just simulate the upload
       await onAvatarUpdate({ avatar_url: previewUrl });
       setPreviewUrl(null);
-      
+
       toast({
         title: 'Avatar updated',
         description: 'Your profile picture has been updated successfully.',
@@ -90,13 +90,11 @@ export function AvatarUpload({
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-4">
         <Avatar className="h-20 w-20">
-          <AvatarImage 
-            src={previewUrl || currentAvatar} 
-            alt="Profile picture" 
+          <AvatarImage
+            src={previewUrl || currentAvatar}
+            alt="Profile picture"
           />
-          <AvatarFallback className="text-lg">
-            {userInitials}
-          </AvatarFallback>
+          <AvatarFallback className="text-lg">{userInitials}</AvatarFallback>
         </Avatar>
 
         {!previewUrl ? (
@@ -148,4 +146,4 @@ export function AvatarUpload({
       </p>
     </div>
   );
-} 
+}

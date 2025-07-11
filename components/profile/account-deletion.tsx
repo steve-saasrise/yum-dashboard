@@ -41,21 +41,23 @@ export function AccountDeletion() {
     try {
       // In a real implementation, you would make an API call to delete the account
       // For now, we'll just simulate the process
-      
+
       toast({
         title: 'Account deletion initiated',
-        description: 'Your account deletion request has been processed. You will be logged out.',
+        description:
+          'Your account deletion request has been processed. You will be logged out.',
       });
 
       // Sign out the user
       await signOut();
-      
+
       // Redirect to home page
       router.push('/');
     } catch (error) {
       toast({
         title: 'Deletion failed',
-        description: 'Failed to delete your account. Please try again or contact support.',
+        description:
+          'Failed to delete your account. Please try again or contact support.',
         variant: 'destructive',
       });
     } finally {
@@ -66,10 +68,7 @@ export function AccountDeletion() {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="destructive"
-          className="w-full justify-start gap-2"
-        >
+        <Button variant="destructive" className="w-full justify-start gap-2">
           <Trash2 className="h-4 w-4" />
           Delete Account
         </Button>
@@ -82,7 +81,7 @@ export function AccountDeletion() {
             account and remove all your data from our servers.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        
+
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="confirmation">
@@ -110,4 +109,4 @@ export function AccountDeletion() {
       </AlertDialogContent>
     </AlertDialog>
   );
-} 
+}
