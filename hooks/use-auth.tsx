@@ -543,12 +543,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: updates,
-      });
+      if (!state.user?.id) {
+        throw new Error('User not authenticated');
+      }
 
-      setState((prev) => ({ ...prev, loading: false, error: error || null }));
-      return { error: error || undefined };
+      // Update the user_profiles table with the new data
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', state.user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Update local state with the new profile data
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: null,
+        profile: prev.profile ? { ...prev.profile, ...updates } : null,
+      }));
+
+      return { error: undefined };
     } catch (error) {
       const authError = error as AuthError;
       setState((prev) => ({ ...prev, loading: false, error: authError }));

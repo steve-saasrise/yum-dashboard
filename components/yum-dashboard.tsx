@@ -512,10 +512,8 @@ function AppSidebar({
 }
 
 function Header({
-  onSettingsClick,
   onSignOut,
 }: {
-  onSettingsClick: () => void;
   onSignOut: () => void;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
@@ -599,14 +597,9 @@ function Header({
             <DropdownMenuItem asChild>
               <a href="/profile" className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+                <span>Account</span>
               </a>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onSettingsClick}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
@@ -1157,79 +1150,7 @@ function CreatorManagementModal({
   );
 }
 
-function UserSettingsModal({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>
-            Manage your profile, notifications, and preferences.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4 space-y-6">
-          <div className="space-y-2">
-            <h4 className="font-semibold">Profile</h4>
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src="/placeholder.svg?height=64&width=64" />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-2 flex-1">
-                <Input defaultValue="Your Name" />
-                <Input type="email" defaultValue="your.email@example.com" />
-              </div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <h4 className="font-semibold">Email Digest</h4>
-            <div className="flex items-center justify-between p-3 border rounded-md">
-              <Label htmlFor="email-digest" className="font-normal">
-                Receive daily email digest
-              </Label>
-              <Switch id="email-digest" defaultChecked />
-            </div>
-            <p className="text-sm text-gray-500">
-              Select topics for your digest:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {topics.map((topic) => (
-                <Badge
-                  key={topic.id}
-                  variant="outline"
-                  className="cursor-pointer hover:border-primary"
-                >
-                  {topic.name}
-                </Badge>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h4 className="font-semibold">Notifications</h4>
-            <div className="flex items-center justify-between p-3 border rounded-md">
-              <Label htmlFor="push-notifications" className="font-normal">
-                Enable push notifications
-              </Label>
-              <Switch id="push-notifications" />
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button>Save Changes</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+
 
 // --- NEW: Content List Item Component ---
 function ContentListItem({ item }: { item: any }) {
@@ -1483,7 +1404,6 @@ export function YumDashboard() {
     window.location.href = '/auth/login';
   };
   const [view, setView] = React.useState<'grid' | 'list'>('grid');
-  const [isSettingsModalOpen, setSettingsModalOpen] = React.useState(false);
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
   const [isCreatorEditModalOpen, setCreatorEditModalOpen] =
     React.useState(false);
@@ -1530,7 +1450,6 @@ export function YumDashboard() {
         />
         <SidebarInset className="flex-1 flex flex-col">
           <Header
-            onSettingsClick={() => setSettingsModalOpen(true)}
             onSignOut={handleSignOut}
           />
           <main className="flex-1 p-4 md:p-6 bg-gray-50 dark:bg-gray-950">
@@ -1683,10 +1602,6 @@ export function YumDashboard() {
           </main>
         </SidebarInset>
       </div>
-      <UserSettingsModal
-        open={isSettingsModalOpen}
-        onOpenChange={setSettingsModalOpen}
-      />
       <TopicManagementModal
         open={isTopicModalOpen}
         onOpenChange={setTopicModalOpen}
