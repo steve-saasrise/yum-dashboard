@@ -58,7 +58,7 @@ export default function ProfilePage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  
+
   // Notification settings state
   const [emailDigest, setEmailDigest] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(false);
@@ -112,7 +112,10 @@ export default function ProfilePage() {
     }
   };
 
-  const handleNotificationUpdate = async (type: 'email' | 'push' | 'topics', value: any) => {
+  const handleNotificationUpdate = async (
+    type: 'email' | 'push' | 'topics',
+    value: any
+  ) => {
     try {
       // In a real app, you'd save these to your backend
       if (type === 'email') {
@@ -122,7 +125,7 @@ export default function ProfilePage() {
       } else if (type === 'topics') {
         setSelectedTopics(value);
       }
-      
+
       toast({
         title: 'Settings Updated',
         description: 'Your notification preferences have been saved.',
@@ -138,7 +141,7 @@ export default function ProfilePage() {
 
   const handleTopicToggle = (topicId: number) => {
     const newTopics = selectedTopics.includes(topicId)
-      ? selectedTopics.filter(id => id !== topicId)
+      ? selectedTopics.filter((id) => id !== topicId)
       : [...selectedTopics, topicId];
     handleNotificationUpdate('topics', newTopics);
   };
@@ -174,7 +177,9 @@ export default function ProfilePage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Profile & Settings</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Profile & Settings
+              </h1>
               <p className="text-gray-600 dark:text-gray-400">
                 Manage your personal information, notifications, and preferences
               </p>
@@ -253,7 +258,9 @@ export default function ProfilePage() {
                             <span className="text-gray-600 dark:text-gray-400">
                               Joined:
                             </span>
-                            <span className="text-gray-900 dark:text-white">{formatDate(profile.created_at)}</span>
+                            <span className="text-gray-900 dark:text-white">
+                              {formatDate(profile.created_at)}
+                            </span>
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -261,7 +268,9 @@ export default function ProfilePage() {
                             <span className="text-gray-600 dark:text-gray-400">
                               Last login:
                             </span>
-                            <span className="text-gray-900 dark:text-white">{formatDate(profile.last_sign_in_at)}</span>
+                            <span className="text-gray-900 dark:text-white">
+                              {formatDate(profile.last_sign_in_at)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -294,16 +303,21 @@ export default function ProfilePage() {
                 {/* Email Digest Settings */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800">
-                    <Label htmlFor="email-digest" className="font-normal text-gray-900 dark:text-white">
+                    <Label
+                      htmlFor="email-digest"
+                      className="font-normal text-gray-900 dark:text-white"
+                    >
                       Receive daily email digest
                     </Label>
-                    <Switch 
-                      id="email-digest" 
+                    <Switch
+                      id="email-digest"
                       checked={emailDigest}
-                      onCheckedChange={(checked) => handleNotificationUpdate('email', checked)}
+                      onCheckedChange={(checked) =>
+                        handleNotificationUpdate('email', checked)
+                      }
                     />
                   </div>
-                  
+
                   {emailDigest && (
                     <div className="space-y-3">
                       <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -313,10 +327,14 @@ export default function ProfilePage() {
                         {topics.map((topic) => (
                           <Badge
                             key={topic.id}
-                            variant={selectedTopics.includes(topic.id) ? "default" : "outline"}
+                            variant={
+                              selectedTopics.includes(topic.id)
+                                ? 'default'
+                                : 'outline'
+                            }
                             className={`cursor-pointer transition-colors ${
-                              selectedTopics.includes(topic.id) 
-                                ? topic.color 
+                              selectedTopics.includes(topic.id)
+                                ? topic.color
                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                             }`}
                             onClick={() => handleTopicToggle(topic.id)}
@@ -333,13 +351,18 @@ export default function ProfilePage() {
 
                 {/* Push Notifications */}
                 <div className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800">
-                  <Label htmlFor="push-notifications" className="font-normal text-gray-900 dark:text-white">
+                  <Label
+                    htmlFor="push-notifications"
+                    className="font-normal text-gray-900 dark:text-white"
+                  >
                     Enable push notifications
                   </Label>
-                  <Switch 
-                    id="push-notifications" 
+                  <Switch
+                    id="push-notifications"
                     checked={pushNotifications}
-                    onCheckedChange={(checked) => handleNotificationUpdate('push', checked)}
+                    onCheckedChange={(checked) =>
+                      handleNotificationUpdate('push', checked)
+                    }
                   />
                 </div>
               </CardContent>
@@ -351,8 +374,12 @@ export default function ProfilePage() {
             {/* Avatar Upload Card */}
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
               <CardHeader>
-                <CardTitle className="text-lg text-gray-900 dark:text-white">Profile Picture</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">Upload a new avatar image</CardDescription>
+                <CardTitle className="text-lg text-gray-900 dark:text-white">
+                  Profile Picture
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Upload a new avatar image
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <AvatarUpload
@@ -375,7 +402,8 @@ export default function ProfilePage() {
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   <p className="flex items-center gap-2">
                     <Shield className="h-4 w-4" />
-                    Advanced security settings are configured through your authentication provider.
+                    Advanced security settings are configured through your
+                    authentication provider.
                   </p>
                 </div>
 
@@ -392,11 +420,15 @@ export default function ProfilePage() {
             {/* Account Status Card */}
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
               <CardHeader>
-                <CardTitle className="text-lg text-gray-900 dark:text-white">Account Status</CardTitle>
+                <CardTitle className="text-lg text-gray-900 dark:text-white">
+                  Account Status
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Status
+                  </span>
                   <Badge
                     variant="default"
                     className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
@@ -421,7 +453,10 @@ export default function ProfilePage() {
                   <span className="text-sm text-gray-600 dark:text-gray-400">
                     2FA enabled
                   </span>
-                  <Badge variant="outline" className="border-gray-300 dark:border-gray-600">
+                  <Badge
+                    variant="outline"
+                    className="border-gray-300 dark:border-gray-600"
+                  >
                     Not configured
                   </Badge>
                 </div>

@@ -511,11 +511,7 @@ function AppSidebar({
   );
 }
 
-function Header({
-  onSignOut,
-}: {
-  onSignOut: () => void;
-}) {
+function Header({ onSignOut }: { onSignOut: () => void }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const user = useUser();
   const profile = useProfile();
@@ -1150,8 +1146,6 @@ function CreatorManagementModal({
   );
 }
 
-
-
 // --- NEW: Content List Item Component ---
 function ContentListItem({ item }: { item: any }) {
   const [bookmarked, setBookmarked] = React.useState(item.bookmarked);
@@ -1449,9 +1443,7 @@ export function YumDashboard() {
           onCreatorEdit={handleEditCreator}
         />
         <SidebarInset className="flex-1 flex flex-col">
-          <Header
-            onSignOut={handleSignOut}
-          />
+          <Header onSignOut={handleSignOut} />
           <main className="flex-1 p-4 md:p-6 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">

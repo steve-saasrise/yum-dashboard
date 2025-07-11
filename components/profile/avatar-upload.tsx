@@ -25,7 +25,9 @@ export function AvatarUpload({
   const user = useUser();
   const supabase = createBrowserSupabaseClient();
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -88,9 +90,9 @@ export function AvatarUpload({
       console.log('Upload successful:', uploadData);
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('avatars').getPublicUrl(filePath);
 
       console.log('Public URL:', publicUrl);
 
@@ -102,7 +104,7 @@ export function AvatarUpload({
             const { error: deleteError } = await supabase.storage
               .from('avatars')
               .remove([`avatars/${oldPath}`]);
-            
+
             if (deleteError) {
               console.warn('Failed to delete old avatar:', deleteError);
             }
@@ -126,17 +128,21 @@ export function AvatarUpload({
       });
     } catch (error: any) {
       console.error('Avatar upload error:', error);
-      
-      let errorMessage = 'Failed to update your profile picture. Please try again.';
-      
+
+      let errorMessage =
+        'Failed to update your profile picture. Please try again.';
+
       if (error.message?.includes('Storage bucket not found')) {
-        errorMessage = 'Avatar storage is not configured. Please contact support.';
+        errorMessage =
+          'Avatar storage is not configured. Please contact support.';
       } else if (error.message?.includes('Duplicate')) {
         errorMessage = 'Upload conflict detected. Please try again.';
       } else if (error.message?.includes('permission')) {
-        errorMessage = 'You don\'t have permission to upload avatars. Please contact support.';
+        errorMessage =
+          "You don't have permission to upload avatars. Please contact support.";
       } else if (error.message?.includes('policy')) {
-        errorMessage = 'Storage permissions are not configured. Please contact support.';
+        errorMessage =
+          'Storage permissions are not configured. Please contact support.';
       }
 
       toast({
@@ -159,7 +165,7 @@ export function AvatarUpload({
         const { error: deleteError } = await supabase.storage
           .from('avatars')
           .remove([`avatars/${oldPath}`]);
-        
+
         if (deleteError) {
           console.error('Delete error:', deleteError);
           throw new Error(deleteError.message);
@@ -192,7 +198,7 @@ export function AvatarUpload({
             <AvatarImage src={currentAvatar} alt="Profile picture" />
             <AvatarFallback className="text-lg">{userInitials}</AvatarFallback>
           </Avatar>
-          
+
           {/* Loading overlay */}
           {isUploading && (
             <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
@@ -208,7 +214,7 @@ export function AvatarUpload({
           onChange={handleFileSelect}
           className="hidden"
         />
-        
+
         <div className="flex flex-col gap-2">
           <Button
             variant="outline"
@@ -220,7 +226,7 @@ export function AvatarUpload({
             <Upload className="h-4 w-4" />
             {isUploading ? 'Uploading...' : 'Upload Image'}
           </Button>
-          
+
           {currentAvatar && (
             <Button
               variant="outline"
