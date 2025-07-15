@@ -60,7 +60,7 @@ describe('PUT /api/creators/[id]', () => {
       }
     );
 
-    const response = await PUT(request, { params: { id: 'creator-123' } });
+    const response = await PUT(request, { params: Promise.resolve({ id: 'creator-123' }) });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -87,7 +87,7 @@ describe('PUT /api/creators/[id]', () => {
       }
     );
 
-    const response = await PUT(request, { params: { id: 'creator-123' } });
+    const response = await PUT(request, { params: Promise.resolve({ id: 'creator-123' }) });
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -110,7 +110,7 @@ describe('PUT /api/creators/[id]', () => {
       }
     );
 
-    const response = await PUT(request, { params: { id: 'creator-123' } });
+    const response = await PUT(request, { params: Promise.resolve({ id: 'creator-123' }) });
     const data = await response.json();
 
     expect(response.status).toBe(400);
@@ -146,7 +146,7 @@ describe('PUT /api/creators/[id]', () => {
       }
     );
 
-    const response = await PUT(request, { params: { id: 'nonexistent' } });
+    const response = await PUT(request, { params: Promise.resolve({ id: 'nonexistent' }) });
     const data = await response.json();
 
     expect(response.status).toBe(404);
@@ -188,7 +188,7 @@ describe('DELETE /api/creators/[id]', () => {
       { method: 'DELETE' }
     );
 
-    const response = await DELETE(request, { params: { id: 'creator-123' } });
+    const response = await DELETE(request, { params: Promise.resolve({ id: 'creator-123' }) });
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -210,7 +210,7 @@ describe('DELETE /api/creators/[id]', () => {
       { method: 'DELETE' }
     );
 
-    const response = await DELETE(request, { params: { id: 'creator-123' } });
+    const response = await DELETE(request, { params: Promise.resolve({ id: 'creator-123' }) });
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -246,7 +246,7 @@ describe('DELETE /api/creators/[id]', () => {
       { method: 'DELETE' }
     );
 
-    const response = await DELETE(request, { params: { id: 'creator-123' } });
+    const response = await DELETE(request, { params: Promise.resolve({ id: 'creator-123' }) });
     const data = await response.json();
 
     expect(response.status).toBe(500);
