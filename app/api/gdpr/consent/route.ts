@@ -18,7 +18,7 @@ const consentUpdateSchema = z.object({
 });
 
 // GET endpoint - Get current consent status
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Create Supabase server client
     const cookieStore = await cookies();
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch (_error) {
               // Ignore cookie setting errors in server context
             }
           },
@@ -90,8 +90,8 @@ export async function GET(request: NextRequest) {
       privacy_policy_version: process.env.PRIVACY_POLICY_VERSION || '1.0',
       last_updated: userData?.gdpr_consent_date,
     });
-  } catch (error) {
-    console.error('Consent status retrieval error:', error);
+  } catch (_error) {
+    // Consent status retrieval failed
     return NextResponse.json(
       { error: 'Failed to retrieve consent status' },
       { status: 500 }
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch (_error) {
               // Ignore cookie setting errors in server context
             }
           },
@@ -172,7 +172,16 @@ export async function POST(request: NextRequest) {
     };
 
     // Update user consent in database
-    const updateData: any = {
+    const updateData: {
+      updated_at: string;
+      gdpr_consent?: boolean;
+      gdpr_consent_date?: string;
+      consent_details?: Record<string, unknown>;
+      gdpr_consent_data_processing?: boolean;
+      gdpr_consent_marketing?: boolean;
+      gdpr_consent_analytics?: boolean;
+      preferences?: Record<string, boolean>;
+    } = {
       updated_at: new Date().toISOString(),
     };
 
@@ -189,7 +198,9 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('Consent update error:', updateError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Consent update error:', updateError);
+      }
       return NextResponse.json(
         { error: 'Failed to update consent' },
         { status: 500 }
@@ -224,7 +235,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Consent update error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Consent update error:', error);
+    }
     return NextResponse.json(
       {
         error: 'Consent update failed',
@@ -262,7 +275,7 @@ export async function PUT(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch (_error) {
               // Ignore cookie setting errors in server context
             }
           },
@@ -314,7 +327,9 @@ export async function PUT(request: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('Bulk consent update error:', updateError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Bulk consent update error:', updateError);
+      }
       return NextResponse.json(
         { error: 'Failed to update consent preferences' },
         { status: 500 }
@@ -341,8 +356,8 @@ export async function PUT(request: NextRequest) {
         timestamp: new Date().toISOString(),
       },
     });
-  } catch (error) {
-    console.error('Bulk consent update error:', error);
+  } catch (_error) {
+    // Bulk consent update failed
     return NextResponse.json(
       { error: 'Failed to update consent preferences' },
       { status: 500 }

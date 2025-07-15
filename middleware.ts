@@ -110,8 +110,6 @@ export async function middleware(request: NextRequest) {
 
       // Check if session has expired
       if (timeUntilExpiry <= 0) {
-        console.log('Session expired, redirecting to login');
-
         // Clear auth cookies
         response.cookies.delete('sb-access-token');
         response.cookies.delete('sb-refresh-token');
@@ -125,13 +123,10 @@ export async function middleware(request: NextRequest) {
       // Auto-refresh if session expires soon (within 5 minutes)
       if (timeUntilExpiry <= SESSION_CONFIG.REFRESH_THRESHOLD) {
         try {
-          console.log('Attempting session refresh - expires soon');
           const { data: refreshData, error: refreshError } =
             await supabase.auth.refreshSession();
 
           if (refreshError || !refreshData.session) {
-            console.log('Session refresh failed, redirecting to login');
-
             // Clear auth cookies
             response.cookies.delete('sb-access-token');
             response.cookies.delete('sb-refresh-token');
@@ -141,8 +136,6 @@ export async function middleware(request: NextRequest) {
             redirectUrl.searchParams.set('reason', 'refresh_failed');
             return NextResponse.redirect(redirectUrl);
           }
-
-          console.log('Session refreshed successfully');
         } catch (refreshError) {
           console.error('Session refresh error:', refreshError);
 

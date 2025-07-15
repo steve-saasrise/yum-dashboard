@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
-import { PlatformDetector, PlatformDetectionError } from '@/lib/platform-detector';
+import { PlatformDetector } from '@/lib/platform-detector';
 
 const importSchema = z.object({
   format: z.enum(['csv', 'opml'], { required_error: 'Format is required' }),
@@ -12,7 +12,13 @@ const importSchema = z.object({
 interface ImportResult {
   imported: number;
   failed: number;
-  creators: any[];
+  creators: Array<{
+    name: string;
+    platform: string;
+    platform_username: string;
+    topics: string[];
+    created_at: string;
+  }>;
   errors: Array<{
     row: number;
     name?: string;
@@ -49,7 +55,10 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -92,7 +101,9 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Unexpected error in POST /api/creators/import:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Unexpected error in POST /api/creators/import:', error);
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -103,7 +114,7 @@ export async function POST(request: NextRequest) {
 async function importFromCSV(
   csvData: string,
   userId: string,
-  supabase: any
+  supabase: ReturnType<typeof createServerClient>
 ): Promise<ImportResult> {
   const result: ImportResult = {
     imported: 0,
@@ -121,9 +132,7 @@ async function importFromCSV(
 
     const header = lines[0].toLowerCase();
     const requiredHeaders = ['name', 'url'];
-    const hasRequiredHeaders = requiredHeaders.every((h) =>
-      header.includes(h)
-    );
+    const hasRequiredHeaders = requiredHeaders.every((h) => header.includes(h));
 
     if (!hasRequiredHeaders) {
       throw new Error(
@@ -149,7 +158,8 @@ async function importFromCSV(
           name: values[nameIndex] || '',
           url: values[urlIndex] || '',
           topics: topicsIndex >= 0 ? values[topicsIndex] : undefined,
-          description: descriptionIndex >= 0 ? values[descriptionIndex] : undefined,
+          description:
+            descriptionIndex >= 0 ? values[descriptionIndex] : undefined,
         };
 
         if (!rowData.name || !rowData.url) {
@@ -250,7 +260,7 @@ async function importFromCSV(
 async function importFromOPML(
   opmlData: string,
   userId: string,
-  supabase: any
+  supabase: ReturnType<typeof createServerClient>
 ): Promise<ImportResult> {
   const result: ImportResult = {
     imported: 0,

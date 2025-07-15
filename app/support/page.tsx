@@ -20,8 +20,8 @@ export default function SupportPage() {
             <div>
               <h3 className="text-lg font-semibold mb-2">Need Help?</h3>
               <p className="text-muted-foreground">
-                We're here to help you get the most out of Daily News. Choose from
-                the support options below:
+                We're here to help you get the most out of Daily News. Choose
+                from the support options below:
               </p>
             </div>
 

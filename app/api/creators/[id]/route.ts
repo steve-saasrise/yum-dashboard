@@ -4,7 +4,11 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 
 const updateCreatorSchema = z.object({
-  display_name: z.string().min(1, 'Display name is required').max(100).optional(),
+  display_name: z
+    .string()
+    .min(1, 'Display name is required')
+    .max(100)
+    .optional(),
   description: z.string().max(500).optional(),
   avatar_url: z.string().url().optional(),
   is_active: z.boolean().optional(),
@@ -39,7 +43,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -74,7 +81,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       .update(dataWithTimestamp)
       .eq('id', id)
       .eq('user_id', user.id) // Extra safety check
-      .select(`
+      .select(
+        `
         *,
         creator_topics (
           topics (
@@ -83,7 +91,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
             color
           )
         )
-      `)
+      `
+      )
       .single();
 
     if (updateError) {
@@ -93,7 +102,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           { status: 404 }
         );
       }
-      console.error('Error updating creator:', updateError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating creator:', updateError);
+      }
       return NextResponse.json(
         { error: 'Failed to update creator' },
         { status: 500 }
@@ -101,10 +112,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     if (!updatedCreator) {
-      return NextResponse.json(
-        { error: 'Creator not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -114,7 +122,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Unexpected error in PUT /api/creators/[id]:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Unexpected error in PUT /api/creators/[id]:', error);
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -145,7 +155,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -161,7 +174,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       .eq('user_id', user.id); // Extra safety check
 
     if (deleteError) {
-      console.error('Error deleting creator:', deleteError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deleting creator:', deleteError);
+      }
       return NextResponse.json(
         { error: 'Failed to delete creator' },
         { status: 500 }
@@ -174,7 +189,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Unexpected error in DELETE /api/creators/[id]:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Unexpected error in DELETE /api/creators/[id]:', error);
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

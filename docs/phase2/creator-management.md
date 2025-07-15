@@ -4,6 +4,11 @@
 
 The Creator Management System enables users to follow content creators across multiple platforms through a unified interface. Users can add creators by simply pasting any URL from supported platforms, and the system automatically detects the platform and extracts creator information.
 
+### Page vs Modal Distinction
+
+- **Creator Management Page** (`/creators`): A dedicated page for managing multiple creators, viewing their details, filtering, searching, and performing bulk operations on existing creators
+- **Add Creator Modal**: A modal dialog used to add a single creator at a time, supporting multiple URLs for the same creator (e.g., their YouTube and Twitter accounts). This modal is accessible from both the dashboard sidebar and the creator management page
+
 ## User Stories
 
 ### Primary User Story
@@ -20,7 +25,9 @@ The Creator Management System enables users to follow content creators across mu
 
 ### 1. Smart URL Input Component
 
-#### Component: `components/creators/smart-url-input.tsx`
+#### Component: `components/creators/add-creator-modal.tsx`
+
+The Add Creator Modal already includes smart URL input functionality that supports multiple URLs per creator.
 
 ```typescript
 interface SmartUrlInputProps {

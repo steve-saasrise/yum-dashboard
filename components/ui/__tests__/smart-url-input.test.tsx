@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SmartUrlInput } from '../smart-url-input';
 import { Platform } from '@/lib/platform-detector';
@@ -24,7 +24,9 @@ jest.mock('@/lib/platform-detector', () => ({
   },
 }));
 
-const mockPlatformDetector = require('@/lib/platform-detector').PlatformDetector;
+// Access mocked PlatformDetector via jest.mocked
+import { PlatformDetector } from '@/lib/platform-detector';
+const mockPlatformDetector = jest.mocked(PlatformDetector);
 
 describe('SmartUrlInput', () => {
   beforeEach(() => {
@@ -34,19 +36,22 @@ describe('SmartUrlInput', () => {
   describe('Basic functionality', () => {
     it('renders input field with placeholder', () => {
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       expect(input).toBeInTheDocument();
-      expect(input).toHaveAttribute('placeholder', 'Enter creator URL (YouTube, Twitter, LinkedIn, Threads, RSS)');
+      expect(input).toHaveAttribute(
+        'placeholder',
+        'Enter creator URL (YouTube, Twitter, LinkedIn, Threads, RSS)'
+      );
     });
 
     it('accepts and displays user input', async () => {
       const user = userEvent.setup();
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://youtube.com/@test');
-      
+
       expect(input).toHaveValue('https://youtube.com/@test');
     });
 
@@ -54,10 +59,10 @@ describe('SmartUrlInput', () => {
       const user = userEvent.setup();
       const mockOnChange = jest.fn();
       render(<SmartUrlInput onChange={mockOnChange} />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'test');
-      
+
       expect(mockOnChange).toHaveBeenCalledWith('test');
     });
   });
@@ -73,13 +78,15 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://youtube.com/@test');
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('platform-indicator')).toBeInTheDocument();
-        expect(screen.getByTestId('platform-indicator')).toHaveTextContent('YouTube');
+        expect(screen.getByTestId('platform-indicator')).toHaveTextContent(
+          'YouTube'
+        );
       });
     });
 
@@ -93,13 +100,15 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://twitter.com/test');
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('platform-indicator')).toBeInTheDocument();
-        expect(screen.getByTestId('platform-indicator')).toHaveTextContent('Twitter');
+        expect(screen.getByTestId('platform-indicator')).toHaveTextContent(
+          'Twitter'
+        );
       });
     });
 
@@ -113,13 +122,15 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://linkedin.com/company/test-company');
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('platform-indicator')).toBeInTheDocument();
-        expect(screen.getByTestId('platform-indicator')).toHaveTextContent('LinkedIn');
+        expect(screen.getByTestId('platform-indicator')).toHaveTextContent(
+          'LinkedIn'
+        );
       });
     });
 
@@ -133,13 +144,15 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://threads.net/@test');
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('platform-indicator')).toBeInTheDocument();
-        expect(screen.getByTestId('platform-indicator')).toHaveTextContent('Threads');
+        expect(screen.getByTestId('platform-indicator')).toHaveTextContent(
+          'Threads'
+        );
       });
     });
 
@@ -153,13 +166,15 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://example.com/feed.xml');
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('platform-indicator')).toBeInTheDocument();
-        expect(screen.getByTestId('platform-indicator')).toHaveTextContent('RSS');
+        expect(screen.getByTestId('platform-indicator')).toHaveTextContent(
+          'RSS'
+        );
       });
     });
   });
@@ -172,10 +187,10 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'invalid-url');
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
         expect(input).toHaveClass('border-destructive');
@@ -189,10 +204,10 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://unsupported.com/user');
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
         expect(screen.getByText('Unsupported platform')).toBeInTheDocument();
@@ -213,17 +228,17 @@ describe('SmartUrlInput', () => {
         });
 
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'invalid');
-      
+
       await waitFor(() => {
         expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
       });
 
       await user.clear(input);
       await user.type(input, 'https://youtube.com/@test');
-      
+
       await waitFor(() => {
         expect(screen.queryByTestId('error-indicator')).not.toBeInTheDocument();
         expect(screen.getByTestId('platform-indicator')).toBeInTheDocument();
@@ -242,13 +257,13 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://youtube.com/@test');
-      
+
       // Should only call detect once after debounce delay
       expect(mockPlatformDetector.detect).toHaveBeenCalledTimes(0);
-      
+
       await waitFor(() => {
         expect(mockPlatformDetector.detect).toHaveBeenCalledTimes(1);
       });
@@ -256,7 +271,7 @@ describe('SmartUrlInput', () => {
 
     it('shows loading state during detection', async () => {
       const user = userEvent.setup();
-      
+
       mockPlatformDetector.detect.mockReturnValue({
         platform: Platform.YOUTUBE,
         platformUserId: 'UC123',
@@ -265,10 +280,10 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput debounceMs={50} />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://youtube.com/@test');
-      
+
       // After debounce, platform should be detected
       await waitFor(() => {
         expect(screen.getByTestId('platform-indicator')).toBeInTheDocument();
@@ -279,9 +294,12 @@ describe('SmartUrlInput', () => {
   describe('Accessibility', () => {
     it('has proper ARIA attributes', () => {
       render(<SmartUrlInput />);
-      
+
       const input = screen.getByRole('textbox');
-      expect(input).toHaveAttribute('aria-label', 'Creator URL input with platform detection');
+      expect(input).toHaveAttribute(
+        'aria-label',
+        'Creator URL input with platform detection'
+      );
     });
 
     it('announces platform detection to screen readers', async () => {
@@ -294,10 +312,10 @@ describe('SmartUrlInput', () => {
       });
 
       render(<SmartUrlInput debounceMs={50} />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://youtube.com/@test');
-      
+
       await waitFor(() => {
         const indicator = screen.getByTestId('platform-indicator');
         expect(indicator).toHaveAttribute('aria-live', 'polite');
@@ -315,14 +333,19 @@ describe('SmartUrlInput', () => {
         profileUrl: 'https://youtube.com/@test',
         metadata: { channelId: 'UC123' },
       };
-      
+
       mockPlatformDetector.detect.mockReturnValue(platformInfo);
 
-      render(<SmartUrlInput onPlatformDetected={mockOnPlatformDetected} debounceMs={50} />);
-      
+      render(
+        <SmartUrlInput
+          onPlatformDetected={mockOnPlatformDetected}
+          debounceMs={50}
+        />
+      );
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'https://youtube.com/@test');
-      
+
       await waitFor(() => {
         expect(mockOnPlatformDetected).toHaveBeenCalledWith(platformInfo);
       });
@@ -332,16 +355,16 @@ describe('SmartUrlInput', () => {
       const user = userEvent.setup();
       const mockOnError = jest.fn();
       const error = new Error('Invalid URL');
-      
+
       mockPlatformDetector.detect.mockImplementation(() => {
         throw error;
       });
 
       render(<SmartUrlInput onError={mockOnError} debounceMs={50} />);
-      
+
       const input = screen.getByRole('textbox');
       await user.type(input, 'invalid-url');
-      
+
       await waitFor(() => {
         expect(mockOnError).toHaveBeenCalledWith(error);
       });

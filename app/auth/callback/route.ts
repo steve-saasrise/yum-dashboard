@@ -13,7 +13,9 @@ export async function GET(request: NextRequest) {
 
   // Handle OAuth errors
   if (error) {
-    console.error('OAuth error:', error, error_description);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('OAuth error:', error, error_description);
+    }
     return NextResponse.redirect(
       `${origin}/auth/error?error=${encodeURIComponent(error)}&description=${encodeURIComponent(error_description || '')}`
     );
@@ -32,18 +34,12 @@ export async function GET(request: NextRequest) {
             getAll() {
               return cookieStore.getAll();
             },
-            setAll(
-              cookiesToSet: Array<{
-                name: string;
-                value: string;
-                options?: any;
-              }>
-            ) {
+            setAll(cookiesToSet) {
               try {
                 cookiesToSet.forEach(({ name, value, options }) => {
                   cookieStore.set(name, value, options);
                 });
-              } catch (error) {
+              } catch (_error) {
                 // The `set` method was called from a Server Component.
                 // This can be ignored if you have middleware refreshing
                 // user sessions.
@@ -58,7 +54,9 @@ export async function GET(request: NextRequest) {
         await supabase.auth.exchangeCodeForSession(code);
 
       if (exchangeError) {
-        console.error('Session exchange error:', exchangeError);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Session exchange error:', exchangeError);
+        }
 
         // Handle specific auth errors with user-friendly messages
         let userMessage = exchangeError.message;
@@ -87,7 +85,7 @@ export async function GET(request: NextRequest) {
 
       if (data.user && data.session) {
         // Get or create user profile data
-        const { data: profile, error: profileError } = await supabase
+        const { error: profileError } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('id', data.user.id)
@@ -115,7 +113,9 @@ export async function GET(request: NextRequest) {
             });
 
           if (insertError) {
-            console.error('Profile creation error:', insertError);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Profile creation error:', insertError);
+            }
             // Continue anyway, profile can be created later
           }
         }
@@ -124,7 +124,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}${redirectTo}`);
       }
     } catch (error) {
-      console.error('Callback processing error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Callback processing error:', error);
+      }
       return NextResponse.redirect(
         `${origin}/auth/error?error=callback_processing_failed&description=${encodeURIComponent('Failed to process authentication callback')}`
       );

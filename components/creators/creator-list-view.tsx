@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import type { Creator, CreatorFilters as CreatorFiltersType, CreatorListResponse } from '@/types/creator';
+import type {
+  Creator,
+  CreatorFilters as CreatorFiltersType,
+} from '@/types/creator';
 import { DEFAULT_FILTERS } from '@/types/creator';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,8 +36,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Youtube, Twitter, Linkedin, Rss, AtSign, Filter, Search, RefreshCw, ChevronDown, Trash2, Power } from 'lucide-react';
+import {
+  Youtube,
+  Twitter,
+  Linkedin,
+  Rss,
+  AtSign,
+  Filter,
+  Search,
+  RefreshCw,
+  ChevronDown,
+  Trash2,
+  Power,
+  Plus,
+  Globe,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AddCreatorModal } from './add-creator-modal';
 
 // Platform icons mapping
 const platformIcons = {
@@ -43,6 +61,7 @@ const platformIcons = {
   linkedin: Linkedin,
   threads: AtSign,
   rss: Rss,
+  website: Globe,
 };
 
 // Hook for managing creator list data
@@ -52,14 +71,19 @@ function useCreatorList(initialFilters: Partial<CreatorFiltersType> = {}) {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<CreatorFiltersType>({ ...DEFAULT_FILTERS, ...initialFilters });
+  const [filters, setFilters] = useState<CreatorFiltersType>({
+    ...DEFAULT_FILTERS,
+    ...initialFilters,
+  });
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 0,
   });
-  const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set());
+  const [selectedCreators, setSelectedCreators] = useState<Set<string>>(
+    new Set()
+  );
 
   const fetchCreators = useCallback(async () => {
     if (!user || !session) return;
@@ -69,7 +93,7 @@ function useCreatorList(initialFilters: Partial<CreatorFiltersType> = {}) {
 
     try {
       const params = new URLSearchParams();
-      
+
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           params.append(key, String(value));
@@ -78,7 +102,7 @@ function useCreatorList(initialFilters: Partial<CreatorFiltersType> = {}) {
 
       const response = await fetch(`/api/creators?${params.toString()}`, {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -87,29 +111,33 @@ function useCreatorList(initialFilters: Partial<CreatorFiltersType> = {}) {
         throw new Error('Failed to fetch creators');
       }
 
-      const data: CreatorListResponse = await response.json();
-      setCreators(data.creators);
+      const result = await response.json();
+      const data = result.data;
+      setCreators(data.creators || []);
       setPagination({
-        page: data.page,
-        limit: data.limit,
-        total: data.total,
-        totalPages: data.totalPages,
+        page: data.pagination.page,
+        limit: data.pagination.limit,
+        total: data.pagination.total,
+        totalPages: data.pagination.totalPages,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load creators');
     } finally {
       setLoading(false);
     }
-  }, [user, session, JSON.stringify(filters)]);
+  }, [user, session, filters]);
 
   useEffect(() => {
     fetchCreators();
   }, [fetchCreators]);
 
-  const updateFilters = useCallback((newFilters: Partial<CreatorFiltersType>) => {
-    setFilters(prev => ({ ...prev, ...newFilters, page: 1 }));
-    setSelectedCreators(new Set());
-  }, []);
+  const updateFilters = useCallback(
+    (newFilters: Partial<CreatorFiltersType>) => {
+      setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
+      setSelectedCreators(new Set());
+    },
+    []
+  );
 
   const clearFilters = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
@@ -117,7 +145,7 @@ function useCreatorList(initialFilters: Partial<CreatorFiltersType> = {}) {
   }, []);
 
   const selectCreator = useCallback((creatorId: string, selected: boolean) => {
-    setSelectedCreators(prev => {
+    setSelectedCreators((prev) => {
       const newSet = new Set(prev);
       if (selected) {
         newSet.add(creatorId);
@@ -128,13 +156,16 @@ function useCreatorList(initialFilters: Partial<CreatorFiltersType> = {}) {
     });
   }, []);
 
-  const selectAll = useCallback((selected: boolean) => {
-    if (selected) {
-      setSelectedCreators(new Set(creators.map(c => c.id)));
-    } else {
-      setSelectedCreators(new Set());
-    }
-  }, [creators]);
+  const selectAll = useCallback(
+    (selected: boolean) => {
+      if (selected) {
+        setSelectedCreators(new Set(creators.map((c) => c.id)));
+      } else {
+        setSelectedCreators(new Set());
+      }
+    },
+    [creators]
+  );
 
   return {
     creators,
@@ -152,11 +183,11 @@ function useCreatorList(initialFilters: Partial<CreatorFiltersType> = {}) {
 }
 
 // Search component with debouncing
-function CreatorSearch({ 
-  value, 
-  onChange, 
-  placeholder = 'Search creators...', 
-  isLoading 
+function CreatorSearch({
+  value,
+  onChange,
+  placeholder = 'Search creators...',
+  isLoading,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -193,10 +224,10 @@ function CreatorSearch({
 }
 
 // Filter component
-function CreatorFilters({ 
-  filters, 
-  onFiltersChange, 
-  onClearFilters 
+function CreatorFilters({
+  filters,
+  onFiltersChange,
+  onClearFilters,
 }: {
   filters: CreatorFiltersType;
   onFiltersChange: (filters: Partial<CreatorFiltersType>) => void;
@@ -218,7 +249,8 @@ function CreatorFilters({
     { value: 'sports', label: 'Sports' },
   ];
 
-  const hasActiveFilters = filters.platform || filters.topic || filters.status !== 'all';
+  const hasActiveFilters =
+    filters.platform || filters.topic || filters.status !== 'all';
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -228,18 +260,28 @@ function CreatorFilters({
           <Button variant="outline" size="sm" data-testid="platform-filter">
             <Filter className="h-4 w-4 mr-2" />
             Platform
-            {filters.platform && <Badge variant="secondary" className="ml-2">{filters.platform}</Badge>}
+            {filters.platform && (
+              <Badge variant="secondary" className="ml-2">
+                {filters.platform}
+              </Badge>
+            )}
             <ChevronDown className="h-4 w-4 ml-2" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem onClick={() => onFiltersChange({ platform: undefined })}>
+          <DropdownMenuItem
+            onClick={() => onFiltersChange({ platform: undefined })}
+          >
             All Platforms
           </DropdownMenuItem>
           {platforms.map((platform) => (
-            <DropdownMenuItem 
-              key={platform.value} 
-              onClick={() => onFiltersChange({ platform: platform.value as CreatorFiltersType['platform'] })}
+            <DropdownMenuItem
+              key={platform.value}
+              onClick={() =>
+                onFiltersChange({
+                  platform: platform.value as CreatorFiltersType['platform'],
+                })
+              }
             >
               {platform.label}
             </DropdownMenuItem>
@@ -252,17 +294,23 @@ function CreatorFilters({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" data-testid="topic-filter">
             Topic
-            {filters.topic && <Badge variant="secondary" className="ml-2">{filters.topic}</Badge>}
+            {filters.topic && (
+              <Badge variant="secondary" className="ml-2">
+                {filters.topic}
+              </Badge>
+            )}
             <ChevronDown className="h-4 w-4 ml-2" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem onClick={() => onFiltersChange({ topic: undefined })}>
+          <DropdownMenuItem
+            onClick={() => onFiltersChange({ topic: undefined })}
+          >
             All Topics
           </DropdownMenuItem>
           {topics.map((topic) => (
-            <DropdownMenuItem 
-              key={topic.value} 
+            <DropdownMenuItem
+              key={topic.value}
               onClick={() => onFiltersChange({ topic: topic.value })}
             >
               {topic.label}
@@ -276,7 +324,11 @@ function CreatorFilters({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" data-testid="status-filter">
             Status
-            {filters.status !== 'all' && <Badge variant="secondary" className="ml-2">{filters.status}</Badge>}
+            {filters.status !== 'all' && (
+              <Badge variant="secondary" className="ml-2">
+                {filters.status}
+              </Badge>
+            )}
             <ChevronDown className="h-4 w-4 ml-2" />
           </Button>
         </DropdownMenuTrigger>
@@ -284,10 +336,14 @@ function CreatorFilters({
           <DropdownMenuItem onClick={() => onFiltersChange({ status: 'all' })}>
             All
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onFiltersChange({ status: 'active' })}>
+          <DropdownMenuItem
+            onClick={() => onFiltersChange({ status: 'active' })}
+          >
             Active Only
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onFiltersChange({ status: 'inactive' })}>
+          <DropdownMenuItem
+            onClick={() => onFiltersChange({ status: 'inactive' })}
+          >
             Inactive Only
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -304,14 +360,14 @@ function CreatorFilters({
 }
 
 // Table view for desktop
-function CreatorTable({ 
-  creators, 
-  selectedCreators, 
-  onSelectCreator, 
-  onSelectAll, 
+function CreatorTable({
+  creators,
+  selectedCreators,
+  onSelectCreator,
+  onSelectAll,
   onSort,
   sortField,
-  sortOrder
+  sortOrder,
 }: {
   creators: Creator[];
   selectedCreators: Set<string>;
@@ -321,7 +377,8 @@ function CreatorTable({
   sortField?: string;
   sortOrder?: string;
 }) {
-  const allSelected = creators.length > 0 && creators.every(c => selectedCreators.has(c.id));
+  const allSelected =
+    creators.length > 0 && creators.every((c) => selectedCreators.has(c.id));
 
   return (
     <div data-testid="creators-table">
@@ -335,8 +392,8 @@ function CreatorTable({
                 data-testid="select-all"
               />
             </TableHead>
-            <TableHead 
-              className="cursor-pointer" 
+            <TableHead
+              className="cursor-pointer"
               onClick={() => onSort('display_name')}
               data-testid="sort-name"
             >
@@ -348,8 +405,8 @@ function CreatorTable({
             <TableHead>Platform</TableHead>
             <TableHead>Topics</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead 
-              className="cursor-pointer" 
+            <TableHead
+              className="cursor-pointer"
               onClick={() => onSort('created_at')}
               data-testid="sort-created"
             >
@@ -362,13 +419,18 @@ function CreatorTable({
         </TableHeader>
         <TableBody>
           {creators.map((creator) => {
-            const Icon = platformIcons[creator.platform];
+            const Icon =
+              creator.platform && creator.platform in platformIcons
+                ? platformIcons[creator.platform as keyof typeof platformIcons]
+                : platformIcons.website;
             return (
               <TableRow key={creator.id}>
                 <TableCell>
                   <Checkbox
                     checked={selectedCreators.has(creator.id)}
-                    onCheckedChange={(checked) => onSelectCreator(creator.id, !!checked)}
+                    onCheckedChange={(checked) =>
+                      onSelectCreator(creator.id, !!checked)
+                    }
                     data-testid="creator-checkbox"
                   />
                 </TableCell>
@@ -382,9 +444,9 @@ function CreatorTable({
                     </Avatar>
                     <div>
                       <div className="font-medium">{creator.display_name}</div>
-                      {creator.description && (
+                      {creator.bio && (
                         <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {creator.description}
+                          {creator.bio}
                         </div>
                       )}
                     </div>
@@ -399,7 +461,11 @@ function CreatorTable({
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {creator.topics?.slice(0, 2).map((topic) => (
-                      <Badge key={topic} variant="secondary" className="text-xs">
+                      <Badge
+                        key={topic}
+                        variant="secondary"
+                        className="text-xs"
+                      >
                         {topic}
                       </Badge>
                     ))}
@@ -414,8 +480,8 @@ function CreatorTable({
                   <div className="flex items-center gap-2">
                     <div
                       className={cn(
-                        "h-2 w-2 rounded-full",
-                        creator.is_active ? "bg-green-500" : "bg-gray-400"
+                        'h-2 w-2 rounded-full',
+                        creator.is_active ? 'bg-green-500' : 'bg-gray-400'
                       )}
                     />
                     <span className="text-sm">
@@ -438,10 +504,10 @@ function CreatorTable({
 }
 
 // Card view for mobile
-function CreatorCards({ 
-  creators, 
-  selectedCreators, 
-  onSelectCreator 
+function CreatorCards({
+  creators,
+  selectedCreators,
+  onSelectCreator,
 }: {
   creators: Creator[];
   selectedCreators: Set<string>;
@@ -450,13 +516,18 @@ function CreatorCards({
   return (
     <div className="grid gap-4" data-testid="creators-cards">
       {creators.map((creator) => {
-        const Icon = platformIcons[creator.platform];
+        const Icon =
+          creator.platform && creator.platform in platformIcons
+            ? platformIcons[creator.platform as keyof typeof platformIcons]
+            : platformIcons.website;
         return (
           <Card key={creator.id} className="p-4">
             <div className="flex items-start gap-3">
               <Checkbox
                 checked={selectedCreators.has(creator.id)}
-                onCheckedChange={(checked) => onSelectCreator(creator.id, !!checked)}
+                onCheckedChange={(checked) =>
+                  onSelectCreator(creator.id, !!checked)
+                }
                 data-testid="creator-checkbox"
               />
               <Avatar className="h-10 w-10">
@@ -467,20 +538,22 @@ function CreatorCards({
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium truncate">{creator.display_name}</h4>
+                  <h4 className="font-medium truncate">
+                    {creator.display_name}
+                  </h4>
                   <div className="flex items-center gap-1">
                     <Icon className="h-4 w-4" />
                     <div
                       className={cn(
-                        "h-2 w-2 rounded-full",
-                        creator.is_active ? "bg-green-500" : "bg-gray-400"
+                        'h-2 w-2 rounded-full',
+                        creator.is_active ? 'bg-green-500' : 'bg-gray-400'
                       )}
                     />
                   </div>
                 </div>
-                {creator.description && (
+                {creator.bio && (
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                    {creator.description}
+                    {creator.bio}
                   </p>
                 )}
                 <div className="flex flex-wrap gap-1">
@@ -516,6 +589,7 @@ export function CreatorListView() {
   } = useCreatorList();
 
   const [isMobile, setIsMobile] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -525,14 +599,24 @@ export function CreatorListView() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const handleSort = useCallback((field: string) => {
-    const newOrder = filters.sort === field && filters.order === 'asc' ? 'desc' : 'asc';
-    updateFilters({ sort: field as CreatorFiltersType['sort'], order: newOrder });
-  }, [filters.sort, filters.order, updateFilters]);
+  const handleSort = useCallback(
+    (field: string) => {
+      const newOrder =
+        filters.sort === field && filters.order === 'asc' ? 'desc' : 'asc';
+      updateFilters({
+        sort: field as CreatorFiltersType['sort'],
+        order: newOrder,
+      });
+    },
+    [filters.sort, filters.order, updateFilters]
+  );
 
-  const handlePageChange = useCallback((page: number) => {
-    updateFilters({ page });
-  }, [updateFilters]);
+  const handlePageChange = useCallback(
+    (page: number) => {
+      updateFilters({ page });
+    },
+    [updateFilters]
+  );
 
   if (loading && creators.length === 0) {
     return (
@@ -553,7 +637,9 @@ export function CreatorListView() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <p className="text-lg font-medium text-destructive">Failed to load creators</p>
+        <p className="text-lg font-medium text-destructive">
+          Failed to load creators
+        </p>
         <p className="text-sm text-muted-foreground">{error}</p>
         <Button onClick={refreshCreators} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -566,13 +652,19 @@ export function CreatorListView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">Creators</h1>
-        <CreatorSearch
-          value={filters.search || ''}
-          onChange={(search) => updateFilters({ search })}
-          isLoading={loading}
-        />
+        <div className="flex items-center gap-3">
+          <CreatorSearch
+            value={filters.search || ''}
+            onChange={(search) => updateFilters({ search })}
+            isLoading={loading}
+          />
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Creator
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -586,13 +678,22 @@ export function CreatorListView() {
       {creators.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 space-y-4">
           <h3 className="text-lg font-medium">No creators found</h3>
-          <p className="text-sm text-muted-foreground">Add your first creator to get started</p>
+          <p className="text-sm text-muted-foreground">
+            Add your first creator to get started
+          </p>
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Your First Creator
+          </Button>
         </div>
       )}
 
       {/* Bulk Actions */}
       {selectedCreators.size > 0 && (
-        <div className="flex items-center gap-4 p-4 bg-muted rounded-lg" data-testid="bulk-actions">
+        <div
+          className="flex items-center gap-4 p-4 bg-muted rounded-lg"
+          data-testid="bulk-actions"
+        >
           <span className="text-sm font-medium">
             {selectedCreators.size} selected
           </span>
@@ -639,29 +740,32 @@ export function CreatorListView() {
             <PaginationContent>
               {pagination.page > 1 && (
                 <PaginationItem>
-                  <PaginationPrevious 
+                  <PaginationPrevious
                     onClick={() => handlePageChange(pagination.page - 1)}
                   />
                 </PaginationItem>
               )}
-              
-              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                const page = i + 1;
-                return (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => handlePageChange(page)}
-                      isActive={pagination.page === page}
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
+
+              {Array.from(
+                { length: Math.min(5, pagination.totalPages) },
+                (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(page)}
+                        isActive={pagination.page === page}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                }
+              )}
 
               {pagination.page < pagination.totalPages && (
                 <PaginationItem>
-                  <PaginationNext 
+                  <PaginationNext
                     onClick={() => handlePageChange(pagination.page + 1)}
                   />
                 </PaginationItem>
@@ -670,6 +774,13 @@ export function CreatorListView() {
           </Pagination>
         </div>
       )}
+
+      {/* Add Creator Modal */}
+      <AddCreatorModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        onCreatorAdded={refreshCreators}
+      />
     </div>
   );
 }

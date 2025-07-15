@@ -73,12 +73,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DatePickerWithRange } from '@/components/date-picker-with-range';
 import { Icons } from '@/components/icons';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { SmartUrlInput } from '@/components/ui/smart-url-input';
-import { type PlatformInfo } from '@/lib/platform-detector';
 import {
   Search,
   User,
@@ -97,9 +91,9 @@ import {
   MoreHorizontal,
   Youtube,
   Linkedin,
-  Upload,
-  Loader2,
+  RefreshCw,
 } from 'lucide-react';
+import { AddCreatorModal } from '@/components/creators/add-creator-modal';
 
 // --- MOCK DATA ---
 
@@ -198,141 +192,48 @@ const topics = [
   },
 ];
 
-const creators = [
-  {
-    id: 1,
-    name: 'Marc Andreessen',
-    avatar: '/placeholder.svg?height=40&width=40',
-    platforms: ['X', 'LinkedIn'],
-    topics: ['Venture Capital', 'AI', 'Future'],
-    active: true,
-  },
-  {
-    id: 2,
-    name: 'Sam Altman',
-    avatar: '/placeholder.svg?height=40&width=40',
-    platforms: ['LinkedIn', 'X'],
-    topics: ['AI', 'SaaS', 'Investing'],
-    active: true,
-  },
-  {
-    id: 3,
-    name: 'Warren Buffett',
-    avatar: '/placeholder.svg?height=40&width=40',
-    platforms: ['Blogs'],
-    topics: ['Investing'],
-    active: false,
-  },
-  {
-    id: 4,
-    name: 'Dave Asprey',
-    avatar: '/placeholder.svg?height=40&width=40',
-    platforms: ['YouTube', 'X'],
-    topics: ['Biohacking', 'Science'],
-    active: true,
-  },
-  {
-    id: 5,
-    name: 'Barack Obama',
-    avatar: '/placeholder.svg?height=40&width=40',
-    platforms: ['Threads', 'X'],
-    topics: ['Politics', 'Future'],
-    active: false,
-  },
-  {
-    id: 6,
-    name: 'Naval Ravikant',
-    avatar: '/placeholder.svg?height=40&width=40',
-    platforms: ['X'],
-    topics: ['Philosophy', 'Investing', 'Spirituality'],
-    active: true,
-  },
-  {
-    id: 7,
-    name: 'Ryan Allis',
-    avatar: '/placeholder.svg?height=40&width=40',
-    platforms: ['LinkedIn', 'X'],
-    topics: ['SaaS', 'Venture Capital', 'Future'],
-    active: true,
-  },
-];
+// Static creators array removed - now fetched from database in DailyNewsDashboard component
 
-const contentFeed = [
-  {
-    id: 1,
-    creatorId: 1,
-    platform: 'X',
-    title: 'The Future of Venture Capital and AI',
-    summary:
-      "An in-depth thread exploring how artificial intelligence will reshape the landscape of venture capital over the next decade. We're witnessing a fundamental shift in how VCs evaluate startups, with AI-powered due diligence tools becoming standard practice. The traditional metrics of TAM, growth rates, and team experience are being augmented by sophisticated algorithms that can predict market trends, analyze competitive landscapes, and even assess founder-market fit through behavioral analysis. This transformation isn't just about efficiency—it's about unlocking investment opportunities that human analysts might miss. From automated portfolio management to AI-driven market research, the entire VC ecosystem is evolving. However, this raises important questions about the role of human intuition in investment decisions and whether we're creating a more equitable or more algorithmic approach to funding innovation. The implications extend beyond just better returns; they touch on how we identify and nurture the next generation of breakthrough technologies.",
-    timestamp: '2h ago',
-    tags: ['Venture Capital', 'AI'],
-    url: '#',
-    bookmarked: false,
-  },
-  {
-    id: 2,
-    creatorId: 4,
-    platform: 'YouTube',
-    title: 'My Top 5 Biohacking Gadgets for 2025',
-    summary:
-      "In this comprehensive video review, I unbox and thoroughly test the most impactful biohacking devices that have transformed my daily optimization routine over the past year. Starting with continuous glucose monitors that provide real-time insights into metabolic health, we dive deep into how tracking glucose variability has revolutionized my understanding of food timing and exercise recovery. The second device is a cutting-edge HRV monitor that goes beyond basic heart rate tracking to measure nervous system recovery and stress adaptation. I'll show you exactly how I use this data to optimize my training intensity and sleep schedule. The third gadget is a red light therapy panel that I've been using for cellular energy production and skin health—the results after 6 months are remarkable. Fourth, we explore a neurofeedback device that's helping me enhance focus and cognitive performance through targeted brainwave training. Finally, I reveal my latest acquisition: a molecular hydrogen water generator that's showing promising results for reducing inflammation and improving recovery times. Each device comes with detailed usage protocols, cost-benefit analysis, and real data from my personal experiments.",
-    timestamp: '1d ago',
-    tags: ['Biohacking', 'Science'],
-    url: '#',
-    bookmarked: true,
-  },
-  {
-    id: 3,
-    creatorId: 2,
-    platform: 'LinkedIn',
-    title: 'Building a Resilient SaaS Company in a Downturn',
-    summary:
-      'Key strategies for SaaS founders to navigate economic uncertainty while maintaining growth momentum and team morale. Drawing from lessons learned during the 2008 financial crisis and recent market volatility, this comprehensive guide covers the essential pillars of recession-proof SaaS businesses. First, we examine customer retention strategies that go beyond traditional churn reduction—focusing on expanding existing relationships through value-added services and deeper product integration. The data shows that companies prioritizing customer success during downturns emerge stronger with higher lifetime values and more predictable revenue streams. Second, we explore operational efficiency without sacrificing innovation, including smart automation investments that reduce costs while improving customer experience. Third, the critical importance of maintaining a strong company culture during layoffs and budget cuts—how transparent communication and strategic decision-making can actually strengthen team cohesion. We also dive into fundraising strategies for the current environment, including alternative funding sources and the shift toward profitability-focused metrics. Finally, I share specific tactics for identifying and capitalizing on market opportunities that emerge during economic uncertainty, when competitors are retreating and customer needs are evolving rapidly.',
-    timestamp: '3d ago',
-    tags: ['SaaS', 'Investing'],
-    url: '#',
-    bookmarked: false,
-  },
-  {
-    id: 4,
-    creatorId: 5,
-    platform: 'X',
-    title: 'A Reflection on Modern Politics',
-    summary:
-      "A thoughtful reflection on the current state of global politics and the critical importance of civil discourse in our increasingly polarized world. As we witness democratic institutions under pressure across multiple continents, it's essential to examine both the symptoms and root causes of political fragmentation. The rise of social media has fundamentally altered how political information spreads, creating echo chambers that reinforce existing beliefs while marginalizing moderate voices. This isn't just an American phenomenon—from Brexit to rising authoritarianism in various democracies, we're seeing similar patterns of political polarization worldwide. The challenge isn't just about left versus right; it's about the erosion of shared factual foundations that make democratic debate possible. We need to rediscover the art of disagreeing constructively, finding common ground on complex issues, and building coalitions that transcend traditional party lines. This requires both individual commitment to intellectual humility and institutional reforms that incentivize collaboration over conflict. The stakes couldn't be higher—the future of democratic governance depends on our ability to bridge these divides and work together on the pressing challenges of our time, from climate change to economic inequality to technological disruption.",
-    timestamp: '5d ago',
-    tags: ['Politics', 'Future'],
-    url: '#',
-    bookmarked: false,
-  },
-  {
-    id: 5,
-    creatorId: 3,
-    platform: 'Blogs',
-    title: 'Annual Letter to Shareholders',
-    summary:
-      "Comprehensive thoughts on long-term value investing principles, current market cycles, and the fundamental strategies that have guided successful wealth creation over decades of market volatility. This year's letter addresses the persistent questions about whether traditional value investing remains relevant in an era of rapid technological change and unprecedented monetary policy. The evidence suggests that while the specific metrics may evolve, the core principles of buying quality businesses at reasonable prices continue to generate superior long-term returns. We examine several case studies from our portfolio, including companies that have successfully navigated digital transformation while maintaining their competitive moats. The discussion extends to the current inflationary environment and its impact on different asset classes, with particular attention to how businesses with pricing power and strong balance sheets outperform during periods of currency debasement. We also address the growing importance of ESG factors—not as a separate investment thesis, but as integral components of business quality and long-term sustainability. The letter concludes with observations about the next generation of investors and the timeless wisdom that patience, discipline, and independent thinking remain the most valuable tools in any market environment. Special attention is given to the psychological aspects of investing and how emotional discipline often matters more than analytical sophistication.",
-    timestamp: '1w ago',
-    tags: ['Investing'],
-    url: '#',
-    bookmarked: true,
-  },
-  {
-    id: 6,
-    creatorId: 6,
-    platform: 'X',
-    title: 'The Angel Philosopher',
-    summary:
-      "A profound collection of interconnected thoughts on wealth creation, the pursuit of happiness, and discovering meaning in an age of infinite possibilities and constant distraction. This philosophical exploration begins with the paradox of modern abundance—how having more choices and opportunities can sometimes lead to less satisfaction and greater anxiety. We examine the relationship between financial independence and personal freedom, questioning whether the traditional path of wealth accumulation truly leads to the liberation we seek. The discussion weaves through ancient wisdom and modern psychology, exploring how Stoic principles apply to contemporary challenges like social media addiction, career optimization, and relationship building. There's a deep dive into the concept of 'enough'—how to determine when you have sufficient resources to pursue what truly matters versus the endless treadmill of status competition. The piece also addresses the responsibility that comes with wealth and influence, examining how successful individuals can contribute to society while avoiding the trap of virtue signaling. Throughout, there's an emphasis on first-principles thinking and the importance of developing your own philosophy rather than adopting others' frameworks wholesale. The ultimate message centers on the integration of material success with spiritual fulfillment, suggesting that true wealth encompasses not just financial assets but also relationships, health, knowledge, and inner peace.",
-    timestamp: '2w ago',
-    tags: ['Philosophy', 'Investing'],
-    url: '#',
-    bookmarked: true,
-  },
-];
+// Static content feed removed - will be replaced with dynamic content from database
+interface ContentItem {
+  id: string;
+  title: string;
+  type: 'article' | 'video' | 'podcast' | 'social';
+  summary: string;
+  creatorId: string;
+  createdAt: string;
+  platform: string;
+  topics?: string[];
+  url: string;
+  imageUrl?: string;
+  isRead: boolean;
+  isSaved: boolean;
+}
 
+const contentFeed: ContentItem[] = []; // TODO: Replace with real content from database
 // --- SUBCOMPONENTS ---
+
+interface AppSidebarProps {
+  onTopicCreate: () => void;
+  onTopicEdit: (topic: { id: number; name: string; color?: string }) => void;
+  onTopicDelete: (topic: { id: number; name: string; color?: string }) => void;
+  onCreatorCreate: () => void;
+  onCreatorEdit: (creator: {
+    id: string;
+    name: string;
+    platform: string;
+    handle: string;
+  }) => void;
+  creators: Array<{
+    id: string;
+    name: string;
+    platform: string;
+    handle: string;
+    category?: string;
+    isActive?: boolean;
+  }>;
+  isLoadingCreators: boolean;
+}
 
 function AppSidebar({
   onTopicCreate,
@@ -340,7 +241,9 @@ function AppSidebar({
   onTopicDelete,
   onCreatorCreate,
   onCreatorEdit,
-}: any) {
+  creators,
+  isLoadingCreators,
+}: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" variant="inset" side="left">
       <SidebarHeader className="p-4">
@@ -479,43 +382,55 @@ function AppSidebar({
             <CollapsibleContent className="transition-all duration-300 ease-in-out data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {creators.map((creator) => (
-                    <SidebarMenuItem
-                      key={creator.id}
-                      className="group/creator-item"
-                    >
-                      <SidebarMenuButton tooltip={creator.name}>
-                        <div className="relative">
-                          <Avatar className="w-5 h-5">
-                            <AvatarImage
-                              src={creator.avatar || '/placeholder.svg'}
-                              alt={creator.name}
-                            />
-                            <AvatarFallback className="text-xs">
-                              {creator.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div
-                            className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${creator.active ? 'bg-green-500' : 'bg-gray-400'}`}
-                          />
-                        </div>
-                        <span className="truncate">{creator.name}</span>
-                        {creator.platforms && creator.platforms.length > 1 && (
-                          <SidebarMenuBadge className="group-hover/creator-item:opacity-0 transition-opacity duration-200">
-                            {creator.platforms.length}
-                          </SidebarMenuBadge>
-                        )}
-                      </SidebarMenuButton>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/creator-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
-                        onClick={() => onCreatorEdit(creator)}
+                  {isLoadingCreators ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      Loading...
+                    </div>
+                  ) : creators.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      No creators yet
+                    </div>
+                  ) : (
+                    creators.map((creator: any) => (
+                      <SidebarMenuItem
+                        key={creator.id}
+                        className="group/creator-item"
                       >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </SidebarMenuItem>
-                  ))}
+                        <SidebarMenuButton tooltip={creator.display_name}>
+                          <div className="relative">
+                            <Avatar className="w-5 h-5">
+                              <AvatarImage
+                                src={creator.avatar_url || '/placeholder.svg'}
+                                alt={creator.display_name}
+                              />
+                              <AvatarFallback className="text-xs">
+                                {creator.display_name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div
+                              className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${creator.is_active ? 'bg-green-500' : 'bg-gray-400'}`}
+                            />
+                          </div>
+                          <span className="truncate">
+                            {creator.display_name}
+                          </span>
+                          {creator.platform && (
+                            <SidebarMenuBadge className="group-hover/creator-item:opacity-0 transition-opacity duration-200">
+                              {creator.platform}
+                            </SidebarMenuBadge>
+                          )}
+                        </SidebarMenuButton>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/creator-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
+                          onClick={() => onCreatorEdit(creator)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </SidebarMenuItem>
+                    ))
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
@@ -545,8 +460,8 @@ function Header({ onSignOut }: { onSignOut: () => void }) {
       <div className="md:hidden">
         <SidebarTrigger className="h-9 w-9" />
       </div>
-      <div className="flex-1 flex items-center gap-2">
-        <div className="relative w-full max-w-md">
+      <div className="flex-1 flex items-center gap-4">
+        <div className="relative w-full max-w-xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input
             placeholder="Search content, creators, topics..."
@@ -622,10 +537,10 @@ function Header({ onSignOut }: { onSignOut: () => void }) {
   );
 }
 
-function ContentCard({ item }: { item: any }) {
+function ContentCard({ item, creators }: { item: any; creators: any[] }) {
   const [bookmarked, setBookmarked] = React.useState(item.bookmarked);
   const [isLoading, setIsLoading] = React.useState(true);
-  const creator = creators.find((c) => c.id === item.creatorId);
+  const creator = creators.find((c: any) => c.id === item.creatorId);
 
   const getPlatformIcon = (platform: string) => {
     switch (platform?.toLowerCase()) {
@@ -682,20 +597,21 @@ function ContentCard({ item }: { item: any }) {
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10 border">
                 <AvatarImage
-                  src={creator.avatar || '/placeholder.svg'}
-                  alt={creator.name}
+                  src={creator.avatar_url || '/placeholder.svg'}
+                  alt={creator.display_name}
                 />
-                <AvatarFallback>{creator.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback>
+                  {creator.display_name.charAt(0)}
+                </AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-semibold text-gray-800 dark:text-gray-100">
-                  {creator.name}
+                  {creator.display_name}
                 </p>
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                   <PlatformIcon className="h-3.5 w-3.5" />
                   <span>
-                    {creator.platforms?.[0] || 'Blogs'} &middot;{' '}
-                    {item.timestamp}
+                    {creator.platform?.[0] || 'Blogs'} &middot; {item.timestamp}
                   </span>
                 </div>
               </div>
@@ -810,16 +726,6 @@ function TopicManagementModal({
   );
 }
 
-// Creator form schema
-const addCreatorSchema = z.object({
-  url: z.string().url('Please enter a valid URL'),
-  display_name: z.string().min(1, 'Display name is required').max(100, 'Display name too long'),
-  description: z.string().max(500, 'Description too long').optional(),
-  topics: z.array(z.string()).optional(),
-});
-
-type AddCreatorFormData = z.infer<typeof addCreatorSchema>;
-
 interface Creator {
   id: string;
   url: string;
@@ -832,322 +738,10 @@ interface Creator {
   metadata: Record<string, unknown>;
 }
 
-function CreatorManagementModal({
-  open,
-  onOpenChange,
-  creator,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  creator: any;
-}) {
-  const isEditing = !!creator;
-  const [platformInfo, setPlatformInfo] = React.useState<PlatformInfo | null>(null);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [selectedTopics, setSelectedTopics] = React.useState<string[]>(
-    creator?.topics || []
-  );
-  const [isActive, setIsActive] = React.useState(creator?.active ?? true);
-
-  const form = useForm<AddCreatorFormData>({
-    resolver: zodResolver(addCreatorSchema),
-    defaultValues: {
-      url: creator?.url || '',
-      display_name: creator?.name || '',
-      description: creator?.description || '',
-      topics: creator?.topics || [],
-    },
-  });
-
-  const handleTopicToggle = (topicName: string) => {
-    const currentTopics = form.getValues('topics') || [];
-    const updatedTopics = currentTopics.includes(topicName)
-      ? currentTopics.filter((t) => t !== topicName)
-      : [...currentTopics, topicName];
-    
-    form.setValue('topics', updatedTopics);
-    setSelectedTopics(updatedTopics);
-  };
-
-  const handlePlatformDetected = (info: PlatformInfo) => {
-    setPlatformInfo(info);
-    
-    // Auto-suggest display name based on platform data
-    if (!form.getValues('display_name')) {
-      let suggestedName = '';
-      
-      switch (info.platform) {
-        case 'youtube':
-          suggestedName = info.metadata.channelId || info.metadata.username || 'YouTube Creator';
-          break;
-        case 'twitter':
-          suggestedName = `@${info.metadata.username}` || 'Twitter User';
-          break;
-        case 'linkedin':
-          suggestedName = info.metadata.companyId || info.metadata.username || 'LinkedIn User';
-          break;
-        case 'threads':
-          suggestedName = `@${info.metadata.username}` || 'Threads User';
-          break;
-        case 'rss':
-          try {
-            const urlObj = new URL(info.profileUrl);
-            suggestedName = urlObj.hostname;
-          } catch {
-            suggestedName = 'RSS Feed';
-          }
-          break;
-      }
-      
-      if (suggestedName) {
-        form.setValue('display_name', suggestedName);
-      }
-    }
-  };
-
-  const handlePlatformError = (error: Error) => {
-    setPlatformInfo(null);
-    form.setError('url', { message: error.message });
-  };
-
-  const onSubmit = async (data: AddCreatorFormData) => {
-    if (!platformInfo) {
-      form.setError('url', { message: 'Please enter a valid creator URL' });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch('/api/creators', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: data.url,
-          display_name: data.display_name,
-          description: data.description || null,
-          topics: data.topics || [],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to add creator' }));
-        throw new Error(errorData.error || 'Failed to add creator');
-      }
-
-      const creator = await response.json();
-      // TODO: Add the new creator to the UI state
-      console.log('Creator added successfully:', creator);
-      onOpenChange(false);
-      form.reset();
-      setPlatformInfo(null);
-      setSelectedTopics([]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to add creator';
-      form.setError('root', { message });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edit Creator' : 'Add New Creator'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? `Update the details for ${creator?.name}.`
-              : 'Add a new creator to follow their content across platforms.'}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid gap-6 py-4">
-              {/* URL Input */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">
-                  Creator URL
-                </h4>
-                <div className="grid grid-cols-4 gap-4">
-                  <Label className="text-right pt-2">URL *</Label>
-                  <div className="col-span-3">
-                    <FormField
-                      control={form.control}
-                      name="url"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <SmartUrlInput
-                              {...field}
-                              onPlatformDetected={handlePlatformDetected}
-                              onError={handlePlatformError}
-                              placeholder="Paste any URL (YouTube, Twitter, LinkedIn, blog, etc.)"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {platformInfo && (
-                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                        <p className="text-xs text-green-800">
-                          ✓ Detected {platformInfo.platform.toUpperCase()} creator
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Basic Information */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">
-                  Basic Information
-                </h4>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label className="text-right">Name *</Label>
-                  <div className="col-span-3">
-                    <FormField
-                      control={form.control}
-                      name="display_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., Naval Ravikant" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label className="text-right">Description</Label>
-                  <div className="col-span-3">
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input {...field} placeholder="Brief description of the creator" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-              </div>
-
-          {/* Topic Assignments */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-sm text-gray-900 dark:text-white">
-              Topic Assignments
-            </h4>
-            <div className="grid grid-cols-4 gap-4">
-              <Label className="text-right pt-2">Topics</Label>
-              <div className="col-span-3">
-                <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto border rounded-md p-3">
-                  {topics.map((topic) => (
-                    <div key={topic.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`new-topic-${topic.id}`}
-                        checked={selectedTopics.includes(topic.name)}
-                        onCheckedChange={() => handleTopicToggle(topic.name)}
-                      />
-                      <label
-                        htmlFor={`new-topic-${topic.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {topic.name}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Select topics that this creator typically covers
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Status */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-sm text-gray-900 dark:text-white">
-              Status
-            </h4>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Active</Label>
-              <div className="col-span-3 flex items-center gap-3">
-                <Switch checked={isActive} onCheckedChange={setIsActive} />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {isActive
-                    ? 'Creator is active and content will be fetched'
-                    : 'Creator is inactive'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Avatar Upload */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-sm text-gray-900 dark:text-white">
-              Avatar
-            </h4>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Profile Image</Label>
-              <div className="col-span-3 flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={creator?.avatar || '/placeholder.svg'} />
-                  <AvatarFallback>
-                    {creator?.name?.charAt(0) || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <Button variant="outline" size="sm" className="bg-transparent">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Image
-                </Button>
-              </div>
-            </div>
-          </div>
-            </div>
-
-            {form.formState.errors.root && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-800">{form.formState.errors.root.message}</p>
-              </div>
-            )}
-
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || !platformInfo}
-                className="bg-primary hover:bg-primary/90"
-              >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? 'Adding Creator...' : (isEditing ? 'Save Changes' : 'Add Creator')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // --- NEW: Content List Item Component ---
-function ContentListItem({ item }: { item: any }) {
+function ContentListItem({ item, creators }: { item: any; creators: any[] }) {
   const [bookmarked, setBookmarked] = React.useState(item.bookmarked);
-  const creator = creators.find((c) => c.id === item.creatorId);
+  const creator = creators.find((c: any) => c.id === item.creatorId);
 
   const getPlatformIcon = (platformName: string) => {
     const platform = platforms?.[0] || 'Blogs';
@@ -1175,16 +769,16 @@ function ContentListItem({ item }: { item: any }) {
         <div className="flex items-start gap-4">
           <Avatar className="h-12 w-12 border flex-shrink-0">
             <AvatarImage
-              src={creator.avatar || '/placeholder.svg'}
-              alt={creator.name}
+              src={creator.avatar_url || '/placeholder.svg'}
+              alt={creator.display_name}
             />
-            <AvatarFallback>{creator.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{creator.display_name.charAt(0)}</AvatarFallback>
           </Avatar>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <p className="font-semibold text-gray-800 dark:text-gray-100">
-                {creator.name}
+                {creator.display_name}
               </p>
               <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                 <PlatformIcon className="h-3.5 w-3.5 flex-shrink-0" />
@@ -1270,9 +864,11 @@ function ContentListItem({ item }: { item: any }) {
 function MobileFiltersSheet({
   open,
   onOpenChange,
+  creators,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  creators: any[];
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1336,24 +932,24 @@ function MobileFiltersSheet({
             <div className="space-y-3">
               <h3 className="font-medium text-sm">Creators</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {creators.map((c) => (
+                {creators.map((c: any) => (
                   <div key={c.id} className="flex items-center space-x-2">
                     <Checkbox id={`mobile-creator-${c.id}`} />
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
                         <AvatarImage
-                          src={c.avatar || '/placeholder.svg'}
-                          alt={c.name}
+                          src={c.avatar_url || '/placeholder.svg'}
+                          alt={c.display_name}
                         />
                         <AvatarFallback className="text-xs">
-                          {c.name.charAt(0)}
+                          {c.display_name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <label
                         htmlFor={`mobile-creator-${c.id}`}
                         className="text-sm font-medium leading-none"
                       >
-                        {c.name}
+                        {c.display_name}
                       </label>
                     </div>
                   </div>
@@ -1390,6 +986,8 @@ function MobileFiltersSheet({
 
 export function DailyNewsDashboard() {
   const { signOut } = useAuth();
+  const { state } = useAuth();
+  const { user, session } = state;
 
   const handleSignOut = async () => {
     await signOut();
@@ -1397,13 +995,13 @@ export function DailyNewsDashboard() {
   };
   const [view, setView] = React.useState<'grid' | 'list'>('grid');
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
-  const [isCreatorEditModalOpen, setCreatorEditModalOpen] =
-    React.useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [selectedTopic, setSelectedTopic] = React.useState<any>(null);
   const [selectedCreator, setSelectedCreator] = React.useState<any>(null);
   const [isCreatorModalOpen, setCreatorModalOpen] = React.useState(false);
   const [isMobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
+  const [creators, setCreators] = React.useState<any[]>([]);
+  const [isLoadingCreators, setIsLoadingCreators] = React.useState(true);
 
   const handleCreateTopic = () => {
     setSelectedTopic(null);
@@ -1421,8 +1019,8 @@ export function DailyNewsDashboard() {
   };
 
   const handleEditCreator = (creator: any) => {
-    setSelectedCreator(creator);
-    setCreatorEditModalOpen(true);
+    // Edit functionality not yet implemented
+    // TODO: Implement edit creator functionality
   };
 
   const handleCreateCreator = () => {
@@ -1430,19 +1028,52 @@ export function DailyNewsDashboard() {
     setCreatorModalOpen(true);
   };
 
+  // Fetch creators from the database
+  const fetchCreators = React.useCallback(async () => {
+    if (!user || !session) return;
+
+    setIsLoadingCreators(true);
+    try {
+      const response = await fetch('/api/creators', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCreators(data.data?.creators || []);
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching creators:', error);
+      }
+    } finally {
+      setIsLoadingCreators(false);
+    }
+  }, [user, session]);
+
+  // Fetch creators on mount and when user/session changes
+  React.useEffect(() => {
+    fetchCreators();
+  }, [fetchCreators]);
+
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen w-full">
         <AppSidebar
           onTopicCreate={handleCreateTopic}
           onTopicEdit={handleEditTopic}
           onTopicDelete={handleDeleteTopic}
           onCreatorCreate={handleCreateCreator}
           onCreatorEdit={handleEditCreator}
+          creators={creators}
+          isLoadingCreators={isLoadingCreators}
         />
-        <SidebarInset className="flex-1 flex flex-col">
+        <SidebarInset className="flex-1 flex flex-col w-full">
           <Header onSignOut={handleSignOut} />
-          <main className="flex-1 p-4 md:p-6 bg-gray-50 dark:bg-gray-950">
+          <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Your Feed
@@ -1496,9 +1127,9 @@ export function DailyNewsDashboard() {
                       <DropdownMenuSubTrigger>Creators</DropdownMenuSubTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent>
-                          {creators.map((c) => (
+                          {creators.map((c: any) => (
                             <DropdownMenuCheckboxItem key={c.id}>
-                              {c.name}
+                              {c.display_name}
                             </DropdownMenuCheckboxItem>
                           ))}
                         </DropdownMenuSubContent>
@@ -1564,31 +1195,86 @@ export function DailyNewsDashboard() {
                 </div>
               </div>
             </div>
-            <div className="lg:hidden">
-              <div className="grid grid-cols-1 gap-6">
-                {contentFeed.map((item) => (
-                  <ContentCard key={item.id} item={item} />
-                ))}
+            {contentFeed.length === 0 ? (
+              // Empty state
+              <div className="flex flex-col items-center justify-center py-16 px-4">
+                <div className="max-w-md text-center space-y-6">
+                  <div className="w-20 h-20 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                    <Rss className="w-10 h-10 text-gray-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      No content yet
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      {creators.length === 0
+                        ? 'Start by adding creators to follow their content'
+                        : "Content from your creators will appear here once it's fetched"}
+                    </p>
+                  </div>
+                  {creators.length === 0 && (
+                    <Button onClick={handleCreateCreator} size="lg">
+                      <PlusCircle className="w-5 h-5 mr-2" />
+                      Add Your First Creator
+                    </Button>
+                  )}
+                  {creators.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        You're following {creators.length} creator
+                        {creators.length !== 1 ? 's' : ''}. New content will be
+                        fetched automatically.
+                      </p>
+                      <Button variant="outline" disabled>
+                        <RefreshCw className="w-4 w-4 mr-2" />
+                        Content fetching coming soon
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="hidden lg:block">
-              {view === 'grid' ? (
-                <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
-                  {contentFeed.map((item) => (
-                    <ContentCard key={item.id} item={item} />
-                  ))}
+            ) : (
+              // Content feed
+              <>
+                <div className="lg:hidden">
+                  <div className="grid grid-cols-1 gap-6">
+                    {contentFeed.map((item) => (
+                      <ContentCard
+                        key={item.id}
+                        item={item}
+                        creators={creators}
+                      />
+                    ))}
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-4 w-full">
-                  {contentFeed.map((item) => (
-                    <ContentListItem key={item.id} item={item} />
-                  ))}
+                <div className="hidden lg:block">
+                  {view === 'grid' ? (
+                    <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
+                      {contentFeed.map((item) => (
+                        <ContentCard
+                          key={item.id}
+                          item={item}
+                          creators={creators}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-4 w-full">
+                      {contentFeed.map((item) => (
+                        <ContentListItem
+                          key={item.id}
+                          item={item}
+                          creators={creators}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="flex justify-center mt-8">
-              <Button variant="outline">Load More</Button>
-            </div>
+                <div className="flex justify-center mt-8">
+                  <Button variant="outline">Load More</Button>
+                </div>
+              </>
+            )}
           </main>
         </SidebarInset>
       </div>
@@ -1597,15 +1283,11 @@ export function DailyNewsDashboard() {
         onOpenChange={setTopicModalOpen}
         topic={selectedTopic}
       />
-      <CreatorManagementModal
-        open={isCreatorEditModalOpen}
-        onOpenChange={setCreatorEditModalOpen}
-        creator={selectedCreator}
-      />
-      <CreatorManagementModal
+      {/* Note: Edit functionality not yet implemented in AddCreatorModal */}
+      <AddCreatorModal
         open={isCreatorModalOpen}
         onOpenChange={setCreatorModalOpen}
-        creator={selectedCreator}
+        onCreatorAdded={fetchCreators}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -1627,6 +1309,7 @@ export function DailyNewsDashboard() {
       <MobileFiltersSheet
         open={isMobileFiltersOpen}
         onOpenChange={setMobileFiltersOpen}
+        creators={creators}
       />
     </SidebarProvider>
   );

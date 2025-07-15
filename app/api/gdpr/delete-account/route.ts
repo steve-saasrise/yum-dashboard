@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { confirmation, reason } = body;
+    const { confirmation } = body;
 
     // Validate confirmation
     if (confirmation !== 'DELETE') {
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch (_error) {
               // Ignore cookie setting errors in server context
             }
           },
@@ -70,7 +70,9 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id);
 
     if (markDeletionError) {
-      console.error('Error marking account for deletion:', markDeletionError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error marking account for deletion:', markDeletionError);
+      }
       return NextResponse.json(
         { error: 'Failed to process deletion request' },
         { status: 500 }
@@ -122,7 +124,9 @@ export async function POST(request: NextRequest) {
     );
 
     if (failures.length > 0) {
-      console.error('Some deletion operations failed:', failures);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Some deletion operations failed:', failures);
+      }
       // Continue with account deletion even if some data cleanup failed
     }
 
@@ -132,7 +136,9 @@ export async function POST(request: NextRequest) {
     );
 
     if (authDeleteError) {
-      console.error('Error deleting auth user:', authDeleteError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deleting auth user:', authDeleteError);
+      }
       // If auth deletion fails, we need to handle this carefully
       // The user data is already marked for deletion
       return NextResponse.json(
@@ -156,9 +162,8 @@ export async function POST(request: NextRequest) {
         request_count: 1,
         last_request: new Date().toISOString(),
       });
-    } catch (auditError) {
-      // Expected to fail since user is deleted
-      console.log('Audit log creation failed (expected):', auditError);
+    } catch (_auditError) {
+      // Expected to fail since user is deleted - this is expected behavior
     }
 
     return NextResponse.json({
@@ -169,7 +174,9 @@ export async function POST(request: NextRequest) {
       auth_deleted: true,
     });
   } catch (error) {
-    console.error('Account deletion error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Account deletion error:', error);
+    }
     return NextResponse.json(
       {
         error: 'Account deletion failed',
@@ -182,7 +189,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET endpoint to check deletion status
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Create Supabase server client
     const cookieStore = await cookies();
@@ -199,7 +206,7 @@ export async function GET(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch (_error) {
               // Ignore cookie setting errors in server context
             }
           },
@@ -241,8 +248,8 @@ export async function GET(request: NextRequest) {
       last_updated: userData?.updated_at,
       can_request_deletion: !userData?.data_deletion_requested,
     });
-  } catch (error) {
-    console.error('Deletion status check error:', error);
+  } catch (_error) {
+    // Deletion status check failed
     return NextResponse.json(
       { error: 'Failed to check deletion status' },
       { status: 500 }

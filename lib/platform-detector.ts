@@ -160,18 +160,18 @@ export class PlatformDetector {
       case Platform.THREADS: {
         let userId = platformUserId;
         let profileUrl = originalUrl;
-        
+
         // For post URLs without username, extract from URL path
         if (!userId && originalUrl.includes('/t/')) {
           // This is a post URL without username - we'll use the domain as identifier
           userId = 'threads-post';
         }
-        
+
         // Convert post URLs to profile URLs when possible
         if (userId && userId !== 'threads-post') {
           profileUrl = `https://www.threads.com/@${userId}`;
         }
-        
+
         return {
           platform,
           platformUserId: userId,

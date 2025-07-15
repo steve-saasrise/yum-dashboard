@@ -114,7 +114,10 @@ export function AddCreatorModal({
     }
 
     // Auto-add protocol if missing for common platforms
-    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+    if (
+      !trimmedUrl.startsWith('http://') &&
+      !trimmedUrl.startsWith('https://')
+    ) {
       // Check if it looks like a domain
       if (trimmedUrl.includes('.') && !trimmedUrl.startsWith('@')) {
         trimmedUrl = 'https://' + trimmedUrl;
@@ -125,7 +128,9 @@ export function AddCreatorModal({
     try {
       new URL(trimmedUrl);
     } catch {
-      setUrlError('Please enter a valid URL (e.g., https://threads.net/@username)');
+      setUrlError(
+        'Please enter a valid URL (e.g., https://threads.net/@username)'
+      );
       return;
     }
 
@@ -159,7 +164,7 @@ export function AddCreatorModal({
       ]);
 
       setUrlInput('');
-    } catch (error) {
+    } catch (_error) {
       setUrlError('URL not recognized. Please check the URL and try again.');
     }
   };

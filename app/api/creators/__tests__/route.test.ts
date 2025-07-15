@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { NextRequest } from 'next/server';
 import { POST, GET } from '../route';
 
@@ -30,6 +31,8 @@ jest.mock('@/lib/platform-detector', () => ({
   },
 }));
 
+const { PlatformDetector } = require('@/lib/platform-detector');
+
 describe('POST /api/creators', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -43,8 +46,7 @@ describe('POST /api/creators', () => {
     });
 
     // Mock platform detection
-    const { PlatformDetector } = require('@/lib/platform-detector');
-    PlatformDetector.detect.mockReturnValue({
+    (PlatformDetector.detect as jest.Mock).mockReturnValue({
       platform: 'youtube',
       platformUserId: 'testchannel',
       profileUrl: 'https://youtube.com/@testchannel',
@@ -142,8 +144,7 @@ describe('POST /api/creators', () => {
       error: null,
     });
 
-    const { PlatformDetector } = require('@/lib/platform-detector');
-    PlatformDetector.detect.mockReturnValue({
+    (PlatformDetector.detect as jest.Mock).mockReturnValue({
       platform: 'youtube',
       platformUserId: 'testchannel',
       profileUrl: 'https://youtube.com/@testchannel',

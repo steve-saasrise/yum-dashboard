@@ -17,8 +17,8 @@ export default function AddCreatorPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="container mx-auto py-6 px-4">
         <div className="mb-6">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={() => router.back()}
             className="mb-4"
           >

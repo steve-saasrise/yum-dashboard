@@ -27,7 +27,7 @@ export const SESSION_CONFIG = {
 // Session utilities
 export const SessionUtils = {
   // Check if session is near expiry
-  isSessionNearExpiry: (session: any): boolean => {
+  isSessionNearExpiry: (session: { expires_at?: number } | null): boolean => {
     if (!session?.expires_at) return false;
 
     const now = Date.now();
@@ -38,7 +38,7 @@ export const SessionUtils = {
   },
 
   // Check if session has expired
-  isSessionExpired: (session: any): boolean => {
+  isSessionExpired: (session: { expires_at?: number } | null): boolean => {
     if (!session?.expires_at) return false;
 
     const now = Date.now();
@@ -48,7 +48,7 @@ export const SessionUtils = {
   },
 
   // Get time until session expires (in milliseconds)
-  getTimeUntilExpiry: (session: any): number => {
+  getTimeUntilExpiry: (session: { expires_at?: number } | null): number => {
     if (!session?.expires_at) return 0;
 
     const now = Date.now();
@@ -109,7 +109,9 @@ export const SessionUtils = {
   },
 
   // Enhanced logout with proper cleanup
-  enhancedLogout: async (supabaseClient: any): Promise<{ error?: any }> => {
+  enhancedLogout: async (supabaseClient: {
+    auth: { signOut: () => Promise<{ error?: unknown }> };
+  }): Promise<{ error?: unknown }> => {
     try {
       // Clear local storage first
       SessionUtils.clearSessionStorage();
@@ -136,13 +138,17 @@ export const SessionUtils = {
           });
         } catch (e) {
           // Cookie clearing may fail in some browsers, but that's okay
-          console.warn('Could not clear auth cookies:', e);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Could not clear auth cookies:', e);
+          }
         }
       }
 
       return { error };
     } catch (error) {
-      console.error('Enhanced logout error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Enhanced logout error:', error);
+      }
       return { error };
     }
   },
@@ -172,7 +178,15 @@ export const magicLinkConfig = {
 };
 
 // Authentication error helpers
-export function getAuthErrorMessage(error: any): string {
+export function getAuthErrorMessage(
+  error: {
+    message?: string;
+    code?: string;
+    name?: string;
+    error_description?: string;
+    error?: string;
+  } | null
+): string {
   if (!error) return 'An unknown error occurred';
 
   const message =
@@ -210,14 +224,29 @@ export function getAuthErrorMessage(error: any): string {
   return message;
 }
 
-export function isExpiredLinkError(error: any): boolean {
+export function isExpiredLinkError(
+  error: {
+    message?: string;
+    code?: string;
+    error_description?: string;
+    error?: string;
+  } | null
+): boolean {
   if (!error) return false;
 
   const message = error.message || error.error_description || error.error || '';
   return message.includes('expired') || message.includes('invalid_grant');
 }
 
-export function isRateLimitError(error: any): boolean {
+export function isRateLimitError(
+  error: {
+    message?: string;
+    code?: string;
+    status?: number;
+    error_description?: string;
+    error?: string;
+  } | null
+): boolean {
   if (!error) return false;
 
   const message = error.message || error.error_description || error.error || '';

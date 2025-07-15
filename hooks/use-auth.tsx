@@ -82,12 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const transformUser = async (
     user: User | null
   ): Promise<UserProfile | null> => {
-    console.log('AuthProvider: transformUser called with user:', !!user);
     if (!user) return null;
 
     try {
-      console.log('AuthProvider: Fetching profile data from database...');
-
       // Add timeout to prevent hanging
       const profileQuery = supabase
         .from('user_profiles')
@@ -103,12 +100,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profileQuery,
         timeoutPromise,
       ])) as any;
-
-      console.log('AuthProvider: Profile data fetch result:', {
-        hasData: !!profileData,
-        error: !!error,
-        errorCode: error?.code,
-      });
 
       if (error && error.code !== 'PGRST116') {
         // PGRST116 is "no rows returned" - not an error for new users
@@ -135,7 +126,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         last_sign_in_at: user.last_sign_in_at,
       };
 
-      console.log('AuthProvider: User transformed successfully');
       return profile;
     } catch (error) {
       console.error('AuthProvider: Error in transformUser:', error);
@@ -153,34 +143,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         last_sign_in_at: user.last_sign_in_at,
       };
 
-      console.log('AuthProvider: Returning basic profile due to error');
       return basicProfile;
     }
   };
 
   // Initialize auth state and listen for changes
   useEffect(() => {
-    console.log('AuthProvider: Starting initialization...');
-
     // Get initial session
     const getInitialSession = async () => {
-      console.log('AuthProvider: Getting initial session...');
       try {
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession();
 
-        console.log('AuthProvider: Initial session result:', {
-          hasSession: !!session,
-          sessionExpiry: session?.expires_at,
-          error: !!error,
-          userId: session?.user?.id,
-        });
-
         // Check if session has timed out due to inactivity
         if (session && SessionUtils.hasSessionTimedOut()) {
-          console.log('Session timed out due to inactivity, logging out');
           await SessionUtils.enhancedLogout(supabase);
           setState((prev) => ({
             ...prev,
@@ -193,11 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        console.log('AuthProvider: Transforming user...');
         const profile = await transformUser(session?.user || null);
-        console.log(
-          'AuthProvider: User transformed, setting state with loading: false'
-        );
 
         setState((prev) => ({
           ...prev,
@@ -225,8 +199,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Start session monitoring for automatic refresh and timeout checking
     const startSessionMonitoring = (session: Session) => {
-      console.log('AuthProvider: Starting session monitoring...');
-
       // Clear any existing intervals
       if (sessionCheckInterval.current) {
         clearInterval(sessionCheckInterval.current);
@@ -237,20 +209,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Check session status every 30 seconds
       sessionCheckInterval.current = setInterval(async () => {
-        console.log('AuthProvider: Session check interval triggered');
         const currentSession = state.session;
         if (!currentSession) return;
 
         // Check for inactivity timeout
         if (SessionUtils.hasSessionTimedOut()) {
-          console.log('Session timed out due to inactivity');
           await handleSessionTimeout();
           return;
         }
 
         // Check if session needs refresh
         if (SessionUtils.isSessionNearExpiry(currentSession)) {
-          console.log('Session near expiry, attempting refresh');
           await handleSessionRefresh();
         }
       }, 30000); // Check every 30 seconds
@@ -279,10 +248,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data, error } = await supabase.auth.refreshSession();
         if (error || !data.session) {
-          console.log('Session refresh failed, logging out');
           await handleSessionTimeout();
         } else {
-          console.log('Session refreshed successfully');
           SessionUtils.updateLastActivity();
         }
       } catch (error) {
@@ -294,7 +261,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for cross-tab logout events
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === SESSION_CONFIG.STORAGE_KEYS.LOGOUT_EVENT && e.newValue) {
-        console.log('Cross-tab logout detected');
         setState((prev) => ({
           ...prev,
           session: null,
@@ -325,8 +291,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     getInitialSession();
 
-    console.log('AuthProvider: Initial session fetch initiated');
-
     // Add event listeners
     window.addEventListener('storage', handleStorageChange);
     activityEvents.forEach((event) => {
@@ -337,12 +301,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('AuthProvider: Auth state change event:', {
-        event,
-        hasSession: !!session,
-        userId: session?.user?.id,
-      });
-
       const profile = await transformUser(session?.user || null);
       setState((prev) => ({
         ...prev,
@@ -508,10 +466,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session: null,
         profile: null,
         loading: false,
-        error: error || null,
+        error: (error as AuthError) || null,
       }));
 
-      return { error: error || undefined };
+      return { error: (error as AuthError) || undefined };
     } catch (error) {
       const authError = error as AuthError;
       // Still clear the local state even if logout failed

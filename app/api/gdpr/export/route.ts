@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Create Supabase server client
     const cookieStore = await cookies();
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch (_error) {
               // Ignore cookie setting errors in server context
             }
           },
@@ -48,13 +48,13 @@ export async function GET(request: NextRequest) {
         export_type: string;
         data_format: string;
       };
-      user_account: any;
-      profile: any;
-      saved_content: any[];
-      user_topics: any[];
-      email_digests: any[];
-      user_sessions: any[];
-      api_usage: any[];
+      user_account: Record<string, unknown>;
+      profile: Record<string, unknown>;
+      saved_content: Array<Record<string, unknown>>;
+      user_topics: Array<Record<string, unknown>>;
+      email_digests: Array<Record<string, unknown>>;
+      user_sessions: Array<Record<string, unknown>>;
+      api_usage: Array<Record<string, unknown>>;
     } = {
       export_info: {
         user_id: user.id,
@@ -237,7 +237,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('GDPR export error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('GDPR export error:', error);
+    }
     return NextResponse.json(
       {
         error: 'Data export failed',
@@ -270,7 +272,7 @@ export async function POST(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch (_error) {
               // Ignore cookie setting errors in server context
             }
           },
@@ -308,8 +310,8 @@ export async function POST(request: NextRequest) {
       requested_format: format,
       requested_sections: include_sections,
     });
-  } catch (error) {
-    console.error('GDPR export POST error:', error);
+  } catch (_error) {
+    // GDPR export POST request failed
     return NextResponse.json(
       { error: 'Custom export request failed' },
       { status: 500 }

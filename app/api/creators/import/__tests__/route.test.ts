@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { NextRequest } from 'next/server';
 import { POST } from '../route';
 
@@ -42,7 +43,7 @@ describe('POST /api/creators/import', () => {
     });
 
     const { PlatformDetector } = require('@/lib/platform-detector');
-    PlatformDetector.detect
+    (PlatformDetector.detect as jest.Mock)
       .mockReturnValueOnce({
         platform: 'youtube',
         platformUserId: 'creator1',
@@ -61,8 +62,9 @@ describe('POST /api/creators/import', () => {
     const mockEq = jest.fn().mockReturnThis();
     const mockSingle = jest.fn().mockResolvedValue({ data: null, error: null });
     const mockInsert = jest.fn().mockReturnThis();
-    const mockInsertSelect = jest.fn().mockReturnThis(); 
-    const mockInsertSingle = jest.fn()
+    const mockInsertSelect = jest.fn().mockReturnThis();
+    const mockInsertSingle = jest
+      .fn()
       .mockResolvedValueOnce({
         data: { id: 'creator-1', display_name: 'Creator One' },
         error: null,
@@ -119,7 +121,7 @@ Creator Two,https://twitter.com/creator2,"design,ui"`;
     });
 
     const { PlatformDetector } = require('@/lib/platform-detector');
-    PlatformDetector.detect.mockReturnValue({
+    (PlatformDetector.detect as jest.Mock).mockReturnValue({
       platform: 'rss',
       platformUserId: 'example.com',
       profileUrl: 'https://example.com/feed.xml',
@@ -178,7 +180,7 @@ Creator Two,https://twitter.com/creator2,"design,ui"`;
     });
 
     const { PlatformDetector } = require('@/lib/platform-detector');
-    PlatformDetector.detect.mockReturnValue({
+    (PlatformDetector.detect as jest.Mock).mockReturnValue({
       platform: 'youtube',
       platformUserId: 'existing',
       profileUrl: 'https://youtube.com/@existing',

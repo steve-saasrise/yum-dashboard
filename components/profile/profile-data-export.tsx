@@ -60,7 +60,9 @@ export function ProfileDataExport() {
           'Your complete user data has been downloaded successfully. This includes your profile, saved content, topics, and all associated data.',
       });
     } catch (error) {
-      console.error('Data export error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Data export error:', error);
+      }
       toast({
         title: 'Export failed',
         description:

@@ -12,7 +12,9 @@ jest.mock('@/lib/supabase', () => ({
     auth: {
       getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
       getUser: jest.fn(() => Promise.resolve({ data: { user: null } })),
-      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } },
+      })),
       signOut: jest.fn(() => Promise.resolve({ error: null })),
     },
     from: jest.fn(() => ({
@@ -37,7 +39,7 @@ jest.mock('next/server', () => ({
         value: typeof input === 'string' ? input : input.url,
         writable: false,
         enumerable: true,
-        configurable: true
+        configurable: true,
       });
       this.method = init?.method || 'GET';
       this.headers = new Map(Object.entries(init?.headers || {}));
@@ -65,7 +67,7 @@ if (typeof global.Request === 'undefined') {
         value: typeof input === 'string' ? input : input.url,
         writable: false,
         enumerable: true,
-        configurable: true
+        configurable: true,
       });
       this.method = init?.method || 'GET';
       this.headers = new Map(Object.entries(init?.headers || {}));

@@ -72,10 +72,8 @@ export function AvatarUpload({
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
-      console.log('Starting upload for:', filePath);
-
       // Upload file to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -83,18 +81,16 @@ export function AvatarUpload({
         });
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Upload error:', uploadError);
+        }
         throw new Error(uploadError.message);
       }
-
-      console.log('Upload successful:', uploadData);
 
       // Get public URL
       const {
         data: { publicUrl },
       } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-      console.log('Public URL:', publicUrl);
 
       // Delete old avatar if it exists
       if (currentAvatar) {
@@ -126,21 +122,32 @@ export function AvatarUpload({
         title: 'Avatar updated',
         description: 'Your profile picture has been updated successfully.',
       });
-    } catch (error: any) {
-      console.error('Avatar upload error:', error);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Avatar upload error:', error);
+      }
 
       let errorMessage =
         'Failed to update your profile picture. Please try again.';
 
-      if (error.message?.includes('Storage bucket not found')) {
+      if (
+        error instanceof Error &&
+        error.message?.includes('Storage bucket not found')
+      ) {
         errorMessage =
           'Avatar storage is not configured. Please contact support.';
-      } else if (error.message?.includes('Duplicate')) {
+      } else if (
+        error instanceof Error &&
+        error.message?.includes('Duplicate')
+      ) {
         errorMessage = 'Upload conflict detected. Please try again.';
-      } else if (error.message?.includes('permission')) {
+      } else if (
+        error instanceof Error &&
+        error.message?.includes('permission')
+      ) {
         errorMessage =
           "You don't have permission to upload avatars. Please contact support.";
-      } else if (error.message?.includes('policy')) {
+      } else if (error instanceof Error && error.message?.includes('policy')) {
         errorMessage =
           'Storage permissions are not configured. Please contact support.';
       }
@@ -167,7 +174,9 @@ export function AvatarUpload({
           .remove([`avatars/${oldPath}`]);
 
         if (deleteError) {
-          console.error('Delete error:', deleteError);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Delete error:', deleteError);
+          }
           throw new Error(deleteError.message);
         }
       }
@@ -178,8 +187,10 @@ export function AvatarUpload({
         title: 'Avatar removed',
         description: 'Your profile picture has been removed.',
       });
-    } catch (error: any) {
-      console.error('Remove avatar error:', error);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Remove avatar error:', error);
+      }
       toast({
         title: 'Remove failed',
         description: 'Failed to remove your profile picture. Please try again.',

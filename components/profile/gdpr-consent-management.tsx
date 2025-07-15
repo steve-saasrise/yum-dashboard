@@ -21,7 +21,7 @@ interface ConsentStatus {
   current_consent: {
     gdpr_consent: boolean;
     gdpr_consent_date: string | null;
-    consent_details: any;
+    consent_details: Record<string, unknown>;
   };
   consent_history: Array<{
     endpoint: string;
@@ -52,11 +52,6 @@ export function GdprConsentManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  // Load current consent status
-  useEffect(() => {
-    loadConsentStatus();
-  }, []);
-
   const loadConsentStatus = async () => {
     try {
       const response = await fetch('/api/gdpr/consent');
@@ -72,11 +67,17 @@ export function GdprConsentManagement() {
       const details = data.current_consent.consent_details || {};
       setConsentPreferences({
         data_processing: data.current_consent.gdpr_consent || false,
-        marketing: details.marketing_consent || false,
-        analytics: details.analytics_consent || false,
+        marketing:
+          (details as { marketing_consent?: boolean }).marketing_consent ||
+          false,
+        analytics:
+          (details as { analytics_consent?: boolean }).analytics_consent ||
+          false,
       });
     } catch (error) {
-      console.error('Error loading consent status:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error loading consent status:', error);
+      }
       toast({
         title: 'Loading failed',
         description: 'Failed to load consent preferences. Please try again.',
@@ -86,6 +87,11 @@ export function GdprConsentManagement() {
       setIsLoading(false);
     }
   };
+
+  // Load current consent status
+  useEffect(() => {
+    loadConsentStatus();
+  }, []);
 
   const updateConsent = async (consentType: string, consentGiven: boolean) => {
     setIsSaving(true);
@@ -121,7 +127,9 @@ export function GdprConsentManagement() {
       // Reload consent status to get the latest data
       await loadConsentStatus();
     } catch (error) {
-      console.error('Error updating consent:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating consent:', error);
+      }
       toast({
         title: 'Update failed',
         description:

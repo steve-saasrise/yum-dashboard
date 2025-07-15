@@ -22,9 +22,7 @@ const customJestConfig = {
     '!**/node_modules/**',
   ],
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
-  transformIgnorePatterns: [
-    'node_modules/(?!(isows|@supabase|supabase)/)',
-  ],
+  transformIgnorePatterns: ['node_modules/(?!(isows|@supabase|supabase)/)'],
   testTimeout: 10000,
 };
 

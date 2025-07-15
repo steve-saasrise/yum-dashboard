@@ -1,23 +1,43 @@
 import { z } from 'zod';
 
 // Platform types
-export type Platform = 'youtube' | 'twitter' | 'linkedin' | 'threads' | 'rss';
+export type Platform =
+  | 'youtube'
+  | 'twitter'
+  | 'linkedin'
+  | 'threads'
+  | 'rss'
+  | 'website';
+
+// Creator URL interface matching creator_urls table
+export interface CreatorUrl {
+  id: string;
+  platform: Platform;
+  url: string;
+  validation_status: 'valid' | 'invalid' | 'pending';
+}
 
 // Core Creator interface matching database schema
 export interface Creator {
   id: string;
   user_id: string;
   display_name: string;
-  description?: string;
-  platform: Platform;
-  platform_user_id: string;
-  profile_url: string;
+  bio?: string;
+  // Legacy single platform field for backward compatibility
+  platform?: Platform;
+  platform_user_id?: string;
+  profile_url?: string;
   avatar_url?: string;
-  metadata: Record<string, unknown>;
-  is_active: boolean;
+  metadata?: Record<string, unknown>;
+  status?: 'active' | 'inactive' | 'suspended';
+  // Renamed from is_active for consistency with DB
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
   topics?: string[];
+  // New field for multiple URLs
+  urls?: CreatorUrl[];
+  creator_urls?: CreatorUrl[];
 }
 
 // Creator list response from API
@@ -42,7 +62,14 @@ export interface CreatorFilters {
 }
 
 // Zod schemas for validation
-export const PlatformSchema = z.enum(['youtube', 'twitter', 'linkedin', 'threads', 'rss']);
+export const PlatformSchema = z.enum([
+  'youtube',
+  'twitter',
+  'linkedin',
+  'threads',
+  'rss',
+  'website',
+]);
 
 export const CreatorSchema = z.object({
   id: z.string(),
@@ -65,7 +92,9 @@ export const CreatorFiltersSchema = z.object({
   platform: PlatformSchema.optional(),
   topic: z.string().optional(),
   status: z.enum(['active', 'inactive', 'all']).optional(),
-  sort: z.enum(['display_name', 'platform', 'created_at', 'updated_at']).optional(),
+  sort: z
+    .enum(['display_name', 'platform', 'created_at', 'updated_at'])
+    .optional(),
   order: z.enum(['asc', 'desc']).optional(),
   page: z.number().min(1).optional(),
   limit: z.number().min(1).max(100).optional(),
@@ -81,7 +110,7 @@ export const CreatorListResponseSchema = z.object({
 
 // Form data for creating/updating creators
 export interface CreateCreatorData {
-  url: string;
+  urls: string[];
   display_name: string;
   description?: string;
   topics?: string[];
@@ -160,7 +189,10 @@ export interface UseCreatorListReturn {
   clearFilters: () => void;
   selectCreator: (creatorId: string, selected: boolean) => void;
   selectAll: (selected: boolean) => void;
-  performBulkAction: (action: BulkAction, creatorIds: string[]) => Promise<BulkActionResult>;
+  performBulkAction: (
+    action: BulkAction,
+    creatorIds: string[]
+  ) => Promise<BulkActionResult>;
   refreshCreators: () => void;
 }
 
@@ -214,7 +246,7 @@ export interface RSSMetadata {
 }
 
 // Union type for platform-specific metadata
-export type PlatformMetadata = 
+export type PlatformMetadata =
   | ({ platform: 'youtube' } & YouTubeMetadata)
   | ({ platform: 'twitter' } & TwitterMetadata)
   | ({ platform: 'linkedin' } & LinkedInMetadata)
@@ -222,16 +254,23 @@ export type PlatformMetadata =
   | ({ platform: 'rss' } & RSSMetadata);
 
 // Utility types
-export type CreatorSortField = keyof Pick<Creator, 'display_name' | 'platform' | 'created_at' | 'updated_at'>;
+export type CreatorSortField = keyof Pick<
+  Creator,
+  'display_name' | 'platform' | 'created_at' | 'updated_at'
+>;
 export type SortOrder = 'asc' | 'desc';
 
 // Constants
-export const PLATFORMS: Record<Platform, { label: string; icon: string; color: string }> = {
+export const PLATFORMS: Record<
+  Platform,
+  { label: string; icon: string; color: string }
+> = {
   youtube: { label: 'YouTube', icon: 'Youtube', color: 'red' },
   twitter: { label: 'Twitter', icon: 'Twitter', color: 'blue' },
   linkedin: { label: 'LinkedIn', icon: 'Linkedin', color: 'blue' },
   threads: { label: 'Threads', icon: 'AtSign', color: 'purple' },
   rss: { label: 'RSS', icon: 'Rss', color: 'orange' },
+  website: { label: 'Website', icon: 'Globe', color: 'gray' },
 };
 
 export const DEFAULT_FILTERS: CreatorFilters = {
