@@ -52,7 +52,12 @@ export class PlatformDetector {
       /^https?:\/\/(?:www\.)?linkedin\.com\/company\/([a-zA-Z0-9-]+)/,
     ],
     [Platform.THREADS]: [
-      /^https?:\/\/(?:www\.)?threads\.net\/@([a-zA-Z0-9._]+)/,
+      // Profile URLs with @username
+      /^https?:\/\/(?:www\.)?threads\.(?:com|net)\/@([a-zA-Z0-9._]+)/,
+      // Post URLs format: threads.com/t/PostID
+      /^https?:\/\/(?:www\.)?threads\.(?:com|net)\/t\/[a-zA-Z0-9_-]+/,
+      // Post URLs with username: threads.com/@username/post/PostID
+      /^https?:\/\/(?:www\.)?threads\.(?:com|net)\/@([a-zA-Z0-9._]+)\/post\/[a-zA-Z0-9_-]+/,
     ],
     [Platform.RSS]: [
       /\.(rss|xml|atom)(?:\?.*)?$/i,
@@ -106,8 +111,12 @@ export class PlatformDetector {
   ): PlatformInfo {
     // Extract the captured group from the original match (case-sensitive)
     const patterns = this.patterns[platform as keyof typeof this.patterns];
-    const matchingPattern = patterns.find((p: RegExp) => originalUrl.toLowerCase().match(p));
-    const originalMatch = matchingPattern ? originalUrl.match(matchingPattern) : null;
+    const matchingPattern = patterns.find((p: RegExp) =>
+      originalUrl.toLowerCase().match(p)
+    );
+    const originalMatch = matchingPattern
+      ? originalUrl.match(matchingPattern)
+      : null;
     const platformUserId = originalMatch?.[1] || match[1] || '';
 
     switch (platform) {
@@ -148,15 +157,30 @@ export class PlatformDetector {
           },
         };
 
-      case Platform.THREADS:
+      case Platform.THREADS: {
+        let userId = platformUserId;
+        let profileUrl = originalUrl;
+        
+        // For post URLs without username, extract from URL path
+        if (!userId && originalUrl.includes('/t/')) {
+          // This is a post URL without username - we'll use the domain as identifier
+          userId = 'threads-post';
+        }
+        
+        // Convert post URLs to profile URLs when possible
+        if (userId && userId !== 'threads-post') {
+          profileUrl = `https://www.threads.com/@${userId}`;
+        }
+        
         return {
           platform,
-          platformUserId,
-          profileUrl: originalUrl,
+          platformUserId: userId,
+          profileUrl,
           metadata: {
-            username: platformUserId,
+            username: userId !== 'threads-post' ? userId : undefined,
           },
         };
+      }
 
       case Platform.RSS:
         const feedType = this.determineFeedType(originalUrl);
