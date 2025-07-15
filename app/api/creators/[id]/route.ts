@@ -14,15 +14,12 @@ const updateCreatorSchema = z.object({
   is_active: z.boolean().optional(),
 });
 
-interface RouteContext {
-  params: {
-    id: string;
-  };
-}
-
-export async function PUT(request: NextRequest, context: RouteContext) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { id } = context.params;
+    const { id } = params;
 
     // Authenticate user
     const cookieStore = await cookies();
@@ -132,9 +129,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { id } = context.params;
+    const { id } = params;
 
     // Authenticate user
     const cookieStore = await cookies();
