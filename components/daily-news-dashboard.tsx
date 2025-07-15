@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useAuth, useUser, useProfile } from '@/hooks/use-auth';
 import {
   Sidebar,
@@ -72,9 +73,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DatePickerWithRange } from '@/components/date-picker-with-range';
 import { Icons } from '@/components/icons';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { SmartUrlInput } from '@/components/ui/smart-url-input';
+import { type PlatformInfo } from '@/lib/platform-detector';
 import {
   Search,
-  Settings,
   User,
   LogOut,
   PlusCircle,
@@ -89,9 +95,10 @@ import {
   Bell,
   Filter,
   MoreHorizontal,
-  Upload,
   Youtube,
   Linkedin,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 
 // --- MOCK DATA ---
@@ -351,11 +358,19 @@ function AppSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  tooltip="Add Creator"
+                  tooltip="Add Creator (Quick)"
                   onClick={onCreatorCreate}
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span className="truncate">Add Creator</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Manage Creators">
+                  <Link href="/creators">
+                    <Edit className="w-4 h-4" />
+                    <span className="truncate">Manage Creators</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -795,6 +810,28 @@ function TopicManagementModal({
   );
 }
 
+// Creator form schema
+const addCreatorSchema = z.object({
+  url: z.string().url('Please enter a valid URL'),
+  display_name: z.string().min(1, 'Display name is required').max(100, 'Display name too long'),
+  description: z.string().max(500, 'Description too long').optional(),
+  topics: z.array(z.string()).optional(),
+});
+
+type AddCreatorFormData = z.infer<typeof addCreatorSchema>;
+
+interface Creator {
+  id: string;
+  url: string;
+  display_name: string;
+  description?: string;
+  topics?: string[];
+  platform: string;
+  platform_user_id: string;
+  profile_url: string;
+  metadata: Record<string, unknown>;
+}
+
 function CreatorManagementModal({
   open,
   onOpenChange,
@@ -805,118 +842,114 @@ function CreatorManagementModal({
   creator: any;
 }) {
   const isEditing = !!creator;
+  const [platformInfo, setPlatformInfo] = React.useState<PlatformInfo | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [selectedTopics, setSelectedTopics] = React.useState<string[]>(
     creator?.topics || []
   );
   const [isActive, setIsActive] = React.useState(creator?.active ?? true);
-  const [urls, setUrls] = React.useState<
-    Array<{ id: string; url: string; platform: string; isValid: boolean }>
-  >([]);
-  const [currentUrl, setCurrentUrl] = React.useState('');
-  const [isValidating, setIsValidating] = React.useState(false);
-  const [detectedPlatform, setDetectedPlatform] = React.useState<string | null>(
-    null
-  );
-  const [urlError, setUrlError] = React.useState('');
+
+  const form = useForm<AddCreatorFormData>({
+    resolver: zodResolver(addCreatorSchema),
+    defaultValues: {
+      url: creator?.url || '',
+      display_name: creator?.name || '',
+      description: creator?.description || '',
+      topics: creator?.topics || [],
+    },
+  });
 
   const handleTopicToggle = (topicName: string) => {
-    setSelectedTopics((prev) =>
-      prev.includes(topicName)
-        ? prev.filter((t) => t !== topicName)
-        : [...prev, topicName]
-    );
+    const currentTopics = form.getValues('topics') || [];
+    const updatedTopics = currentTopics.includes(topicName)
+      ? currentTopics.filter((t) => t !== topicName)
+      : [...currentTopics, topicName];
+    
+    form.setValue('topics', updatedTopics);
+    setSelectedTopics(updatedTopics);
   };
 
-  const detectPlatform = (url: string): string => {
-    const cleanUrl = url.toLowerCase().trim();
-    if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be'))
-      return 'YouTube';
-    if (cleanUrl.includes('twitter.com') || cleanUrl.includes('x.com'))
-      return 'X';
-    if (cleanUrl.includes('linkedin.com')) return 'LinkedIn';
-    if (cleanUrl.includes('threads.net')) return 'Threads';
-    if (
-      cleanUrl.includes('medium.com') ||
-      cleanUrl.includes('substack.com') ||
-      cleanUrl.includes('blog')
-    )
-      return 'Blogs';
-    return 'Blogs';
-  };
-
-  const getPlatformIcon = (platformName: string) => {
-    switch (platformName?.toLowerCase()) {
-      case 'youtube':
-        return Youtube;
-      case 'x':
-        return Icons.x;
-      case 'linkedin':
-        return Linkedin;
-      case 'threads':
-        return Icons.threads;
-      default:
-        return Rss;
+  const handlePlatformDetected = (info: PlatformInfo) => {
+    setPlatformInfo(info);
+    
+    // Auto-suggest display name based on platform data
+    if (!form.getValues('display_name')) {
+      let suggestedName = '';
+      
+      switch (info.platform) {
+        case 'youtube':
+          suggestedName = info.metadata.channelId || info.metadata.username || 'YouTube Creator';
+          break;
+        case 'twitter':
+          suggestedName = `@${info.metadata.username}` || 'Twitter User';
+          break;
+        case 'linkedin':
+          suggestedName = info.metadata.companyId || info.metadata.username || 'LinkedIn User';
+          break;
+        case 'threads':
+          suggestedName = `@${info.metadata.username}` || 'Threads User';
+          break;
+        case 'rss':
+          try {
+            const urlObj = new URL(info.profileUrl);
+            suggestedName = urlObj.hostname;
+          } catch {
+            suggestedName = 'RSS Feed';
+          }
+          break;
+      }
+      
+      if (suggestedName) {
+        form.setValue('display_name', suggestedName);
+      }
     }
   };
 
-  const validateUrl = (url: string): boolean => {
+  const handlePlatformError = (error: Error) => {
+    setPlatformInfo(null);
+    form.setError('url', { message: error.message });
+  };
+
+  const onSubmit = async (data: AddCreatorFormData) => {
+    if (!platformInfo) {
+      form.setError('url', { message: 'Please enter a valid creator URL' });
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
+      const response = await fetch('/api/creators', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: data.url,
+          display_name: data.display_name,
+          description: data.description || null,
+          topics: data.topics || [],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to add creator' }));
+        throw new Error(errorData.error || 'Failed to add creator');
+      }
+
+      const creator = await response.json();
+      // TODO: Add the new creator to the UI state
+      console.log('Creator added successfully:', creator);
+      onOpenChange(false);
+      form.reset();
+      setPlatformInfo(null);
+      setSelectedTopics([]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add creator';
+      form.setError('root', { message });
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const handleUrlChange = (value: string) => {
-    setCurrentUrl(value);
-    setUrlError('');
-
-    if (value.trim()) {
-      setIsValidating(true);
-      setTimeout(() => {
-        const isValid = validateUrl(value);
-        if (isValid) {
-          const platform = detectPlatform(value);
-          setDetectedPlatform(platform);
-          setUrlError('');
-        } else {
-          setDetectedPlatform(null);
-          setUrlError(
-            'Please enter a valid URL (e.g., https://twitter.com/username)'
-          );
-        }
-        setIsValidating(false);
-      }, 500);
-    } else {
-      setDetectedPlatform(null);
-      setIsValidating(false);
-    }
-  };
-
-  const addUrl = () => {
-    if (currentUrl.trim() && validateUrl(currentUrl)) {
-      const platform = detectPlatform(currentUrl);
-      const newUrl = {
-        id: Date.now().toString(),
-        url: currentUrl.trim(),
-        platform,
-        isValid: true,
-      };
-      setUrls((prev) => [...prev, newUrl]);
-      setCurrentUrl('');
-      setDetectedPlatform(null);
-      setUrlError('');
-    }
-  };
-
-  const removeUrl = (id: string) => {
-    setUrls((prev) => prev.filter((url) => url.id !== id));
-  };
-
-  const truncateUrl = (url: string, maxLength = 40) => {
-    if (url.length <= maxLength) return url;
-    return url.substring(0, maxLength) + '...';
   };
 
   return (
@@ -932,134 +965,85 @@ function CreatorManagementModal({
               : 'Add a new creator to follow their content across platforms.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-sm text-gray-900 dark:text-white">
-              Basic Information
-            </h4>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="creator-name" className="text-right">
-                Name *
-              </Label>
-              <Input
-                id="creator-name"
-                placeholder="e.g., Naval Ravikant"
-                defaultValue={creator?.name || ''}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="creator-description" className="text-right">
-                Description
-              </Label>
-              <Input
-                id="creator-description"
-                placeholder="Brief description of the creator"
-                defaultValue={creator?.description || ''}
-                className="col-span-3"
-              />
-            </div>
-          </div>
-
-          {/* URL Management */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-sm text-gray-900 dark:text-white">
-              URLs
-            </h4>
-            <div className="grid grid-cols-4 gap-4">
-              <Label className="text-right pt-2">URLs *</Label>
-              <div className="col-span-3 space-y-3">
-                <div className="relative">
-                  <Input
-                    placeholder="Paste any URL (YouTube, Twitter, LinkedIn, blog, etc.)"
-                    value={currentUrl}
-                    onChange={(e) => handleUrlChange(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && currentUrl.trim() && !urlError) {
-                        e.preventDefault();
-                        addUrl();
-                      }
-                    }}
-                    className={`pr-20 ${urlError ? 'border-red-500' : detectedPlatform ? 'border-green-500' : ''}`}
-                  />
-                  {isValidating && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-primary rounded-full"></div>
-                    </div>
-                  )}
-                  {detectedPlatform && !isValidating && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                      {React.createElement(getPlatformIcon(detectedPlatform), {
-                        className: 'h-4 w-4',
-                      })}
-                      <span className="text-xs text-green-600">
-                        {detectedPlatform}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {urlError && <p className="text-xs text-red-600">{urlError}</p>}
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addUrl}
-                  disabled={!currentUrl.trim() || !!urlError || isValidating}
-                  className="bg-transparent"
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add URL
-                </Button>
-
-                {urls.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-gray-500">Added URLs:</p>
-                    <div className="space-y-2">
-                      {urls.map((urlItem) => {
-                        const PlatformIcon = getPlatformIcon(urlItem.platform);
-                        return (
-                          <div
-                            key={urlItem.id}
-                            className="flex items-center gap-3 p-3 border rounded-md bg-gray-50 dark:bg-gray-800/50"
-                          >
-                            <PlatformIcon className="h-4 w-4 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                {urlItem.platform}
-                              </p>
-                              <p
-                                className="text-xs text-gray-500 truncate"
-                                title={urlItem.url}
-                              >
-                                {truncateUrl(urlItem.url)}
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-gray-400 hover:text-red-500"
-                              onClick={() => removeUrl(urlItem.id)}
-                            >
-                              <Icons.x className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid gap-6 py-4">
+              {/* URL Input */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">
+                  Creator URL
+                </h4>
+                <div className="grid grid-cols-4 gap-4">
+                  <Label className="text-right pt-2">URL *</Label>
+                  <div className="col-span-3">
+                    <FormField
+                      control={form.control}
+                      name="url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <SmartUrlInput
+                              {...field}
+                              onPlatformDetected={handlePlatformDetected}
+                              onError={handlePlatformError}
+                              placeholder="Paste any URL (YouTube, Twitter, LinkedIn, blog, etc.)"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {platformInfo && (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-xs text-green-800">
+                          ✓ Detected {platformInfo.platform.toUpperCase()} creator
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
-
-                <p className="text-xs text-gray-500">
-                  Add URLs from different platforms where this creator is
-                  active. Platform will be detected automatically.
-                </p>
+                </div>
               </div>
-            </div>
-          </div>
+
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm text-gray-900 dark:text-white">
+                  Basic Information
+                </h4>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Name *</Label>
+                  <div className="col-span-3">
+                    <FormField
+                      control={form.control}
+                      name="display_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., Naval Ravikant" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Description</Label>
+                  <div className="col-span-3">
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input {...field} placeholder="Brief description of the creator" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
 
           {/* Topic Assignments */}
           <div className="space-y-4">
@@ -1132,15 +1116,29 @@ function CreatorManagementModal({
               </div>
             </div>
           </div>
-        </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button className="bg-primary hover:bg-primary/90">
-            {isEditing ? 'Save Changes' : 'Add Creator'}
-          </Button>
-        </DialogFooter>
+            </div>
+
+            {form.formState.errors.root && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-800">{form.formState.errors.root.message}</p>
+              </div>
+            )}
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !platformInfo}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? 'Adding Creator...' : (isEditing ? 'Save Changes' : 'Add Creator')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

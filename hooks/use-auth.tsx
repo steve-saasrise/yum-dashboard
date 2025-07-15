@@ -78,31 +78,105 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: null,
   });
 
-  // Transform Supabase user to UserProfile
-  const transformUser = (user: User | null): UserProfile | null => {
+  // Transform Supabase user to UserProfile with database profile data
+  const transformUser = async (
+    user: User | null
+  ): Promise<UserProfile | null> => {
+    console.log('AuthProvider: transformUser called with user:', !!user);
     if (!user) return null;
 
-    return {
-      id: user.id,
-      email: user.email || '',
-      full_name: user.user_metadata?.full_name || user.user_metadata?.name,
-      avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
-      username: user.user_metadata?.username || user.user_metadata?.user_name,
-      created_at: user.created_at,
-      updated_at: user.updated_at,
-      last_sign_in_at: user.last_sign_in_at,
-    };
+    try {
+      console.log('AuthProvider: Fetching profile data from database...');
+
+      // Add timeout to prevent hanging
+      const profileQuery = supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database query timeout')), 5000)
+      );
+
+      const { data: profileData, error } = (await Promise.race([
+        profileQuery,
+        timeoutPromise,
+      ])) as any;
+
+      console.log('AuthProvider: Profile data fetch result:', {
+        hasData: !!profileData,
+        error: !!error,
+        errorCode: error?.code,
+      });
+
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "no rows returned" - not an error for new users
+        console.warn('Error fetching user profile:', error);
+      }
+
+      const profile: UserProfile = {
+        id: user.id,
+        email: user.email || '',
+        full_name:
+          profileData?.full_name ||
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name,
+        avatar_url:
+          profileData?.avatar_url ||
+          user.user_metadata?.avatar_url ||
+          user.user_metadata?.picture,
+        username:
+          profileData?.username ||
+          user.user_metadata?.username ||
+          user.user_metadata?.user_name,
+        created_at: user.created_at,
+        updated_at: profileData?.updated_at || new Date().toISOString(),
+        last_sign_in_at: user.last_sign_in_at,
+      };
+
+      console.log('AuthProvider: User transformed successfully');
+      return profile;
+    } catch (error) {
+      console.error('AuthProvider: Error in transformUser:', error);
+
+      // Return a basic profile even if database query fails
+      const basicProfile: UserProfile = {
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || user.user_metadata?.name,
+        avatar_url:
+          user.user_metadata?.avatar_url || user.user_metadata?.picture,
+        username: user.user_metadata?.username || user.user_metadata?.user_name,
+        created_at: user.created_at,
+        updated_at: new Date().toISOString(),
+        last_sign_in_at: user.last_sign_in_at,
+      };
+
+      console.log('AuthProvider: Returning basic profile due to error');
+      return basicProfile;
+    }
   };
 
   // Initialize auth state and listen for changes
   useEffect(() => {
+    console.log('AuthProvider: Starting initialization...');
+
     // Get initial session
     const getInitialSession = async () => {
+      console.log('AuthProvider: Getting initial session...');
       try {
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession();
+
+        console.log('AuthProvider: Initial session result:', {
+          hasSession: !!session,
+          sessionExpiry: session?.expires_at,
+          error: !!error,
+          userId: session?.user?.id,
+        });
 
         // Check if session has timed out due to inactivity
         if (session && SessionUtils.hasSessionTimedOut()) {
@@ -119,11 +193,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        console.log('AuthProvider: Transforming user...');
+        const profile = await transformUser(session?.user || null);
+        console.log(
+          'AuthProvider: User transformed, setting state with loading: false'
+        );
+
         setState((prev) => ({
           ...prev,
           session,
           user: session?.user || null,
-          profile: transformUser(session?.user || null),
+          profile,
           loading: false,
           error: error || null,
         }));
@@ -134,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           startSessionMonitoring(session);
         }
       } catch (error) {
+        console.error('AuthProvider: Error in getInitialSession:', error);
         setState((prev) => ({
           ...prev,
           loading: false,
@@ -144,6 +225,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Start session monitoring for automatic refresh and timeout checking
     const startSessionMonitoring = (session: Session) => {
+      console.log('AuthProvider: Starting session monitoring...');
+
       // Clear any existing intervals
       if (sessionCheckInterval.current) {
         clearInterval(sessionCheckInterval.current);
@@ -154,6 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Check session status every 30 seconds
       sessionCheckInterval.current = setInterval(async () => {
+        console.log('AuthProvider: Session check interval triggered');
         const currentSession = state.session;
         if (!currentSession) return;
 
@@ -241,6 +325,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     getInitialSession();
 
+    console.log('AuthProvider: Initial session fetch initiated');
+
     // Add event listeners
     window.addEventListener('storage', handleStorageChange);
     activityEvents.forEach((event) => {
@@ -251,33 +337,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('AuthProvider: Auth state change event:', {
+        event,
+        hasSession: !!session,
+        userId: session?.user?.id,
+      });
+
+      const profile = await transformUser(session?.user || null);
       setState((prev) => ({
         ...prev,
         session,
         user: session?.user || null,
-        profile: transformUser(session?.user || null),
+        profile,
         loading: false,
         error: null,
       }));
 
-      // Handle routing based on auth state
-      if (event === 'SIGNED_IN') {
+      // Update activity and start monitoring if we have a session
+      if (session) {
         SessionUtils.updateLastActivity();
-        if (session) {
-          startSessionMonitoring(session);
-        }
-        router.refresh();
-      } else if (event === 'SIGNED_OUT') {
-        // Clear intervals
+        startSessionMonitoring(session);
+      } else {
+        // Clear intervals when logged out
         if (sessionCheckInterval.current) {
           clearInterval(sessionCheckInterval.current);
+          sessionCheckInterval.current = null;
         }
         if (activityUpdateInterval.current) {
           clearInterval(activityUpdateInterval.current);
+          activityUpdateInterval.current = null;
         }
-        SessionUtils.clearSessionStorage();
-        router.push('/');
-        router.refresh();
       }
     });
 

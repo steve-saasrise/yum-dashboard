@@ -1,13 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: true,
+    // Enable ESLint checking during builds for better code quality
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    // Enable TypeScript checking during builds for type safety
+    ignoreBuildErrors: false,
   },
   images: {
-    unoptimized: true,
+    // Enable image optimization for better performance
+    unoptimized: false,
+  },
+  experimental: {
+    // Enable typed routes for better type safety
+    typedRoutes: true,
   },
 };
 

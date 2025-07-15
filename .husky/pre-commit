@@ -1,3 +1,13 @@
-npm run format:check
-npm run lint
-npm run build
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Auto-fix linting issues and format code
+npm run fix
+
+# Type check (will fail commit if errors exist)
+npm run typecheck
+
+# Run tests if they exist
+if [ -f "jest.config.js" ] || [ -f "jest.config.ts" ]; then
+  npm run test
+fi

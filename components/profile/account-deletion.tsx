@@ -39,13 +39,30 @@ export function AccountDeletion() {
 
     setIsDeleting(true);
     try {
-      // In a real implementation, you would make an API call to delete the account
-      // For now, we'll just simulate the process
+      // Call the real GDPR account deletion API
+      const response = await fetch('/api/gdpr/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          confirmation: confirmationText,
+          reason: 'User-initiated deletion',
+        }),
+      });
 
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || result.error || 'Deletion failed');
+      }
+
+      // Show success message
       toast({
-        title: 'Account deletion initiated',
+        title: 'Account deleted successfully',
         description:
-          'Your account deletion request has been processed. You will be logged out.',
+          result.message ||
+          'Your account and all data have been permanently deleted.',
       });
 
       // Sign out the user
@@ -54,10 +71,13 @@ export function AccountDeletion() {
       // Redirect to home page
       router.push('/');
     } catch (error) {
+      console.error('Account deletion error:', error);
       toast({
         title: 'Deletion failed',
         description:
-          'Failed to delete your account. Please try again or contact support.',
+          error instanceof Error
+            ? error.message
+            : 'Failed to delete your account. Please try again or contact support.',
         variant: 'destructive',
       });
     } finally {

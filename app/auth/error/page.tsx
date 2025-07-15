@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import type { Route } from 'next';
 import { useState, Suspense } from 'react';
 
 function AuthErrorContent() {
@@ -96,7 +97,7 @@ function AuthErrorContent() {
     // Add a small delay to show the loading state
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    router.push(errorInfo.actionHref);
+    router.push(errorInfo.actionHref as Route);
     setIsRetrying(false);
   };
 

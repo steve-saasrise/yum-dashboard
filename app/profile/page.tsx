@@ -23,21 +23,18 @@ import {
   Calendar,
   Settings,
   Edit3,
-  Save,
   X,
-  Download,
-  Trash2,
   ArrowLeft,
   Shield,
   Clock,
   Bell,
-  Rss,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ProfileEditForm } from '@/components/profile/profile-edit-form';
 import { AvatarUpload } from '@/components/profile/avatar-upload';
 import { ProfileDataExport } from '@/components/profile/profile-data-export';
 import { AccountDeletion } from '@/components/profile/account-deletion';
+import { GdprConsentManagement } from '@/components/profile/gdpr-consent-management';
 
 // Mock topics data - in a real app, this would come from your data source
 const topics = [
@@ -49,7 +46,7 @@ const topics = [
 ];
 
 export default function ProfilePage() {
-  const { updateProfile, signOut } = useAuth();
+  const { updateProfile } = useAuth();
   const user = useUser();
   const profile = useProfile();
   const loading = useAuthLoading();
@@ -83,7 +80,7 @@ export default function ProfilePage() {
 
   if (!user || !profile) return null;
 
-  const handleProfileUpdate = async (updates: any) => {
+  const handleProfileUpdate = async (updates: Record<string, unknown>) => {
     setIsUpdating(true);
     try {
       const { error } = await updateProfile(updates);
@@ -101,7 +98,7 @@ export default function ProfilePage() {
         });
         setIsEditing(false);
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'An unexpected error occurred',
@@ -114,23 +111,23 @@ export default function ProfilePage() {
 
   const handleNotificationUpdate = async (
     type: 'email' | 'push' | 'topics',
-    value: any
+    value: boolean | number[]
   ) => {
     try {
       // In a real app, you'd save these to your backend
       if (type === 'email') {
-        setEmailDigest(value);
+        setEmailDigest(value as boolean);
       } else if (type === 'push') {
-        setPushNotifications(value);
+        setPushNotifications(value as boolean);
       } else if (type === 'topics') {
-        setSelectedTopics(value);
+        setSelectedTopics(value as number[]);
       }
 
       toast({
         title: 'Settings Updated',
         description: 'Your notification preferences have been saved.',
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to update notification settings',
@@ -367,6 +364,9 @@ export default function ProfilePage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* GDPR Consent Management Card */}
+            <GdprConsentManagement />
           </div>
 
           {/* Sidebar */}

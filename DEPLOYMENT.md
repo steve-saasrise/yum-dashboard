@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This document outlines the CI/CD pipeline setup and deployment process for the Yum Dashboard project.
+This document outlines the CI/CD pipeline setup and deployment process for the Daily News project.
 
 ## CI/CD Pipeline Overview
 

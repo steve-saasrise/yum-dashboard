@@ -1,0 +1,675 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import type { Creator, CreatorFilters as CreatorFiltersType, CreatorListResponse } from '@/types/creator';
+import { DEFAULT_FILTERS } from '@/types/creator';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Youtube, Twitter, Linkedin, Rss, AtSign, Filter, Search, RefreshCw, ChevronDown, Trash2, Power } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Platform icons mapping
+const platformIcons = {
+  youtube: Youtube,
+  twitter: Twitter,
+  linkedin: Linkedin,
+  threads: AtSign,
+  rss: Rss,
+};
+
+// Hook for managing creator list data
+function useCreatorList(initialFilters: Partial<CreatorFiltersType> = {}) {
+  const { state } = useAuth();
+  const { user, session } = state;
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<CreatorFiltersType>({ ...DEFAULT_FILTERS, ...initialFilters });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+  const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set());
+
+  const fetchCreators = useCallback(async () => {
+    if (!user || !session) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams();
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+
+      const response = await fetch(`/api/creators?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch creators');
+      }
+
+      const data: CreatorListResponse = await response.json();
+      setCreators(data.creators);
+      setPagination({
+        page: data.page,
+        limit: data.limit,
+        total: data.total,
+        totalPages: data.totalPages,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load creators');
+    } finally {
+      setLoading(false);
+    }
+  }, [user, session, JSON.stringify(filters)]);
+
+  useEffect(() => {
+    fetchCreators();
+  }, [fetchCreators]);
+
+  const updateFilters = useCallback((newFilters: Partial<CreatorFiltersType>) => {
+    setFilters(prev => ({ ...prev, ...newFilters, page: 1 }));
+    setSelectedCreators(new Set());
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+    setSelectedCreators(new Set());
+  }, []);
+
+  const selectCreator = useCallback((creatorId: string, selected: boolean) => {
+    setSelectedCreators(prev => {
+      const newSet = new Set(prev);
+      if (selected) {
+        newSet.add(creatorId);
+      } else {
+        newSet.delete(creatorId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const selectAll = useCallback((selected: boolean) => {
+    if (selected) {
+      setSelectedCreators(new Set(creators.map(c => c.id)));
+    } else {
+      setSelectedCreators(new Set());
+    }
+  }, [creators]);
+
+  return {
+    creators,
+    loading,
+    error,
+    filters,
+    pagination,
+    selectedCreators,
+    updateFilters,
+    clearFilters,
+    selectCreator,
+    selectAll,
+    refreshCreators: fetchCreators,
+  };
+}
+
+// Search component with debouncing
+function CreatorSearch({ 
+  value, 
+  onChange, 
+  placeholder = 'Search creators...', 
+  isLoading 
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  isLoading?: boolean;
+}) {
+  const [searchValue, setSearchValue] = useState(value);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onChange(searchValue);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchValue, onChange]);
+
+  useEffect(() => {
+    setSearchValue(value);
+  }, [value]);
+
+  return (
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        placeholder={placeholder}
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        className="pl-9"
+        disabled={isLoading}
+      />
+    </div>
+  );
+}
+
+// Filter component
+function CreatorFilters({ 
+  filters, 
+  onFiltersChange, 
+  onClearFilters 
+}: {
+  filters: CreatorFiltersType;
+  onFiltersChange: (filters: Partial<CreatorFiltersType>) => void;
+  onClearFilters: () => void;
+}) {
+  const platforms = [
+    { value: 'youtube', label: 'YouTube' },
+    { value: 'twitter', label: 'Twitter' },
+    { value: 'linkedin', label: 'LinkedIn' },
+    { value: 'threads', label: 'Threads' },
+    { value: 'rss', label: 'RSS' },
+  ];
+
+  const topics = [
+    { value: 'technology', label: 'Technology' },
+    { value: 'news', label: 'News' },
+    { value: 'politics', label: 'Politics' },
+    { value: 'entertainment', label: 'Entertainment' },
+    { value: 'sports', label: 'Sports' },
+  ];
+
+  const hasActiveFilters = filters.platform || filters.topic || filters.status !== 'all';
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {/* Platform Filter */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" data-testid="platform-filter">
+            <Filter className="h-4 w-4 mr-2" />
+            Platform
+            {filters.platform && <Badge variant="secondary" className="ml-2">{filters.platform}</Badge>}
+            <ChevronDown className="h-4 w-4 ml-2" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onClick={() => onFiltersChange({ platform: undefined })}>
+            All Platforms
+          </DropdownMenuItem>
+          {platforms.map((platform) => (
+            <DropdownMenuItem 
+              key={platform.value} 
+              onClick={() => onFiltersChange({ platform: platform.value as CreatorFiltersType['platform'] })}
+            >
+              {platform.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Topic Filter */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" data-testid="topic-filter">
+            Topic
+            {filters.topic && <Badge variant="secondary" className="ml-2">{filters.topic}</Badge>}
+            <ChevronDown className="h-4 w-4 ml-2" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onClick={() => onFiltersChange({ topic: undefined })}>
+            All Topics
+          </DropdownMenuItem>
+          {topics.map((topic) => (
+            <DropdownMenuItem 
+              key={topic.value} 
+              onClick={() => onFiltersChange({ topic: topic.value })}
+            >
+              {topic.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Status Filter */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" data-testid="status-filter">
+            Status
+            {filters.status !== 'all' && <Badge variant="secondary" className="ml-2">{filters.status}</Badge>}
+            <ChevronDown className="h-4 w-4 ml-2" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onClick={() => onFiltersChange({ status: 'all' })}>
+            All
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onFiltersChange({ status: 'active' })}>
+            Active Only
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onFiltersChange({ status: 'inactive' })}>
+            Inactive Only
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Clear Filters */}
+      {hasActiveFilters && (
+        <Button variant="ghost" size="sm" onClick={onClearFilters}>
+          Clear Filters
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// Table view for desktop
+function CreatorTable({ 
+  creators, 
+  selectedCreators, 
+  onSelectCreator, 
+  onSelectAll, 
+  onSort,
+  sortField,
+  sortOrder
+}: {
+  creators: Creator[];
+  selectedCreators: Set<string>;
+  onSelectCreator: (id: string, selected: boolean) => void;
+  onSelectAll: (selected: boolean) => void;
+  onSort: (field: string) => void;
+  sortField?: string;
+  sortOrder?: string;
+}) {
+  const allSelected = creators.length > 0 && creators.every(c => selectedCreators.has(c.id));
+
+  return (
+    <div data-testid="creators-table">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[40px]">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={onSelectAll}
+                data-testid="select-all"
+              />
+            </TableHead>
+            <TableHead 
+              className="cursor-pointer" 
+              onClick={() => onSort('display_name')}
+              data-testid="sort-name"
+            >
+              Name
+              {sortField === 'display_name' && (
+                <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </TableHead>
+            <TableHead>Platform</TableHead>
+            <TableHead>Topics</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead 
+              className="cursor-pointer" 
+              onClick={() => onSort('created_at')}
+              data-testid="sort-created"
+            >
+              Created
+              {sortField === 'created_at' && (
+                <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+              )}
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {creators.map((creator) => {
+            const Icon = platformIcons[creator.platform];
+            return (
+              <TableRow key={creator.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedCreators.has(creator.id)}
+                    onCheckedChange={(checked) => onSelectCreator(creator.id, !!checked)}
+                    data-testid="creator-checkbox"
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={creator.avatar_url} />
+                      <AvatarFallback>
+                        {creator.display_name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{creator.display_name}</div>
+                      {creator.description && (
+                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                          {creator.description}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4" />
+                    <span className="capitalize">{creator.platform}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {creator.topics?.slice(0, 2).map((topic) => (
+                      <Badge key={topic} variant="secondary" className="text-xs">
+                        {topic}
+                      </Badge>
+                    ))}
+                    {creator.topics && creator.topics.length > 2 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{creator.topics.length - 2}
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        creator.is_active ? "bg-green-500" : "bg-gray-400"
+                      )}
+                    />
+                    <span className="text-sm">
+                      {creator.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {new Date(creator.created_at).toLocaleDateString()}
+                  </span>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+// Card view for mobile
+function CreatorCards({ 
+  creators, 
+  selectedCreators, 
+  onSelectCreator 
+}: {
+  creators: Creator[];
+  selectedCreators: Set<string>;
+  onSelectCreator: (id: string, selected: boolean) => void;
+}) {
+  return (
+    <div className="grid gap-4" data-testid="creators-cards">
+      {creators.map((creator) => {
+        const Icon = platformIcons[creator.platform];
+        return (
+          <Card key={creator.id} className="p-4">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                checked={selectedCreators.has(creator.id)}
+                onCheckedChange={(checked) => onSelectCreator(creator.id, !!checked)}
+                data-testid="creator-checkbox"
+              />
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={creator.avatar_url} />
+                <AvatarFallback>
+                  {creator.display_name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-medium truncate">{creator.display_name}</h4>
+                  <div className="flex items-center gap-1">
+                    <Icon className="h-4 w-4" />
+                    <div
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        creator.is_active ? "bg-green-500" : "bg-gray-400"
+                      )}
+                    />
+                  </div>
+                </div>
+                {creator.description && (
+                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                    {creator.description}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-1">
+                  {creator.topics?.slice(0, 3).map((topic) => (
+                    <Badge key={topic} variant="secondary" className="text-xs">
+                      {topic}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+// Main Creator List View component
+export function CreatorListView() {
+  const {
+    creators,
+    loading,
+    error,
+    filters,
+    pagination,
+    selectedCreators,
+    updateFilters,
+    clearFilters,
+    selectCreator,
+    selectAll,
+    refreshCreators,
+  } = useCreatorList();
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const handleSort = useCallback((field: string) => {
+    const newOrder = filters.sort === field && filters.order === 'asc' ? 'desc' : 'asc';
+    updateFilters({ sort: field as CreatorFiltersType['sort'], order: newOrder });
+  }, [filters.sort, filters.order, updateFilters]);
+
+  const handlePageChange = useCallback((page: number) => {
+    updateFilters({ page });
+  }, [updateFilters]);
+
+  if (loading && creators.length === 0) {
+    return (
+      <div className="space-y-4" data-testid="creators-loading">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-10 w-64" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <p className="text-lg font-medium text-destructive">Failed to load creators</p>
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <Button onClick={refreshCreators} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Creators</h1>
+        <CreatorSearch
+          value={filters.search || ''}
+          onChange={(search) => updateFilters({ search })}
+          isLoading={loading}
+        />
+      </div>
+
+      {/* Filters */}
+      <CreatorFilters
+        filters={filters}
+        onFiltersChange={updateFilters}
+        onClearFilters={clearFilters}
+      />
+
+      {/* Empty State */}
+      {creators.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <h3 className="text-lg font-medium">No creators found</h3>
+          <p className="text-sm text-muted-foreground">Add your first creator to get started</p>
+        </div>
+      )}
+
+      {/* Bulk Actions */}
+      {selectedCreators.size > 0 && (
+        <div className="flex items-center gap-4 p-4 bg-muted rounded-lg" data-testid="bulk-actions">
+          <span className="text-sm font-medium">
+            {selectedCreators.size} selected
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected
+            </Button>
+            <Button variant="outline" size="sm">
+              <Power className="h-4 w-4 mr-2" />
+              Toggle Status
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      {creators.length > 0 && (
+        <>
+          {isMobile ? (
+            <CreatorCards
+              creators={creators}
+              selectedCreators={selectedCreators}
+              onSelectCreator={selectCreator}
+            />
+          ) : (
+            <CreatorTable
+              creators={creators}
+              selectedCreators={selectedCreators}
+              onSelectCreator={selectCreator}
+              onSelectAll={selectAll}
+              onSort={handleSort}
+              sortField={filters.sort}
+              sortOrder={filters.order}
+            />
+          )}
+        </>
+      )}
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-center" data-testid="pagination">
+          <Pagination>
+            <PaginationContent>
+              {pagination.page > 1 && (
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                  />
+                </PaginationItem>
+              )}
+              
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                const page = i + 1;
+                return (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(page)}
+                      isActive={pagination.page === page}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+
+              {pagination.page < pagination.totalPages && (
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                  />
+                </PaginationItem>
+              )}
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+    </div>
+  );
+}

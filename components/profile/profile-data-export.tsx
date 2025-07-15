@@ -17,43 +17,56 @@ export function ProfileDataExport() {
 
     setIsExporting(true);
     try {
-      // Create export data object
-      const exportData = {
-        user_info: {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name,
-          username: profile.username,
-          created_at: profile.created_at,
-          updated_at: profile.updated_at,
-          last_sign_in_at: profile.last_sign_in_at,
+      // Call the comprehensive GDPR data export API
+      const response = await fetch('/api/gdpr/export', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        export_timestamp: new Date().toISOString(),
-        export_type: 'user_profile_data',
-      };
+      });
 
-      // Convert to JSON
-      const dataStr = JSON.stringify(exportData, null, 2);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Export failed');
+      }
 
-      // Create and download file
-      const blob = new Blob([dataStr], { type: 'application/json' });
+      // Get the data as blob for download
+      const blob = await response.blob();
+
+      // Extract filename from Content-Disposition header or create one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `user_data_export_${new Date().toISOString().split('T')[0]}.json`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create download link
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `profile_data_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
       toast({
-        title: 'Data exported',
-        description: 'Your profile data has been downloaded successfully.',
+        title: 'Complete data export successful',
+        description:
+          'Your complete user data has been downloaded successfully. This includes your profile, saved content, topics, and all associated data.',
       });
     } catch (error) {
+      console.error('Data export error:', error);
       toast({
         title: 'Export failed',
-        description: 'Failed to export your data. Please try again.',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to export your data. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -69,7 +82,7 @@ export function ProfileDataExport() {
       disabled={isExporting}
     >
       <Download className="h-4 w-4" />
-      {isExporting ? 'Exporting...' : 'Export My Data'}
+      {isExporting ? 'Exporting...' : 'Export All My Data'}
     </Button>
   );
 }
