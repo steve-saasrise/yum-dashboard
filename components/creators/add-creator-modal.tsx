@@ -244,63 +244,25 @@ export function AddCreatorModal({
     setIsSubmitting(true);
 
     try {
-      const supabase = createBrowserSupabaseClient();
-
       if (mode === 'add') {
-        // Create the creator
-        const { data: newCreator, error: creatorError } = await supabase
-          .from('creators')
-          .insert({
+        // Use the API endpoint for creator creation
+        const response = await fetch('/api/creators', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             display_name: data.display_name,
-            bio: data.description || null,
-            status: 'active',
-            user_id: session.user.id, // Add the authenticated user's ID
-          })
-          .select()
-          .single();
+            description: data.description || undefined,
+            urls: data.urls.map((u) => u.url),
+            topics: data.topics,
+          }),
+        });
 
-        if (creatorError) {
-          throw new Error(creatorError.message || 'Failed to create creator');
-        }
+        const result = await response.json();
 
-        if (!newCreator) {
-          throw new Error('Failed to create creator');
-        }
-
-        // Add creator URLs
-        if (data.urls.length > 0) {
-          const { error: urlError } = await supabase
-            .from('creator_urls')
-            .insert(
-              data.urls.map((u) => ({
-                creator_id: newCreator.id,
-                platform: u.platform,
-                url: u.url,
-              }))
-            );
-
-          if (urlError) {
-            // If URL insertion fails, we should delete the creator
-            await supabase.from('creators').delete().eq('id', newCreator.id);
-            throw new Error(urlError.message || 'Failed to add creator URLs');
-          }
-        }
-
-        // Add topics if any
-        if (data.topics && data.topics.length > 0) {
-          const { error: topicError } = await supabase
-            .from('creator_topics')
-            .insert(
-              data.topics.map((topicId) => ({
-                creator_id: newCreator.id,
-                topic_id: topicId,
-              }))
-            );
-
-          if (topicError) {
-            console.error('Failed to add topics:', topicError);
-            // Don't fail the whole operation if topics fail
-          }
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create creator');
         }
 
         toast({
@@ -308,7 +270,9 @@ export function AddCreatorModal({
           description: `${data.display_name} has been added to your list`,
         });
       } else {
-        // Update the creator
+        // Update the creator using Supabase client for edit mode
+        const supabase = createBrowserSupabaseClient();
+
         const { error: updateError } = await supabase
           .from('creators')
           .update({

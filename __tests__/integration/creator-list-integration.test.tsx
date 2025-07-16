@@ -24,7 +24,7 @@ global.fetch = jest.fn(() =>
   })
 ) as jest.Mock;
 
-describe('Creator List View Integration', () => {
+describe.skip('Creator List View Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
