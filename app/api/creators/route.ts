@@ -128,22 +128,37 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if any of the URLs already exist for this user
-    const existingUrlsQuery = supabase
-      .from('creator_urls')
-      .select('url, creators!inner(display_name)')
-      .eq('creators.user_id', user.id);
+    // Use a simpler approach to avoid dynamic query issues
+    const existingUrls = [];
+    let checkError = null;
+    
+    try {
+      for (const info of urlsWithPlatforms) {
+        const { data: urlExists, error: urlCheckError } = await supabase
+          .from('creator_urls')
+          .select('url, creators!inner(display_name)')
+          .eq('creators.user_id', user.id)
+          .eq('platform', info.platform)
+          .eq('normalized_url', info.profileUrl)
+          .limit(1);
 
-    const orConditions = urlsWithPlatforms
-      .map(
-        (info) =>
-          `(platform.eq.${info.platform},normalized_url.eq.${info.profileUrl})`
-      )
-      .join(',');
+        if (urlCheckError) {
+          checkError = urlCheckError;
+          break;
+        }
 
-    const { data: existingUrls, error: checkError } =
-      await existingUrlsQuery.or(orConditions);
+        if (urlExists && urlExists.length > 0) {
+          existingUrls.push(...urlExists);
+        }
+      }
+    } catch (error) {
+      checkError = error;
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error in URL checking loop:', error);
+      }
+    }
 
-    if (checkError && checkError.code !== 'PGRST116') {
+    if (checkError && typeof checkError === 'object' && 'code' in checkError && checkError.code !== 'PGRST116') {
       if (process.env.NODE_ENV === 'development') {
         console.error('Error checking existing URLs:', checkError);
       }
@@ -183,9 +198,19 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (createError) {
+      const errorLog = {
+        operation: 'creator_insert',
+        error: createError,
+        data: creatorData,
+        timestamp: new Date().toISOString(),
+      };
+      
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error creating creator:', createError);
+        console.error('Error creating creator:', errorLog);
+      } else {
+        console.error('Production error creating creator:', errorLog);
       }
+      
       return NextResponse.json(
         { error: 'Failed to create creator' },
         { status: 500 }
@@ -208,9 +233,20 @@ export async function POST(request: NextRequest) {
       .insert(creatorUrlsData);
 
     if (urlsError) {
+      const errorLog = {
+        operation: 'creator_urls_insert',
+        error: urlsError,
+        data: creatorUrlsData,
+        creator_id: newCreator.id,
+        timestamp: new Date().toISOString(),
+      };
+      
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error creating creator URLs:', urlsError);
+        console.error('Error creating creator URLs:', errorLog);
+      } else {
+        console.error('Production error creating creator URLs:', errorLog);
       }
+      
       // Rollback creator creation
       await supabase.from('creators').delete().eq('id', newCreator.id);
       return NextResponse.json(
@@ -252,11 +288,26 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    // Enhanced error logging for production debugging
+    const errorDetails = {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+      route: 'POST /api/creators',
+    };
+
     if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in POST /api/creators:', error);
+      console.error('Unexpected error in POST /api/creators:', errorDetails);
+    } else {
+      // Log to console in production for Vercel logs
+      console.error('Production error in POST /api/creators:', errorDetails);
     }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        ...(process.env.NODE_ENV === 'development' && { details: errorDetails })
+      },
       { status: 500 }
     );
   }
