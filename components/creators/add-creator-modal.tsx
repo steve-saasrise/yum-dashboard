@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, KeyboardEvent } from 'react';
+import { useState, KeyboardEvent, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PlatformDetector } from '@/lib/platform-detector';
 import { useAuth } from '@/hooks/use-auth';
+import { createBrowserSupabaseClient } from '@/lib/supabase';
+import type { Creator } from '@/types/creator';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +41,7 @@ import {
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import { TopicSelector } from '@/components/topics/topic-selector';
 
 // Platform icons mapping
 const platformIcons = {
@@ -54,21 +57,19 @@ const platformIcons = {
 const createCreatorSchema = z.object({
   display_name: z.string().min(1, 'Display name is required').max(100),
   description: z.string().max(500).optional(),
-  urls: z
-    .array(
-      z.object({
-        url: z.string().url(),
-        platform: z.enum([
-          'youtube',
-          'twitter',
-          'linkedin',
-          'threads',
-          'rss',
-          'unknown',
-        ]),
-      })
-    )
-    .min(1, 'At least one URL is required'),
+  urls: z.array(
+    z.object({
+      url: z.string().url(),
+      platform: z.enum([
+        'youtube',
+        'twitter',
+        'linkedin',
+        'threads',
+        'rss',
+        'unknown',
+      ]),
+    })
+  ),
   topics: z.array(z.string()).optional(),
 });
 
@@ -78,12 +79,16 @@ interface AddCreatorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreatorAdded?: () => void;
+  mode?: 'add' | 'edit';
+  creator?: Creator;
 }
 
 export function AddCreatorModal({
   open,
   onOpenChange,
   onCreatorAdded,
+  mode = 'add',
+  creator,
 }: AddCreatorModalProps) {
   const { state } = useAuth();
   const { session } = state;
@@ -101,6 +106,35 @@ export function AddCreatorModal({
       topics: [],
     },
   });
+
+  // Initialize form when editing a creator
+  useEffect(() => {
+    if (mode === 'edit' && creator) {
+      form.reset({
+        display_name: creator.display_name || '',
+        description: creator.bio || '',
+        urls:
+          creator.creator_urls?.map((url) => ({
+            url: url.url,
+            platform: url.platform as
+              | 'youtube'
+              | 'twitter'
+              | 'linkedin'
+              | 'threads'
+              | 'rss'
+              | 'unknown',
+          })) || [],
+        topics: creator.topics || [],
+      });
+    } else {
+      form.reset({
+        display_name: '',
+        description: '',
+        urls: [],
+        topics: [],
+      });
+    }
+  }, [mode, creator, form]);
 
   const urls = form.watch('urls');
 
@@ -187,7 +221,21 @@ export function AddCreatorModal({
     if (!session) {
       toast({
         title: 'Authentication required',
-        description: 'Please sign in to add creators',
+        description: 'Please sign in to manage creators',
+        variant: 'destructive',
+      });
+      setIsSubmitting(false);
+      setTimeout(() => {
+        window.location.href = '/auth/login';
+      }, 1500);
+      return;
+    }
+
+    // Validate URLs are present when adding
+    if (mode === 'add' && data.urls.length === 0) {
+      toast({
+        title: 'URLs required',
+        description: 'Please add at least one URL for the creator',
         variant: 'destructive',
       });
       return;
@@ -196,44 +244,139 @@ export function AddCreatorModal({
     setIsSubmitting(true);
 
     try {
-      // Create the creator
-      const response = await fetch('/api/creators', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          display_name: data.display_name,
-          description: data.description,
-          urls: data.urls.map((u) => u.url),
-          topics: data.topics,
-        }),
-      });
+      const supabase = createBrowserSupabaseClient();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create creator');
+      if (mode === 'add') {
+        // Create the creator
+        const { data: newCreator, error: creatorError } = await supabase
+          .from('creators')
+          .insert({
+            display_name: data.display_name,
+            bio: data.description || null,
+            status: 'active',
+            user_id: session.user.id, // Add the authenticated user's ID
+          })
+          .select()
+          .single();
+
+        if (creatorError) {
+          throw new Error(creatorError.message || 'Failed to create creator');
+        }
+
+        if (!newCreator) {
+          throw new Error('Failed to create creator');
+        }
+
+        // Add creator URLs
+        if (data.urls.length > 0) {
+          const { error: urlError } = await supabase
+            .from('creator_urls')
+            .insert(
+              data.urls.map((u) => ({
+                creator_id: newCreator.id,
+                platform: u.platform,
+                url: u.url,
+              }))
+            );
+
+          if (urlError) {
+            // If URL insertion fails, we should delete the creator
+            await supabase.from('creators').delete().eq('id', newCreator.id);
+            throw new Error(urlError.message || 'Failed to add creator URLs');
+          }
+        }
+
+        // Add topics if any
+        if (data.topics && data.topics.length > 0) {
+          const { error: topicError } = await supabase
+            .from('creator_topics')
+            .insert(
+              data.topics.map((topicId) => ({
+                creator_id: newCreator.id,
+                topic_id: topicId,
+              }))
+            );
+
+          if (topicError) {
+            console.error('Failed to add topics:', topicError);
+            // Don't fail the whole operation if topics fail
+          }
+        }
+
+        toast({
+          title: 'Creator added successfully',
+          description: `${data.display_name} has been added to your list`,
+        });
+      } else {
+        // Update the creator
+        const { error: updateError } = await supabase
+          .from('creators')
+          .update({
+            display_name: data.display_name,
+            bio: data.description || null,
+          })
+          .eq('id', creator?.id);
+
+        if (updateError) {
+          throw new Error(updateError.message || 'Failed to update creator');
+        }
+
+        // Update topics
+        if (creator?.id) {
+          // First, delete existing topics
+          await supabase
+            .from('creator_topics')
+            .delete()
+            .eq('creator_id', creator.id);
+
+          // Then add new topics
+          if (data.topics && data.topics.length > 0) {
+            const { error: topicError } = await supabase
+              .from('creator_topics')
+              .insert(
+                data.topics.map((topicId) => ({
+                  creator_id: creator.id,
+                  topic_id: topicId,
+                }))
+              );
+
+            if (topicError) {
+              console.error('Failed to update topics:', topicError);
+              // Don't fail the whole operation if topics fail
+            }
+          }
+        }
+
+        toast({
+          title: 'Creator updated successfully',
+          description: `${data.display_name} has been updated`,
+        });
       }
-
-      toast({
-        title: 'Creator added successfully',
-        description: `${data.display_name} has been added to your list`,
-      });
 
       form.reset();
       setUrlInput('');
       onOpenChange(false);
       onCreatorAdded?.();
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unexpected error occurred';
+      const isAuthError =
+        errorMessage.includes('Authentication expired') ||
+        errorMessage.includes('sign in');
+
       toast({
-        title: 'Failed to add creator',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred',
+        title:
+          mode === 'add' ? 'Failed to add creator' : 'Failed to update creator',
+        description: errorMessage,
         variant: 'destructive',
       });
+
+      // If authentication error, redirect to login after showing the toast
+      if (isAuthError) {
+        setTimeout(() => {
+          window.location.href = '/auth/login';
+        }, 1500);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -243,9 +386,13 @@ export function AddCreatorModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Creator</DialogTitle>
+          <DialogTitle>
+            {mode === 'add' ? 'Add New Creator' : 'Edit Creator'}
+          </DialogTitle>
           <DialogDescription>
-            Add a creator by providing their social media or website URLs
+            {mode === 'add'
+              ? 'Add a creator by providing their social media or website URLs'
+              : 'Update creator information and topics'}
           </DialogDescription>
         </DialogHeader>
 
@@ -291,77 +438,135 @@ export function AddCreatorModal({
               )}
             />
 
-            <div className="space-y-4">
-              <FormItem>
-                <FormLabel>Creator URLs</FormLabel>
-                <FormDescription>
-                  Add URLs where this creator posts content
-                </FormDescription>
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Paste any creator URL or channel link from YouTube, X, LinkedIn, Threads, or RSS feeds"
-                      value={urlInput}
-                      onChange={(e) => {
-                        setUrlInput(e.target.value);
-                        setUrlError(null);
-                      }}
-                      onKeyPress={handleKeyPress}
-                      disabled={isSubmitting}
-                      className={cn(urlError && 'border-red-500')}
-                    />
-                    <Button
-                      type="button"
-                      onClick={addUrl}
-                      disabled={isSubmitting}
-                    >
-                      Add
-                    </Button>
+            {mode === 'add' && (
+              <div className="space-y-4">
+                <FormItem>
+                  <FormLabel>Creator URLs</FormLabel>
+                  <FormDescription>
+                    Add URLs where this creator posts content
+                  </FormDescription>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Paste any creator URL or channel link from YouTube, X, LinkedIn, Threads, or RSS feeds"
+                        value={urlInput}
+                        onChange={(e) => {
+                          setUrlInput(e.target.value);
+                          setUrlError(null);
+                        }}
+                        onKeyPress={handleKeyPress}
+                        disabled={isSubmitting}
+                        className={cn(urlError && 'border-red-500')}
+                      />
+                      <Button
+                        type="button"
+                        onClick={addUrl}
+                        disabled={isSubmitting}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {urlError && (
+                      <div className="flex items-center gap-2 text-sm text-red-600">
+                        <AlertCircle className="h-3 w-3" />
+                        {urlError}
+                      </div>
+                    )}
                   </div>
-                  {urlError && (
-                    <div className="flex items-center gap-2 text-sm text-red-600">
-                      <AlertCircle className="h-3 w-3" />
-                      {urlError}
+
+                  {/* URL Chips */}
+                  {urls.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {urls.map((urlItem, index) => {
+                        const Icon = platformIcons[urlItem.platform];
+                        return (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="pl-2 pr-1 py-1.5 flex items-center gap-2 text-sm"
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span className="max-w-[200px] truncate">
+                              {urlItem.url}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeUrl(index)}
+                              className="ml-1 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-0.5 transition-colors"
+                              disabled={isSubmitting}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
                     </div>
                   )}
-                </div>
 
-                {/* URL Chips */}
-                {urls.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {urls.map((urlItem, index) => {
-                      const Icon = platformIcons[urlItem.platform];
-                      return (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="pl-2 pr-1 py-1.5 flex items-center gap-2 text-sm"
-                        >
-                          <Icon className="h-4 w-4" />
-                          <span className="max-w-[200px] truncate">
-                            {urlItem.url}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeUrl(index)}
-                            className="ml-1 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-0.5 transition-colors"
-                            disabled={isSubmitting}
+                  {form.formState.errors.urls && (
+                    <p className="text-sm text-red-600">
+                      {form.formState.errors.urls.message}
+                    </p>
+                  )}
+                </FormItem>
+              </div>
+            )}
+
+            {mode === 'edit' &&
+              creator?.creator_urls &&
+              creator.creator_urls.length > 0 && (
+                <div className="space-y-4">
+                  <FormItem>
+                    <FormLabel>Connected Platforms</FormLabel>
+                    <FormDescription>
+                      Current social media accounts (URL editing coming soon)
+                    </FormDescription>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {creator.creator_urls.map((urlItem) => {
+                        const Icon =
+                          platformIcons[
+                            urlItem.platform as keyof typeof platformIcons
+                          ] || platformIcons.unknown;
+                        return (
+                          <Badge
+                            key={urlItem.id}
+                            variant="secondary"
+                            className="pl-2 pr-2 py-1.5 flex items-center gap-2 text-sm"
                           >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                )}
+                            <Icon className="h-4 w-4" />
+                            <span className="max-w-[200px] truncate">
+                              {urlItem.url}
+                            </span>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </FormItem>
+                </div>
+              )}
 
-                {form.formState.errors.urls && (
-                  <p className="text-sm text-red-600">
-                    {form.formState.errors.urls.message}
-                  </p>
-                )}
-              </FormItem>
-            </div>
+            <FormField
+              control={form.control}
+              name="topics"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Topics</FormLabel>
+                  <FormControl>
+                    <TopicSelector
+                      selectedTopics={field.value || []}
+                      onChange={field.onChange}
+                      placeholder="Select topics..."
+                      allowCreate={true}
+                      disabled={isSubmitting}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Select or create topics to categorize this creator
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-end gap-3">
               <Button
@@ -378,12 +583,12 @@ export function AddCreatorModal({
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || urls.length === 0}
+                disabled={isSubmitting || (mode === 'add' && urls.length === 0)}
               >
                 {isSubmitting && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
-                Add Creator
+                {mode === 'add' ? 'Add Creator' : 'Update Creator'}
               </Button>
             </div>
           </form>
