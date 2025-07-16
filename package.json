@@ -16,7 +16,8 @@
     "typecheck": "npx tsc --noEmit",
     "fix": "npm run lint -- --fix && npm run format",
     "precommit": "npm run fix && npm run typecheck",
-    "quality": "npm run typecheck && npm run lint && npm run format:check"
+    "quality": "npm run typecheck && npm run lint && npm run format:check",
+    "init-topics": "node scripts/init-system-topics.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

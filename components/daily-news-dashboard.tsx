@@ -999,6 +999,9 @@ export function DailyNewsDashboard() {
   const [selectedTopic, setSelectedTopic] = React.useState<any>(null);
   const [selectedCreator, setSelectedCreator] = React.useState<any>(null);
   const [isCreatorModalOpen, setCreatorModalOpen] = React.useState(false);
+  const [creatorModalMode, setCreatorModalMode] = React.useState<
+    'add' | 'edit'
+  >('add');
   const [isMobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
   const [creators, setCreators] = React.useState<any[]>([]);
   const [isLoadingCreators, setIsLoadingCreators] = React.useState(true);
@@ -1019,12 +1022,14 @@ export function DailyNewsDashboard() {
   };
 
   const handleEditCreator = (creator: any) => {
-    // Edit functionality not yet implemented
-    // TODO: Implement edit creator functionality
+    setSelectedCreator(creator);
+    setCreatorModalMode('edit');
+    setCreatorModalOpen(true);
   };
 
   const handleCreateCreator = () => {
     setSelectedCreator(null);
+    setCreatorModalMode('add');
     setCreatorModalOpen(true);
   };
 
@@ -1036,7 +1041,6 @@ export function DailyNewsDashboard() {
     try {
       const response = await fetch('/api/creators', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -1283,11 +1287,12 @@ export function DailyNewsDashboard() {
         onOpenChange={setTopicModalOpen}
         topic={selectedTopic}
       />
-      {/* Note: Edit functionality not yet implemented in AddCreatorModal */}
       <AddCreatorModal
         open={isCreatorModalOpen}
         onOpenChange={setCreatorModalOpen}
         onCreatorAdded={fetchCreators}
+        mode={creatorModalMode}
+        creator={selectedCreator}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

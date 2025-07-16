@@ -80,9 +80,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Transform Supabase user to UserProfile with database profile data
   const transformUser = async (
-    user: User | null
+    user: User | null,
+    options: { skipDatabaseFetch?: boolean } = {}
   ): Promise<UserProfile | null> => {
     if (!user) return null;
+
+    // Create basic profile from user metadata
+    const basicProfile: UserProfile = {
+      id: user.id,
+      email: user.email || '',
+      full_name: user.user_metadata?.full_name || user.user_metadata?.name,
+      avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+      username: user.user_metadata?.username || user.user_metadata?.user_name,
+      created_at: user.created_at,
+      updated_at: new Date().toISOString(),
+      last_sign_in_at: user.last_sign_in_at,
+    };
+
+    // Skip database fetch if requested, in non-browser environment, or disabled via env
+    if (
+      options.skipDatabaseFetch ||
+      typeof window === 'undefined' ||
+      process.env.NEXT_PUBLIC_SKIP_PROFILE_FETCH === 'true'
+    ) {
+      return basicProfile;
+    }
 
     try {
       // Add timeout to prevent hanging
@@ -93,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout')), 5000)
+        setTimeout(() => reject(new Error('Database query timeout')), 10000)
       );
 
       const { data: profileData, error } = (await Promise.race([
@@ -106,42 +128,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('Error fetching user profile:', error);
       }
 
-      const profile: UserProfile = {
-        id: user.id,
-        email: user.email || '',
-        full_name:
-          profileData?.full_name ||
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name,
-        avatar_url:
-          profileData?.avatar_url ||
-          user.user_metadata?.avatar_url ||
-          user.user_metadata?.picture,
-        username:
-          profileData?.username ||
-          user.user_metadata?.username ||
-          user.user_metadata?.user_name,
-        created_at: user.created_at,
-        updated_at: profileData?.updated_at || new Date().toISOString(),
-        last_sign_in_at: user.last_sign_in_at,
-      };
+      // Merge database profile data with basic profile
+      if (profileData) {
+        return {
+          ...basicProfile,
+          full_name: profileData.full_name || basicProfile.full_name,
+          avatar_url: profileData.avatar_url || basicProfile.avatar_url,
+          username: profileData.username || basicProfile.username,
+          updated_at: profileData.updated_at || basicProfile.updated_at,
+        };
+      }
 
-      return profile;
-    } catch (error) {
-      console.error('AuthProvider: Error in transformUser:', error);
-
-      // Return a basic profile even if database query fails
-      const basicProfile: UserProfile = {
-        id: user.id,
-        email: user.email || '',
-        full_name: user.user_metadata?.full_name || user.user_metadata?.name,
-        avatar_url:
-          user.user_metadata?.avatar_url || user.user_metadata?.picture,
-        username: user.user_metadata?.username || user.user_metadata?.user_name,
-        created_at: user.created_at,
-        updated_at: new Date().toISOString(),
-        last_sign_in_at: user.last_sign_in_at,
-      };
+      return basicProfile;
+    } catch (error: any) {
+      // Handle abort error specifically
+      if (error?.name === 'AbortError' || error?.message?.includes('timeout')) {
+        console.warn('User profile fetch timed out, using basic profile');
+      } else {
+        console.error('AuthProvider: Error fetching user profile:', error);
+      }
 
       return basicProfile;
     }
@@ -171,16 +176,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const profile = await transformUser(session?.user || null);
+        // First, set the session immediately with a basic profile
+        const basicProfile = await transformUser(session?.user || null, {
+          skipDatabaseFetch: true,
+        });
 
         setState((prev) => ({
           ...prev,
           session,
           user: session?.user || null,
-          profile,
+          profile: basicProfile,
           loading: false,
           error: error || null,
         }));
+
+        // Then fetch the full profile asynchronously without blocking
+        if (session?.user) {
+          transformUser(session.user)
+            .then((fullProfile) => {
+              if (fullProfile) {
+                setState((prev) => ({
+                  ...prev,
+                  profile: fullProfile,
+                }));
+              }
+            })
+            .catch((err) => {
+              console.warn('Failed to fetch full user profile:', err);
+            });
+        }
 
         // If we have a session, update last activity and start monitoring
         if (session) {
@@ -301,15 +325,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const profile = await transformUser(session?.user || null);
+      // First, set the session immediately with a basic profile
+      const basicProfile = await transformUser(session?.user || null, {
+        skipDatabaseFetch: true,
+      });
+
       setState((prev) => ({
         ...prev,
         session,
         user: session?.user || null,
-        profile,
+        profile: basicProfile,
         loading: false,
         error: null,
       }));
+
+      // Then fetch the full profile asynchronously without blocking
+      if (session?.user) {
+        transformUser(session.user)
+          .then((fullProfile) => {
+            if (fullProfile) {
+              setState((prev) => ({
+                ...prev,
+                profile: fullProfile,
+              }));
+            }
+          })
+          .catch((err) => {
+            console.warn(
+              'Failed to fetch full user profile during auth state change:',
+              err
+            );
+          });
+      }
 
       // Update activity and start monitoring if we have a session
       if (session) {

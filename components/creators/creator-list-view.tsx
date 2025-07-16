@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import { useTopics } from '@/hooks/use-topics';
+import { useCreators } from '@/hooks/use-creators';
+import { createBrowserSupabaseClient } from '@/lib/supabase';
+import { useToast } from '@/components/ui/use-toast';
 import type {
   Creator,
   CreatorFilters as CreatorFiltersType,
 } from '@/types/creator';
-import { DEFAULT_FILTERS } from '@/types/creator';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -50,6 +52,7 @@ import {
   Power,
   Plus,
   Globe,
+  Edit,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddCreatorModal } from './add-creator-modal';
@@ -63,124 +66,6 @@ const platformIcons = {
   rss: Rss,
   website: Globe,
 };
-
-// Hook for managing creator list data
-function useCreatorList(initialFilters: Partial<CreatorFiltersType> = {}) {
-  const { state } = useAuth();
-  const { user, session } = state;
-  const [creators, setCreators] = useState<Creator[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<CreatorFiltersType>({
-    ...DEFAULT_FILTERS,
-    ...initialFilters,
-  });
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-  });
-  const [selectedCreators, setSelectedCreators] = useState<Set<string>>(
-    new Set()
-  );
-
-  const fetchCreators = useCallback(async () => {
-    if (!user || !session) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const params = new URLSearchParams();
-
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          params.append(key, String(value));
-        }
-      });
-
-      const response = await fetch(`/api/creators?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch creators');
-      }
-
-      const result = await response.json();
-      const data = result.data;
-      setCreators(data.creators || []);
-      setPagination({
-        page: data.pagination.page,
-        limit: data.pagination.limit,
-        total: data.pagination.total,
-        totalPages: data.pagination.totalPages,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load creators');
-    } finally {
-      setLoading(false);
-    }
-  }, [user, session, filters]);
-
-  useEffect(() => {
-    fetchCreators();
-  }, [fetchCreators]);
-
-  const updateFilters = useCallback(
-    (newFilters: Partial<CreatorFiltersType>) => {
-      setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
-      setSelectedCreators(new Set());
-    },
-    []
-  );
-
-  const clearFilters = useCallback(() => {
-    setFilters(DEFAULT_FILTERS);
-    setSelectedCreators(new Set());
-  }, []);
-
-  const selectCreator = useCallback((creatorId: string, selected: boolean) => {
-    setSelectedCreators((prev) => {
-      const newSet = new Set(prev);
-      if (selected) {
-        newSet.add(creatorId);
-      } else {
-        newSet.delete(creatorId);
-      }
-      return newSet;
-    });
-  }, []);
-
-  const selectAll = useCallback(
-    (selected: boolean) => {
-      if (selected) {
-        setSelectedCreators(new Set(creators.map((c) => c.id)));
-      } else {
-        setSelectedCreators(new Set());
-      }
-    },
-    [creators]
-  );
-
-  return {
-    creators,
-    loading,
-    error,
-    filters,
-    pagination,
-    selectedCreators,
-    updateFilters,
-    clearFilters,
-    selectCreator,
-    selectAll,
-    refreshCreators: fetchCreators,
-  };
-}
 
 // Search component with debouncing
 function CreatorSearch({
@@ -241,13 +126,12 @@ function CreatorFilters({
     { value: 'rss', label: 'RSS' },
   ];
 
-  const topics = [
-    { value: 'technology', label: 'Technology' },
-    { value: 'news', label: 'News' },
-    { value: 'politics', label: 'Politics' },
-    { value: 'entertainment', label: 'Entertainment' },
-    { value: 'sports', label: 'Sports' },
-  ];
+  // Use dynamic topics from the database
+  const { topics: dynamicTopics, loading: topicsLoading } = useTopics();
+  const topics = dynamicTopics.map((topic) => ({
+    value: topic.id,
+    label: topic.name,
+  }));
 
   const hasActiveFilters =
     filters.platform || filters.topic || filters.status !== 'all';
@@ -292,11 +176,17 @@ function CreatorFilters({
       {/* Topic Filter */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" data-testid="topic-filter">
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="topic-filter"
+            disabled={topicsLoading}
+          >
             Topic
             {filters.topic && (
               <Badge variant="secondary" className="ml-2">
-                {filters.topic}
+                {topics.find((t) => t.value === filters.topic)?.label ||
+                  filters.topic}
               </Badge>
             )}
             <ChevronDown className="h-4 w-4 ml-2" />
@@ -368,6 +258,8 @@ function CreatorTable({
   onSort,
   sortField,
   sortOrder,
+  onEdit,
+  onDelete,
 }: {
   creators: Creator[];
   selectedCreators: Set<string>;
@@ -376,6 +268,8 @@ function CreatorTable({
   onSort: (field: string) => void;
   sortField?: string;
   sortOrder?: string;
+  onEdit?: (creator: Creator) => void;
+  onDelete?: (id: string) => void;
 }) {
   const allSelected =
     creators.length > 0 && creators.every((c) => selectedCreators.has(c.id));
@@ -415,6 +309,7 @@ function CreatorTable({
                 <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
               )}
             </TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -494,6 +389,26 @@ function CreatorTable({
                     {new Date(creator.created_at).toLocaleDateString()}
                   </span>
                 </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit?.(creator)}
+                      className="h-8 w-8"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDelete?.(creator.id)}
+                      className="h-8 w-8"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             );
           })}
@@ -508,10 +423,14 @@ function CreatorCards({
   creators,
   selectedCreators,
   onSelectCreator,
+  onEdit,
+  onDelete,
 }: {
   creators: Creator[];
   selectedCreators: Set<string>;
   onSelectCreator: (id: string, selected: boolean) => void;
+  onEdit?: (creator: Creator) => void;
+  onDelete?: (id: string) => void;
 }) {
   return (
     <div className="grid gap-4" data-testid="creators-cards">
@@ -564,6 +483,24 @@ function CreatorCards({
                   ))}
                 </div>
               </div>
+              <div className="flex items-center gap-1 ml-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit?.(creator)}
+                  className="h-8 w-8"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onDelete?.(creator.id)}
+                  className="h-8 w-8"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </Card>
         );
@@ -580,16 +517,45 @@ export function CreatorListView() {
     error,
     filters,
     pagination,
-    selectedCreators,
     updateFilters,
     clearFilters,
-    selectCreator,
-    selectAll,
     refreshCreators,
-  } = useCreatorList();
+  } = useCreators();
+
+  const [selectedCreators, setSelectedCreators] = useState<Set<string>>(
+    new Set()
+  );
+  const { toast } = useToast();
 
   const [isMobile, setIsMobile] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [selectedCreatorForEdit, setSelectedCreatorForEdit] = useState<
+    Creator | undefined
+  >(undefined);
+
+  const selectCreator = useCallback((creatorId: string, selected: boolean) => {
+    setSelectedCreators((prev) => {
+      const newSet = new Set(prev);
+      if (selected) {
+        newSet.add(creatorId);
+      } else {
+        newSet.delete(creatorId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const selectAll = useCallback(
+    (selected: boolean) => {
+      if (selected) {
+        setSelectedCreators(new Set(creators.map((c) => c.id)));
+      } else {
+        setSelectedCreators(new Set());
+      }
+    },
+    [creators]
+  );
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -607,6 +573,7 @@ export function CreatorListView() {
         sort: field as CreatorFiltersType['sort'],
         order: newOrder,
       });
+      setSelectedCreators(new Set());
     },
     [filters.sort, filters.order, updateFilters]
   );
@@ -617,6 +584,86 @@ export function CreatorListView() {
     },
     [updateFilters]
   );
+
+  const handleEditCreator = useCallback((creator: Creator) => {
+    setSelectedCreatorForEdit(creator);
+    setModalMode('edit');
+    setShowAddModal(true);
+  }, []);
+
+  const handleAddCreator = useCallback(() => {
+    setSelectedCreatorForEdit(undefined);
+    setModalMode('add');
+    setShowAddModal(true);
+  }, []);
+
+  const handleDeleteCreator = useCallback(
+    async (creatorId: string) => {
+      try {
+        const supabase = createBrowserSupabaseClient();
+        const { error } = await supabase
+          .from('creators')
+          .delete()
+          .eq('id', creatorId);
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: 'Creator deleted',
+          description: 'The creator has been successfully removed.',
+        });
+
+        refreshCreators();
+      } catch (error) {
+        toast({
+          title: 'Failed to delete creator',
+          description:
+            error instanceof Error
+              ? error.message
+              : 'An error occurred while deleting the creator',
+          variant: 'destructive',
+        });
+      }
+    },
+    [refreshCreators, toast]
+  );
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedCreators.size === 0) return;
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const creatorIds = Array.from(selectedCreators);
+
+      const { error } = await supabase
+        .from('creators')
+        .delete()
+        .in('id', creatorIds);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: 'Creators deleted',
+        description: `${selectedCreators.size} creator(s) have been successfully removed.`,
+      });
+
+      setSelectedCreators(new Set());
+      refreshCreators();
+    } catch (error) {
+      toast({
+        title: 'Failed to delete creators',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An error occurred while deleting the creators',
+        variant: 'destructive',
+      });
+    }
+  }, [selectedCreators, refreshCreators, toast]);
 
   if (loading && creators.length === 0) {
     return (
@@ -635,16 +682,26 @@ export function CreatorListView() {
   }
 
   if (error) {
+    const isAuthError = error.includes('sign in');
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
         <p className="text-lg font-medium text-destructive">
-          Failed to load creators
+          {isAuthError ? 'Authentication Required' : 'Failed to load creators'}
         </p>
         <p className="text-sm text-muted-foreground">{error}</p>
-        <Button onClick={refreshCreators} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Try Again
-        </Button>
+        {isAuthError ? (
+          <Button
+            onClick={() => (window.location.href = '/auth/login')}
+            variant="default"
+          >
+            Sign In
+          </Button>
+        ) : (
+          <Button onClick={refreshCreators} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        )}
       </div>
     );
   }
@@ -660,7 +717,7 @@ export function CreatorListView() {
             onChange={(search) => updateFilters({ search })}
             isLoading={loading}
           />
-          <Button onClick={() => setShowAddModal(true)}>
+          <Button onClick={handleAddCreator}>
             <Plus className="h-4 w-4 mr-2" />
             Add Creator
           </Button>
@@ -681,7 +738,7 @@ export function CreatorListView() {
           <p className="text-sm text-muted-foreground">
             Add your first creator to get started
           </p>
-          <Button onClick={() => setShowAddModal(true)}>
+          <Button onClick={handleAddCreator}>
             <Plus className="h-4 w-4 mr-2" />
             Add Your First Creator
           </Button>
@@ -698,7 +755,7 @@ export function CreatorListView() {
             {selectedCreators.size} selected
           </span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleBulkDelete}>
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Selected
             </Button>
@@ -718,6 +775,8 @@ export function CreatorListView() {
               creators={creators}
               selectedCreators={selectedCreators}
               onSelectCreator={selectCreator}
+              onEdit={handleEditCreator}
+              onDelete={handleDeleteCreator}
             />
           ) : (
             <CreatorTable
@@ -728,6 +787,8 @@ export function CreatorListView() {
               onSort={handleSort}
               sortField={filters.sort}
               sortOrder={filters.order}
+              onEdit={handleEditCreator}
+              onDelete={handleDeleteCreator}
             />
           )}
         </>
@@ -775,11 +836,13 @@ export function CreatorListView() {
         </div>
       )}
 
-      {/* Add Creator Modal */}
+      {/* Add/Edit Creator Modal */}
       <AddCreatorModal
         open={showAddModal}
         onOpenChange={setShowAddModal}
         onCreatorAdded={refreshCreators}
+        mode={modalMode}
+        creator={selectedCreatorForEdit}
       />
     </div>
   );

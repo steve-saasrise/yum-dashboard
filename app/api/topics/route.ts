@@ -42,14 +42,14 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const queryValidation = TopicFiltersSchema.safeParse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-      search: searchParams.get('search'),
-      parent_topic_id: searchParams.get('parent_topic_id'),
-      is_system_topic: searchParams.get('is_system_topic'),
-      has_creators: searchParams.get('has_creators'),
-      sort: searchParams.get('sort'),
-      order: searchParams.get('order'),
+      page: searchParams.get('page') || undefined,
+      limit: searchParams.get('limit') || undefined,
+      search: searchParams.get('search') || undefined,
+      parent_topic_id: searchParams.get('parent_topic_id') || undefined,
+      is_system_topic: searchParams.get('is_system_topic') || undefined,
+      has_creators: searchParams.get('has_creators') || undefined,
+      sort: searchParams.get('sort') || undefined,
+      order: searchParams.get('order') || undefined,
     });
 
     if (!queryValidation.success) {

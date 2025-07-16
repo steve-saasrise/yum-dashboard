@@ -17,17 +17,30 @@ const createCreatorSchema = z.object({
 });
 
 const getCreatorsSchema = z.object({
-  page: z.string().transform(Number).pipe(z.number().min(1)).optional(),
+  page: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().min(1))
+    .optional()
+    .nullable(),
   limit: z
     .string()
     .transform(Number)
     .pipe(z.number().min(1).max(100))
-    .optional(),
+    .optional()
+    .nullable(),
   platform: z
     .enum(['youtube', 'twitter', 'linkedin', 'threads', 'rss'])
-    .optional(),
-  topic: z.string().optional(),
-  search: z.string().optional(),
+    .optional()
+    .nullable(),
+  topic: z.string().optional().nullable(),
+  search: z.string().optional().nullable(),
+  sort: z
+    .enum(['display_name', 'platform', 'created_at', 'updated_at'])
+    .optional()
+    .nullable(),
+  order: z.enum(['asc', 'desc']).optional().nullable(),
+  status: z.enum(['active', 'inactive', 'all']).optional().nullable(),
 });
 
 export async function POST(request: NextRequest) {
@@ -274,9 +287,10 @@ export async function GET(request: NextRequest) {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'Authentication required', details: authError?.message },
         { status: 401 }
       );
     }
@@ -289,6 +303,9 @@ export async function GET(request: NextRequest) {
       platform: searchParams.get('platform'),
       topic: searchParams.get('topic'),
       search: searchParams.get('search'),
+      sort: searchParams.get('sort'),
+      order: searchParams.get('order'),
+      status: searchParams.get('status'),
     });
 
     if (!queryValidation.success) {
@@ -303,44 +320,24 @@ export async function GET(request: NextRequest) {
 
     const { page = 1, limit = 20, platform, search } = queryValidation.data;
 
-    // Build query
-    let query = supabase
+    // Build simplified query - avoid complex joins that cause timeouts
+    let baseQuery = supabase
       .from('creators')
-      .select(
-        `
-        *,
-        creator_urls (
-          id,
-          platform,
-          url,
-          validation_status
-        ),
-        creator_topics (
-          topics (
-            id,
-            name,
-            color
-          )
-        )
-      `
-      )
+      .select('*')
       .eq('user_id', user.id);
 
-    // Apply filters
-    if (platform) {
-      // Filter through creator_urls table
-      query = query.eq('creator_urls.platform', platform);
-    }
-
+    // Apply search filter
     if (search) {
-      query = query.or(`display_name.ilike.%${search}%,bio.ilike.%${search}%`);
+      baseQuery = baseQuery.or(
+        `display_name.ilike.%${search}%,bio.ilike.%${search}%`
+      );
     }
 
     // Apply pagination
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
+    const from = ((page || 1) - 1) * (limit || 10);
+    const to = from + (limit || 10) - 1;
 
-    const { data: creators, error: fetchError } = await query
+    const { data: creatorsData, error: fetchError } = await baseQuery
       .range(from, to)
       .order('created_at', { ascending: false });
 
@@ -349,28 +346,23 @@ export async function GET(request: NextRequest) {
         console.error('Error fetching creators:', fetchError);
       }
       return NextResponse.json(
-        { error: 'Failed to fetch creators' },
+        { error: 'Failed to fetch creators', details: fetchError.message },
         { status: 500 }
       );
     }
 
-    // Get total count for pagination
-    let countQuery = supabase
+    if (!creatorsData) {
+      return NextResponse.json({ error: 'No creators found' }, { status: 404 });
+    }
+
+    // Use mutable variable for potential filtering
+    let creators = creatorsData;
+
+    // Get total count for pagination (simplified)
+    const { count, error: countError } = await supabase
       .from('creators')
-      .select('*, creator_urls!inner(*)', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
-
-    if (platform) {
-      countQuery = countQuery.eq('creator_urls.platform', platform);
-    }
-
-    if (search) {
-      countQuery = countQuery.or(
-        `display_name.ilike.%${search}%,bio.ilike.%${search}%`
-      );
-    }
-
-    const { count, error: countError } = await countQuery;
 
     if (countError) {
       if (process.env.NODE_ENV === 'development') {
@@ -382,39 +374,86 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const totalPages = Math.ceil((count || 0) / limit);
+    // Fetch related data separately for better performance
+    const creatorIds = creators.map((c) => c.id);
+    let creatorUrls: any[] = [];
+    let creatorTopics: any[] = [];
 
-    // Transform creators to include platform info for backward compatibility
-    const transformedCreators =
-      creators?.map((creator) => {
-        // Get the first URL's platform as the primary platform
-        const primaryUrl = creator.creator_urls?.[0];
-        return {
-          ...creator,
-          platform: primaryUrl?.platform || 'website',
-          // Keep the full creator_urls array for components that support multiple URLs
-          urls: creator.creator_urls,
-          // Extract topics from the nested structure
-          topics:
-            creator.creator_topics
-              ?.map((ct: { topics?: { name?: string } }) => ct.topics?.name)
-              .filter(Boolean) || [],
-          // Add is_active based on status for backward compatibility
-          is_active: creator.status === 'active',
-        };
-      }) || [];
+    if (creatorIds.length > 0) {
+      // Fetch URLs separately with optional platform filter
+      let urlQuery = supabase
+        .from('creator_urls')
+        .select('id, creator_id, platform, url, validation_status')
+        .in('creator_id', creatorIds);
+
+      if (platform) {
+        urlQuery = urlQuery.eq('platform', platform);
+      }
+
+      const { data: urls } = await urlQuery;
+      creatorUrls = urls || [];
+
+      // If platform filtering is applied, we need to filter creators that don't have URLs for that platform
+      if (platform && creatorUrls.length > 0) {
+        const creatorsWithPlatform = new Set(
+          creatorUrls.map((url) => url.creator_id)
+        );
+        creators = creators.filter((creator) =>
+          creatorsWithPlatform.has(creator.id)
+        );
+      }
+
+      // Fetch topics separately (simplified without deep join)
+      const { data: topics } = await supabase
+        .from('creator_topics')
+        .select('creator_id, topic_id, topics(id, name)')
+        .in(
+          'creator_id',
+          creators.map((c) => c.id)
+        ); // Use filtered creator IDs
+
+      creatorTopics = topics || [];
+    }
+
+    const totalPages = Math.ceil((count || 0) / (limit || 10));
+
+    // Transform creators to include related data
+    const transformedCreators = creators.map((creator) => {
+      // Get URLs for this creator
+      const creatorUrlsList = creatorUrls.filter(
+        (url) => url.creator_id === creator.id
+      );
+
+      // Get topics for this creator
+      const creatorTopicsList = creatorTopics
+        .filter((ct) => ct.creator_id === creator.id)
+        .map((ct) => ct.topics?.name)
+        .filter(Boolean);
+
+      // Get the primary platform from the first URL
+      const primaryUrl = creatorUrlsList[0];
+
+      return {
+        ...creator,
+        platform: primaryUrl?.platform || 'website',
+        urls: creatorUrlsList,
+        creator_urls: creatorUrlsList, // Keep original structure for compatibility
+        topics: creatorTopicsList,
+        is_active: creator.status === 'active',
+      };
+    });
 
     return NextResponse.json({
       success: true,
       data: {
         creators: transformedCreators,
         pagination: {
-          page,
-          limit,
+          page: page || 1,
+          limit: limit || 10,
           total: count || 0,
           totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1,
+          hasNext: (page || 1) < totalPages,
+          hasPrev: (page || 1) > 1,
         },
       },
       timestamp: new Date().toISOString(),
