@@ -24,12 +24,19 @@ import {
   Settings,
   Edit3,
   X,
-  ArrowLeft,
   Shield,
   Clock,
   Bell,
 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { ProfileEditForm } from '@/components/profile/profile-edit-form';
 import { AvatarUpload } from '@/components/profile/avatar-upload';
 import { ProfileDataExport } from '@/components/profile/profile-data-export';
@@ -165,22 +172,30 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="container mx-auto py-8 px-4 max-w-6xl">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Profile & Settings</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/dashboard">
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Profile & Settings
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Manage your personal information, notifications, and preferences
-              </p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Profile & Settings
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Manage your personal information, notifications, and preferences
+            </p>
           </div>
 
           <div className="flex items-center gap-2">

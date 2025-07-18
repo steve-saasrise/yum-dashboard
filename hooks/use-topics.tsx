@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from './use-auth';
 import type {
@@ -13,58 +13,83 @@ import type {
 
 export function useTopics(filters?: TopicFilters): UseTopicsReturn {
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { state } = useAuth();
   const { session } = state;
 
-  const fetchTopics = useCallback(async () => {
+  // Use a ref to track if we're currently fetching
+  const isFetchingRef = useRef(false);
+
+  // Store filters in a ref to avoid dependency issues
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  useEffect(() => {
     if (!session) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const params = new URLSearchParams();
-
-      if (filters?.search) params.append('search', filters.search);
-      if (filters?.parent_topic_id)
-        params.append('parent_topic_id', filters.parent_topic_id);
-      if (filters?.is_system_topic !== undefined) {
-        params.append('is_system_topic', String(filters.is_system_topic));
-      }
-      if (filters?.has_creators !== undefined) {
-        params.append('has_creators', String(filters.has_creators));
-      }
-      if (filters?.sort) params.append('sort', filters.sort);
-      if (filters?.order) params.append('order', filters.order);
-      if (filters?.page) params.append('page', String(filters.page));
-      if (filters?.limit) params.append('limit', String(filters.limit));
-
-      const response = await fetch(`/api/topics?${params}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch topics');
-      }
-
-      const result = await response.json();
-      setTopics(result.data.topics);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to load topics';
-      setError(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
+    // Prevent duplicate fetches
+    if (isFetchingRef.current) {
+      return;
     }
-  }, [filters, session]);
+
+    const fetchTopics = async () => {
+      isFetchingRef.current = true;
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams();
+        const currentFilters = filtersRef.current;
+
+        if (currentFilters?.search)
+          params.append('search', currentFilters.search);
+        if (currentFilters?.parent_topic_id)
+          params.append('parent_topic_id', currentFilters.parent_topic_id);
+        if (currentFilters?.is_system_topic !== undefined) {
+          params.append(
+            'is_system_topic',
+            String(currentFilters.is_system_topic)
+          );
+        }
+        if (currentFilters?.has_creators !== undefined) {
+          params.append('has_creators', String(currentFilters.has_creators));
+        }
+        if (currentFilters?.sort) params.append('sort', currentFilters.sort);
+        if (currentFilters?.order) params.append('order', currentFilters.order);
+        if (currentFilters?.page)
+          params.append('page', String(currentFilters.page));
+        if (currentFilters?.limit)
+          params.append('limit', String(currentFilters.limit));
+
+        const response = await fetch(`/api/topics?${params}`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch topics');
+        }
+
+        const result = await response.json();
+        setTopics(result.data.topics);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to load topics';
+        setError(message);
+        toast.error(message);
+      } finally {
+        setLoading(false);
+        isFetchingRef.current = false;
+      }
+    };
+
+    fetchTopics();
+  }, [session]); // Only depend on session, not filters
 
   const createTopic = useCallback(
     async (data: CreateTopicData): Promise<Topic> => {
@@ -164,13 +189,11 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
   );
 
   const refreshTopics = useCallback(() => {
-    fetchTopics();
-  }, [fetchTopics]);
-
-  // Fetch topics on mount
-  useEffect(() => {
-    fetchTopics();
-  }, [fetchTopics]);
+    // Reset the fetching ref to allow a new fetch
+    isFetchingRef.current = false;
+    // Trigger a re-render by updating state
+    setTopics((prev) => [...prev]);
+  }, []);
 
   return {
     topics,

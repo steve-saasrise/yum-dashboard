@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useAuth, useUser, useProfile } from '@/hooks/use-auth';
+import { useContent } from '@/hooks/use-content';
 import {
   Sidebar,
   SidebarProvider,
@@ -441,7 +442,13 @@ function AppSidebar({
   );
 }
 
-function Header({ onSignOut }: { onSignOut: () => void }) {
+function Header({
+  onSignOut,
+  onRefresh,
+}: {
+  onSignOut: () => void;
+  onRefresh?: () => void;
+}) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const user = useUser();
   const profile = useProfile();
@@ -488,6 +495,26 @@ function Header({ onSignOut }: { onSignOut: () => void }) {
         </div>
       </div>
       <div className="flex items-center gap-2 ml-2">
+        {onRefresh && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                  onClick={onRefresh}
+                >
+                  <RefreshCw className="h-5 w-5" />
+                  <span className="sr-only">Refresh content</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Refresh content</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -537,10 +564,21 @@ function Header({ onSignOut }: { onSignOut: () => void }) {
   );
 }
 
-function ContentCard({ item, creators }: { item: any; creators: any[] }) {
-  const [bookmarked, setBookmarked] = React.useState(item.bookmarked);
+function ContentCard({
+  item,
+  creators,
+  onSave,
+  onUnsave,
+}: {
+  item: any;
+  creators: any[];
+  onSave?: (id: string) => Promise<void>;
+  onUnsave?: (id: string) => Promise<void>;
+}) {
+  const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
   const [isLoading, setIsLoading] = React.useState(true);
-  const creator = creators.find((c: any) => c.id === item.creatorId);
+  const creator =
+    item.creator || creators.find((c: any) => c.id === item.creator_id);
 
   const getPlatformIcon = (platform: string) => {
     switch (platform?.toLowerCase()) {
@@ -611,7 +649,10 @@ function ContentCard({ item, creators }: { item: any; creators: any[] }) {
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                   <PlatformIcon className="h-3.5 w-3.5" />
                   <span>
-                    {creator.platform?.[0] || 'Blogs'} &middot; {item.timestamp}
+                    {item.platform || creator?.platform || 'website'} &middot;{' '}
+                    {item.published_at
+                      ? new Date(item.published_at).toLocaleDateString()
+                      : 'Recently'}
                   </span>
                 </div>
               </div>
@@ -623,7 +664,19 @@ function ContentCard({ item, creators }: { item: any; creators: any[] }) {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-gray-500 hover:text-primary"
-                    onClick={() => setBookmarked(!bookmarked)}
+                    onClick={async () => {
+                      try {
+                        if (bookmarked && onUnsave) {
+                          await onUnsave(item.id);
+                          setBookmarked(false);
+                        } else if (!bookmarked && onSave) {
+                          await onSave(item.id);
+                          setBookmarked(true);
+                        }
+                      } catch (error) {
+                        // Error is handled by the hook with toast
+                      }
+                    }}
                   >
                     <Bookmark
                       className={`h-4 w-4 ${bookmarked ? 'fill-primary text-primary' : ''}`}
@@ -640,18 +693,17 @@ function ContentCard({ item, creators }: { item: any; creators: any[] }) {
             {item.title}
           </h3>
           <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-5">
-            {item.summary}
+            {item.description || item.ai_summary || 'No description available'}
           </p>
           <div className="flex flex-wrap gap-2 mb-4">
-            {item.tags.map((tag: string) => {
-              const topicInfo = topics.find((t) => t.name === tag);
+            {(item.topics || []).map((topic: any) => {
               return (
                 <Badge
-                  key={tag}
+                  key={topic.id}
                   variant="secondary"
-                  className={`${topicInfo?.color} hover:${topicInfo?.color} font-normal`}
+                  className={`${topic.color || 'bg-gray-100 text-gray-800'} hover:${topic.color || 'bg-gray-100'} font-normal`}
                 >
-                  {tag}
+                  {topic.name}
                 </Badge>
               );
             })}
@@ -739,9 +791,20 @@ interface Creator {
 }
 
 // --- NEW: Content List Item Component ---
-function ContentListItem({ item, creators }: { item: any; creators: any[] }) {
-  const [bookmarked, setBookmarked] = React.useState(item.bookmarked);
-  const creator = creators.find((c: any) => c.id === item.creatorId);
+function ContentListItem({
+  item,
+  creators,
+  onSave,
+  onUnsave,
+}: {
+  item: any;
+  creators: any[];
+  onSave?: (id: string) => Promise<void>;
+  onUnsave?: (id: string) => Promise<void>;
+}) {
+  const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
+  const creator =
+    item.creator || creators.find((c: any) => c.id === item.creator_id);
 
   const getPlatformIcon = (platformName: string) => {
     const platform = platforms?.[0] || 'Blogs';
@@ -782,7 +845,11 @@ function ContentListItem({ item, creators }: { item: any; creators: any[] }) {
               </p>
               <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                 <PlatformIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="whitespace-nowrap">{item.timestamp}</span>
+                <span className="whitespace-nowrap">
+                  {item.published_at
+                    ? new Date(item.published_at).toLocaleDateString()
+                    : 'Recently'}
+                </span>
               </div>
             </div>
 
@@ -791,19 +858,20 @@ function ContentListItem({ item, creators }: { item: any; creators: any[] }) {
             </h3>
 
             <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-3 leading-relaxed">
-              {item.summary}
+              {item.description ||
+                item.ai_summary ||
+                'No description available'}
             </p>
 
             <div className="flex flex-wrap gap-2">
-              {item.tags.map((tag: string) => {
-                const topicInfo = topics.find((t) => t.name === tag);
+              {(item.topics || []).map((topic: any) => {
                 return (
                   <Badge
-                    key={tag}
+                    key={topic.id}
                     variant="secondary"
-                    className={`${topicInfo?.color} hover:${topicInfo?.color} font-normal text-xs`}
+                    className={`${topic.color || 'bg-gray-100 text-gray-800'} hover:${topic.color || 'bg-gray-100'} font-normal text-xs`}
                   >
-                    {tag}
+                    {topic.name}
                   </Badge>
                 );
               })}
@@ -842,7 +910,19 @@ function ContentListItem({ item, creators }: { item: any; creators: any[] }) {
                     variant="ghost"
                     size="icon"
                     className="h-9 w-9 text-gray-500 hover:text-primary"
-                    onClick={() => setBookmarked(!bookmarked)}
+                    onClick={async () => {
+                      try {
+                        if (bookmarked && onUnsave) {
+                          await onUnsave(item.id);
+                          setBookmarked(false);
+                        } else if (!bookmarked && onSave) {
+                          await onSave(item.id);
+                          setBookmarked(true);
+                        }
+                      } catch (error) {
+                        // Error is handled by the hook with toast
+                      }
+                    }}
                   >
                     <Bookmark
                       className={`h-4 w-4 ${bookmarked ? 'fill-primary text-primary' : ''}`}
@@ -1006,6 +1086,19 @@ export function DailyNewsDashboard() {
   const [creators, setCreators] = React.useState<any[]>([]);
   const [isLoadingCreators, setIsLoadingCreators] = React.useState(true);
 
+  // Use the content hook to fetch real content
+  const {
+    content,
+    loading: isLoadingContent,
+    error: contentError,
+    hasMore,
+    total,
+    saveContent,
+    unsaveContent,
+    refreshContent,
+    loadMore,
+  } = useContent();
+
   const handleCreateTopic = () => {
     setSelectedTopic(null);
     setTopicModalOpen(true);
@@ -1076,7 +1169,7 @@ export function DailyNewsDashboard() {
           isLoadingCreators={isLoadingCreators}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
-          <Header onSignOut={handleSignOut} />
+          <Header onSignOut={handleSignOut} onRefresh={refreshContent} />
           <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -1199,7 +1292,7 @@ export function DailyNewsDashboard() {
                 </div>
               </div>
             </div>
-            {contentFeed.length === 0 ? (
+            {content.length === 0 && !isLoadingContent ? (
               // Empty state
               <div className="flex flex-col items-center justify-center py-16 px-4">
                 <div className="max-w-md text-center space-y-6">
@@ -1237,16 +1330,42 @@ export function DailyNewsDashboard() {
                   )}
                 </div>
               </div>
+            ) : isLoadingContent ? (
+              // Loading state
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/4" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-5 w-full mb-2" />
+                      <Skeleton className="h-4 w-full mb-1" />
+                      <Skeleton className="h-4 w-2/3 mb-4" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
               // Content feed
               <>
                 <div className="lg:hidden">
                   <div className="grid grid-cols-1 gap-6">
-                    {contentFeed.map((item) => (
+                    {content.map((item) => (
                       <ContentCard
                         key={item.id}
                         item={item}
                         creators={creators}
+                        onSave={saveContent}
+                        onUnsave={unsaveContent}
                       />
                     ))}
                   </div>
@@ -1254,29 +1373,41 @@ export function DailyNewsDashboard() {
                 <div className="hidden lg:block">
                   {view === 'grid' ? (
                     <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
-                      {contentFeed.map((item) => (
+                      {content.map((item) => (
                         <ContentCard
                           key={item.id}
                           item={item}
                           creators={creators}
+                          onSave={saveContent}
+                          onUnsave={unsaveContent}
                         />
                       ))}
                     </div>
                   ) : (
                     <div className="space-y-4 w-full">
-                      {contentFeed.map((item) => (
+                      {content.map((item) => (
                         <ContentListItem
                           key={item.id}
                           item={item}
                           creators={creators}
+                          onSave={saveContent}
+                          onUnsave={unsaveContent}
                         />
                       ))}
                     </div>
                   )}
                 </div>
-                <div className="flex justify-center mt-8">
-                  <Button variant="outline">Load More</Button>
-                </div>
+                {hasMore && (
+                  <div className="flex justify-center mt-8">
+                    <Button
+                      variant="outline"
+                      onClick={loadMore}
+                      disabled={isLoadingContent}
+                    >
+                      {isLoadingContent ? 'Loading...' : 'Load More'}
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </main>

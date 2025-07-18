@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTopics } from '@/hooks/use-topics';
 import { useCreators } from '@/hooks/use-creators';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
@@ -80,15 +80,19 @@ function CreatorSearch({
   isLoading?: boolean;
 }) {
   const [searchValue, setSearchValue] = useState(value);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      onChange(searchValue);
+      if (searchValue !== value) {
+        onChangeRef.current(searchValue);
+      }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchValue, onChange]);
+  }, [searchValue, value]);
 
   useEffect(() => {
     setSearchValue(value);

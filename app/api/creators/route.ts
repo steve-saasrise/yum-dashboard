@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     // Use a simpler approach to avoid dynamic query issues
     const existingUrls = [];
     let checkError = null;
-    
+
     try {
       for (const info of urlsWithPlatforms) {
         const { data: urlExists, error: urlCheckError } = await supabase
@@ -158,7 +158,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (checkError && typeof checkError === 'object' && 'code' in checkError && checkError.code !== 'PGRST116') {
+    if (
+      checkError &&
+      typeof checkError === 'object' &&
+      'code' in checkError &&
+      checkError.code !== 'PGRST116'
+    ) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Error checking existing URLs:', checkError);
       }
@@ -204,13 +209,13 @@ export async function POST(request: NextRequest) {
         data: creatorData,
         timestamp: new Date().toISOString(),
       };
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.error('Error creating creator:', errorLog);
       } else {
         console.error('Production error creating creator:', errorLog);
       }
-      
+
       return NextResponse.json(
         { error: 'Failed to create creator' },
         { status: 500 }
@@ -240,13 +245,13 @@ export async function POST(request: NextRequest) {
         creator_id: newCreator.id,
         timestamp: new Date().toISOString(),
       };
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.error('Error creating creator URLs:', errorLog);
       } else {
         console.error('Production error creating creator URLs:', errorLog);
       }
-      
+
       // Rollback creator creation
       await supabase.from('creators').delete().eq('id', newCreator.id);
       return NextResponse.json(
@@ -304,9 +309,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
-        ...(process.env.NODE_ENV === 'development' && { details: errorDetails })
+        ...(process.env.NODE_ENV === 'development' && {
+          details: errorDetails,
+        }),
       },
       { status: 500 }
     );
