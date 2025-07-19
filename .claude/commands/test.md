@@ -1,9 +1,11 @@
 # .claude/commands/test.md
+
 Please create comprehensive tests for: $ARGUMENTS
 
 Test requirements:
+
 - Use Jest and React Testing Library
-- Place tests in __tests__ directory
+- Place tests in **tests** directory
 - Mock external dependencies (Supabase, Redis, etc.)
 - Test all major functionality
 - Include edge cases and error scenarios

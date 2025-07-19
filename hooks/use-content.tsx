@@ -161,6 +161,11 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
             filter: `creator_id=in.(${creatorIds.join(',')})`,
           },
           async (payload: RealtimePostgresChangesPayload<any>) => {
+            // Only process content that is marked as processed
+            if (payload.new.processing_status !== 'processed') {
+              return;
+            }
+            
             // Fetch the complete content with creator info
             const { data: newContent } = await supabase
               .from('content')
@@ -176,6 +181,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
               `
               )
               .eq('id', payload.new.id)
+              .eq('processing_status', 'processed')
               .single();
 
             if (newContent) {
@@ -339,9 +345,9 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
 
   // Load more content (pagination)
   const loadMore = useCallback(() => {
-    if (!hasMore || loading) return;
+    if (!hasMore || isFetchingRef.current) return;
     fetchContent(page + 1, true);
-  }, [fetchContent, hasMore, loading, page]);
+  }, [fetchContent, hasMore, page]);
 
   return {
     content,

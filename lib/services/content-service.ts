@@ -65,7 +65,7 @@ export class ContentService {
         reading_time_minutes,
         media_urls: validatedInput.media_urls || [],
         engagement_metrics: validatedInput.engagement_metrics || {},
-        processing_status: 'pending',
+        processing_status: validatedInput.platform === 'rss' ? 'processed' : 'pending',
       })
       .select()
       .single();
@@ -422,6 +422,28 @@ export class ContentService {
       processing_status: 'failed',
       error_message: errorMessage,
     });
+  }
+
+  /**
+   * Mark all pending RSS content as processed (migration helper)
+   */
+  async processAllPendingRSSContent(): Promise<number> {
+    const { data, error } = await this.supabase
+      .from('content')
+      .update({ processing_status: 'processed' })
+      .eq('platform', 'rss')
+      .eq('processing_status', 'pending')
+      .select();
+
+    if (error) {
+      throw new ContentError(
+        `Failed to process pending RSS content: ${error.message}`,
+        'STORAGE_ERROR',
+        500
+      );
+    }
+
+    return data?.length || 0;
   }
 
   /**
