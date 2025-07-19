@@ -132,7 +132,8 @@ export class ContentNormalizer {
     return {
       creator_id,
       platform: 'youtube',
-      platform_content_id: typeof data.id === 'string' ? data.id : (data.id?.videoId || ''),
+      platform_content_id:
+        typeof data.id === 'string' ? data.id : data.id?.videoId || '',
       url: data.id
         ? `https://www.youtube.com/watch?v=${typeof data.id === 'string' ? data.id : data.id.videoId}`
         : '',
@@ -145,18 +146,22 @@ export class ContentNormalizer {
       content_body: data.snippet?.description || '',
       word_count: calculateWordCount(data.snippet?.description || ''),
       reading_time_minutes: 0, // Videos don't have reading time
-      media_urls: data.snippet?.thumbnails && (data.snippet.thumbnails.high?.url || data.snippet.thumbnails.default?.url)
-        ? [
-            {
-              url:
-                data.snippet.thumbnails.high?.url ||
-                data.snippet.thumbnails.default?.url || '',
-              type: 'image' as const,
-              width: data.snippet.thumbnails.high?.width,
-              height: data.snippet.thumbnails.high?.height,
-            },
-          ]
-        : [],
+      media_urls:
+        data.snippet?.thumbnails &&
+        (data.snippet.thumbnails.high?.url ||
+          data.snippet.thumbnails.default?.url)
+          ? [
+              {
+                url:
+                  data.snippet.thumbnails.high?.url ||
+                  data.snippet.thumbnails.default?.url ||
+                  '',
+                type: 'image' as const,
+                width: data.snippet.thumbnails.high?.width,
+                height: data.snippet.thumbnails.high?.height,
+              },
+            ]
+          : [],
       engagement_metrics: {
         views: data.statistics?.viewCount
           ? parseInt(data.statistics.viewCount)
@@ -273,10 +278,12 @@ export class ContentNormalizer {
       word_count: calculateWordCount(data.text || ''),
       reading_time_minutes: calculateReadingTime(data.text || ''),
       media_urls:
-        data.images?.filter((img: { url?: string; type?: string }) => img.url).map((img: { url?: string; type?: string }) => ({
-          url: img.url || '',
-          type: 'image' as const,
-        })) || [],
+        data.images
+          ?.filter((img: { url?: string; type?: string }) => img.url)
+          .map((img: { url?: string; type?: string }) => ({
+            url: img.url || '',
+            type: 'image' as const,
+          })) || [],
       engagement_metrics: {
         likes: data.numLikes,
         comments: data.numComments,
@@ -317,10 +324,16 @@ export class ContentNormalizer {
       word_count: calculateWordCount(data.text || ''),
       reading_time_minutes: calculateReadingTime(data.text || ''),
       media_urls:
-        data.media?.filter((media: { url?: string; type?: string }) => media.url).map((media: { url?: string; type?: string }) => ({
-          url: media.url || '',
-          type: (media.type === 'video' || media.type === 'audio' || media.type === 'document' ? media.type : 'image') as 'image' | 'video' | 'audio' | 'document',
-        })) || [],
+        data.media
+          ?.filter((media: { url?: string; type?: string }) => media.url)
+          .map((media: { url?: string; type?: string }) => ({
+            url: media.url || '',
+            type: (media.type === 'video' ||
+            media.type === 'audio' ||
+            media.type === 'document'
+              ? media.type
+              : 'image') as 'image' | 'video' | 'audio' | 'document',
+          })) || [],
       engagement_metrics: {
         likes: data.likeCount,
         comments: data.replyCount,
@@ -354,19 +367,25 @@ export class ContentNormalizer {
       description: (data.description || data.excerpt || '') as string,
       thumbnail_url: (data.image || data.thumbnail) as string | undefined,
       published_at:
-        (data.publishDate as string) || (data.datePublished as string) || new Date().toISOString(),
+        (data.publishDate as string) ||
+        (data.datePublished as string) ||
+        new Date().toISOString(),
       content_body: (data.content || data.body || '') as string,
-      word_count: calculateWordCount((data.content || data.body || '') as string),
+      word_count: calculateWordCount(
+        (data.content || data.body || '') as string
+      ),
       reading_time_minutes: calculateReadingTime(
         (data.content || data.body || '') as string
       ),
       media_urls:
-        (data.images as Array<{ url?: string; type?: string } | string>)?.filter((img: { url?: string; type?: string } | string) => 
-          typeof img === 'string' ? img : img.url
-        ).map((img: { url?: string; type?: string } | string) => ({
-          url: (typeof img === 'string' ? img : img.url) || '',
-          type: 'image' as const,
-        })) || [],
+        (data.images as Array<{ url?: string; type?: string } | string>)
+          ?.filter((img: { url?: string; type?: string } | string) =>
+            typeof img === 'string' ? img : img.url
+          )
+          .map((img: { url?: string; type?: string } | string) => ({
+            url: (typeof img === 'string' ? img : img.url) || '',
+            type: 'image' as const,
+          })) || [],
       engagement_metrics: {},
     };
   }
@@ -426,54 +445,64 @@ export class ContentNormalizer {
 
     // Handle attached media
     if (data.attachments?.media_keys && data.includes?.media) {
-      data.includes.media.forEach((media: {
-        type?: string;
-        url?: string;
-        preview_image_url?: string;
-        media_key?: string;
-        width?: number;
-        height?: number;
-        duration_ms?: number;
-        variants?: Array<{ url?: string }>;
-      }) => {
-        if (media.media_key && data.attachments?.media_keys?.includes(media.media_key)) {
-          if (media.type === 'photo') {
-            mediaUrls.push({
-              url: media.url || media.preview_image_url || '',
-              type: 'image',
-              width: media.width,
-              height: media.height,
-            });
-          } else if (media.type === 'video' || media.type === 'animated_gif') {
-            mediaUrls.push({
-              url: media.preview_image_url || '', // Videos use preview image
-              type: 'video',
-              duration: media.duration_ms
-                ? media.duration_ms / 1000
-                : undefined,
-              width: media.width,
-              height: media.height,
-            });
+      data.includes.media.forEach(
+        (media: {
+          type?: string;
+          url?: string;
+          preview_image_url?: string;
+          media_key?: string;
+          width?: number;
+          height?: number;
+          duration_ms?: number;
+          variants?: Array<{ url?: string }>;
+        }) => {
+          if (
+            media.media_key &&
+            data.attachments?.media_keys?.includes(media.media_key)
+          ) {
+            if (media.type === 'photo') {
+              mediaUrls.push({
+                url: media.url || media.preview_image_url || '',
+                type: 'image',
+                width: media.width,
+                height: media.height,
+              });
+            } else if (
+              media.type === 'video' ||
+              media.type === 'animated_gif'
+            ) {
+              mediaUrls.push({
+                url: media.preview_image_url || '', // Videos use preview image
+                type: 'video',
+                duration: media.duration_ms
+                  ? media.duration_ms / 1000
+                  : undefined,
+                width: media.width,
+                height: media.height,
+              });
+            }
           }
         }
-      });
+      );
     }
 
     // Handle legacy media format
     if (data.entities?.media) {
-      data.entities.media.forEach((media: {
-        type?: string;
-        media_url?: string;
-        media_url_https?: string;
-        url?: string;
-        display_url?: string;
-        expanded_url?: string;
-      }) => {
-        mediaUrls.push({
-          url: media.media_url_https || media.media_url || '',
-          type: media.type === 'photo' ? 'image' : 'video',
-        });
-      });
+      data.entities.media.forEach(
+        (media: {
+          type?: string;
+          media_url?: string;
+          media_url_https?: string;
+          url?: string;
+          display_url?: string;
+          expanded_url?: string;
+        }) => {
+          mediaUrls.push({
+            url: media.media_url_https || media.media_url || '',
+            type: media.type === 'photo' ? 'image' : 'video',
+          });
+        }
+      );
     }
 
     return mediaUrls;

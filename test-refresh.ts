@@ -7,8 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function test() {
   // First check if there are any creators with RSS urls
-  const { data: allCreators, error: allError } = await supabase
-    .from('creators')
+  const { data: allCreators, error: allError } = await supabase.from('creators')
     .select(`
       id,
       name,
@@ -18,23 +17,25 @@ async function test() {
         platform
       )
     `);
-    
+
   console.log('All creators:', JSON.stringify(allCreators, null, 2));
   if (allError) console.error('All creators error:', allError);
-  
+
   // Try the actual query from the endpoint
   const { data: rssCreators, error: rssError } = await supabase
     .from('creators')
-    .select(`
+    .select(
+      `
       id,
       name,
       creator_urls!inner (
         url,
         platform
       )
-    `)
+    `
+    )
     .eq('creator_urls.platform', 'rss');
-    
+
   console.log('RSS creators:', JSON.stringify(rssCreators, null, 2));
   if (rssError) console.error('RSS creators error:', rssError);
 }

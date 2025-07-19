@@ -276,11 +276,14 @@ export const authConfig = {
 };
 
 // Helper function to handle magic link with enhanced configuration
-export async function sendMagicLink(email: string, additionalOptions?: {
-  captchaToken?: string;
-  shouldCreateUser?: boolean;
-  data?: Record<string, unknown>;
-}) {
+export async function sendMagicLink(
+  email: string,
+  additionalOptions?: {
+    captchaToken?: string;
+    shouldCreateUser?: boolean;
+    data?: Record<string, unknown>;
+  }
+) {
   const supabase = createBrowserSupabaseClient();
 
   return await supabase.auth.signInWithOtp({

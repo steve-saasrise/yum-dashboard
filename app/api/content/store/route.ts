@@ -156,7 +156,11 @@ export async function POST(request: NextRequest) {
           normalized_from: 'platform_data',
         });
       } catch (error) {
-        if (error instanceof Error && 'code' in error && error.code === 'DUPLICATE_CONTENT') {
+        if (
+          error instanceof Error &&
+          'code' in error &&
+          error.code === 'DUPLICATE_CONTENT'
+        ) {
           return NextResponse.json({ error: error.message }, { status: 409 });
         }
         throw error;
@@ -252,7 +256,11 @@ export async function POST(request: NextRequest) {
         { status: 201 }
       );
     } catch (error) {
-      if (error instanceof Error && 'code' in error && error.code === 'DUPLICATE_CONTENT') {
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        error.code === 'DUPLICATE_CONTENT'
+      ) {
         return NextResponse.json({ error: error.message }, { status: 409 });
       }
       throw error;
@@ -350,7 +358,9 @@ export async function GET(request: NextRequest) {
     const result = await contentService.getContentList({
       creator_id: creator_id || undefined,
       platform: platform as Platform | undefined,
-      processing_status: processing_status as ContentProcessingStatus | undefined,
+      processing_status: processing_status as
+        | ContentProcessingStatus
+        | undefined,
       limit,
       offset,
     });

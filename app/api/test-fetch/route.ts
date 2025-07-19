@@ -190,7 +190,13 @@ export async function POST(request: NextRequest) {
         // Add creator context to the result
         result.creatorContext = {
           creator_id,
-          creator_name: 'creators' in creatorUrls[0] && creatorUrls[0].creators && typeof creatorUrls[0].creators === 'object' && 'display_name' in creatorUrls[0].creators ? String(creatorUrls[0].creators.display_name) : 'Unknown',
+          creator_name:
+            'creators' in creatorUrls[0] &&
+            creatorUrls[0].creators &&
+            typeof creatorUrls[0].creators === 'object' &&
+            'display_name' in creatorUrls[0].creators
+              ? String(creatorUrls[0].creators.display_name)
+              : 'Unknown',
           url: creatorUrls[0].url,
         };
         break;
@@ -269,7 +275,13 @@ export async function POST(request: NextRequest) {
             ...fetchResult,
             creatorContext: {
               creator_id: rssCreators[index].creator_id,
-              creator_name: 'creators' in rssCreators[index] && rssCreators[index].creators && typeof rssCreators[index].creators === 'object' && 'display_name' in rssCreators[index].creators ? rssCreators[index].creators.display_name : 'Unknown',
+              creator_name:
+                'creators' in rssCreators[index] &&
+                rssCreators[index].creators &&
+                typeof rssCreators[index].creators === 'object' &&
+                'display_name' in rssCreators[index].creators
+                  ? rssCreators[index].creators.display_name
+                  : 'Unknown',
               url: rssCreators[index].url,
             },
           })),
@@ -406,11 +418,29 @@ export async function GET() {
     const creators =
       rssCreators?.map((item) => ({
         creator_id: item.creator_id,
-        display_name: 'creators' in item && item.creators && typeof item.creators === 'object' && 'display_name' in item.creators ? item.creators.display_name : 'Unknown',
-        bio: 'creators' in item && item.creators && typeof item.creators === 'object' && 'bio' in item.creators ? item.creators.bio : undefined,
+        display_name:
+          'creators' in item &&
+          item.creators &&
+          typeof item.creators === 'object' &&
+          'display_name' in item.creators
+            ? item.creators.display_name
+            : 'Unknown',
+        bio:
+          'creators' in item &&
+          item.creators &&
+          typeof item.creators === 'object' &&
+          'bio' in item.creators
+            ? item.creators.bio
+            : undefined,
         url: item.url,
         validation_status: item.validation_status,
-        created_at: 'creators' in item && item.creators && typeof item.creators === 'object' && 'created_at' in item.creators ? item.creators.created_at : undefined,
+        created_at:
+          'creators' in item &&
+          item.creators &&
+          typeof item.creators === 'object' &&
+          'created_at' in item.creators
+            ? item.creators.created_at
+            : undefined,
       })) || [];
 
     return NextResponse.json({

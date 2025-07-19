@@ -103,7 +103,7 @@ export function AvatarUpload({
               // Failed to delete old avatar - not critical
             }
           }
-        } catch (error) {
+        } catch {
           // Failed to delete old avatar - not critical
         }
       }
@@ -181,7 +181,7 @@ export function AvatarUpload({
         title: 'Avatar removed',
         description: 'Your profile picture has been removed.',
       });
-    } catch (error) {
+    } catch {
       // Remove avatar error - handled by toast
       toast({
         title: 'Remove failed',

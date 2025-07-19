@@ -84,7 +84,7 @@ export function GdprConsentManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   // Load current consent status
   useEffect(() => {

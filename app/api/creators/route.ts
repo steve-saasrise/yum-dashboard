@@ -175,7 +175,13 @@ export async function POST(request: NextRequest) {
           error: 'One or more URLs already exist',
           details: existingUrls.map((u) => ({
             url: u.url,
-            creator: 'creators' in u && u.creators && typeof u.creators === 'object' && 'display_name' in u.creators ? u.creators.display_name : undefined,
+            creator:
+              'creators' in u &&
+              u.creators &&
+              typeof u.creators === 'object' &&
+              'display_name' in u.creators
+                ? u.creators.display_name
+                : undefined,
           })),
         },
         { status: 409 }

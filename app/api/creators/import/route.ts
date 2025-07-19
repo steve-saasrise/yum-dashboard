@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       data: result,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     // Import error - details in response
     return NextResponse.json(
       { error: 'Internal server error' },

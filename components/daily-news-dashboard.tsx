@@ -212,7 +212,7 @@ interface FeedItem {
     name: string;
     platform: Platform;
     avatar_url?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
   published_at: string;
   is_saved?: boolean;
@@ -433,9 +433,7 @@ function AppSidebar({
                               className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${creator.isActive ? 'bg-green-500' : 'bg-gray-400'}`}
                             />
                           </div>
-                          <span className="truncate">
-                            {creator.name}
-                          </span>
+                          <span className="truncate">{creator.name}</span>
                           {creator.platform && (
                             <SidebarMenuBadge className="group-hover/creator-item:opacity-0 transition-opacity duration-200">
                               {creator.platform}
@@ -657,15 +655,24 @@ function ContentCard({
               <Avatar className="h-10 w-10 border">
                 <AvatarImage
                   src={creator.avatar_url || '/placeholder.svg'}
-                  alt={'display_name' in creator ? creator.display_name : creator.name}
+                  alt={
+                    'display_name' in creator
+                      ? creator.display_name
+                      : creator.name
+                  }
                 />
                 <AvatarFallback>
-                  {('display_name' in creator ? creator.display_name : creator.name).charAt(0)}
+                  {('display_name' in creator
+                    ? creator.display_name
+                    : creator.name
+                  ).charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-semibold text-gray-800 dark:text-gray-100">
-                  {'display_name' in creator ? creator.display_name : creator.name}
+                  {'display_name' in creator
+                    ? creator.display_name
+                    : creator.name}
                 </p>
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                   <PlatformIcon className="h-3.5 w-3.5" />
@@ -799,18 +806,6 @@ function TopicManagementModal({
   );
 }
 
-interface LocalCreator {
-  id: string;
-  url: string;
-  display_name: string;
-  description?: string;
-  topics?: string[];
-  platform: string;
-  platform_user_id: string;
-  profile_url: string;
-  metadata: Record<string, unknown>;
-}
-
 // --- NEW: Content List Item Component ---
 function ContentListItem({
   item,
@@ -852,15 +847,24 @@ function ContentListItem({
           <Avatar className="h-12 w-12 border flex-shrink-0">
             <AvatarImage
               src={creator.avatar_url || '/placeholder.svg'}
-              alt={'display_name' in creator ? creator.display_name : creator.name}
+              alt={
+                'display_name' in creator ? creator.display_name : creator.name
+              }
             />
-            <AvatarFallback>{('display_name' in creator ? creator.display_name : creator.name).charAt(0)}</AvatarFallback>
+            <AvatarFallback>
+              {('display_name' in creator
+                ? creator.display_name
+                : creator.name
+              ).charAt(0)}
+            </AvatarFallback>
           </Avatar>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <p className="font-semibold text-gray-800 dark:text-gray-100">
-                {'display_name' in creator ? creator.display_name : creator.name}
+                {'display_name' in creator
+                  ? creator.display_name
+                  : creator.name}
               </p>
               <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                 <PlatformIcon className="h-3.5 w-3.5 flex-shrink-0" />
@@ -1096,7 +1100,9 @@ export function DailyNewsDashboard() {
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [selectedTopic, setSelectedTopic] = React.useState<Topic | null>(null);
-  const [selectedCreator, setSelectedCreator] = React.useState<Creator | null>(null);
+  const [selectedCreator, setSelectedCreator] = React.useState<Creator | null>(
+    null
+  );
   const [isCreatorModalOpen, setCreatorModalOpen] = React.useState(false);
   const [creatorModalMode, setCreatorModalMode] = React.useState<
     'add' | 'edit'
@@ -1121,25 +1127,33 @@ export function DailyNewsDashboard() {
     setTopicModalOpen(true);
   };
 
-  const handleEditTopic = (topic: { id: number; name: string; color?: string }) => {
+  const handleEditTopic = (topic: {
+    id: number;
+    name: string;
+    color?: string;
+  }) => {
     // Convert to Topic type
     const fullTopic: Topic = {
       id: String(topic.id),
       name: topic.name,
       slug: topic.name.toLowerCase().replace(/\s+/g, '-'),
-      color: topic.color
+      color: topic.color,
     };
     setSelectedTopic(fullTopic);
     setTopicModalOpen(true);
   };
 
-  const handleDeleteTopic = (topic: { id: number; name: string; color?: string }) => {
+  const handleDeleteTopic = (topic: {
+    id: number;
+    name: string;
+    color?: string;
+  }) => {
     // Convert to Topic type
     const fullTopic: Topic = {
       id: String(topic.id),
       name: topic.name,
       slug: topic.name.toLowerCase().replace(/\s+/g, '-'),
-      color: topic.color
+      color: topic.color,
     };
     setSelectedTopic(fullTopic);
     setDeleteDialogOpen(true);
@@ -1152,7 +1166,7 @@ export function DailyNewsDashboard() {
     handle: string;
   }) => {
     // Find the full creator object from our state
-    const fullCreator = creators.find(c => c.id === creator.id);
+    const fullCreator = creators.find((c) => c.id === creator.id);
     if (fullCreator) {
       setSelectedCreator(fullCreator);
       setCreatorModalMode('edit');
@@ -1203,13 +1217,13 @@ export function DailyNewsDashboard() {
           onTopicDelete={handleDeleteTopic}
           onCreatorCreate={handleCreateCreator}
           onCreatorEdit={handleEditCreator}
-          creators={creators.map(c => ({
+          creators={creators.map((c) => ({
             id: c.id,
             name: c.display_name,
             platform: c.platform || 'website',
             handle: c.platform_user_id || c.display_name,
             category: c.topics?.[0],
-            isActive: c.is_active
+            isActive: c.is_active,
           }))}
           isLoadingCreators={isLoadingCreators}
         />
@@ -1418,7 +1432,7 @@ export function DailyNewsDashboard() {
                           creator: item.creator,
                           published_at: item.published_at || item.created_at,
                           is_saved: item.is_saved,
-                          topics: item.topics
+                          topics: item.topics,
                         }}
                         creators={creators}
                         onSave={saveContent}
@@ -1444,7 +1458,7 @@ export function DailyNewsDashboard() {
                             creator: item.creator,
                             published_at: item.published_at || item.created_at,
                             is_saved: item.is_saved,
-                            topics: item.topics
+                            topics: item.topics,
                           }}
                           creators={creators}
                           onSave={saveContent}
@@ -1468,7 +1482,7 @@ export function DailyNewsDashboard() {
                             creator: item.creator,
                             published_at: item.published_at || item.created_at,
                             is_saved: item.is_saved,
-                            topics: item.topics
+                            topics: item.topics,
                           }}
                           creators={creators}
                           onSave={saveContent}

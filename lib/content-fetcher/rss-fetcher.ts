@@ -239,16 +239,21 @@ export class RSSFetcher {
       contentSnippet:
         item.contentSnippet ||
         this.extractTextFromHTML(item.content || item.description),
-      guid: (typeof item.guid === 'string' ? item.guid : undefined) || (typeof item.id === 'string' ? item.id : undefined),
+      guid:
+        (typeof item.guid === 'string' ? item.guid : undefined) ||
+        (typeof item.id === 'string' ? item.id : undefined),
       categories: this.extractCategories(item),
       comments: item.comments,
-      enclosure: item.enclosure && item.enclosure.url
-        ? {
-            url: item.enclosure.url,
-            type: item.enclosure.type || '',
-            length: item.enclosure.length ? parseInt(String(item.enclosure.length), 10) : undefined,
-          }
-        : undefined,
+      enclosure:
+        item.enclosure && item.enclosure.url
+          ? {
+              url: item.enclosure.url,
+              type: item.enclosure.type || '',
+              length: item.enclosure.length
+                ? parseInt(String(item.enclosure.length), 10)
+                : undefined,
+            }
+          : undefined,
       itunes: item.itunes,
       custom: this.extractCustomFields(item, 'item'),
     }));
@@ -266,19 +271,20 @@ export class RSSFetcher {
       generator: rawFeed.generator,
       managingEditor: rawFeed.managingEditor,
       webMaster: rawFeed.webMaster,
-      image: rawFeed.image && rawFeed.image.url
-        ? {
-            url: rawFeed.image.url,
-            title: rawFeed.image.title,
-            link: rawFeed.image.link,
-            width: rawFeed.image.width
-              ? parseInt(rawFeed.image.width, 10)
-              : undefined,
-            height: rawFeed.image.height
-              ? parseInt(rawFeed.image.height, 10)
-              : undefined,
-          }
-        : undefined,
+      image:
+        rawFeed.image && rawFeed.image.url
+          ? {
+              url: rawFeed.image.url,
+              title: rawFeed.image.title,
+              link: rawFeed.image.link,
+              width: rawFeed.image.width
+                ? parseInt(rawFeed.image.width, 10)
+                : undefined,
+              height: rawFeed.image.height
+                ? parseInt(rawFeed.image.height, 10)
+                : undefined,
+            }
+          : undefined,
       itunes: rawFeed.itunes,
       items,
       custom: this.extractCustomFields(rawFeed, 'feed'),
@@ -289,7 +295,10 @@ export class RSSFetcher {
    * Extract categories from item, handling various formats
    */
   private extractCategories(item: {
-    categories?: string | string[] | Array<{ _?: string; name?: string; [key: string]: unknown }>;
+    categories?:
+      | string
+      | string[]
+      | Array<{ _?: string; name?: string; [key: string]: unknown }>;
     category?: string | string[];
     [key: string]: unknown;
   }): string[] {
@@ -372,16 +381,30 @@ export class RSSFetcher {
     }
 
     // Network errors
-    if (error && typeof error === 'object' && 'code' in error && (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED')) {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED')
+    ) {
       code = 'NETWORK_ERROR';
       message = RSS_ERROR_MESSAGES.NETWORK_ERROR;
     } else if (
-      (error && typeof error === 'object' && 'code' in error && error.code === 'ETIMEDOUT') ||
+      (error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'ETIMEDOUT') ||
       (error instanceof Error && error.message?.includes('timeout'))
     ) {
       code = 'TIMEOUT';
       message = RSS_ERROR_MESSAGES.TIMEOUT;
-    } else if ((error && typeof error === 'object' && 'status' in error && error.status === 404) || (error instanceof Error && error.message?.includes('404'))) {
+    } else if (
+      (error &&
+        typeof error === 'object' &&
+        'status' in error &&
+        error.status === 404) ||
+      (error instanceof Error && error.message?.includes('404'))
+    ) {
       code = 'NOT_FOUND';
       message = RSS_ERROR_MESSAGES.NOT_FOUND;
       statusCode = 404;
@@ -389,12 +412,15 @@ export class RSSFetcher {
       code = 'CORS_ERROR';
       message = RSS_ERROR_MESSAGES.CORS_ERROR;
     } else if (
-      error instanceof Error && (error.message?.includes('parse') ||
-      error.message?.includes('XML'))
+      error instanceof Error &&
+      (error.message?.includes('parse') || error.message?.includes('XML'))
     ) {
       code = 'PARSE_ERROR';
       message = RSS_ERROR_MESSAGES.PARSE_ERROR;
-    } else if (error instanceof Error && error.message?.includes('Invalid URL')) {
+    } else if (
+      error instanceof Error &&
+      error.message?.includes('Invalid URL')
+    ) {
       code = 'INVALID_URL';
       message = RSS_ERROR_MESSAGES.INVALID_URL;
       statusCode = 400;
