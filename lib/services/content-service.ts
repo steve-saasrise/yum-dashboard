@@ -65,7 +65,8 @@ export class ContentService {
         reading_time_minutes,
         media_urls: validatedInput.media_urls || [],
         engagement_metrics: validatedInput.engagement_metrics || {},
-        processing_status: validatedInput.platform === 'rss' ? 'processed' : 'pending',
+        processing_status:
+          validatedInput.platform === 'rss' ? 'processed' : 'pending',
       })
       .select()
       .single();

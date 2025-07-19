@@ -14,6 +14,11 @@ const customJestConfig = {
     '^next/server$': require.resolve('next/dist/server/web/exports/index.js'),
   },
   testEnvironment: 'jest-environment-jsdom',
+  testPathIgnorePatterns: [
+    '<rootDir>/.next/',
+    '<rootDir>/node_modules/',
+    '<rootDir>/__tests__/utils/test-helpers.ts',
+  ],
   collectCoverageFrom: [
     'lib/**/*.{js,ts,tsx}',
     'components/**/*.{js,ts,tsx}',

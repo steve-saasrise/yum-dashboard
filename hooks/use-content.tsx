@@ -165,7 +165,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
             if (payload.new.processing_status !== 'processed') {
               return;
             }
-            
+
             // Fetch the complete content with creator info
             const { data: newContent } = await supabase
               .from('content')
