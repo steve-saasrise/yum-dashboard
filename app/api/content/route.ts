@@ -164,7 +164,8 @@ export async function GET(request: NextRequest) {
 
       // Add saved status to content
       transformedContent.forEach((content) => {
-        (content as ContentWithCreator & { is_saved: boolean }).is_saved = savedContentIds.has(content.id);
+        (content as ContentWithCreator & { is_saved: boolean }).is_saved =
+          savedContentIds.has(content.id);
       });
     }
 

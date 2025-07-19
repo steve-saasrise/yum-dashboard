@@ -71,5 +71,11 @@
   ],
   "env": {
     "SKIP_ENV_VALIDATION": "true"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/fetch-content",
+      "schedule": "0 */30 * * *"
+    }
+  ]
 }
