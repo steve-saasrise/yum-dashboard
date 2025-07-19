@@ -303,8 +303,9 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
   // Refresh content
   const refreshContent = useCallback(async () => {
     // First, trigger manual RSS fetch
+    let toastId: string | number | undefined;
     try {
-      toast.loading('Fetching new content...');
+      toastId = toast.loading('Fetching new content...');
 
       const response = await fetch('/api/content/refresh', {
         method: 'POST',
@@ -316,17 +317,20 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
 
       if (response.ok) {
         const result = await response.json();
+        toast.dismiss(toastId);
         if (result.stats.new > 0) {
           toast.success(`Added ${result.stats.new} new items`);
         } else {
           toast.info('No new content found');
         }
+      } else {
+        toast.dismiss(toastId);
+        toast.error('Failed to fetch new content');
       }
     } catch (error) {
       console.error('Error refreshing content:', error);
+      if (toastId) toast.dismiss(toastId);
       toast.error('Failed to fetch new content');
-    } finally {
-      toast.dismiss();
     }
 
     // Then refresh the display

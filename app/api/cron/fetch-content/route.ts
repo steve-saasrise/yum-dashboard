@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import createSupabaseSsr from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { RSSFetcher } from '@/lib/content-fetcher/rss-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
@@ -54,7 +55,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createSupabaseSsr();
+    // Create Supabase server client
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
     const contentService = new ContentService(supabase);
     const rssFetcher = new RSSFetcher();
     const stats = {
@@ -113,7 +131,12 @@ export async function GET(request: NextRequest) {
           // Fetch RSS feed
           const result = await rssFetcher.parseURL(creatorUrl.url);
 
-          if (!result.success || !result.feed || !result.feed.items || result.feed.items.length === 0) {
+          if (
+            !result.success ||
+            !result.feed ||
+            !result.feed.items ||
+            result.feed.items.length === 0
+          ) {
             creatorStats.urls.push({
               url: creatorUrl.url,
               status: 'empty',
@@ -130,12 +153,13 @@ export async function GET(request: NextRequest) {
               platform: 'rss',
               platformData: item,
               creator_id: creator.id,
-              sourceUrl: creatorUrl.url
+              sourceUrl: creatorUrl.url,
             });
           });
 
           // Store content using the service
-          const results = await contentService.storeMultipleContent(normalizedItems);
+          const results =
+            await contentService.storeMultipleContent(normalizedItems);
 
           creatorStats.urls.push({
             url: creatorUrl.url,
