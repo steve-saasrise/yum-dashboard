@@ -75,7 +75,7 @@
   "crons": [
     {
       "path": "/api/cron/fetch-content",
-      "schedule": "0 */30 * * *"
+      "schedule": "*/30 * * * *"
     }
   ]
 }
