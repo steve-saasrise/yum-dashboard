@@ -81,9 +81,7 @@ export function AvatarUpload({
         });
 
       if (uploadError) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Upload error:', uploadError);
-        }
+        // Upload error - will be thrown below
         throw new Error(uploadError.message);
       }
 
@@ -102,11 +100,11 @@ export function AvatarUpload({
               .remove([`avatars/${oldPath}`]);
 
             if (deleteError) {
-              console.warn('Failed to delete old avatar:', deleteError);
+              // Failed to delete old avatar - not critical
             }
           }
         } catch (error) {
-          console.warn('Failed to delete old avatar:', error);
+          // Failed to delete old avatar - not critical
         }
       }
 
@@ -123,9 +121,7 @@ export function AvatarUpload({
         description: 'Your profile picture has been updated successfully.',
       });
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Avatar upload error:', error);
-      }
+      // Avatar upload error - handled by toast
 
       let errorMessage =
         'Failed to update your profile picture. Please try again.';
@@ -174,9 +170,7 @@ export function AvatarUpload({
           .remove([`avatars/${oldPath}`]);
 
         if (deleteError) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Delete error:', deleteError);
-          }
+          // Delete error - will be thrown below
           throw new Error(deleteError.message);
         }
       }
@@ -188,9 +182,7 @@ export function AvatarUpload({
         description: 'Your profile picture has been removed.',
       });
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Remove avatar error:', error);
-      }
+      // Remove avatar error - handled by toast
       toast({
         title: 'Remove failed',
         description: 'Failed to remove your profile picture. Please try again.',

@@ -178,14 +178,59 @@ export class RSSFetcher {
    * Normalize raw feed data from rss-parser to our standard format
    */
   private normalizeFeed(
-    rawFeed: any,
+    rawFeed: {
+      title?: string;
+      description?: string;
+      link?: string;
+      feedUrl?: string;
+      lastBuildDate?: string;
+      language?: string;
+      copyright?: string;
+      generator?: string;
+      docs?: string;
+      managingEditor?: string;
+      webMaster?: string;
+      pubDate?: string;
+      ttl?: string | number;
+      image?: {
+        url?: string;
+        title?: string;
+        link?: string;
+        width?: string;
+        height?: string;
+      };
+      itunes?: Record<string, unknown>;
+      items?: Array<{
+        title?: string;
+        link?: string;
+        pubDate?: string;
+        isoDate?: string;
+        creator?: string;
+        author?: string;
+        'dc:creator'?: string;
+        content?: string;
+        description?: string;
+        summary?: string;
+        contentSnippet?: string;
+        categories?: string[];
+        enclosure?: { url?: string; type?: string; length?: string | number };
+        enclosures?: Array<{ url?: string }>;
+        'media:content'?: { $?: { url?: string } };
+        guid?: unknown;
+        id?: unknown;
+        comments?: string;
+        itunes?: Record<string, unknown>;
+        custom?: Record<string, unknown>;
+        [key: string]: unknown;
+      }>;
+    },
     feedUrl: string,
     options?: Partial<RSSFetchOptions>
   ): RSSFeed {
     const maxItems = options?.maxItems || DEFAULT_RSS_FETCH_OPTIONS.maxItems!;
 
     // Take only the specified number of items
-    const items = (rawFeed.items || []).slice(0, maxItems).map((item: any) => ({
+    const items = (rawFeed.items || []).slice(0, maxItems).map((item) => ({
       title: item.title,
       link: item.link,
       pubDate: normalizeRSSDate(item.pubDate || item.isoDate),
@@ -194,10 +239,16 @@ export class RSSFetcher {
       contentSnippet:
         item.contentSnippet ||
         this.extractTextFromHTML(item.content || item.description),
-      guid: item.guid || item.id,
+      guid: (typeof item.guid === 'string' ? item.guid : undefined) || (typeof item.id === 'string' ? item.id : undefined),
       categories: this.extractCategories(item),
       comments: item.comments,
-      enclosure: item.enclosure,
+      enclosure: item.enclosure && item.enclosure.url
+        ? {
+            url: item.enclosure.url,
+            type: item.enclosure.type || '',
+            length: item.enclosure.length ? parseInt(String(item.enclosure.length), 10) : undefined,
+          }
+        : undefined,
       itunes: item.itunes,
       custom: this.extractCustomFields(item, 'item'),
     }));
@@ -211,11 +262,11 @@ export class RSSFetcher {
       copyright: rawFeed.copyright,
       lastBuildDate: normalizeRSSDate(rawFeed.lastBuildDate),
       pubDate: normalizeRSSDate(rawFeed.pubDate),
-      ttl: rawFeed.ttl ? parseInt(rawFeed.ttl, 10) : undefined,
+      ttl: rawFeed.ttl ? parseInt(String(rawFeed.ttl), 10) : undefined,
       generator: rawFeed.generator,
       managingEditor: rawFeed.managingEditor,
       webMaster: rawFeed.webMaster,
-      image: rawFeed.image
+      image: rawFeed.image && rawFeed.image.url
         ? {
             url: rawFeed.image.url,
             title: rawFeed.image.title,
@@ -237,14 +288,18 @@ export class RSSFetcher {
   /**
    * Extract categories from item, handling various formats
    */
-  private extractCategories(item: any): string[] {
+  private extractCategories(item: {
+    categories?: string | string[] | Array<{ _?: string; name?: string; [key: string]: unknown }>;
+    category?: string | string[];
+    [key: string]: unknown;
+  }): string[] {
     const categories: string[] = [];
 
     if (item.categories) {
       if (Array.isArray(item.categories)) {
         categories.push(
-          ...item.categories.map((cat: any) =>
-            typeof cat === 'string' ? cat : cat._ || cat.name
+          ...item.categories.map((cat) =>
+            typeof cat === 'string' ? cat : cat._ || cat.name || ''
           )
         );
       } else if (typeof item.categories === 'string') {
@@ -268,15 +323,20 @@ export class RSSFetcher {
    * Extract custom fields based on parser configuration
    */
   private extractCustomFields(
-    item: any,
+    item: {
+      enclosure?: { url?: string };
+      enclosures?: Array<{ url?: string }>;
+      'media:content'?: { $?: { url?: string } };
+      [key: string]: unknown;
+    },
     type: 'feed' | 'item'
-  ): Record<string, any> | undefined {
+  ): Record<string, unknown> | undefined {
     const customFields = this.options.customFields?.[type];
     if (!customFields || customFields.length === 0) {
       return undefined;
     }
 
-    const custom: Record<string, any> = {};
+    const custom: Record<string, unknown> = {};
     for (const field of customFields) {
       if (item[field] !== undefined) {
         custom[field] = item[field];
@@ -302,7 +362,7 @@ export class RSSFetcher {
   /**
    * Handle and categorize errors
    */
-  private handleError(error: any, feedUrl?: string): RSSFetchError {
+  private handleError(error: unknown, feedUrl?: string): RSSFetchError {
     let code: RSSErrorCode = 'UNKNOWN_ERROR';
     let message = RSS_ERROR_MESSAGES.UNKNOWN_ERROR;
     let statusCode: number | undefined;
@@ -312,36 +372,36 @@ export class RSSFetcher {
     }
 
     // Network errors
-    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+    if (error && typeof error === 'object' && 'code' in error && (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED')) {
       code = 'NETWORK_ERROR';
       message = RSS_ERROR_MESSAGES.NETWORK_ERROR;
     } else if (
-      error.code === 'ETIMEDOUT' ||
-      error.message?.includes('timeout')
+      (error && typeof error === 'object' && 'code' in error && error.code === 'ETIMEDOUT') ||
+      (error instanceof Error && error.message?.includes('timeout'))
     ) {
       code = 'TIMEOUT';
       message = RSS_ERROR_MESSAGES.TIMEOUT;
-    } else if (error.status === 404 || error.message?.includes('404')) {
+    } else if ((error && typeof error === 'object' && 'status' in error && error.status === 404) || (error instanceof Error && error.message?.includes('404'))) {
       code = 'NOT_FOUND';
       message = RSS_ERROR_MESSAGES.NOT_FOUND;
       statusCode = 404;
-    } else if (error.message?.includes('CORS')) {
+    } else if (error instanceof Error && error.message?.includes('CORS')) {
       code = 'CORS_ERROR';
       message = RSS_ERROR_MESSAGES.CORS_ERROR;
     } else if (
-      error.message?.includes('parse') ||
-      error.message?.includes('XML')
+      error instanceof Error && (error.message?.includes('parse') ||
+      error.message?.includes('XML'))
     ) {
       code = 'PARSE_ERROR';
       message = RSS_ERROR_MESSAGES.PARSE_ERROR;
-    } else if (error.message?.includes('Invalid URL')) {
+    } else if (error instanceof Error && error.message?.includes('Invalid URL')) {
       code = 'INVALID_URL';
       message = RSS_ERROR_MESSAGES.INVALID_URL;
       statusCode = 400;
     }
 
     return new RSSFetchError(
-      `${message}${error.message ? `: ${error.message}` : ''}`,
+      `${message}${error instanceof Error && error.message ? `: ${error.message}` : ''}`,
       code,
       statusCode,
       feedUrl
@@ -403,7 +463,7 @@ export class RSSFetcher {
         errors: result.errors,
       };
     } catch (error) {
-      console.error('Failed to store RSS content:', error);
+      // Failed to store RSS content - error details in return object
       return {
         created: 0,
         updated: 0,

@@ -198,7 +198,7 @@ export function AddCreatorModal({
       ]);
 
       setUrlInput('');
-    } catch (_error) {
+    } catch {
       setUrlError('URL not recognized. Please check the URL and try again.');
     }
   };
@@ -305,7 +305,7 @@ export function AddCreatorModal({
               );
 
             if (topicError) {
-              console.error('Failed to update topics:', topicError);
+              // Failed to update topics - not failing whole operation
               // Don't fail the whole operation if topics fail
             }
           }

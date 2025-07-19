@@ -87,10 +87,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       data: topic,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in GET /api/topics/[id]:', error);
-    }
+  } catch {
+    // Unexpected error - details in response
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -267,7 +265,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update topic
-    const updateData: any = {
+    const updateData: {
+      updated_at: string;
+      name?: string;
+      description?: string | null;
+      parent_topic_id?: string | null;
+    } = {
       updated_at: new Date().toISOString(),
     };
 
@@ -293,9 +296,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .single();
 
     if (updateError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error updating topic:', updateError);
-      }
+      // Error updating topic - details in response
       return NextResponse.json(
         { error: 'Failed to update topic' },
         { status: 500 }
@@ -308,10 +309,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       data: updatedTopic,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in PUT /api/topics/[id]:', error);
-    }
+  } catch {
+    // Unexpected error - details in response
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -420,9 +419,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .eq('id', id);
 
     if (deleteError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error deleting topic:', deleteError);
-      }
+      // Error deleting topic - details in response
       return NextResponse.json(
         { error: 'Failed to delete topic' },
         { status: 500 }
@@ -434,10 +431,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       message: 'Topic deleted successfully',
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in DELETE /api/topics/[id]:', error);
-    }
+  } catch {
+    // Unexpected error - details in response
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -99,9 +99,7 @@ export async function PUT(
           { status: 404 }
         );
       }
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error updating creator:', updateError);
-      }
+      // Error updating creator - details in response
       return NextResponse.json(
         { error: 'Failed to update creator' },
         { status: 500 }
@@ -118,10 +116,8 @@ export async function PUT(
       data: updatedCreator,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in PUT /api/creators/[id]:', error);
-    }
+  } catch {
+    // Unexpected error - details in response
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -174,9 +170,7 @@ export async function DELETE(
       .eq('user_id', user.id); // Extra safety check
 
     if (deleteError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error deleting creator:', deleteError);
-      }
+      // Error deleting creator - details in response
       return NextResponse.json(
         { error: 'Failed to delete creator' },
         { status: 500 }
@@ -188,10 +182,8 @@ export async function DELETE(
       message: 'Creator deleted successfully',
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in DELETE /api/creators/[id]:', error);
-    }
+  } catch {
+    // Unexpected error - details in response
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

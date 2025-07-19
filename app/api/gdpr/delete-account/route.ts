@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (_error) {
+            } catch {
               // Ignore cookie setting errors in server context
             }
           },
@@ -70,9 +70,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id);
 
     if (markDeletionError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error marking account for deletion:', markDeletionError);
-      }
+      // Error marking account for deletion - details in response
       return NextResponse.json(
         { error: 'Failed to process deletion request' },
         { status: 500 }
@@ -124,9 +122,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (failures.length > 0) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Some deletion operations failed:', failures);
-      }
+      // Some deletion operations failed - continuing with account deletion
       // Continue with account deletion even if some data cleanup failed
     }
 
@@ -136,9 +132,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (authDeleteError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error deleting auth user:', authDeleteError);
-      }
+      // Error deleting auth user - details in response
       // If auth deletion fails, we need to handle this carefully
       // The user data is already marked for deletion
       return NextResponse.json(
@@ -162,7 +156,7 @@ export async function POST(request: NextRequest) {
         request_count: 1,
         last_request: new Date().toISOString(),
       });
-    } catch (_auditError) {
+    } catch {
       // Expected to fail since user is deleted - this is expected behavior
     }
 
@@ -173,10 +167,8 @@ export async function POST(request: NextRequest) {
       data_deleted: true,
       auth_deleted: true,
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Account deletion error:', error);
-    }
+  } catch {
+    // Account deletion error - details in response
     return NextResponse.json(
       {
         error: 'Account deletion failed',
@@ -189,7 +181,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET endpoint to check deletion status
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // Create Supabase server client
     const cookieStore = await cookies();
@@ -206,7 +198,7 @@ export async function GET(_request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (_error) {
+            } catch {
               // Ignore cookie setting errors in server context
             }
           },
@@ -248,7 +240,7 @@ export async function GET(_request: NextRequest) {
       last_updated: userData?.updated_at,
       can_request_deletion: !userData?.data_deletion_requested,
     });
-  } catch (_error) {
+  } catch {
     // Deletion status check failed
     return NextResponse.json(
       { error: 'Failed to check deletion status' },

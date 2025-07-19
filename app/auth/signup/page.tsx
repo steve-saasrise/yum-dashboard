@@ -106,7 +106,7 @@ export default function SignupPage() {
           description: `A magic link has been sent to ${formData.email}. Please check your inbox.`,
         });
       }
-    } catch (_error) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -117,7 +117,7 @@ export default function SignupPage() {
     try {
       setIsLoading(true);
       await signInWithOAuth('google');
-    } catch (_error) {
+    } catch {
       setError('Failed to sign in with Google. Please try again.');
     } finally {
       setIsLoading(false);
@@ -143,7 +143,7 @@ export default function SignupPage() {
           description: `A magic link has been sent to ${formData.email}. Please check your inbox.`,
         });
       }
-    } catch (_error) {
+    } catch {
       setError('Failed to send magic link. Please try again.');
     } finally {
       setIsLoading(false);

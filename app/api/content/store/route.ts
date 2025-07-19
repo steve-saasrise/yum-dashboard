@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
 import {
-  CreateContentInputSchema,
   Platform,
+  ContentProcessingStatus,
   isValidPlatform,
 } from '@/types/content';
 
@@ -155,8 +155,8 @@ export async function POST(request: NextRequest) {
           content: stored,
           normalized_from: 'platform_data',
         });
-      } catch (error: any) {
-        if (error.code === 'DUPLICATE_CONTENT') {
+      } catch (error) {
+        if (error instanceof Error && 'code' in error && error.code === 'DUPLICATE_CONTENT') {
           return NextResponse.json({ error: error.message }, { status: 409 });
         }
         throw error;
@@ -251,14 +251,14 @@ export async function POST(request: NextRequest) {
         },
         { status: 201 }
       );
-    } catch (error: any) {
-      if (error.code === 'DUPLICATE_CONTENT') {
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'DUPLICATE_CONTENT') {
         return NextResponse.json({ error: error.message }, { status: 409 });
       }
       throw error;
     }
   } catch (error) {
-    console.error('Content storage error:', error);
+    // Content storage error - details in response
     return NextResponse.json(
       {
         error: 'Failed to store content',
@@ -350,7 +350,7 @@ export async function GET(request: NextRequest) {
     const result = await contentService.getContentList({
       creator_id: creator_id || undefined,
       platform: platform as Platform | undefined,
-      processing_status: processing_status as any,
+      processing_status: processing_status as ContentProcessingStatus | undefined,
       limit,
       offset,
     });
@@ -370,7 +370,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Content retrieval error:', error);
+    // Content retrieval error - details in response
     return NextResponse.json(
       {
         error: 'Failed to retrieve content',

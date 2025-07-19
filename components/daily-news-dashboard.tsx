@@ -2,8 +2,9 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useAuth, useUser, useProfile } from '@/hooks/use-auth';
+import { useAuth, useProfile } from '@/hooks/use-auth';
 import { useContent } from '@/hooks/use-content';
+import type { Creator, Platform } from '@/types/creator';
 import {
   Sidebar,
   SidebarProvider,
@@ -196,22 +197,42 @@ const topics = [
 // Static creators array removed - now fetched from database in DailyNewsDashboard component
 
 // Static content feed removed - will be replaced with dynamic content from database
-interface ContentItem {
+
+// Content item interface for feed items
+interface FeedItem {
   id: string;
   title: string;
-  type: 'article' | 'video' | 'podcast' | 'social';
-  summary: string;
-  creatorId: string;
-  createdAt: string;
-  platform: string;
-  topics?: string[];
+  description?: string;
+  ai_summary?: string;
   url: string;
-  imageUrl?: string;
-  isRead: boolean;
-  isSaved: boolean;
+  platform: string;
+  creator_id: string;
+  creator?: {
+    id: string;
+    name: string;
+    platform: Platform;
+    avatar_url?: string;
+    metadata?: Record<string, any>;
+  };
+  published_at: string;
+  is_saved?: boolean;
+  topics?: Array<{
+    id: string;
+    name: string;
+    color?: string;
+  }>;
 }
 
-const contentFeed: ContentItem[] = []; // TODO: Replace with real content from database
+// Topic interface
+interface Topic {
+  id: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  color?: string;
+  creator_count?: number;
+  content_count?: number;
+}
 // --- SUBCOMPONENTS ---
 
 interface AppSidebarProps {
@@ -392,28 +413,28 @@ function AppSidebar({
                       No creators yet
                     </div>
                   ) : (
-                    creators.map((creator: any) => (
+                    creators.map((creator) => (
                       <SidebarMenuItem
                         key={creator.id}
                         className="group/creator-item"
                       >
-                        <SidebarMenuButton tooltip={creator.display_name}>
+                        <SidebarMenuButton tooltip={creator.name}>
                           <div className="relative">
                             <Avatar className="w-5 h-5">
                               <AvatarImage
-                                src={creator.avatar_url || '/placeholder.svg'}
-                                alt={creator.display_name}
+                                src={'/placeholder.svg'}
+                                alt={creator.name}
                               />
                               <AvatarFallback className="text-xs">
-                                {creator.display_name.charAt(0)}
+                                {creator.name.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
                             <div
-                              className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${creator.is_active ? 'bg-green-500' : 'bg-gray-400'}`}
+                              className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${creator.isActive ? 'bg-green-500' : 'bg-gray-400'}`}
                             />
                           </div>
                           <span className="truncate">
-                            {creator.display_name}
+                            {creator.name}
                           </span>
                           {creator.platform && (
                             <SidebarMenuBadge className="group-hover/creator-item:opacity-0 transition-opacity duration-200">
@@ -450,7 +471,7 @@ function Header({
   onRefresh?: () => void;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
-  const user = useUser();
+  // User not needed in this component
   const profile = useProfile();
 
   const getInitials = (name?: string) => {
@@ -570,15 +591,15 @@ function ContentCard({
   onSave,
   onUnsave,
 }: {
-  item: any;
-  creators: any[];
+  item: FeedItem;
+  creators: Creator[];
   onSave?: (id: string) => Promise<void>;
   onUnsave?: (id: string) => Promise<void>;
 }) {
   const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
   const [isLoading, setIsLoading] = React.useState(true);
   const creator =
-    item.creator || creators.find((c: any) => c.id === item.creator_id);
+    item.creator || creators.find((c) => c.id === item.creator_id);
 
   const getPlatformIcon = (platform: string) => {
     switch (platform?.toLowerCase()) {
@@ -636,15 +657,15 @@ function ContentCard({
               <Avatar className="h-10 w-10 border">
                 <AvatarImage
                   src={creator.avatar_url || '/placeholder.svg'}
-                  alt={creator.display_name}
+                  alt={'display_name' in creator ? creator.display_name : creator.name}
                 />
                 <AvatarFallback>
-                  {creator.display_name.charAt(0)}
+                  {('display_name' in creator ? creator.display_name : creator.name).charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-semibold text-gray-800 dark:text-gray-100">
-                  {creator.display_name}
+                  {'display_name' in creator ? creator.display_name : creator.name}
                 </p>
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                   <PlatformIcon className="h-3.5 w-3.5" />
@@ -673,7 +694,7 @@ function ContentCard({
                           await onSave(item.id);
                           setBookmarked(true);
                         }
-                      } catch (error) {
+                      } catch {
                         // Error is handled by the hook with toast
                       }
                     }}
@@ -696,7 +717,7 @@ function ContentCard({
             {item.description || item.ai_summary || 'No description available'}
           </p>
           <div className="flex flex-wrap gap-2 mb-4">
-            {(item.topics || []).map((topic: any) => {
+            {(item.topics || []).map((topic) => {
               return (
                 <Badge
                   key={topic.id}
@@ -729,7 +750,7 @@ function TopicManagementModal({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  topic: any;
+  topic?: Topic;
 }) {
   const isEditing = !!topic;
   return (
@@ -778,7 +799,7 @@ function TopicManagementModal({
   );
 }
 
-interface Creator {
+interface LocalCreator {
   id: string;
   url: string;
   display_name: string;
@@ -797,18 +818,16 @@ function ContentListItem({
   onSave,
   onUnsave,
 }: {
-  item: any;
-  creators: any[];
+  item: FeedItem;
+  creators: Creator[];
   onSave?: (id: string) => Promise<void>;
   onUnsave?: (id: string) => Promise<void>;
 }) {
   const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
   const creator =
-    item.creator || creators.find((c: any) => c.id === item.creator_id);
+    item.creator || creators.find((c) => c.id === item.creator_id);
 
   const getPlatformIcon = (platformName: string) => {
-    const platform = platforms?.[0] || 'Blogs';
-
     switch (platformName?.toLowerCase()) {
       case 'youtube':
         return Youtube;
@@ -833,15 +852,15 @@ function ContentListItem({
           <Avatar className="h-12 w-12 border flex-shrink-0">
             <AvatarImage
               src={creator.avatar_url || '/placeholder.svg'}
-              alt={creator.display_name}
+              alt={'display_name' in creator ? creator.display_name : creator.name}
             />
-            <AvatarFallback>{creator.display_name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{('display_name' in creator ? creator.display_name : creator.name).charAt(0)}</AvatarFallback>
           </Avatar>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <p className="font-semibold text-gray-800 dark:text-gray-100">
-                {creator.display_name}
+                {'display_name' in creator ? creator.display_name : creator.name}
               </p>
               <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                 <PlatformIcon className="h-3.5 w-3.5 flex-shrink-0" />
@@ -864,7 +883,7 @@ function ContentListItem({
             </p>
 
             <div className="flex flex-wrap gap-2">
-              {(item.topics || []).map((topic: any) => {
+              {(item.topics || []).map((topic) => {
                 return (
                   <Badge
                     key={topic.id}
@@ -919,7 +938,7 @@ function ContentListItem({
                           await onSave(item.id);
                           setBookmarked(true);
                         }
-                      } catch (error) {
+                      } catch {
                         // Error is handled by the hook with toast
                       }
                     }}
@@ -948,7 +967,7 @@ function MobileFiltersSheet({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  creators: any[];
+  creators: Creator[];
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1012,7 +1031,7 @@ function MobileFiltersSheet({
             <div className="space-y-3">
               <h3 className="font-medium text-sm">Creators</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {creators.map((c: any) => (
+                {creators.map((c) => (
                   <div key={c.id} className="flex items-center space-x-2">
                     <Checkbox id={`mobile-creator-${c.id}`} />
                     <div className="flex items-center gap-2">
@@ -1076,23 +1095,21 @@ export function DailyNewsDashboard() {
   const [view, setView] = React.useState<'grid' | 'list'>('grid');
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [selectedTopic, setSelectedTopic] = React.useState<any>(null);
-  const [selectedCreator, setSelectedCreator] = React.useState<any>(null);
+  const [selectedTopic, setSelectedTopic] = React.useState<Topic | null>(null);
+  const [selectedCreator, setSelectedCreator] = React.useState<Creator | null>(null);
   const [isCreatorModalOpen, setCreatorModalOpen] = React.useState(false);
   const [creatorModalMode, setCreatorModalMode] = React.useState<
     'add' | 'edit'
   >('add');
   const [isMobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
-  const [creators, setCreators] = React.useState<any[]>([]);
+  const [creators, setCreators] = React.useState<Creator[]>([]);
   const [isLoadingCreators, setIsLoadingCreators] = React.useState(true);
 
   // Use the content hook to fetch real content
   const {
     content,
     loading: isLoadingContent,
-    error: contentError,
     hasMore,
-    total,
     saveContent,
     unsaveContent,
     refreshContent,
@@ -1104,20 +1121,43 @@ export function DailyNewsDashboard() {
     setTopicModalOpen(true);
   };
 
-  const handleEditTopic = (topic: any) => {
-    setSelectedTopic(topic);
+  const handleEditTopic = (topic: { id: number; name: string; color?: string }) => {
+    // Convert to Topic type
+    const fullTopic: Topic = {
+      id: String(topic.id),
+      name: topic.name,
+      slug: topic.name.toLowerCase().replace(/\s+/g, '-'),
+      color: topic.color
+    };
+    setSelectedTopic(fullTopic);
     setTopicModalOpen(true);
   };
 
-  const handleDeleteTopic = (topic: any) => {
-    setSelectedTopic(topic);
+  const handleDeleteTopic = (topic: { id: number; name: string; color?: string }) => {
+    // Convert to Topic type
+    const fullTopic: Topic = {
+      id: String(topic.id),
+      name: topic.name,
+      slug: topic.name.toLowerCase().replace(/\s+/g, '-'),
+      color: topic.color
+    };
+    setSelectedTopic(fullTopic);
     setDeleteDialogOpen(true);
   };
 
-  const handleEditCreator = (creator: any) => {
-    setSelectedCreator(creator);
-    setCreatorModalMode('edit');
-    setCreatorModalOpen(true);
+  const handleEditCreator = (creator: {
+    id: string;
+    name: string;
+    platform: string;
+    handle: string;
+  }) => {
+    // Find the full creator object from our state
+    const fullCreator = creators.find(c => c.id === creator.id);
+    if (fullCreator) {
+      setSelectedCreator(fullCreator);
+      setCreatorModalMode('edit');
+      setCreatorModalOpen(true);
+    }
   };
 
   const handleCreateCreator = () => {
@@ -1142,10 +1182,8 @@ export function DailyNewsDashboard() {
         const data = await response.json();
         setCreators(data.data?.creators || []);
       }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error fetching creators:', error);
-      }
+    } catch {
+      // Error fetching creators - handled by loading state
     } finally {
       setIsLoadingCreators(false);
     }
@@ -1165,7 +1203,14 @@ export function DailyNewsDashboard() {
           onTopicDelete={handleDeleteTopic}
           onCreatorCreate={handleCreateCreator}
           onCreatorEdit={handleEditCreator}
-          creators={creators}
+          creators={creators.map(c => ({
+            id: c.id,
+            name: c.display_name,
+            platform: c.platform || 'website',
+            handle: c.platform_user_id || c.display_name,
+            category: c.topics?.[0],
+            isActive: c.is_active
+          }))}
           isLoadingCreators={isLoadingCreators}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
@@ -1224,7 +1269,7 @@ export function DailyNewsDashboard() {
                       <DropdownMenuSubTrigger>Creators</DropdownMenuSubTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent>
-                          {creators.map((c: any) => (
+                          {creators.map((c) => (
                             <DropdownMenuCheckboxItem key={c.id}>
                               {c.display_name}
                             </DropdownMenuCheckboxItem>
@@ -1362,7 +1407,19 @@ export function DailyNewsDashboard() {
                     {content.map((item) => (
                       <ContentCard
                         key={item.id}
-                        item={item}
+                        item={{
+                          id: item.id,
+                          title: item.title || '',
+                          description: item.description,
+                          ai_summary: item.ai_summary,
+                          url: item.url,
+                          platform: item.platform,
+                          creator_id: item.creator_id,
+                          creator: item.creator,
+                          published_at: item.published_at || item.created_at,
+                          is_saved: item.is_saved,
+                          topics: item.topics
+                        }}
                         creators={creators}
                         onSave={saveContent}
                         onUnsave={unsaveContent}
@@ -1376,7 +1433,19 @@ export function DailyNewsDashboard() {
                       {content.map((item) => (
                         <ContentCard
                           key={item.id}
-                          item={item}
+                          item={{
+                            id: item.id,
+                            title: item.title || '',
+                            description: item.description,
+                            ai_summary: item.ai_summary,
+                            url: item.url,
+                            platform: item.platform,
+                            creator_id: item.creator_id,
+                            creator: item.creator,
+                            published_at: item.published_at || item.created_at,
+                            is_saved: item.is_saved,
+                            topics: item.topics
+                          }}
                           creators={creators}
                           onSave={saveContent}
                           onUnsave={unsaveContent}
@@ -1388,7 +1457,19 @@ export function DailyNewsDashboard() {
                       {content.map((item) => (
                         <ContentListItem
                           key={item.id}
-                          item={item}
+                          item={{
+                            id: item.id,
+                            title: item.title || '',
+                            description: item.description,
+                            ai_summary: item.ai_summary,
+                            url: item.url,
+                            platform: item.platform,
+                            creator_id: item.creator_id,
+                            creator: item.creator,
+                            published_at: item.published_at || item.created_at,
+                            is_saved: item.is_saved,
+                            topics: item.topics
+                          }}
                           creators={creators}
                           onSave={saveContent}
                           onUnsave={unsaveContent}
@@ -1416,14 +1497,14 @@ export function DailyNewsDashboard() {
       <TopicManagementModal
         open={isTopicModalOpen}
         onOpenChange={setTopicModalOpen}
-        topic={selectedTopic}
+        topic={selectedTopic || undefined}
       />
       <AddCreatorModal
         open={isCreatorModalOpen}
         onOpenChange={setCreatorModalOpen}
         onCreatorAdded={fetchCreators}
         mode={creatorModalMode}
-        creator={selectedCreator}
+        creator={selectedCreator || undefined}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

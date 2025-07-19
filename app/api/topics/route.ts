@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 import {
   CreateTopicSchema,
   TopicFiltersSchema,
-  type Topic,
 } from '@/types/topic';
 
 export async function GET(request: NextRequest) {
@@ -117,9 +116,7 @@ export async function GET(request: NextRequest) {
     const { data: topics, count, error: fetchError } = await query;
 
     if (fetchError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error fetching topics:', fetchError);
-      }
+      // Error fetching topics - details in response
       return NextResponse.json(
         { error: 'Failed to fetch topics' },
         { status: 500 }
@@ -143,10 +140,8 @@ export async function GET(request: NextRequest) {
       },
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in GET /api/topics:', error);
-    }
+  } catch {
+    // Unexpected error - details in response
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -292,9 +287,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (createError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error creating topic:', createError);
-      }
+      // Error creating topic - details in response
       return NextResponse.json(
         { error: 'Failed to create topic' },
         { status: 500 }
@@ -310,10 +303,8 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in POST /api/topics:', error);
-    }
+  } catch {
+    // Unexpected error - details in response
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

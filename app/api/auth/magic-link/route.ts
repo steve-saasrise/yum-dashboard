@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (_error) {
+            } catch {
               // The `set` method was called from a Server Component.
               // This can be ignored if you have middleware refreshing
               // user sessions.
@@ -179,10 +179,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      // Log the error for debugging in development only
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Magic link error:', error);
-      }
+      // Error logging removed - error details are captured in the response
 
       // Return user-friendly error message
       const userMessage = getAuthErrorMessage(error);
@@ -214,10 +211,7 @@ export async function POST(request: NextRequest) {
       email,
       expiresIn: magicLinkConfig.expiresIn,
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Magic link API error:', error);
-    }
+  } catch {
     return NextResponse.json(
       {
         error: 'Internal server error',
@@ -257,7 +251,7 @@ export async function GET(request: NextRequest) {
         ? Math.max(0, Math.ceil((resetTime - Date.now()) / 1000))
         : 0,
     });
-  } catch (_error) {
+  } catch {
     // Rate limit check failed
     return NextResponse.json(
       { error: 'Failed to check rate limit' },

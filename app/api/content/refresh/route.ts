@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { RSSFetcher } from '@/lib/content-fetcher/rss-fetcher';
@@ -6,7 +6,7 @@ import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
 import type { CreateContentInput } from '@/types/content';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Create Supabase server client
     const cookieStore = await cookies();
@@ -44,7 +44,20 @@ export async function POST(request: NextRequest) {
       new: 0,
       updated: 0,
       errors: 0,
-      creators: [] as any[],
+      creators: [] as Array<{
+        id: string;
+        name: string;
+        urls: Array<{
+          url: string;
+          status: string;
+          message?: string;
+          fetched?: number;
+          new?: number;
+          updated?: number;
+          errors?: number;
+          error?: string;
+        }>;
+      }>,
     };
 
     // Get user's RSS creators
@@ -64,7 +77,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id); // Only fetch user's creators
 
     if (creatorsError) {
-      console.error('Error fetching creators:', creatorsError);
+      // Error fetching creators - details in response
       return NextResponse.json(
         { error: 'Failed to fetch creators', details: creatorsError },
         { status: 500 }
@@ -83,14 +96,21 @@ export async function POST(request: NextRequest) {
       const creatorStats = {
         id: creator.id,
         name: creator.display_name,
-        urls: [] as any[],
+        urls: [] as Array<{
+          url: string;
+          status: string;
+          message?: string;
+          fetched?: number;
+          new?: number;
+          updated?: number;
+          errors?: number;
+          error?: string;
+        }>,
       };
 
       for (const creatorUrl of creator.creator_urls) {
         try {
-          console.log(
-            `Fetching RSS feed for ${creator.display_name}: ${creatorUrl.url}`
-          );
+          // Fetching RSS feed
 
           // Fetch RSS feed
           const result = await rssFetcher.parseURL(creatorUrl.url);
@@ -138,7 +158,7 @@ export async function POST(request: NextRequest) {
           stats.updated += results.updated;
           stats.errors += results.errors.length;
         } catch (error) {
-          console.error(`Error processing RSS feed ${creatorUrl.url}:`, error);
+          // Error processing RSS feed - details captured in stats
           stats.errors++;
           creatorStats.urls.push({
             url: creatorUrl.url,
@@ -162,7 +182,7 @@ export async function POST(request: NextRequest) {
         .eq('id', creator.id);
     }
 
-    console.log('Manual refresh completed:', stats);
+    // Manual refresh completed
 
     return NextResponse.json({
       success: true,
@@ -171,7 +191,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Manual refresh error:', error);
+    // Manual refresh error - details in response
     return NextResponse.json(
       {
         error: 'Internal server error',

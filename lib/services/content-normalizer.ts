@@ -1,10 +1,8 @@
 import {
   CreateContentInput,
   MediaUrl,
-  EngagementMetrics,
   NormalizeContentInput,
   Platform,
-  generatePlatformContentId,
   calculateWordCount,
   calculateReadingTime,
   extractTextFromHTML,
@@ -106,16 +104,37 @@ export class ContentNormalizer {
    */
   private normalizeYouTubeContent(
     creator_id: string,
-    data: any
+    data: {
+      id?: string | { videoId?: string };
+      snippet?: {
+        title?: string;
+        description?: string;
+        publishedAt?: string;
+        channelTitle?: string;
+        tags?: string[];
+        thumbnails?: {
+          high?: { url?: string; width?: number; height?: number };
+          default?: { url?: string; width?: number; height?: number };
+        };
+      };
+      statistics?: {
+        viewCount?: string;
+        likeCount?: string;
+        commentCount?: string;
+      };
+      contentDetails?: {
+        duration?: string;
+      };
+    }
   ): CreateContentInput {
     // YouTube-specific normalization
     // This will be implemented when YouTube API integration is added
     return {
       creator_id,
       platform: 'youtube',
-      platform_content_id: data.id?.videoId || data.id || '',
+      platform_content_id: typeof data.id === 'string' ? data.id : (data.id?.videoId || ''),
       url: data.id
-        ? `https://www.youtube.com/watch?v=${data.id.videoId || data.id}`
+        ? `https://www.youtube.com/watch?v=${typeof data.id === 'string' ? data.id : data.id.videoId}`
         : '',
       title: data.snippet?.title || 'Untitled Video',
       description: data.snippet?.description || '',
@@ -126,12 +145,12 @@ export class ContentNormalizer {
       content_body: data.snippet?.description || '',
       word_count: calculateWordCount(data.snippet?.description || ''),
       reading_time_minutes: 0, // Videos don't have reading time
-      media_urls: data.snippet?.thumbnails
+      media_urls: data.snippet?.thumbnails && (data.snippet.thumbnails.high?.url || data.snippet.thumbnails.default?.url)
         ? [
             {
               url:
                 data.snippet.thumbnails.high?.url ||
-                data.snippet.thumbnails.default?.url,
+                data.snippet.thumbnails.default?.url || '',
               type: 'image' as const,
               width: data.snippet.thumbnails.high?.width,
               height: data.snippet.thumbnails.high?.height,
@@ -157,7 +176,43 @@ export class ContentNormalizer {
    */
   private normalizeTwitterContent(
     creator_id: string,
-    data: any
+    data: {
+      id?: string;
+      text?: string;
+      author_id?: string;
+      created_at?: string;
+      lang?: string;
+      attachments?: { media_keys?: string[] };
+      entities?: {
+        hashtags?: Array<{ tag?: string }>;
+        media?: Array<{
+          type?: string;
+          media_url?: string;
+          media_url_https?: string;
+          url?: string;
+          display_url?: string;
+          expanded_url?: string;
+        }>;
+      };
+      includes?: {
+        media?: Array<{
+          type?: string;
+          url?: string;
+          preview_image_url?: string;
+          media_key?: string;
+          width?: number;
+          height?: number;
+          variants?: Array<{ url?: string }>;
+        }>;
+      };
+      public_metrics?: {
+        retweet_count?: number;
+        reply_count?: number;
+        like_count?: number;
+        bookmark_count?: number;
+        impression_count?: number;
+      };
+    }
   ): CreateContentInput {
     // Twitter-specific normalization
     // This will be implemented when Twitter API integration is added
@@ -189,7 +244,19 @@ export class ContentNormalizer {
    */
   private normalizeLinkedInContent(
     creator_id: string,
-    data: any
+    data: {
+      id?: string;
+      urn?: string;
+      url?: string;
+      title?: string;
+      text?: string;
+      image?: { url?: string };
+      publishedAt?: string;
+      images?: Array<{ url?: string; type?: string }>;
+      numLikes?: number;
+      numComments?: number;
+      numShares?: number;
+    }
   ): CreateContentInput {
     // LinkedIn-specific normalization
     // This will be implemented when LinkedIn scraping is added
@@ -206,8 +273,8 @@ export class ContentNormalizer {
       word_count: calculateWordCount(data.text || ''),
       reading_time_minutes: calculateReadingTime(data.text || ''),
       media_urls:
-        data.images?.map((img: any) => ({
-          url: img.url,
+        data.images?.filter((img: { url?: string; type?: string }) => img.url).map((img: { url?: string; type?: string }) => ({
+          url: img.url || '',
           type: 'image' as const,
         })) || [],
       engagement_metrics: {
@@ -223,7 +290,17 @@ export class ContentNormalizer {
    */
   private normalizeThreadsContent(
     creator_id: string,
-    data: any
+    data: {
+      id?: string;
+      url?: string;
+      text?: string;
+      publishedAt?: string;
+      timestamp?: string;
+      media?: Array<{ url?: string; type?: string }>;
+      likeCount?: number;
+      replyCount?: number;
+      shareCount?: number;
+    }
   ): CreateContentInput {
     // Threads-specific normalization
     // This will be implemented when Threads scraping is added
@@ -240,9 +317,9 @@ export class ContentNormalizer {
       word_count: calculateWordCount(data.text || ''),
       reading_time_minutes: calculateReadingTime(data.text || ''),
       media_urls:
-        data.media?.map((media: any) => ({
-          url: media.url,
-          type: media.type || 'image',
+        data.media?.filter((media: { url?: string; type?: string }) => media.url).map((media: { url?: string; type?: string }) => ({
+          url: media.url || '',
+          type: (media.type === 'video' || media.type === 'audio' || media.type === 'document' ? media.type : 'image') as 'image' | 'video' | 'audio' | 'document',
         })) || [],
       engagement_metrics: {
         likes: data.likeCount,
@@ -257,7 +334,13 @@ export class ContentNormalizer {
    */
   private normalizeWebsiteContent(
     creator_id: string,
-    data: any,
+    data: {
+      title?: string;
+      url?: string;
+      description?: string;
+      published_at?: string;
+      [key: string]: unknown;
+    },
     sourceUrl?: string
   ): CreateContentInput {
     // Generic website content normalization
@@ -268,18 +351,20 @@ export class ContentNormalizer {
       platform_content_id: data.url || sourceUrl || '',
       url: data.url || sourceUrl || '',
       title: data.title || 'Untitled',
-      description: data.description || data.excerpt || '',
-      thumbnail_url: data.image || data.thumbnail,
+      description: (data.description || data.excerpt || '') as string,
+      thumbnail_url: (data.image || data.thumbnail) as string | undefined,
       published_at:
-        data.publishDate || data.datePublished || new Date().toISOString(),
-      content_body: data.content || data.body || '',
-      word_count: calculateWordCount(data.content || data.body || ''),
+        (data.publishDate as string) || (data.datePublished as string) || new Date().toISOString(),
+      content_body: (data.content || data.body || '') as string,
+      word_count: calculateWordCount((data.content || data.body || '') as string),
       reading_time_minutes: calculateReadingTime(
-        data.content || data.body || ''
+        (data.content || data.body || '') as string
       ),
       media_urls:
-        data.images?.map((img: any) => ({
-          url: typeof img === 'string' ? img : img.url,
+        (data.images as Array<{ url?: string; type?: string } | string>)?.filter((img: { url?: string; type?: string } | string) => 
+          typeof img === 'string' ? img : img.url
+        ).map((img: { url?: string; type?: string } | string) => ({
+          url: (typeof img === 'string' ? img : img.url) || '',
           type: 'image' as const,
         })) || [],
       engagement_metrics: {},
@@ -312,23 +397,56 @@ export class ContentNormalizer {
   /**
    * Extract media from Twitter data
    */
-  private extractTwitterMedia(data: any): MediaUrl[] {
+  private extractTwitterMedia(data: {
+    attachments?: { media_keys?: string[] };
+    entities?: {
+      media?: Array<{
+        type?: string;
+        media_url?: string;
+        media_url_https?: string;
+        url?: string;
+        display_url?: string;
+        expanded_url?: string;
+      }>;
+    };
+    includes?: {
+      media?: Array<{
+        type?: string;
+        url?: string;
+        preview_image_url?: string;
+        media_key?: string;
+        width?: number;
+        height?: number;
+        duration_ms?: number;
+        variants?: Array<{ url?: string }>;
+      }>;
+    };
+  }): MediaUrl[] {
     const mediaUrls: MediaUrl[] = [];
 
     // Handle attached media
     if (data.attachments?.media_keys && data.includes?.media) {
-      data.includes.media.forEach((media: any) => {
-        if (data.attachments.media_keys.includes(media.media_key)) {
+      data.includes.media.forEach((media: {
+        type?: string;
+        url?: string;
+        preview_image_url?: string;
+        media_key?: string;
+        width?: number;
+        height?: number;
+        duration_ms?: number;
+        variants?: Array<{ url?: string }>;
+      }) => {
+        if (media.media_key && data.attachments?.media_keys?.includes(media.media_key)) {
           if (media.type === 'photo') {
             mediaUrls.push({
-              url: media.url || media.preview_image_url,
+              url: media.url || media.preview_image_url || '',
               type: 'image',
               width: media.width,
               height: media.height,
             });
           } else if (media.type === 'video' || media.type === 'animated_gif') {
             mediaUrls.push({
-              url: media.preview_image_url, // Videos use preview image
+              url: media.preview_image_url || '', // Videos use preview image
               type: 'video',
               duration: media.duration_ms
                 ? media.duration_ms / 1000
@@ -343,9 +461,16 @@ export class ContentNormalizer {
 
     // Handle legacy media format
     if (data.entities?.media) {
-      data.entities.media.forEach((media: any) => {
+      data.entities.media.forEach((media: {
+        type?: string;
+        media_url?: string;
+        media_url_https?: string;
+        url?: string;
+        display_url?: string;
+        expanded_url?: string;
+      }) => {
         mediaUrls.push({
-          url: media.media_url_https || media.media_url,
+          url: media.media_url_https || media.media_url || '',
           type: media.type === 'photo' ? 'image' : 'video',
         });
       });
@@ -360,7 +485,7 @@ export class ContentNormalizer {
   normalizeMultiple(
     creator_id: string,
     platform: Platform,
-    items: any[],
+    items: unknown[],
     sourceUrl?: string
   ): CreateContentInput[] {
     return items.map((item) =>

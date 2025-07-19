@@ -13,9 +13,7 @@ export async function GET(request: NextRequest) {
 
   // Handle OAuth errors
   if (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('OAuth error:', error, error_description);
-    }
+    // OAuth error - redirecting to error page
     return NextResponse.redirect(
       `${origin}/auth/error?error=${encodeURIComponent(error)}&description=${encodeURIComponent(error_description || '')}`
     );
@@ -39,7 +37,7 @@ export async function GET(request: NextRequest) {
                 cookiesToSet.forEach(({ name, value, options }) => {
                   cookieStore.set(name, value, options);
                 });
-              } catch (_error) {
+              } catch {
                 // The `set` method was called from a Server Component.
                 // This can be ignored if you have middleware refreshing
                 // user sessions.
@@ -54,9 +52,7 @@ export async function GET(request: NextRequest) {
         await supabase.auth.exchangeCodeForSession(code);
 
       if (exchangeError) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Session exchange error:', exchangeError);
-        }
+        // Session exchange error - details in error redirect
 
         // Handle specific auth errors with user-friendly messages
         let userMessage = exchangeError.message;
@@ -113,9 +109,7 @@ export async function GET(request: NextRequest) {
             });
 
           if (insertError) {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('Profile creation error:', insertError);
-            }
+            // Profile creation error - continuing anyway
             // Continue anyway, profile can be created later
           }
         }
@@ -123,9 +117,9 @@ export async function GET(request: NextRequest) {
         // Successful authentication - redirect to the intended page
         return NextResponse.redirect(`${origin}${redirectTo}`);
       }
-    } catch (error) {
+    } catch {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Callback processing error:', error);
+        // Callback processing error - redirecting to error page
       }
       return NextResponse.redirect(
         `${origin}/auth/error?error=callback_processing_failed&description=${encodeURIComponent('Failed to process authentication callback')}`

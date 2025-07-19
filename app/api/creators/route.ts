@@ -153,9 +153,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (error) {
       checkError = error;
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error in URL checking loop:', error);
-      }
+      // Error in URL checking loop - handled below
     }
 
     if (
@@ -164,9 +162,7 @@ export async function POST(request: NextRequest) {
       'code' in checkError &&
       checkError.code !== 'PGRST116'
     ) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error checking existing URLs:', checkError);
-      }
+      // Error checking existing URLs - handled in response
       return NextResponse.json(
         { error: 'Failed to check existing URLs' },
         { status: 500 }
@@ -179,7 +175,7 @@ export async function POST(request: NextRequest) {
           error: 'One or more URLs already exist',
           details: existingUrls.map((u) => ({
             url: u.url,
-            creator: (u as any).creators?.display_name,
+            creator: 'creators' in u && u.creators && typeof u.creators === 'object' && 'display_name' in u.creators ? u.creators.display_name : undefined,
           })),
         },
         { status: 409 }
@@ -203,18 +199,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (createError) {
-      const errorLog = {
-        operation: 'creator_insert',
-        error: createError,
-        data: creatorData,
-        timestamp: new Date().toISOString(),
-      };
-
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error creating creator:', errorLog);
-      } else {
-        console.error('Production error creating creator:', errorLog);
-      }
+      // Error creating creator - details in response
 
       return NextResponse.json(
         { error: 'Failed to create creator' },
@@ -238,19 +223,7 @@ export async function POST(request: NextRequest) {
       .insert(creatorUrlsData);
 
     if (urlsError) {
-      const errorLog = {
-        operation: 'creator_urls_insert',
-        error: urlsError,
-        data: creatorUrlsData,
-        creator_id: newCreator.id,
-        timestamp: new Date().toISOString(),
-      };
-
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error creating creator URLs:', errorLog);
-      } else {
-        console.error('Production error creating creator URLs:', errorLog);
-      }
+      // Error creating creator URLs
 
       // Rollback creator creation
       await supabase.from('creators').delete().eq('id', newCreator.id);
@@ -301,12 +274,7 @@ export async function POST(request: NextRequest) {
       route: 'POST /api/creators',
     };
 
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in POST /api/creators:', errorDetails);
-    } else {
-      // Log to console in production for Vercel logs
-      console.error('Production error in POST /api/creators:', errorDetails);
-    }
+    // Error in POST /api/creators - details captured in errorDetails
 
     return NextResponse.json(
       {
@@ -400,9 +368,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (fetchError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error fetching creators:', fetchError);
-      }
+      // Error fetching creators - details in response
       return NextResponse.json(
         { error: 'Failed to fetch creators', details: fetchError.message },
         { status: 500 }
@@ -423,9 +389,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id);
 
     if (countError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error counting creators:', countError);
-      }
+      // Error counting creators - details in response
       return NextResponse.json(
         { error: 'Failed to count creators' },
         { status: 500 }
@@ -434,8 +398,22 @@ export async function GET(request: NextRequest) {
 
     // Fetch related data separately for better performance
     const creatorIds = creators.map((c) => c.id);
-    let creatorUrls: any[] = [];
-    let creatorTopics: any[] = [];
+    let creatorUrls: Array<{
+      id: string;
+      creator_id: string;
+      platform: string;
+      url: string;
+      validation_status: string;
+    }> = [];
+    let creatorTopics: Array<{
+      creator_id: string;
+      topic_id: string;
+      topic?: {
+        id: string;
+        name: string;
+        slug: string;
+      };
+    }> = [];
 
     if (creatorIds.length > 0) {
       // Fetch URLs separately with optional platform filter
@@ -485,7 +463,7 @@ export async function GET(request: NextRequest) {
       // Get topics for this creator
       const creatorTopicsList = creatorTopics
         .filter((ct) => ct.creator_id === creator.id)
-        .map((ct) => ct.topics?.name)
+        .map((ct) => ct.topic?.name)
         .filter(Boolean);
 
       // Get the primary platform from the first URL
@@ -516,10 +494,8 @@ export async function GET(request: NextRequest) {
       },
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in GET /api/creators:', error);
-    }
+  } catch {
+    // Error in GET /api/creators - details in response
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

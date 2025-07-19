@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -52,7 +52,7 @@ export function GdprConsentManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  const loadConsentStatus = async () => {
+  const loadConsentStatus = React.useCallback(async () => {
     try {
       const response = await fetch('/api/gdpr/consent');
 
@@ -74,10 +74,8 @@ export function GdprConsentManagement() {
           (details as { analytics_consent?: boolean }).analytics_consent ||
           false,
       });
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error loading consent status:', error);
-      }
+    } catch {
+      // Error loading consent status - handled by toast
       toast({
         title: 'Loading failed',
         description: 'Failed to load consent preferences. Please try again.',
@@ -86,12 +84,12 @@ export function GdprConsentManagement() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Load current consent status
   useEffect(() => {
     loadConsentStatus();
-  }, []);
+  }, [loadConsentStatus]);
 
   const updateConsent = async (consentType: string, consentGiven: boolean) => {
     setIsSaving(true);
@@ -127,9 +125,7 @@ export function GdprConsentManagement() {
       // Reload consent status to get the latest data
       await loadConsentStatus();
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error updating consent:', error);
-      }
+      // Error updating consent - handled by toast
       toast({
         title: 'Update failed',
         description:

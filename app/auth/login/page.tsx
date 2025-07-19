@@ -71,7 +71,7 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
       }
-    } catch (_error) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -82,7 +82,7 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
       await signInWithOAuth('google');
-    } catch (_error) {
+    } catch {
       setError('Failed to sign in with Google. Please try again.');
     } finally {
       setIsLoading(false);
@@ -107,7 +107,7 @@ export default function LoginPage() {
           description: 'Check your email to sign in.',
         });
       }
-    } catch (_error) {
+    } catch {
       setError('Failed to send magic link. Please try again.');
     } finally {
       setIsLoading(false);

@@ -48,21 +48,21 @@ export function TopicSelectorExample() {
     },
   });
 
-  const onSubmit = async (data: CreatorFormData) => {
+  const onSubmit = async () => {
     setIsSubmitting(true);
 
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      console.log('Form submitted with data:', data);
+      // Form submitted successfully
       toast.success('Creator added successfully!');
 
       // Reset form
       form.reset();
-    } catch (error) {
+    } catch {
       toast.error('Failed to add creator');
-      console.error(error);
+      // Error handled by toast
     } finally {
       setIsSubmitting(false);
     }

@@ -101,9 +101,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Unexpected error in POST /api/creators/import:', error);
-    }
+    // Import error - details in response
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

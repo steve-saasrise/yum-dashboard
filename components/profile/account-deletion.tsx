@@ -71,9 +71,7 @@ export function AccountDeletion() {
       // Redirect to home page
       router.push('/');
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Account deletion error:', error);
-      }
+      // Account deletion error - handled by toast
       toast({
         title: 'Deletion failed',
         description:

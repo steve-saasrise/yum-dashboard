@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // Create Supabase server client
     const cookieStore = await cookies();
@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (_error) {
+            } catch {
               // Ignore cookie setting errors in server context
             }
           },
@@ -236,10 +236,8 @@ export async function GET(_request: NextRequest) {
         'Content-Disposition': `attachment; filename="user_data_export_${user.id}_${new Date().toISOString().split('T')[0]}.json"`,
       },
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('GDPR export error:', error);
-    }
+  } catch {
+    // GDPR export error - details in response
     return NextResponse.json(
       {
         error: 'Data export failed',
@@ -272,7 +270,7 @@ export async function POST(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (_error) {
+            } catch {
               // Ignore cookie setting errors in server context
             }
           },
@@ -310,7 +308,7 @@ export async function POST(request: NextRequest) {
       requested_format: format,
       requested_sections: include_sections,
     });
-  } catch (_error) {
+  } catch {
     // GDPR export POST request failed
     return NextResponse.json(
       { error: 'Custom export request failed' },

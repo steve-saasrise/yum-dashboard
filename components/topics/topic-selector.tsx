@@ -51,13 +51,7 @@ export function TopicSelector({
   const isMobile = useIsMobile();
 
   // Fetch topics on mount and when dropdown opens
-  useEffect(() => {
-    if (open || selectedTopics.length > 0) {
-      fetchTopics();
-    }
-  }, [open, selectedTopics.length]);
-
-  const fetchTopics = async () => {
+  const fetchTopics = useCallback(async () => {
     if (!session) {
       setLoading(false);
       return;
@@ -72,20 +66,26 @@ export function TopicSelector({
       });
 
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Topics API error:', response.status, errorData);
+        await response.text();
+        // Topics API error - will be thrown
         throw new Error(`Failed to fetch topics: ${response.status}`);
       }
 
       const result = await response.json();
       setTopics(result.data.topics);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load topics');
-      console.error('Error fetching topics:', error);
+      // Error fetching topics - handled by toast
     } finally {
       setLoading(false);
     }
-  };
+  }, [session]);
+
+  useEffect(() => {
+    if (open || selectedTopics.length > 0) {
+      fetchTopics();
+    }
+  }, [open, selectedTopics.length, fetchTopics]);
 
   const handleTopicSelect = (topicId: string) => {
     const isSelected = selectedTopics.includes(topicId);

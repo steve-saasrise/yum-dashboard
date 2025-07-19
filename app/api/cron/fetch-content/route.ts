@@ -19,34 +19,9 @@ function verifyCronAuth(request: NextRequest): boolean {
   return true;
 }
 
-// Rate limiting helper
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// Removed unused sleep function
 
-// Process feeds in batches to avoid overwhelming the system
-async function processFeedsInBatches<T>(
-  items: T[],
-  batchSize: number,
-  processor: (item: T) => Promise<any>
-): Promise<any[]> {
-  const results = [];
-
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    const batchResults = await Promise.all(
-      batch.map((item) => processor(item).catch((error) => ({ error, item })))
-    );
-    results.push(...batchResults);
-
-    // Add delay between batches to avoid rate limiting
-    if (i + batchSize < items.length) {
-      await sleep(1000); // 1 second delay between batches
-    }
-  }
-
-  return results;
-}
+// Removed unused processFeedsInBatches function
 
 export async function GET(request: NextRequest) {
   try {
@@ -80,7 +55,20 @@ export async function GET(request: NextRequest) {
       new: 0,
       updated: 0,
       errors: 0,
-      creators: [] as any[],
+      creators: [] as Array<{
+        id: string;
+        name: string;
+        urls: Array<{
+          url: string;
+          status: string;
+          message?: string;
+          fetched?: number;
+          new?: number;
+          updated?: number;
+          errors?: number;
+          error?: string;
+        }>;
+      }>,
     };
 
     // Get all RSS creators
@@ -100,7 +88,7 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true);
 
     if (creatorsError) {
-      console.error('Error fetching creators:', creatorsError);
+      // Error fetching creators - details in response
       return NextResponse.json(
         { error: 'Failed to fetch creators', details: creatorsError },
         { status: 500 }
@@ -119,14 +107,21 @@ export async function GET(request: NextRequest) {
       const creatorStats = {
         id: creator.id,
         name: creator.name,
-        urls: [] as any[],
+        urls: [] as Array<{
+          url: string;
+          status: string;
+          message?: string;
+          fetched?: number;
+          new?: number;
+          updated?: number;
+          errors?: number;
+          error?: string;
+        }>,
       };
 
       for (const creatorUrl of creator.creator_urls) {
         try {
-          console.log(
-            `Fetching RSS feed for ${creator.name}: ${creatorUrl.url}`
-          );
+          // Fetching RSS feed
 
           // Fetch RSS feed
           const result = await rssFetcher.parseURL(creatorUrl.url);
@@ -175,7 +170,7 @@ export async function GET(request: NextRequest) {
           stats.updated += results.updated;
           stats.errors += results.errors.length;
         } catch (error) {
-          console.error(`Error processing RSS feed ${creatorUrl.url}:`, error);
+          // Error processing RSS feed - details captured in stats
           stats.errors++;
           creatorStats.urls.push({
             url: creatorUrl.url,
@@ -199,7 +194,7 @@ export async function GET(request: NextRequest) {
         .eq('id', creator.id);
     }
 
-    console.log('Cron fetch completed:', stats);
+    // Cron fetch completed
 
     return NextResponse.json({
       success: true,
@@ -208,7 +203,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Cron fetch error:', error);
+    // Cron fetch error - details in response
     return NextResponse.json(
       {
         error: 'Internal server error',

@@ -136,19 +136,15 @@ export const SessionUtils = {
               document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
             }
           });
-        } catch (e) {
+        } catch {
           // Cookie clearing may fail in some browsers, but that's okay
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('Could not clear auth cookies:', e);
-          }
+          // Cookie clearing may fail in some browsers, but that's okay
         }
       }
 
       return { error };
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Enhanced logout error:', error);
-      }
+      // Enhanced logout error - handled by return
       return { error };
     }
   },
@@ -280,7 +276,11 @@ export const authConfig = {
 };
 
 // Helper function to handle magic link with enhanced configuration
-export async function sendMagicLink(email: string, additionalOptions?: any) {
+export async function sendMagicLink(email: string, additionalOptions?: {
+  captchaToken?: string;
+  shouldCreateUser?: boolean;
+  data?: Record<string, unknown>;
+}) {
   const supabase = createBrowserSupabaseClient();
 
   return await supabase.auth.signInWithOtp({
