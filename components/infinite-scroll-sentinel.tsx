@@ -17,7 +17,9 @@ export function InfiniteScrollSentinel({
   // Determine optimal rootMargin based on connection speed
   const getRootMargin = () => {
     if (typeof window !== 'undefined' && 'connection' in navigator) {
-      const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
+      const connection = (
+        navigator as Navigator & { connection?: { effectiveType?: string } }
+      ).connection;
       switch (connection?.effectiveType) {
         case '4g':
           return '800px'; // Load very early on fast connections
