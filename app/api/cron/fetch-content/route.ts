@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     );
     const contentService = new ContentService(supabase);
     const rssFetcher = new RSSFetcher();
-    
+
     // Initialize YouTube fetcher only if we have credentials
     let youtubeFetcher = null;
     if (process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_CLIENT_ID) {
@@ -183,12 +183,13 @@ export async function GET(request: NextRequest) {
               creatorStats.urls.push({
                 url: creatorUrl.url,
                 status: 'error',
-                error: 'YouTube API not configured. Please add YOUTUBE_API_KEY to environment variables.',
+                error:
+                  'YouTube API not configured. Please add YOUTUBE_API_KEY to environment variables.',
               });
               stats.errors++;
               continue;
             }
-            
+
             // Fetching YouTube videos
             const result = await youtubeFetcher.fetchChannelVideosByUrl(
               creatorUrl.url,

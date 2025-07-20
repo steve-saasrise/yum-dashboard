@@ -330,14 +330,16 @@ export class YouTubeFetcher {
             channelTitle: video.snippet.channelTitle || undefined,
             tags: video.snippet.tags || undefined,
             categoryId: video.snippet.categoryId || undefined,
-            liveBroadcastContent: video.snippet.liveBroadcastContent || undefined,
+            liveBroadcastContent:
+              video.snippet.liveBroadcastContent || undefined,
             localized: video.snippet.localized
               ? {
                   title: video.snippet.localized.title || '',
                   description: video.snippet.localized.description || '',
                 }
               : undefined,
-            defaultAudioLanguage: video.snippet.defaultAudioLanguage || undefined,
+            defaultAudioLanguage:
+              video.snippet.defaultAudioLanguage || undefined,
           }
         : undefined,
       contentDetails: video.contentDetails
@@ -375,7 +377,9 @@ export class YouTubeFetcher {
   /**
    * Normalize thumbnails from YouTube API
    */
-  private normalizeThumbnails(thumbnails?: youtube_v3.Schema$ThumbnailDetails): {
+  private normalizeThumbnails(
+    thumbnails?: youtube_v3.Schema$ThumbnailDetails
+  ): {
     default?: { url: string; width?: number; height?: number };
     medium?: { url: string; width?: number; height?: number };
     high?: { url: string; width?: number; height?: number };
@@ -383,7 +387,7 @@ export class YouTubeFetcher {
     maxres?: { url: string; width?: number; height?: number };
   } {
     const result: any = {};
-    
+
     if (thumbnails?.default?.url) {
       result.default = {
         url: thumbnails.default.url,
@@ -419,7 +423,7 @@ export class YouTubeFetcher {
         height: thumbnails.maxres.height ?? undefined,
       };
     }
-    
+
     return result;
   }
 
@@ -448,9 +452,12 @@ export class YouTubeFetcher {
       contentDetails: channel.contentDetails
         ? {
             relatedPlaylists: {
-              likes: channel.contentDetails.relatedPlaylists?.likes || undefined,
-              favorites: channel.contentDetails.relatedPlaylists?.favorites || undefined,
-              uploads: channel.contentDetails.relatedPlaylists?.uploads || undefined,
+              likes:
+                channel.contentDetails.relatedPlaylists?.likes || undefined,
+              favorites:
+                channel.contentDetails.relatedPlaylists?.favorites || undefined,
+              uploads:
+                channel.contentDetails.relatedPlaylists?.uploads || undefined,
             },
           }
         : undefined,
@@ -458,7 +465,8 @@ export class YouTubeFetcher {
         ? {
             viewCount: channel.statistics.viewCount || undefined,
             subscriberCount: channel.statistics.subscriberCount || undefined,
-            hiddenSubscriberCount: channel.statistics.hiddenSubscriberCount || undefined,
+            hiddenSubscriberCount:
+              channel.statistics.hiddenSubscriberCount || undefined,
             videoCount: channel.statistics.videoCount || undefined,
           }
         : undefined,
@@ -473,7 +481,9 @@ export class YouTubeFetcher {
     storageOptions: NonNullable<YouTubeFetchOptions['storage']>
   ): Promise<YouTubeFetchResult['storedContent']> {
     try {
-      const contentService = new ContentService(storageOptions.supabaseClient as SupabaseClient);
+      const contentService = new ContentService(
+        storageOptions.supabaseClient as SupabaseClient
+      );
       const normalizer = new ContentNormalizer();
 
       // Normalize all videos for storage

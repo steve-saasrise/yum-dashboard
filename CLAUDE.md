@@ -322,6 +322,7 @@ The project includes GDPR-compliant features:
 ## Platform Integration Gotchas
 
 ### Processing Status Requirement
+
 **CRITICAL**: When implementing new platform fetchers (Twitter, LinkedIn, Threads, etc.), you MUST:
 
 1. Update `lib/services/content-service.ts` line ~72 to include the new platform in the `processing_status` check
@@ -329,12 +330,13 @@ The project includes GDPR-compliant features:
 3. Only platforms explicitly set to `'processed'` will have their content displayed
 
 Example:
+
 ```typescript
 processing_status:
-  validatedInput.platform === 'rss' || 
+  validatedInput.platform === 'rss' ||
   validatedInput.platform === 'youtube' ||
   validatedInput.platform === 'twitter'  // Add new platform here
-    ? 'processed' 
+    ? 'processed'
     : 'pending',
 ```
 

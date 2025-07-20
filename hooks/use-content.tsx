@@ -6,6 +6,7 @@ import { useAuth } from './use-auth';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
 import type { ContentWithCreator } from '@/types/content';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { useViewportInfo } from './use-viewport-info';
 
 export interface ContentFilters {
   platform?: 'youtube' | 'twitter' | 'linkedin' | 'threads' | 'rss' | 'website';
@@ -40,6 +41,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
 
   const { state } = useAuth();
   const { session } = state;
+  const { batchSize } = useViewportInfo();
 
   const supabase = createBrowserSupabaseClient();
   const isFetchingRef = useRef(false);
@@ -66,7 +68,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
         const currentFilters = filtersRef.current;
 
         params.append('page', String(pageNumber));
-        params.append('limit', String(currentFilters?.limit || 20));
+        params.append('limit', String(currentFilters?.limit || batchSize));
 
         if (currentFilters?.platform)
           params.append('platform', currentFilters.platform);
@@ -129,6 +131,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     filters?.search,
     filters?.sort_by,
     filters?.sort_order,
+    batchSize,
   ]);
 
   // Set up real-time subscription for new content

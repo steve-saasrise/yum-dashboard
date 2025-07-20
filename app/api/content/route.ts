@@ -7,7 +7,7 @@ import type { ContentWithCreator } from '@/types/content';
 // Query parameters schema
 const querySchema = z.object({
   page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(20),
+  limit: z.coerce.number().min(1).max(100).default(21),
   platform: z
     .enum(['youtube', 'twitter', 'linkedin', 'threads', 'rss', 'website'])
     .optional(),

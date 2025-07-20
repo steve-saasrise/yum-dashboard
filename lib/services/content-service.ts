@@ -69,9 +69,9 @@ export class ContentService {
         // Only content with processing_status = 'processed' is shown to users
         // Add new platforms here when implementing their fetchers
         processing_status:
-          validatedInput.platform === 'rss' || 
-          validatedInput.platform === 'youtube' 
-            ? 'processed' 
+          validatedInput.platform === 'rss' ||
+          validatedInput.platform === 'youtube'
+            ? 'processed'
             : 'pending',
       })
       .select()

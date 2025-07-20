@@ -268,88 +268,93 @@ export function TopicSelector({
           className={cn(isMobile && 'text-base py-3')} // Larger on mobile
         />
         <CommandList className={cn(isMobile && 'max-h-[60vh]')}>
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-6">
-            <Loader2 className="h-4 w-4 animate-spin mb-2" />
-            <span className="text-sm text-muted-foreground">Loading topics...</span>
-          </div>
-        ) : (
-          <>
-            {filteredTopics.length === 0 && !showCreateOption && (
-              <CommandEmpty className="py-6">No topics found.</CommandEmpty>
-            )}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-6">
+              <Loader2 className="h-4 w-4 animate-spin mb-2" />
+              <span className="text-sm text-muted-foreground">
+                Loading topics...
+              </span>
+            </div>
+          ) : (
+            <>
+              {filteredTopics.length === 0 && !showCreateOption && (
+                <CommandEmpty className="py-6">No topics found.</CommandEmpty>
+              )}
 
-            {showCreateOption && (
-              <CommandGroup heading="Create new">
-                <CommandItem
-                  onSelect={handleCreateTopic}
-                  disabled={creatingTopic}
-                  className={cn(
-                    'cursor-pointer',
-                    isMobile && 'py-3' // Larger touch target on mobile
-                  )}
-                >
-                  {creatingTopic ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="mr-2 h-4 w-4" />
-                  )}
-                  Create "{searchQuery}"
-                </CommandItem>
-              </CommandGroup>
-            )}
+              {showCreateOption && (
+                <CommandGroup heading="Create new">
+                  <CommandItem
+                    onSelect={handleCreateTopic}
+                    disabled={creatingTopic}
+                    className={cn(
+                      'cursor-pointer',
+                      isMobile && 'py-3' // Larger touch target on mobile
+                    )}
+                  >
+                    {creatingTopic ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="mr-2 h-4 w-4" />
+                    )}
+                    Create "{searchQuery}"
+                  </CommandItem>
+                </CommandGroup>
+              )}
 
-            {filteredTopics.length > 0 && (
-              <CommandGroup heading="Topics">
-                {filteredTopics.map((topic) => {
-                  const isSelected = selectedTopics.includes(topic.id);
-                  return (
-                    <CommandItem
-                      key={topic.id}
-                      value={topic.name}
-                      onSelect={() => handleTopicSelect(topic.id)}
-                      className={cn(
-                        'cursor-pointer',
-                        isMobile && 'py-3' // Larger touch target on mobile
-                      )}
-                    >
-                      <Check
+              {filteredTopics.length > 0 && (
+                <CommandGroup heading="Topics">
+                  {filteredTopics.map((topic) => {
+                    const isSelected = selectedTopics.includes(topic.id);
+                    return (
+                      <CommandItem
+                        key={topic.id}
+                        value={topic.name}
+                        onSelect={() => handleTopicSelect(topic.id)}
                         className={cn(
-                          'mr-2 h-4 w-4',
-                          isSelected ? 'opacity-100' : 'opacity-0'
+                          'cursor-pointer',
+                          isMobile && 'py-3' // Larger touch target on mobile
                         )}
-                      />
-                      <div className="flex-1">
-                        <div
-                          className={cn('font-medium', isMobile && 'text-base')}
-                        >
-                          {topic.name}
-                        </div>
-                        {topic.description && (
+                      >
+                        <Check
+                          className={cn(
+                            'mr-2 h-4 w-4',
+                            isSelected ? 'opacity-100' : 'opacity-0'
+                          )}
+                        />
+                        <div className="flex-1">
                           <div
                             className={cn(
-                              'text-sm text-muted-foreground',
-                              isMobile && 'text-sm mt-0.5'
+                              'font-medium',
+                              isMobile && 'text-base'
                             )}
                           >
-                            {topic.description}
+                            {topic.name}
                           </div>
+                          {topic.description && (
+                            <div
+                              className={cn(
+                                'text-sm text-muted-foreground',
+                                isMobile && 'text-sm mt-0.5'
+                              )}
+                            >
+                              {topic.description}
+                            </div>
+                          )}
+                        </div>
+                        {topic.is_system_topic && (
+                          <Badge variant="outline" className="ml-2">
+                            System
+                          </Badge>
                         )}
-                      </div>
-                      {topic.is_system_topic && (
-                        <Badge variant="outline" className="ml-2">
-                          System
-                        </Badge>
-                      )}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            )}
-          </>
-        )}
-      </CommandList>
-    </Command>
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              )}
+            </>
+          )}
+        </CommandList>
+      </Command>
     </div>
   );
 
@@ -380,7 +385,8 @@ export function TopicSelector({
           sideOffset={8}
           onWheel={(e) => e.stopPropagation()}
           style={{
-            boxShadow: '0 -10px 15px -3px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+            boxShadow:
+              '0 -10px 15px -3px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
           }}
         >
           {CommandContent}

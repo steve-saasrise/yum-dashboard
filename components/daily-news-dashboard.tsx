@@ -96,6 +96,12 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
+import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel';
+import { BackToTop } from '@/components/back-to-top';
+import {
+  ContentSkeleton,
+  ContentSkeletonList,
+} from '@/components/content-skeleton';
 
 // --- MOCK DATA ---
 
@@ -1492,20 +1498,43 @@ export function DailyNewsDashboard() {
                     </div>
                   )}
                 </div>
-                {hasMore && (
-                  <div className="flex justify-center mt-8">
-                    <Button
-                      variant="outline"
-                      onClick={loadMore}
-                      disabled={isLoadingContent}
-                    >
-                      {isLoadingContent ? 'Loading...' : 'Load More'}
-                    </Button>
+                {/* Infinite scroll sentinel and loading skeletons */}
+                <InfiniteScrollSentinel
+                  onLoadMore={loadMore}
+                  hasMore={hasMore}
+                  loading={isLoadingContent}
+                />
+                {/* Show skeletons while loading more content */}
+                {isLoadingContent && content.length > 0 && (
+                  <div className="lg:hidden">
+                    <div className="grid grid-cols-1 gap-6">
+                      {[...Array(3)].map((_, i) => (
+                        <ContentSkeleton key={`mobile-skeleton-${i}`} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {isLoadingContent && content.length > 0 && (
+                  <div className="hidden lg:block">
+                    {view === 'grid' ? (
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
+                        {[...Array(6)].map((_, i) => (
+                          <ContentSkeleton key={`desktop-skeleton-${i}`} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-4 w-full">
+                        {[...Array(4)].map((_, i) => (
+                          <ContentSkeletonList key={`list-skeleton-${i}`} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </>
             )}
           </main>
+          <BackToTop />
         </SidebarInset>
       </div>
       <TopicManagementModal

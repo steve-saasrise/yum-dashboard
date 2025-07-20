@@ -135,11 +135,12 @@ export async function POST(request: NextRequest) {
     try {
       for (const info of urlsWithPlatforms) {
         // First check if this normalized URL exists for ANY user
-        const { data: globalUrlExists, error: globalCheckError } = await supabase
-          .from('creator_urls')
-          .select('id, normalized_url')
-          .eq('normalized_url', info.profileUrl)
-          .limit(1);
+        const { data: globalUrlExists, error: globalCheckError } =
+          await supabase
+            .from('creator_urls')
+            .select('id, normalized_url')
+            .eq('normalized_url', info.profileUrl)
+            .limit(1);
 
         if (globalCheckError) {
           checkError = globalCheckError;
@@ -163,15 +164,15 @@ export async function POST(request: NextRequest) {
             const belongsToCurrentUser = urlExists.some(
               (u: any) => u.creators?.user_id === user.id
             );
-            
+
             if (belongsToCurrentUser) {
               existingUrls.push(...urlExists);
             } else {
               // URL exists but belongs to another user
               return NextResponse.json(
-                { 
+                {
                   error: 'This creator URL is already in use',
-                  details: `The URL ${info.url} is already being tracked by another user.`
+                  details: `The URL ${info.url} is already being tracked by another user.`,
                 },
                 { status: 409 }
               );
@@ -260,14 +261,17 @@ export async function POST(request: NextRequest) {
       // Rollback creator creation
       await supabase.from('creators').delete().eq('id', newCreator.id);
       return NextResponse.json(
-        { 
+        {
           error: 'Failed to create creator URLs',
-          details: process.env.NODE_ENV === 'development' ? {
-            message: urlsError.message,
-            code: urlsError.code,
-            hint: urlsError.hint,
-            data: creatorUrlsData
-          } : undefined
+          details:
+            process.env.NODE_ENV === 'development'
+              ? {
+                  message: urlsError.message,
+                  code: urlsError.code,
+                  hint: urlsError.hint,
+                  data: creatorUrlsData,
+                }
+              : undefined,
         },
         { status: 500 }
       );
