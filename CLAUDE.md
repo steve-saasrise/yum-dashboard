@@ -319,6 +319,27 @@ The project includes GDPR-compliant features:
 - **Clean console**: Remove `console.log` statements from production code
 - **Proper error handling**: Always handle errors in catch blocks (no unused error variables)
 
+## Platform Integration Gotchas
+
+### Processing Status Requirement
+**CRITICAL**: When implementing new platform fetchers (Twitter, LinkedIn, Threads, etc.), you MUST:
+
+1. Update `lib/services/content-service.ts` line ~72 to include the new platform in the `processing_status` check
+2. Content with `processing_status = 'pending'` will NOT appear in the dashboard
+3. Only platforms explicitly set to `'processed'` will have their content displayed
+
+Example:
+```typescript
+processing_status:
+  validatedInput.platform === 'rss' || 
+  validatedInput.platform === 'youtube' ||
+  validatedInput.platform === 'twitter'  // Add new platform here
+    ? 'processed' 
+    : 'pending',
+```
+
+This was discovered during YouTube integration where content was being fetched and stored but not displaying because it remained in 'pending' status.
+
 ## Additional Resources
 
 - **Product Requirements**: See `scripts/updated_prd.txt` for full PRD

@@ -65,8 +65,14 @@ export class ContentService {
         reading_time_minutes,
         media_urls: validatedInput.media_urls || [],
         engagement_metrics: validatedInput.engagement_metrics || {},
+        // IMPORTANT: Content with processing_status = 'pending' will NOT appear in the dashboard
+        // Only content with processing_status = 'processed' is shown to users
+        // Add new platforms here when implementing their fetchers
         processing_status:
-          validatedInput.platform === 'rss' ? 'processed' : 'pending',
+          validatedInput.platform === 'rss' || 
+          validatedInput.platform === 'youtube' 
+            ? 'processed' 
+            : 'pending',
       })
       .select()
       .single();

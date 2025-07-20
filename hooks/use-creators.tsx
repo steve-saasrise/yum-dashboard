@@ -23,6 +23,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
     total: 0,
     totalPages: 0,
   });
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Use a ref to track if we're currently fetching to prevent duplicate calls
   const isFetchingRef = useRef(false);
@@ -198,7 +199,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
     };
 
     fetchCreators();
-  }, [authLoading, user, session, filters]);
+  }, [authLoading, user, session, filters, refreshTrigger]);
 
   const updateFilters = useCallback((newFilters: Partial<CreatorFilters>) => {
     setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
@@ -209,10 +210,8 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
   }, []);
 
   const refreshCreators = useCallback(() => {
-    // Reset the fetching ref and trigger a new fetch
-    isFetchingRef.current = false;
-    // Trigger re-render by updating a piece of state
-    setCreators((prev) => [...prev]);
+    // Increment the refresh trigger to force a new fetch
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   return {

@@ -134,21 +134,49 @@ export async function POST(request: NextRequest) {
 
     try {
       for (const info of urlsWithPlatforms) {
-        const { data: urlExists, error: urlCheckError } = await supabase
+        // First check if this normalized URL exists for ANY user
+        const { data: globalUrlExists, error: globalCheckError } = await supabase
           .from('creator_urls')
-          .select('url, creators!inner(display_name)')
-          .eq('creators.user_id', user.id)
-          .eq('platform', info.platform)
+          .select('id, normalized_url')
           .eq('normalized_url', info.profileUrl)
           .limit(1);
 
-        if (urlCheckError) {
-          checkError = urlCheckError;
+        if (globalCheckError) {
+          checkError = globalCheckError;
           break;
         }
 
-        if (urlExists && urlExists.length > 0) {
-          existingUrls.push(...urlExists);
+        // If it exists globally, check if it belongs to current user
+        if (globalUrlExists && globalUrlExists.length > 0) {
+          const { data: urlExists, error: urlCheckError } = await supabase
+            .from('creator_urls')
+            .select('url, creators!inner(display_name, user_id)')
+            .eq('normalized_url', info.profileUrl)
+            .limit(1);
+
+          if (urlCheckError) {
+            checkError = urlCheckError;
+            break;
+          }
+
+          if (urlExists && urlExists.length > 0) {
+            const belongsToCurrentUser = urlExists.some(
+              (u: any) => u.creators?.user_id === user.id
+            );
+            
+            if (belongsToCurrentUser) {
+              existingUrls.push(...urlExists);
+            } else {
+              // URL exists but belongs to another user
+              return NextResponse.json(
+                { 
+                  error: 'This creator URL is already in use',
+                  details: `The URL ${info.url} is already being tracked by another user.`
+                },
+                { status: 409 }
+              );
+            }
+          }
         }
       }
     } catch (error) {
@@ -172,16 +200,10 @@ export async function POST(request: NextRequest) {
     if (existingUrls && existingUrls.length > 0) {
       return NextResponse.json(
         {
-          error: 'One or more URLs already exist',
-          details: existingUrls.map((u) => ({
+          error: 'You are already tracking this creator',
+          details: existingUrls.map((u: any) => ({
             url: u.url,
-            creator:
-              'creators' in u &&
-              u.creators &&
-              typeof u.creators === 'object' &&
-              'display_name' in u.creators
-                ? u.creators.display_name
-                : undefined,
+            creator: u.creators?.display_name || 'Unknown',
           })),
         },
         { status: 409 }
@@ -230,11 +252,23 @@ export async function POST(request: NextRequest) {
 
     if (urlsError) {
       // Error creating creator URLs
+      console.error('Failed to create creator URLs:', {
+        error: urlsError,
+        data: creatorUrlsData,
+      });
 
       // Rollback creator creation
       await supabase.from('creators').delete().eq('id', newCreator.id);
       return NextResponse.json(
-        { error: 'Failed to create creator URLs' },
+        { 
+          error: 'Failed to create creator URLs',
+          details: process.env.NODE_ENV === 'development' ? {
+            message: urlsError.message,
+            code: urlsError.code,
+            hint: urlsError.hint,
+            data: creatorUrlsData
+          } : undefined
+        },
         { status: 500 }
       );
     }

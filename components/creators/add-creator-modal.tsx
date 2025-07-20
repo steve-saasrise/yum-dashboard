@@ -412,7 +412,7 @@ export function AddCreatorModal({
                   <div className="space-y-3">
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Paste any creator URL or channel link from YouTube, X, LinkedIn, Threads, or RSS feeds"
+                        placeholder="Enter creator URL (YouTube, X, LinkedIn, RSS...)"
                         value={urlInput}
                         onChange={(e) => {
                           setUrlInput(e.target.value);

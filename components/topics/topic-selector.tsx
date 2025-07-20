@@ -82,10 +82,11 @@ export function TopicSelector({
   }, [session]);
 
   useEffect(() => {
-    if (open || selectedTopics.length > 0) {
+    if (open && topics.length === 0) {
+      setLoading(true);
       fetchTopics();
     }
-  }, [open, selectedTopics.length, fetchTopics]);
+  }, [open, topics.length, fetchTopics]);
 
   const handleTopicSelect = (topicId: string) => {
     const isSelected = selectedTopics.includes(topicId);
@@ -201,19 +202,19 @@ export function TopicSelector({
       aria-label="Select topics"
       disabled={disabled}
       className={cn(
-        'w-full justify-between',
+        'w-full justify-between h-10',
         selectedTopics.length > 0 && 'h-auto min-h-10',
         isMobile && 'py-3' // Larger touch target on mobile
       )}
     >
-      <div className="flex flex-wrap gap-1 py-1">
+      <div className="flex flex-wrap gap-1">
         {selectedTopics.length > 0 ? (
           selectedTopicDetails.map((topic) => (
             <Badge
               key={topic.id}
               variant="secondary"
               className={cn(
-                'mr-1 mb-1',
+                'mr-1',
                 isMobile && 'text-sm py-1' // Slightly larger on mobile
               )}
             >
@@ -257,20 +258,21 @@ export function TopicSelector({
 
   // Common command content
   const CommandContent = (
-    <Command shouldFilter={false} className={cn(isMobile && 'h-full')}>
-      <CommandInput
-        ref={inputRef}
-        placeholder="Search or create topics..."
-        value={searchQuery}
-        onValueChange={setSearchQuery}
-        className={cn(isMobile && 'text-base py-3')} // Larger on mobile
-      />
-      <CommandList className={cn(isMobile && 'max-h-[60vh]')}>
+    <div className="pr-1">
+      <Command shouldFilter={false} className={cn(isMobile && 'h-full')}>
+        <CommandInput
+          ref={inputRef}
+          placeholder="Search or create topics..."
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+          className={cn(isMobile && 'text-base py-3')} // Larger on mobile
+        />
+        <CommandList className={cn(isMobile && 'max-h-[60vh]')}>
         {loading ? (
-          <CommandEmpty className="py-6">
-            <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
-            Loading topics...
-          </CommandEmpty>
+          <div className="flex flex-col items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin mb-2" />
+            <span className="text-sm text-muted-foreground">Loading topics...</span>
+          </div>
         ) : (
           <>
             {filteredTopics.length === 0 && !showCreateOption && (
@@ -348,6 +350,7 @@ export function TopicSelector({
         )}
       </CommandList>
     </Command>
+    </div>
   );
 
   if (isMobile) {
@@ -371,9 +374,14 @@ export function TopicSelector({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>{TriggerButton}</PopoverTrigger>
         <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] p-0"
+          className="w-[var(--radix-popover-trigger-width)] p-0 border-0"
           align="start"
+          side="top"
+          sideOffset={8}
           onWheel={(e) => e.stopPropagation()}
+          style={{
+            boxShadow: '0 -10px 15px -3px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }}
         >
           {CommandContent}
         </PopoverContent>

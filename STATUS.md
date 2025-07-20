@@ -477,32 +477,38 @@
 
 ## 💡 Next Session Should
 
-1. **IMMEDIATE**: Test the Automated Content Fetching System
-   - Start the dev server with `npm run dev`
-   - Test manual refresh button in dashboard
-   - Verify RSS content is fetched and displayed
-   - Check that bookmark/save functionality works
-   - Test the cron endpoint manually: `curl http://localhost:3000/api/cron/fetch-content`
-   - Monitor logs for any errors during fetching
+1. **Priority 1**: YouTube API Integration
+   - Set up YouTube Data API v3 credentials in Google Cloud Console
+   - Create YouTube fetcher service in `/lib/content-fetcher/youtube-fetcher.ts`
+   - Implement channel video listing with pagination support
+   - Extract video metadata (title, description, thumbnail, duration, view count)
+   - Handle API quotas and rate limiting
+   - Integrate with existing ContentNormalizer (stub already exists)
+   - Update content ingestion orchestrator to route YouTube URLs
+   - Test end-to-end: fetch videos → normalize → store → display in dashboard
+   - Add YouTube creators to test the integration
 
-2. **Deploy and Monitor**:
-   - Deploy to Vercel to enable cron jobs
-   - Add CRON_SECRET environment variable in Vercel dashboard
-   - Monitor Vercel Functions logs for cron execution
-   - Verify content is being fetched every 30 minutes automatically
-   - Check error rates and performance metrics
+2. **Priority 2**: Twitter API Integration
+   - Set up Twitter API v2 credentials (requires approved developer account)
+   - Create Twitter fetcher service following same patterns as RSS/YouTube
+   - Implement user timeline fetching with pagination
+   - Extract tweet data, media, and engagement metrics
+   - Handle Twitter's strict rate limiting
+   - Test with existing Twitter creators in the system
 
-3. **Next Priority**: YouTube API Integration
-   - Set up YouTube Data API v3 credentials
-   - Create YouTube fetcher service using existing patterns
-   - Integrate with ContentNormalizer (stub already exists)
-   - Test end-to-end: fetch videos → normalize → store → verify
+3. **Priority 3**: Content Display Improvements
+   - Add content source attribution (show creator name and platform icon)
+   - Implement read/unread status tracking
+   - Add content preview hover states
+   - Improve media display in content cards
+   - Add content type indicators (article, video, tweet, etc.)
 
-4. **Alternative**: Improve Content Display
-   - Add content source attribution (show which creator/platform)
-   - Implement content deduplication UI (mark duplicates)
-   - Add read/unread status tracking
-   - Improve content card design with better media display
+4. **Completed & Verified**:
+   - ✅ Automated Content Fetching System tested and working
+   - ✅ RSS feeds updating every 30 minutes via cron job
+   - ✅ Manual refresh button functional
+   - ✅ Content displaying correctly in dashboard
+   - ✅ 93 RSS articles successfully fetched and stored
 
 ---
 

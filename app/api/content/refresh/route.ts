@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { RSSFetcher } from '@/lib/content-fetcher/rss-fetcher';
+import { YouTubeFetcher } from '@/lib/content-fetcher/youtube-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
 import type { CreateContentInput } from '@/types/content';
@@ -39,6 +40,15 @@ export async function POST() {
     const contentService = new ContentService(supabase);
     const rssFetcher = new RSSFetcher();
     const normalizer = new ContentNormalizer();
+    
+    // Initialize YouTube fetcher only if we have credentials
+    let youtubeFetcher = null;
+    if (process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_CLIENT_ID) {
+      youtubeFetcher = new YouTubeFetcher({
+        apiKey: process.env.YOUTUBE_API_KEY,
+        // TODO: Add OAuth token support here if needed
+      });
+    }
     const stats = {
       processed: 0,
       new: 0,
@@ -60,7 +70,7 @@ export async function POST() {
       }>,
     };
 
-    // Get user's RSS creators
+    // Get user's RSS and YouTube creators
     const { data: creators, error: creatorsError } = await supabase
       .from('creators')
       .select(
@@ -73,7 +83,7 @@ export async function POST() {
         )
       `
       )
-      .eq('creator_urls.platform', 'rss')
+      .in('creator_urls.platform', ['rss', 'youtube'])
       .eq('user_id', user.id); // Only fetch user's creators
 
     if (creatorsError) {
@@ -86,7 +96,7 @@ export async function POST() {
 
     if (!creators || creators.length === 0) {
       return NextResponse.json({
-        message: 'No active RSS creators found',
+        message: 'No active creators found',
         stats,
       });
     }
@@ -110,55 +120,119 @@ export async function POST() {
 
       for (const creatorUrl of creator.creator_urls) {
         try {
-          // Fetching RSS feed
+          if (creatorUrl.platform === 'rss') {
+            // Fetching RSS feed
+            const result = await rssFetcher.parseURL(creatorUrl.url);
 
-          // Fetch RSS feed
-          const result = await rssFetcher.parseURL(creatorUrl.url);
+            if (
+              !result.success ||
+              !result.feed ||
+              !result.feed.items ||
+              result.feed.items.length === 0
+            ) {
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'empty',
+                message: result.error || 'No items in feed',
+              });
+              continue;
+            }
 
-          if (
-            !result.success ||
-            !result.feed ||
-            !result.feed.items ||
-            result.feed.items.length === 0
-          ) {
+            // Normalize and store each item (limit to 10 for manual refresh)
+            const items = result.feed.items.slice(0, 10);
+            const normalizedItems: CreateContentInput[] = items.map((item) =>
+              normalizer.normalize({
+                platform: 'rss',
+                platformData: item,
+                creator_id: creator.id,
+                sourceUrl: creatorUrl.url,
+              })
+            );
+
+            // Store content using the service
+            const results =
+              await contentService.storeMultipleContent(normalizedItems);
+
             creatorStats.urls.push({
               url: creatorUrl.url,
-              status: 'empty',
-              message: result.error || 'No items in feed',
+              status: 'success',
+              fetched: items.length,
+              new: results.created,
+              updated: results.updated,
+              errors: results.errors.length,
             });
-            continue;
+
+            stats.processed += items.length;
+            stats.new += results.created;
+            stats.updated += results.updated;
+            stats.errors += results.errors.length;
+          } else if (creatorUrl.platform === 'youtube') {
+            // Check if YouTube fetcher is initialized
+            if (!youtubeFetcher) {
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'error',
+                error: 'YouTube API not configured. Please add YOUTUBE_API_KEY to environment variables.',
+              });
+              stats.errors++;
+              continue;
+            }
+            
+            // Fetching YouTube videos
+            const result = await youtubeFetcher.fetchChannelVideosByUrl(
+              creatorUrl.url,
+              {
+                maxResults: 10, // Limit to 10 for manual refresh
+                storage: {
+                  enabled: true,
+                  supabaseClient: supabase,
+                  creator_id: creator.id,
+                },
+              }
+            );
+
+            if (!result.success) {
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'error',
+                error: result.error || 'Failed to fetch YouTube videos',
+              });
+              stats.errors++;
+              continue;
+            }
+
+            if (!result.videos || result.videos.length === 0) {
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'empty',
+                message: 'No videos found',
+              });
+              continue;
+            }
+
+            const storedContent = result.storedContent || {
+              created: 0,
+              updated: 0,
+              skipped: 0,
+              errors: [],
+            };
+
+            creatorStats.urls.push({
+              url: creatorUrl.url,
+              status: 'success',
+              fetched: result.videos.length,
+              new: storedContent.created,
+              updated: storedContent.updated,
+              errors: storedContent.errors.length,
+            });
+
+            stats.processed += result.videos.length;
+            stats.new += storedContent.created;
+            stats.updated += storedContent.updated;
+            stats.errors += storedContent.errors.length;
           }
-
-          // Normalize and store each item (limit to 10 for manual refresh)
-          const items = result.feed.items.slice(0, 10);
-          const normalizedItems: CreateContentInput[] = items.map((item) =>
-            normalizer.normalize({
-              platform: 'rss',
-              platformData: item,
-              creator_id: creator.id,
-              sourceUrl: creatorUrl.url,
-            })
-          );
-
-          // Store content using the service
-          const results =
-            await contentService.storeMultipleContent(normalizedItems);
-
-          creatorStats.urls.push({
-            url: creatorUrl.url,
-            status: 'success',
-            fetched: items.length,
-            new: results.created,
-            updated: results.updated,
-            errors: results.errors.length,
-          });
-
-          stats.processed += items.length;
-          stats.new += results.created;
-          stats.updated += results.updated;
-          stats.errors += results.errors.length;
         } catch (error) {
-          // Error processing RSS feed - details captured in stats
+          // Error processing content - details captured in stats
           stats.errors++;
           creatorStats.urls.push({
             url: creatorUrl.url,
