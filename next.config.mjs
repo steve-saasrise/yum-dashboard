@@ -16,7 +16,7 @@ const nextConfig = {
   env: {
     SKIP_ENV_VALIDATION: 'true',
   },
-  // Disable experimental features temporarily
+  // Disable experimental features
   experimental: {
     typedRoutes: false,
   },
