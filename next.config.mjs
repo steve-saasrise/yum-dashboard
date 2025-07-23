@@ -10,12 +10,8 @@ const nextConfig = {
   images: {
     unoptimized: false,
   },
-  // Disable static exports
+  // Use standalone output for Railway
   output: 'standalone',
-  // Skip validation during build
-  env: {
-    SKIP_ENV_VALIDATION: 'true',
-  },
   // Disable experimental features
   experimental: {
     typedRoutes: false,
