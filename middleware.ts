@@ -31,7 +31,8 @@ const SECURITY_HEADERS = {
 };
 
 export async function middleware(request: NextRequest) {
-  const { pathname, origin } = request.nextUrl;
+  const { pathname } = request.nextUrl;
+  const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const response = NextResponse.next();
 
   // Add security headers to all responses

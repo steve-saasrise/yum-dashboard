@@ -3,7 +3,9 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  // Use the configured app URL instead of extracting origin from request
+  const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const code = searchParams.get('code');
   // Check for redirectTo first (our app's parameter), then next, then default to /dashboard
   const redirectTo =
