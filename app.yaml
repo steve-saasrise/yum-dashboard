@@ -1,0 +1,27 @@
+name: yum-dashboard
+region: nyc
+services:
+  - name: web
+    environment_slug: node-js
+    github:
+      repo: steve-saasrise/yum-dashboard
+      branch: main
+      deploy_on_push: true
+    build_command: npm install --legacy-peer-deps && npm run build
+    run_command: npm start
+    http_port: 3000
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    instance_count: 1
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        type: SECRET
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        type: SECRET
+      - key: NEXT_PUBLIC_APP_URL
+        scope: RUN_AND_BUILD_TIME
+      - key: UPSTASH_REDIS_REST_URL
+        type: SECRET
+      - key: UPSTASH_REDIS_REST_TOKEN
+        type: SECRET
