@@ -31,15 +31,18 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('[Test] Error:', error);
-    
+
     // Check if it's still a rental error
     const isRentalError = error?.message?.includes('rent a paid Actor');
-    
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Unknown error',
-      isRentalError,
-      details: error,
-      actorUsed: 'red.cars/threads-scraper',
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        isRentalError,
+        details: error,
+        actorUsed: 'red.cars/threads-scraper',
+      },
+      { status: 500 }
+    );
   }
 }

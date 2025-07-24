@@ -259,6 +259,7 @@ interface AppSidebarProps {
     handle: string;
     category?: string;
     isActive?: boolean;
+    lastFetchedAt?: string;
   }>;
   isLoadingCreators: boolean;
 }
@@ -419,43 +420,86 @@ function AppSidebar({
                       No creators yet
                     </div>
                   ) : (
-                    creators.map((creator) => (
-                      <SidebarMenuItem
-                        key={creator.id}
-                        className="group/creator-item"
-                      >
-                        <SidebarMenuButton tooltip={creator.name}>
-                          <div className="relative">
-                            <Avatar className="w-5 h-5">
-                              <AvatarImage
-                                src={'/placeholder.svg'}
-                                alt={creator.name}
-                              />
-                              <AvatarFallback className="text-xs">
-                                {creator.name.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div
-                              className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${creator.isActive ? 'bg-green-500' : 'bg-gray-400'}`}
-                            />
-                          </div>
-                          <span className="truncate">{creator.name}</span>
-                          {creator.platform && (
-                            <SidebarMenuBadge className="group-hover/creator-item:opacity-0 transition-opacity duration-200">
-                              {creator.platform}
-                            </SidebarMenuBadge>
-                          )}
-                        </SidebarMenuButton>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/creator-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
-                          onClick={() => onCreatorEdit(creator)}
+                    creators.map((creator) => {
+                      const lastFetched = creator.lastFetchedAt
+                        ? new Date(creator.lastFetchedAt)
+                        : null;
+                      const now = new Date();
+                      const timeDiff = lastFetched
+                        ? now.getTime() - lastFetched.getTime()
+                        : null;
+                      const hoursAgo = timeDiff
+                        ? Math.floor(timeDiff / (1000 * 60 * 60))
+                        : null;
+                      const minutesAgo = timeDiff
+                        ? Math.floor(
+                            (timeDiff % (1000 * 60 * 60)) / (1000 * 60)
+                          )
+                        : null;
+
+                      let lastFetchedText = 'Never fetched';
+                      if (lastFetched && hoursAgo !== null) {
+                        if (hoursAgo === 0) {
+                          if (minutesAgo === 0) {
+                            lastFetchedText = 'Just now';
+                          } else {
+                            lastFetchedText = `${minutesAgo}m ago`;
+                          }
+                        } else if (hoursAgo < 24) {
+                          lastFetchedText = `${hoursAgo}h ago`;
+                        } else {
+                          const daysAgo = Math.floor(hoursAgo / 24);
+                          lastFetchedText = `${daysAgo}d ago`;
+                        }
+                      }
+
+                      return (
+                        <SidebarMenuItem
+                          key={creator.id}
+                          className="group/creator-item"
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </SidebarMenuItem>
-                    ))
+                          <SidebarMenuButton
+                            tooltip={`${creator.name} - Last updated: ${lastFetchedText}`}
+                          >
+                            <div className="relative">
+                              <Avatar className="w-5 h-5">
+                                <AvatarImage
+                                  src={'/placeholder.svg'}
+                                  alt={creator.name}
+                                />
+                                <AvatarFallback className="text-xs">
+                                  {creator.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div
+                                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${creator.isActive ? 'bg-green-500' : 'bg-gray-400'}`}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="truncate block">
+                                {creator.name}
+                              </span>
+                              <span className="text-xs text-muted-foreground truncate block">
+                                {lastFetchedText}
+                              </span>
+                            </div>
+                            {creator.platform && (
+                              <SidebarMenuBadge className="group-hover/creator-item:opacity-0 transition-opacity duration-200">
+                                {creator.platform}
+                              </SidebarMenuBadge>
+                            )}
+                          </SidebarMenuButton>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/creator-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
+                            onClick={() => onCreatorEdit(creator)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </SidebarMenuItem>
+                      );
+                    })
                   )}
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -470,13 +514,56 @@ function AppSidebar({
 function Header({
   onSignOut,
   onRefresh,
+  creators,
 }: {
   onSignOut: () => void;
   onRefresh?: () => void;
+  creators?: Array<{ lastFetchedAt?: string }>;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
+  const [canRefresh, setCanRefresh] = React.useState(true);
+  const [nextRefreshTime, setNextRefreshTime] = React.useState<Date | null>(
+    null
+  );
   // User not needed in this component
   const profile = useProfile();
+
+  // Check if we can refresh based on creators' last fetch times
+  React.useEffect(() => {
+    if (!creators || creators.length === 0) {
+      setCanRefresh(true);
+      return;
+    }
+
+    const now = new Date();
+    const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+    let earliestNextRefresh: Date | null = null;
+    let canRefreshNow = false;
+
+    for (const creator of creators) {
+      if (!creator.lastFetchedAt) {
+        // If any creator has never been fetched, we can refresh
+        canRefreshNow = true;
+        break;
+      }
+
+      const lastFetched = new Date(creator.lastFetchedAt);
+      if (lastFetched <= sixHoursAgo) {
+        // If any creator was fetched more than 6 hours ago, we can refresh
+        canRefreshNow = true;
+        break;
+      }
+
+      // Calculate when this creator can be refreshed
+      const nextRefresh = new Date(lastFetched.getTime() + 6 * 60 * 60 * 1000);
+      if (!earliestNextRefresh || nextRefresh < earliestNextRefresh) {
+        earliestNextRefresh = nextRefresh;
+      }
+    }
+
+    setCanRefresh(canRefreshNow);
+    setNextRefreshTime(earliestNextRefresh);
+  }, [creators]);
 
   const getInitials = (name?: string) => {
     if (!name) return profile?.email?.[0]?.toUpperCase() || 'U';
@@ -527,15 +614,37 @@ function Header({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                  onClick={onRefresh}
+                  className={`h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white ${!canRefresh ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={canRefresh ? onRefresh : undefined}
+                  disabled={!canRefresh}
                 >
-                  <RefreshCw className="h-5 w-5" />
+                  <RefreshCw
+                    className={`h-5 w-5 ${!canRefresh ? '' : 'transition-transform hover:rotate-180 duration-300'}`}
+                  />
                   <span className="sr-only">Refresh content</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Refresh content</p>
+                {canRefresh ? (
+                  <p>Refresh content</p>
+                ) : (
+                  <div className="text-center">
+                    <p className="font-medium">Refresh available</p>
+                    <p className="text-xs text-muted-foreground">
+                      {nextRefreshTime ? (
+                        <>
+                          at{' '}
+                          {nextRefreshTime.toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </>
+                      ) : (
+                        'Soon'
+                      )}
+                    </p>
+                  </div>
+                )}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -1230,11 +1339,18 @@ export function DailyNewsDashboard() {
             handle: c.platform_user_id || c.display_name,
             category: c.topics?.[0],
             isActive: c.is_active,
+            lastFetchedAt: c.metadata?.last_fetched_at as string | undefined,
           }))}
           isLoadingCreators={isLoadingCreators}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
-          <Header onSignOut={handleSignOut} onRefresh={refreshContent} />
+          <Header
+            onSignOut={handleSignOut}
+            onRefresh={refreshContent}
+            creators={creators.map((c) => ({
+              lastFetchedAt: c.metadata?.last_fetched_at as string | undefined,
+            }))}
+          />
           <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">

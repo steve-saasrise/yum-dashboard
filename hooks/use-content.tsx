@@ -314,7 +314,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     // First, trigger manual RSS fetch
     let toastId: string | number | undefined;
     try {
-      toastId = toast.loading('Fetching new content...');
+      toastId = toast.loading('Checking for new content...');
 
       const response = await fetch('/api/content/refresh', {
         method: 'POST',
@@ -327,9 +327,21 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
       if (response.ok) {
         const result = await response.json();
         toast.dismiss(toastId);
+
+        // Check if any creators were skipped
+        const skippedCreators =
+          result.stats.creators?.filter((c: any) =>
+            c.urls.some((u: any) => u.status === 'skipped')
+          ) || [];
+
+        if (skippedCreators.length > 0) {
+          const skipMessage = skippedCreators[0].urls[0].message;
+          toast.warning(`Some creators were skipped: ${skipMessage}`);
+        }
+
         if (result.stats.new > 0) {
           toast.success(`Added ${result.stats.new} new items`);
-        } else {
+        } else if (skippedCreators.length === 0) {
           toast.info('No new content found');
         }
       } else {

@@ -83,7 +83,10 @@ export class ApifyFetcher {
     );
 
     const input: TwitterActorInput = {
-      startUrls: urls,
+      // Check if we're using a search query or direct URL
+      ...(urls[0].includes('from:')
+        ? { searchTerms: urls }
+        : { startUrls: urls }),
       maxItems: options?.maxTweets || 20,
       sort: 'Latest',
     };

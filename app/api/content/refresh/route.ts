@@ -86,6 +86,7 @@ export async function POST() {
         `
         id,
         display_name,
+        metadata,
         creator_urls!inner (
           url,
           platform
@@ -132,6 +133,21 @@ export async function POST() {
           error?: string;
         }>,
       };
+
+      // Check if we've fetched recently (within 6 hours)
+      const lastFetchedAt = creator.metadata?.last_fetched_at;
+      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+
+      if (lastFetchedAt && new Date(lastFetchedAt) > sixHoursAgo) {
+        // Skip this creator - fetched too recently
+        creatorStats.urls.push({
+          url: creator.creator_urls[0]?.url || 'unknown',
+          status: 'skipped',
+          message: `Recently fetched at ${new Date(lastFetchedAt).toLocaleString()}. Next fetch available after ${new Date(new Date(lastFetchedAt).getTime() + 6 * 60 * 60 * 1000).toLocaleString()}`,
+        });
+        stats.creators.push(creatorStats);
+        continue;
+      }
 
       for (const creatorUrl of creator.creator_urls) {
         try {
@@ -259,12 +275,35 @@ export async function POST() {
               continue;
             }
 
-            // Fetching Twitter/X content
+            // Fetching Twitter/X content with time-based filtering
             try {
+              // For Twitter, we can use since: in the search query
+              // Extract username from URL
+              const twitterMatch = creatorUrl.url.match(
+                /twitter\.com\/([^/]+)|x\.com\/([^/]+)/
+              );
+              const twitterUsername = twitterMatch
+                ? twitterMatch[1] || twitterMatch[2]
+                : null;
+
+              if (!twitterUsername) {
+                throw new Error('Could not extract username from Twitter URL');
+              }
+
+              // Build time-filtered query if we have a last fetch date
+              let searchUrl = creatorUrl.url;
+              if (lastFetchedAt) {
+                const sinceDate = new Date(lastFetchedAt)
+                  .toISOString()
+                  .split('T')[0];
+                // Use Twitter's advanced search with from: and since:
+                searchUrl = `from:${twitterUsername} since:${sinceDate}`;
+              }
+
               const items = await apifyFetcher.fetchTwitterContent(
-                [creatorUrl.url],
+                [searchUrl],
                 {
-                  maxTweets: 10, // Limit to 10 for manual refresh
+                  maxTweets: 20, // Increased since we're filtering by date
                 }
               );
 
@@ -402,13 +441,27 @@ export async function POST() {
               continue;
             }
 
-            // Fetching LinkedIn content
+            // Fetching LinkedIn content with date filtering
             try {
+              // LinkedIn actor supports published_after parameter
+              const fetchOptions: {
+                maxResults?: number;
+                published_after?: string;
+              } = {
+                maxResults: 20, // Increased since we're filtering
+              };
+
+              // Add date filter if we have last fetch time
+              if (lastFetchedAt) {
+                // LinkedIn actor expects YYYY-MM-DD format
+                fetchOptions.published_after = new Date(lastFetchedAt)
+                  .toISOString()
+                  .split('T')[0];
+              }
+
               const items = await apifyFetcher.fetchLinkedInContent(
                 [creatorUrl.url],
-                {
-                  maxResults: 10, // Limit to 10 for manual refresh
-                }
+                fetchOptions
               );
 
               if (!items || items.length === 0) {
