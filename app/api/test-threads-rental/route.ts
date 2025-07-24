@@ -13,7 +13,7 @@ export async function GET() {
       apiKey: process.env.APIFY_API_KEY,
     });
 
-    console.log('[Test] Testing red.cars/threads-scraper after rental');
+    console.log('[Test] Testing curious_coder/threads-scraper');
 
     // Test with Selena Gomez
     const items = await fetcher.fetchThreadsContent(['selenagomez'], {
@@ -22,8 +22,8 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: 'Threads actor is working after rental!',
-      actorUsed: 'red.cars/threads-scraper',
+      message: 'Threads actor is working!',
+      actorUsed: 'curious_coder/threads-scraper',
       itemsCount: items.length,
       items: items.slice(0, 3), // Show first 3 items
       sampleItem: items[0],
@@ -40,7 +40,7 @@ export async function GET() {
         error: error instanceof Error ? error.message : 'Unknown error',
         isRentalError,
         details: error,
-        actorUsed: 'red.cars/threads-scraper',
+        actorUsed: 'curious_coder/threads-scraper',
       },
       { status: 500 }
     );

@@ -134,20 +134,10 @@ export async function POST() {
         }>,
       };
 
-      // Check if we've fetched recently (within 6 hours)
-      const lastFetchedAt = creator.metadata?.last_fetched_at;
-      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-
-      if (lastFetchedAt && new Date(lastFetchedAt) > sixHoursAgo) {
-        // Skip this creator - fetched too recently
-        creatorStats.urls.push({
-          url: creator.creator_urls[0]?.url || 'unknown',
-          status: 'skipped',
-          message: `Recently fetched at ${new Date(lastFetchedAt).toLocaleString()}. Next fetch available after ${new Date(new Date(lastFetchedAt).getTime() + 6 * 60 * 60 * 1000).toLocaleString()}`,
-        });
-        stats.creators.push(creatorStats);
-        continue;
-      }
+      // Get last fetched timestamp from creator metadata
+      const lastFetchedAt = creator.metadata?.last_fetched_at as
+        | string
+        | undefined;
 
       for (const creatorUrl of creator.creator_urls) {
         try {
@@ -453,10 +443,11 @@ export async function POST() {
 
               // Add date filter if we have last fetch time
               if (lastFetchedAt) {
-                // LinkedIn actor expects YYYY-MM-DD format
-                fetchOptions.published_after = new Date(lastFetchedAt)
-                  .toISOString()
-                  .split('T')[0];
+                // apimaestro actor will filter posts client-side in transformLinkedInData
+                fetchOptions.published_after = lastFetchedAt;
+                console.log(
+                  `[Refresh] LinkedIn filtering posts after: ${lastFetchedAt}`
+                );
               }
 
               const items = await apifyFetcher.fetchLinkedInContent(

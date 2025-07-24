@@ -38,20 +38,15 @@ export interface TwitterActorInput {
 
 export interface ThreadsActorInput {
   urls: string[];
-  maxPosts?: number;
-  includeComments?: boolean;
-  onlyVerified?: boolean;
-  minEngagement?: number;
-  proxyConfiguration?: {
-    useApifyProxy: boolean;
-  };
+  postsPerSource?: number;
 }
 
 export interface LinkedInActorInput {
-  urls: string[];
-  limit?: number;
-  published_before?: string;
-  published_after?: string;
+  username?: string;
+  url?: string;
+  page_number?: number;
+  pagination_token?: string;
+  total_posts_to_scrape?: number;
 }
 
 export class ApifyFetcher {
@@ -60,8 +55,8 @@ export class ApifyFetcher {
   // Actor IDs for the official Apify scrapers
   private static readonly ACTORS = {
     TWITTER: 'apidojo/tweet-scraper',
-    THREADS: 'red.cars/threads-scraper', // Switched to rented actor
-    LINKEDIN: 'riceman/linkedin-posts-scraper',
+    THREADS: 'curious_coder/threads-scraper', // Updated to curious_coder actor
+    LINKEDIN: 'apimaestro/linkedin-profile-posts', // Updated to apimaestro actor (pay-per-result)
   };
 
   constructor(config: ApifyConfig) {
@@ -128,18 +123,20 @@ export class ApifyFetcher {
       `[ApifyFetcher] Fetching Threads content for ${usernames.length} users`
     );
 
+    // curious_coder/threads-scraper expects usernames with @ prefix
     const input: ThreadsActorInput = {
-      urls: usernames.map((username) =>
-        username.replace('@', '').replace('https://www.threads.net/@', '')
-      ),
-      maxPosts: options?.resultsLimit || 50,
-      includeComments: false,
-      onlyVerified: false,
-      minEngagement: 0,
-      proxyConfiguration: {
-        useApifyProxy: true,
-      },
+      urls: usernames.map((username) => {
+        // Ensure username has @ prefix
+        const cleanUsername = username
+          .replace('https://www.threads.net/@', '')
+          .replace('https://threads.net/@', '')
+          .replace('@', '');
+        return `@${cleanUsername}`;
+      }),
+      postsPerSource: options?.resultsLimit || 25,
     };
+
+    console.log('[ApifyFetcher] Threads actor input:', input);
 
     try {
       const run = await this.client
@@ -169,41 +166,63 @@ export class ApifyFetcher {
 
   async fetchLinkedInContent(
     profileUrls: string[],
-    options?: { maxResults?: number }
+    options?: { maxResults?: number; published_after?: string }
   ): Promise<CreateContentInput[]> {
     console.log(
       `[ApifyFetcher] Fetching LinkedIn content for ${profileUrls.length} profiles`
     );
 
-    const input: LinkedInActorInput = {
-      urls: profileUrls,
-      limit: options?.maxResults || 20,
-    };
+    // apimaestro/linkedin-profile-posts expects single profile per run
+    const allContent: CreateContentInput[] = [];
 
-    try {
-      const run = await this.client
-        .actor(ApifyFetcher.ACTORS.LINKEDIN)
-        .call(input, {
-          memory: 1024,
-          timeout: 300,
-        });
+    for (const profileUrl of profileUrls) {
+      // Extract username from URL or use as-is if already username
+      const username = profileUrl.includes('linkedin.com/in/')
+        ? profileUrl.split('/in/')[1]?.split('/')[0]
+        : profileUrl;
 
-      if (!run.defaultDatasetId) {
-        console.error(
-          '[ApifyFetcher] No dataset ID returned from LinkedIn actor'
+      const input: LinkedInActorInput = {
+        username: username,
+        page_number: 1,
+        total_posts_to_scrape: options?.maxResults || 20,
+      };
+
+      console.log('[ApifyFetcher] LinkedIn actor input:', input);
+
+      try {
+        const run = await this.client
+          .actor(ApifyFetcher.ACTORS.LINKEDIN)
+          .call(input, {
+            memory: 1024,
+            timeout: 300,
+          });
+
+        if (!run.defaultDatasetId) {
+          console.error(
+            '[ApifyFetcher] No dataset ID returned from LinkedIn actor'
+          );
+          continue;
+        }
+
+        const { items } = await this.client
+          .dataset(run.defaultDatasetId)
+          .listItems();
+
+        const transformedItems = this.transformLinkedInData(
+          items,
+          options?.published_after
         );
-        return [];
+        allContent.push(...transformedItems);
+      } catch (error) {
+        console.error(
+          `[ApifyFetcher] Error fetching LinkedIn content for ${profileUrl}:`,
+          error
+        );
+        // Continue with other profiles instead of throwing
       }
-
-      const { items } = await this.client
-        .dataset(run.defaultDatasetId)
-        .listItems();
-
-      return this.transformLinkedInData(items);
-    } catch (error) {
-      console.error('[ApifyFetcher] Error fetching LinkedIn content:', error);
-      throw error;
     }
+
+    return allContent;
   }
 
   private transformTwitterData(items: any[]): CreateContentInput[] {
@@ -217,17 +236,19 @@ export class ApifyFetcher {
         `https://twitter.com/i/status/${tweet.id}`,
       title: `Tweet by @${tweet.author?.userName || 'unknown'}`,
       description: tweet.text || '',
-      content_url:
-        tweet.url ||
-        tweet.twitterUrl ||
-        `https://twitter.com/i/status/${tweet.id}`,
       published_at: tweet.createdAt
         ? new Date(tweet.createdAt).toISOString()
         : new Date().toISOString(),
       media_urls: tweet.extendedEntities?.media
-        ? tweet.extendedEntities.media.map(
-            (media: any) => media.media_url_https || media.url
-          )
+        ? tweet.extendedEntities.media.map((media: any) => ({
+            url: media.media_url_https || media.url,
+            type:
+              media.type === 'video' || media.type === 'animated_gif'
+                ? ('video' as const)
+                : ('image' as const),
+            width: media.sizes?.large?.w,
+            height: media.sizes?.large?.h,
+          }))
         : [],
       engagement_metrics: {
         likes: tweet.likeCount || 0,
@@ -235,95 +256,207 @@ export class ApifyFetcher {
         shares: tweet.retweetCount || 0,
         views: tweet.viewCount || 0,
       },
-      metadata: {
-        author_username: tweet.author?.userName,
-        author_name: tweet.author?.name,
-        author_avatar: tweet.author?.profilePicture,
-        is_reply: tweet.isReply || false,
-        is_retweet: tweet.isRetweet || false,
-        is_quote: tweet.isQuote || false,
-        quoted_tweet_id: tweet.quoteId,
-        language: tweet.lang,
-      },
     }));
   }
 
   private transformThreadsData(items: any[]): CreateContentInput[] {
-    // red.cars/threads-scraper returns a flat array with type field
-    // Filter for post type items (skip profile items)
-    const posts = items.filter((item) => item.type === 'post');
+    // curious_coder/threads-scraper returns posts directly without type field
+    // Log the first post to see what fields are available
+    if (items.length > 0) {
+      console.log(
+        '[ApifyFetcher] Sample Threads post data:',
+        JSON.stringify(items[0], null, 2)
+      );
+    }
 
-    return posts.map((post) => ({
-      platform: 'threads' as const,
-      platform_content_id: post.postId || post.id || '',
-      creator_id: '', // Will be set by the content service
-      url: post.postUrl || '',
-      title: `Thread by @${post.username || 'unknown'}`,
-      description: post.postText || '',
-      content_url: post.postUrl || '',
-      published_at: post.timestamp
-        ? new Date(post.timestamp).toISOString()
-        : new Date().toISOString(),
-      media_urls: [
-        ...(post.imageUrls || []),
-        ...(post.videoUrls || []),
-        ...(post.mediaUrls || []),
-      ].filter(Boolean),
-      engagement_metrics: {
-        likes: post.likes || 0,
-        comments: post.replies || 0,
-        shares: post.reposts || post.quotes || 0,
-        views: 0, // Not available in Threads API
-      },
-      metadata: {
-        author_username: post.username,
-        author_name: post.displayName || post.username,
-        author_avatar: post.profilePicUrl,
-        is_verified: post.isVerified || false,
-        hashtags: post.hashtags || [],
-        mentions: post.mentions || [],
-      },
-    }));
+    return items.map((post) => {
+      // Generate URL from the code field (Instagram-style URL structure)
+      const postUrl = post.code
+        ? `https://www.threads.net/@${post.user?.username}/post/${post.code}`
+        : '';
+
+      // Extract media URLs from different possible structures
+      const mediaUrls: CreateContentInput['media_urls'] = [];
+
+      // Check for image candidates in image_versions2
+      if (
+        post.image_versions2?.candidates &&
+        Array.isArray(post.image_versions2.candidates)
+      ) {
+        post.image_versions2.candidates.forEach((c: any) => {
+          if (c.url) {
+            mediaUrls.push({
+              url: c.url,
+              type: 'image',
+              width: c.width,
+              height: c.height,
+            });
+          }
+        });
+      }
+
+      // Check for video versions
+      if (post.video_versions && Array.isArray(post.video_versions)) {
+        post.video_versions.forEach((v: any) => {
+          if (v.url) {
+            mediaUrls.push({
+              url: v.url,
+              type: 'video',
+              width: v.width,
+              height: v.height,
+            });
+          }
+        });
+      }
+
+      // Check for carousel media
+      if (post.carousel_media && Array.isArray(post.carousel_media)) {
+        post.carousel_media.forEach((media: any) => {
+          if (media.image_versions2?.candidates) {
+            media.image_versions2.candidates.forEach((c: any) => {
+              if (c.url) {
+                mediaUrls.push({
+                  url: c.url,
+                  type: 'image',
+                  width: c.width,
+                  height: c.height,
+                });
+              }
+            });
+          }
+          if (media.video_versions) {
+            media.video_versions.forEach((v: any) => {
+              if (v.url) {
+                mediaUrls.push({
+                  url: v.url,
+                  type: 'video',
+                  width: v.width,
+                  height: v.height,
+                });
+              }
+            });
+          }
+        });
+      }
+
+      return {
+        platform: 'threads' as const,
+        platform_content_id: post.id || post.pk || '',
+        creator_id: '', // Will be set by the content service
+        url: postUrl,
+        title: `Thread by @${post.user?.username || 'unknown'}`,
+        description: post.caption?.text || '',
+        // Use taken_at field which is a Unix timestamp in seconds
+        published_at: post.taken_at
+          ? new Date(post.taken_at * 1000).toISOString()
+          : new Date().toISOString(),
+        media_urls: mediaUrls,
+        engagement_metrics: {
+          likes: post.like_count || 0,
+          comments: parseInt(post.reply_count) || 0, // reply_count is returned as string
+          shares: 0, // Not available in the API response
+          views: 0, // Not available in Threads API
+        },
+      };
+    });
   }
 
-  private transformLinkedInData(items: any[]): CreateContentInput[] {
-    return items.map((post) => ({
-      platform: 'linkedin' as const,
-      platform_content_id: post.urn || post.url,
-      creator_id: '', // Will be set by the content service
-      url: post.url || '',
-      title: `LinkedIn post by ${post.author_name || 'unknown'}`,
-      description: post.text || '',
-      content_url: post.url || '',
-      published_at: post.posted_at || new Date().toISOString(),
-      media_urls: [
-        ...(post.media_images || []),
-        ...(post.media_url ? [post.media_url] : []),
-      ],
-      engagement_metrics: {
-        likes: post.total_reactions_count || 0,
-        comments: post.comments_count || 0,
-        shares: post.reposts_count || 0,
-        views: 0, // Not available
-      },
-      metadata: {
-        author_name: post.author_name,
-        author_headline: post.author_headline,
-        author_avatar: post.author_profile_picture,
-        author_username: post.author_username,
-        author_profile_url: post.author_profile_url,
-        post_type: post.post_type,
-        media_type: post.media_type,
-        reactions: {
-          like: post.like_count || 0,
-          celebrate: post.celebrate_count || 0,
-          support: post.support_count || 0,
-          love: post.love_count || 0,
-          insightful: post.insightful_count || 0,
-          funny: post.funny_count || 0,
-        },
-      },
-    }));
+  private transformLinkedInData(
+    items: any[],
+    publishedAfter?: string
+  ): CreateContentInput[] {
+    // apimaestro/linkedin-profile-posts returns a structured response
+    const results: CreateContentInput[] = [];
+
+    // Log the first item structure to understand the format
+    if (items.length > 0) {
+      console.log(
+        '[ApifyFetcher] Sample LinkedIn response:',
+        JSON.stringify(items[0], null, 2)
+      );
+    }
+
+    for (const item of items) {
+      // The actor returns data in a nested structure
+      const response = item.data || item;
+      const posts = response.posts || [response];
+
+      for (const post of posts) {
+        // Skip if post is older than publishedAfter date
+        if (publishedAfter && post.posted_at?.timestamp) {
+          const postDate = new Date(post.posted_at.timestamp);
+          const filterDate = new Date(publishedAfter);
+          if (postDate < filterDate) {
+            continue;
+          }
+        }
+
+        // Extract media URLs from various formats
+        const mediaUrls: CreateContentInput['media_urls'] = [];
+
+        // Handle single media
+        if (post.media) {
+          if (post.media.url) {
+            mediaUrls.push({
+              url: post.media.url,
+              type: post.media.type === 'video' ? 'video' : 'image',
+            });
+          }
+          // Handle multiple images
+          if (post.media.images && Array.isArray(post.media.images)) {
+            post.media.images.forEach((img: any) => {
+              if (img.url) {
+                mediaUrls.push({
+                  url: img.url,
+                  type: 'image',
+                  width: img.width,
+                  height: img.height,
+                });
+              }
+            });
+          }
+        }
+
+        // Handle article attachments
+        if (post.article?.thumbnail) {
+          mediaUrls.push({
+            url: post.article.thumbnail,
+            type: 'image',
+          });
+        }
+
+        // Handle document thumbnails
+        if (post.document?.thumbnail) {
+          mediaUrls.push({
+            url: post.document.thumbnail,
+            type: 'image',
+          });
+        }
+
+        results.push({
+          platform: 'linkedin' as const,
+          platform_content_id: post.urn || post.full_urn || '',
+          creator_id: '', // Will be set by the content service
+          url: post.url || '',
+          title:
+            `LinkedIn post by ${post.author?.first_name || ''} ${post.author?.last_name || ''}`.trim() ||
+            'LinkedIn post',
+          description: post.text || '',
+          published_at: post.posted_at?.timestamp
+            ? new Date(post.posted_at.timestamp).toISOString()
+            : post.posted_at?.date || new Date().toISOString(),
+          media_urls: mediaUrls,
+          engagement_metrics: {
+            likes: post.stats?.like || 0,
+            comments: post.stats?.comments || 0,
+            shares: post.stats?.reposts || 0,
+            views: 0, // Not available
+          },
+        });
+      }
+    }
+
+    return results;
   }
 
   async testConnection(): Promise<boolean> {

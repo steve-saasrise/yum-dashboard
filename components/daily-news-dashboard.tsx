@@ -479,9 +479,6 @@ function AppSidebar({
                               <span className="truncate block">
                                 {creator.name}
                               </span>
-                              <span className="text-xs text-muted-foreground truncate block">
-                                {lastFetchedText}
-                              </span>
                             </div>
                             {creator.platform && (
                               <SidebarMenuBadge className="group-hover/creator-item:opacity-0 transition-opacity duration-200">
@@ -514,56 +511,13 @@ function AppSidebar({
 function Header({
   onSignOut,
   onRefresh,
-  creators,
 }: {
   onSignOut: () => void;
   onRefresh?: () => void;
-  creators?: Array<{ lastFetchedAt?: string }>;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
-  const [canRefresh, setCanRefresh] = React.useState(true);
-  const [nextRefreshTime, setNextRefreshTime] = React.useState<Date | null>(
-    null
-  );
   // User not needed in this component
   const profile = useProfile();
-
-  // Check if we can refresh based on creators' last fetch times
-  React.useEffect(() => {
-    if (!creators || creators.length === 0) {
-      setCanRefresh(true);
-      return;
-    }
-
-    const now = new Date();
-    const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-    let earliestNextRefresh: Date | null = null;
-    let canRefreshNow = false;
-
-    for (const creator of creators) {
-      if (!creator.lastFetchedAt) {
-        // If any creator has never been fetched, we can refresh
-        canRefreshNow = true;
-        break;
-      }
-
-      const lastFetched = new Date(creator.lastFetchedAt);
-      if (lastFetched <= sixHoursAgo) {
-        // If any creator was fetched more than 6 hours ago, we can refresh
-        canRefreshNow = true;
-        break;
-      }
-
-      // Calculate when this creator can be refreshed
-      const nextRefresh = new Date(lastFetched.getTime() + 6 * 60 * 60 * 1000);
-      if (!earliestNextRefresh || nextRefresh < earliestNextRefresh) {
-        earliestNextRefresh = nextRefresh;
-      }
-    }
-
-    setCanRefresh(canRefreshNow);
-    setNextRefreshTime(earliestNextRefresh);
-  }, [creators]);
 
   const getInitials = (name?: string) => {
     if (!name) return profile?.email?.[0]?.toUpperCase() || 'U';
@@ -614,37 +568,15 @@ function Header({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white ${!canRefresh ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={canRefresh ? onRefresh : undefined}
-                  disabled={!canRefresh}
+                  className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                  onClick={onRefresh}
                 >
-                  <RefreshCw
-                    className={`h-5 w-5 ${!canRefresh ? '' : 'transition-transform hover:rotate-180 duration-300'}`}
-                  />
+                  <RefreshCw className="h-5 w-5 transition-transform hover:rotate-180 duration-300" />
                   <span className="sr-only">Refresh content</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {canRefresh ? (
-                  <p>Refresh content</p>
-                ) : (
-                  <div className="text-center">
-                    <p className="font-medium">Refresh available</p>
-                    <p className="text-xs text-muted-foreground">
-                      {nextRefreshTime ? (
-                        <>
-                          at{' '}
-                          {nextRefreshTime.toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </>
-                      ) : (
-                        'Soon'
-                      )}
-                    </p>
-                  </div>
-                )}
+                <p>Refresh content</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -1344,13 +1276,7 @@ export function DailyNewsDashboard() {
           isLoadingCreators={isLoadingCreators}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
-          <Header
-            onSignOut={handleSignOut}
-            onRefresh={refreshContent}
-            creators={creators.map((c) => ({
-              lastFetchedAt: c.metadata?.last_fetched_at as string | undefined,
-            }))}
-          />
+          <Header onSignOut={handleSignOut} onRefresh={refreshContent} />
           <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">

@@ -14,19 +14,22 @@ export async function GET() {
     });
 
     console.log(
-      '[Test] Testing curious_coder/threads-scraper with username: aaron.rupar'
+      '[Test] Testing apimaestro/linkedin-profile-posts with satyanadella profile'
     );
 
-    // Test with just the username
-    const items = await fetcher.fetchThreadsContent(['aaron.rupar'], {
-      resultsLimit: 5,
-    });
+    // Test with a LinkedIn profile URL
+    const items = await fetcher.fetchLinkedInContent(
+      ['https://www.linkedin.com/in/satyanadella/'],
+      {
+        maxResults: 5,
+      }
+    );
 
     return NextResponse.json({
       success: true,
       itemsCount: items.length,
       items: items,
-      actorUsed: 'curious_coder/threads-scraper',
+      actorUsed: 'apimaestro/linkedin-profile-posts',
     });
   } catch (error) {
     console.error('[Test] Error:', error);
