@@ -70,7 +70,10 @@ export class ContentService {
         // Add new platforms here when implementing their fetchers
         processing_status:
           validatedInput.platform === 'rss' ||
-          validatedInput.platform === 'youtube'
+          validatedInput.platform === 'youtube' ||
+          validatedInput.platform === 'twitter' ||
+          validatedInput.platform === 'threads' ||
+          validatedInput.platform === 'linkedin'
             ? 'processed'
             : 'pending',
       })

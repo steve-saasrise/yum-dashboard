@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { RSSFetcher } from '@/lib/content-fetcher/rss-fetcher';
 import { YouTubeFetcher } from '@/lib/content-fetcher/youtube-fetcher';
+import { ApifyFetcher } from '@/lib/content-fetcher/apify-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
 import type { CreateContentInput } from '@/types/content';
@@ -49,6 +50,14 @@ export async function POST() {
         // TODO: Add OAuth token support here if needed
       });
     }
+
+    // Initialize Apify fetcher only if we have API key
+    let apifyFetcher = null;
+    if (process.env.APIFY_API_KEY) {
+      apifyFetcher = new ApifyFetcher({
+        apiKey: process.env.APIFY_API_KEY,
+      });
+    }
     const stats = {
       processed: 0,
       new: 0,
@@ -70,7 +79,7 @@ export async function POST() {
       }>,
     };
 
-    // Get user's RSS and YouTube creators
+    // Get user's creators across all supported platforms
     const { data: creators, error: creatorsError } = await supabase
       .from('creators')
       .select(
@@ -83,7 +92,13 @@ export async function POST() {
         )
       `
       )
-      .in('creator_urls.platform', ['rss', 'youtube'])
+      .in('creator_urls.platform', [
+        'rss',
+        'youtube',
+        'twitter',
+        'threads',
+        'linkedin',
+      ])
       .eq('user_id', user.id); // Only fetch user's creators
 
     if (creatorsError) {
@@ -231,6 +246,215 @@ export async function POST() {
             stats.new += storedContent.created;
             stats.updated += storedContent.updated;
             stats.errors += storedContent.errors.length;
+          } else if (creatorUrl.platform === 'twitter') {
+            // Check if Apify fetcher is initialized
+            if (!apifyFetcher) {
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'error',
+                error:
+                  'Apify API not configured. Please add APIFY_API_KEY to environment variables.',
+              });
+              stats.errors++;
+              continue;
+            }
+
+            // Fetching Twitter/X content
+            try {
+              const items = await apifyFetcher.fetchTwitterContent(
+                [creatorUrl.url],
+                {
+                  maxTweets: 10, // Limit to 10 for manual refresh
+                }
+              );
+
+              if (!items || items.length === 0) {
+                creatorStats.urls.push({
+                  url: creatorUrl.url,
+                  status: 'empty',
+                  message: 'No tweets found',
+                });
+                continue;
+              }
+
+              // Add creator_id to each item and store
+              const contentToStore: CreateContentInput[] = items.map(
+                (item) => ({
+                  ...item,
+                  creator_id: creator.id,
+                })
+              );
+
+              const results =
+                await contentService.storeMultipleContent(contentToStore);
+
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'success',
+                fetched: items.length,
+                new: results.created,
+                updated: results.updated,
+                errors: results.errors.length,
+              });
+
+              stats.processed += items.length;
+              stats.new += results.created;
+              stats.updated += results.updated;
+              stats.errors += results.errors.length;
+            } catch (error) {
+              stats.errors++;
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'error',
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to fetch Twitter content',
+              });
+            }
+          } else if (creatorUrl.platform === 'threads') {
+            // Check if Apify fetcher is initialized
+            if (!apifyFetcher) {
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'error',
+                error:
+                  'Apify API not configured. Please add APIFY_API_KEY to environment variables.',
+              });
+              stats.errors++;
+              continue;
+            }
+
+            // Extract username from URL
+            const match = creatorUrl.url.match(/@([^/]+)/);
+            const username = match ? match[1] : null;
+
+            if (!username) {
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'error',
+                error: 'Could not extract username from Threads URL',
+              });
+              stats.errors++;
+              continue;
+            }
+
+            // Fetching Threads content
+            try {
+              const items = await apifyFetcher.fetchThreadsContent([username], {
+                resultsLimit: 10, // Limit to 10 for manual refresh
+              });
+
+              if (!items || items.length === 0) {
+                creatorStats.urls.push({
+                  url: creatorUrl.url,
+                  status: 'empty',
+                  message: 'No threads found',
+                });
+                continue;
+              }
+
+              // Add creator_id to each item and store
+              const contentToStore: CreateContentInput[] = items.map(
+                (item) => ({
+                  ...item,
+                  creator_id: creator.id,
+                })
+              );
+
+              const results =
+                await contentService.storeMultipleContent(contentToStore);
+
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'success',
+                fetched: items.length,
+                new: results.created,
+                updated: results.updated,
+                errors: results.errors.length,
+              });
+
+              stats.processed += items.length;
+              stats.new += results.created;
+              stats.updated += results.updated;
+              stats.errors += results.errors.length;
+            } catch (error) {
+              stats.errors++;
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'error',
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to fetch Threads content',
+              });
+            }
+          } else if (creatorUrl.platform === 'linkedin') {
+            // Check if Apify fetcher is initialized
+            if (!apifyFetcher) {
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'error',
+                error:
+                  'Apify API not configured. Please add APIFY_API_KEY to environment variables.',
+              });
+              stats.errors++;
+              continue;
+            }
+
+            // Fetching LinkedIn content
+            try {
+              const items = await apifyFetcher.fetchLinkedInContent(
+                [creatorUrl.url],
+                {
+                  maxResults: 10, // Limit to 10 for manual refresh
+                }
+              );
+
+              if (!items || items.length === 0) {
+                creatorStats.urls.push({
+                  url: creatorUrl.url,
+                  status: 'empty',
+                  message: 'No LinkedIn posts found',
+                });
+                continue;
+              }
+
+              // Add creator_id to each item and store
+              const contentToStore: CreateContentInput[] = items.map(
+                (item) => ({
+                  ...item,
+                  creator_id: creator.id,
+                })
+              );
+
+              const results =
+                await contentService.storeMultipleContent(contentToStore);
+
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'success',
+                fetched: items.length,
+                new: results.created,
+                updated: results.updated,
+                errors: results.errors.length,
+              });
+
+              stats.processed += items.length;
+              stats.new += results.created;
+              stats.updated += results.updated;
+              stats.errors += results.errors.length;
+            } catch (error) {
+              stats.errors++;
+              creatorStats.urls.push({
+                url: creatorUrl.url,
+                status: 'error',
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to fetch LinkedIn content',
+              });
+            }
           }
         } catch (error) {
           // Error processing content - details captured in stats
