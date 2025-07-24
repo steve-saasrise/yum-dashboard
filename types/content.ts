@@ -7,6 +7,9 @@ export type { Platform } from './creator';
 // Content processing status enum
 export type ContentProcessingStatus = 'pending' | 'processed' | 'failed';
 
+// Summary generation status enum
+export type SummaryStatus = 'pending' | 'processing' | 'completed' | 'error';
+
 // Base content interface matching the database schema
 export interface Content {
   id: string;
@@ -19,7 +22,15 @@ export interface Content {
   thumbnail_url?: string;
   published_at?: string;
   content_body?: string;
-  ai_summary?: string;
+  ai_summary?: string; // Deprecated - use ai_summary_short or ai_summary_long
+  ai_summary_short?: string;
+  ai_summary_long?: string;
+  summary_generated_at?: string;
+  summary_model?: string;
+  summary_status?: SummaryStatus;
+  summary_error_message?: string;
+  summary_word_count_short?: number;
+  summary_word_count_long?: number;
   processing_status?: ContentProcessingStatus;
   error_message?: string;
   created_at: string;
@@ -95,7 +106,13 @@ export interface UpdateContentInput {
   description?: string;
   thumbnail_url?: string;
   content_body?: string;
-  ai_summary?: string;
+  ai_summary?: string; // Deprecated
+  ai_summary_short?: string;
+  ai_summary_long?: string;
+  summary_generated_at?: string;
+  summary_model?: string;
+  summary_status?: SummaryStatus;
+  summary_error_message?: string;
   processing_status?: ContentProcessingStatus;
   error_message?: string;
   word_count?: number;
@@ -109,12 +126,17 @@ export interface ContentFilters {
   creator_id?: string;
   platform?: Platform;
   processing_status?: ContentProcessingStatus;
+  summary_status?: SummaryStatus;
   from_date?: string;
   to_date?: string;
   search?: string;
   limit?: number;
   offset?: number;
-  sort_by?: 'published_at' | 'created_at' | 'updated_at';
+  sort_by?:
+    | 'published_at'
+    | 'created_at'
+    | 'updated_at'
+    | 'summary_generated_at';
   sort_order?: 'asc' | 'desc';
 }
 
@@ -139,11 +161,36 @@ export interface NormalizeContentInput {
   sourceUrl?: string;
 }
 
+// AI Summary generation input
+export interface GenerateSummaryInput {
+  content_id: string;
+  text: string; // Combined title, description, and content_body
+  model?: string; // AI model to use (e.g., 'gpt-4', 'claude-3')
+  generateShort?: boolean; // Generate short summary (default: true)
+  generateLong?: boolean; // Generate long summary (default: true)
+}
+
+// AI Summary generation result
+export interface GenerateSummaryResult {
+  content_id: string;
+  success: boolean;
+  shortSummary?: string;
+  longSummary?: string;
+  error?: string;
+}
+
 // Zod schemas for validation
 export const ContentProcessingStatusSchema = z.enum([
   'pending',
   'processed',
   'failed',
+]);
+
+export const SummaryStatusSchema = z.enum([
+  'pending',
+  'processing',
+  'completed',
+  'error',
 ]);
 
 export const MediaUrlSchema = z.object({
@@ -188,7 +235,13 @@ export const UpdateContentInputSchema = z.object({
   description: z.string().optional(),
   thumbnail_url: z.string().url().max(255).optional(),
   content_body: z.string().optional(),
-  ai_summary: z.string().optional(),
+  ai_summary: z.string().optional(), // Deprecated
+  ai_summary_short: z.string().max(300).optional(), // ~30 words max
+  ai_summary_long: z.string().max(1000).optional(), // ~100 words max
+  summary_generated_at: z.string().datetime().optional(),
+  summary_model: z.string().max(50).optional(),
+  summary_status: SummaryStatusSchema.optional(),
+  summary_error_message: z.string().optional(),
   processing_status: ContentProcessingStatusSchema.optional(),
   error_message: z.string().optional(),
   word_count: z.number().nonnegative().optional(),
@@ -201,13 +254,14 @@ export const ContentFiltersSchema = z.object({
   creator_id: z.string().uuid().optional(),
   platform: PlatformSchema.optional(),
   processing_status: ContentProcessingStatusSchema.optional(),
+  summary_status: SummaryStatusSchema.optional(),
   from_date: z.string().datetime().optional(),
   to_date: z.string().datetime().optional(),
   search: z.string().optional(),
   limit: z.number().min(1).max(100).default(20).optional(),
   offset: z.number().nonnegative().default(0).optional(),
   sort_by: z
-    .enum(['published_at', 'created_at', 'updated_at'])
+    .enum(['published_at', 'created_at', 'updated_at', 'summary_generated_at'])
     .default('published_at')
     .optional(),
   sort_order: z.enum(['asc', 'desc']).default('desc').optional(),
@@ -313,4 +367,8 @@ export const isProcessingStatus = (
   status: string
 ): status is ContentProcessingStatus => {
   return ['pending', 'processed', 'failed'].includes(status);
+};
+
+export const isSummaryStatus = (status: string): status is SummaryStatus => {
+  return ['pending', 'processing', 'completed', 'error'].includes(status);
 };

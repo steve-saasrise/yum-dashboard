@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth, useProfile } from '@/hooks/use-auth';
 import { useContent } from '@/hooks/use-content';
 import type { Creator, Platform } from '@/types/creator';
+import { toast } from 'sonner';
 import {
   Sidebar,
   SidebarProvider,
@@ -94,10 +95,12 @@ import {
   Youtube,
   Linkedin,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel';
 import { BackToTop } from '@/components/back-to-top';
+import { AISummary, AISummaryCompact } from '@/components/ui/ai-summary';
 import {
   ContentSkeleton,
   ContentSkeletonList,
@@ -209,7 +212,13 @@ interface FeedItem {
   id: string;
   title: string;
   description?: string;
-  ai_summary?: string;
+  ai_summary?: string; // Deprecated
+  ai_summary_short?: string;
+  ai_summary_long?: string;
+  summary_generated_at?: string;
+  summary_model?: string;
+  summary_status?: 'pending' | 'processing' | 'completed' | 'error';
+  summary_error_message?: string;
   url: string;
   platform: string;
   creator_id: string;
@@ -511,9 +520,11 @@ function AppSidebar({
 function Header({
   onSignOut,
   onRefresh,
+  onGenerateSummaries,
 }: {
   onSignOut: () => void;
   onRefresh?: () => void;
+  onGenerateSummaries?: () => void;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   // User not needed in this component
@@ -577,6 +588,26 @@ function Header({
               </TooltipTrigger>
               <TooltipContent>
                 <p>Refresh content</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        {onGenerateSummaries && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                  onClick={onGenerateSummaries}
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span className="sr-only">Generate AI summaries</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Generate AI summaries</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -651,6 +682,7 @@ function ContentCard({
       case 'youtube':
         return Youtube;
       case 'x':
+      case 'twitter':
         return Icons.x;
       case 'linkedin':
         return Linkedin;
@@ -659,6 +691,12 @@ function ContentCard({
       default:
         return Rss;
     }
+  };
+
+  const getPlatformDisplayName = (platform: string) => {
+    if (platform?.toLowerCase() === 'twitter') return 'X';
+    if (platform?.toLowerCase() === 'x') return 'X';
+    return platform || 'website';
   };
 
   const PlatformIcon = getPlatformIcon(item.platform);
@@ -724,7 +762,10 @@ function ContentCard({
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                   <PlatformIcon className="h-3.5 w-3.5" />
                   <span>
-                    {item.platform || creator?.platform || 'website'} &middot;{' '}
+                    {getPlatformDisplayName(
+                      item.platform || creator?.platform || 'website'
+                    )}{' '}
+                    &middot;{' '}
                     {item.published_at
                       ? new Date(item.published_at).toLocaleDateString()
                       : 'Recently'}
@@ -767,9 +808,16 @@ function ContentCard({
           <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-white">
             {item.title}
           </h3>
-          <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-5">
-            {item.description || item.ai_summary || 'No description available'}
-          </p>
+          <AISummary
+            shortSummary={item.ai_summary_short}
+            longSummary={item.ai_summary_long}
+            originalDescription={item.description}
+            summaryStatus={item.summary_status}
+            summaryModel={item.summary_model}
+            generatedAt={item.summary_generated_at}
+            className="mb-4"
+            defaultMode="short"
+          />
           <div className="flex flex-wrap gap-2 mb-4">
             {(item.topics || []).map((topic) => {
               return (
@@ -874,15 +922,17 @@ function ContentListItem({
       case 'youtube':
         return Youtube;
       case 'x':
+      case 'twitter':
         return Icons.x;
       case 'linkedin':
         return Linkedin;
       case 'threads':
-        return Linkedin;
+        return Icons.threads;
       default:
         return Rss;
     }
   };
+
   const PlatformIcon = getPlatformIcon(item.platform);
 
   if (!creator) return null;
@@ -927,11 +977,11 @@ function ContentListItem({
               {item.title}
             </h3>
 
-            <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 line-clamp-3 leading-relaxed">
-              {item.description ||
-                item.ai_summary ||
-                'No description available'}
-            </p>
+            <AISummaryCompact
+              shortSummary={item.ai_summary_short}
+              originalDescription={item.description}
+              className="mb-3"
+            />
 
             <div className="flex flex-wrap gap-2">
               {(item.topics || []).map((topic) => {
@@ -1227,6 +1277,43 @@ export function DailyNewsDashboard() {
     setCreatorModalOpen(true);
   };
 
+  const handleGenerateSummaries = async () => {
+    const toastId = toast.loading('Generating AI summaries...');
+
+    try {
+      const response = await fetch('/api/content/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          limit: 10, // Generate summaries for up to 10 pending items
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate summaries');
+      }
+
+      const result = await response.json();
+
+      toast.dismiss(toastId);
+
+      if (result.processed > 0) {
+        toast.success(`Generated summaries for ${result.processed} items`);
+        // Refresh the content to show new summaries
+        refreshContent();
+      } else {
+        toast.info('No pending summaries to generate');
+      }
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('Failed to generate summaries');
+      // Error generating summaries
+    }
+  };
+
   // Fetch creators from the database
   const fetchCreators = React.useCallback(async () => {
     if (!user || !session) return;
@@ -1276,7 +1363,11 @@ export function DailyNewsDashboard() {
           isLoadingCreators={isLoadingCreators}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
-          <Header onSignOut={handleSignOut} onRefresh={refreshContent} />
+          <Header
+            onSignOut={handleSignOut}
+            onRefresh={refreshContent}
+            onGenerateSummaries={handleGenerateSummaries}
+          />
           <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -1474,6 +1565,12 @@ export function DailyNewsDashboard() {
                           title: item.title || '',
                           description: item.description,
                           ai_summary: item.ai_summary,
+                          ai_summary_short: item.ai_summary_short,
+                          ai_summary_long: item.ai_summary_long,
+                          summary_generated_at: item.summary_generated_at,
+                          summary_model: item.summary_model,
+                          summary_status: item.summary_status,
+                          summary_error_message: item.summary_error_message,
                           url: item.url,
                           platform: item.platform,
                           creator_id: item.creator_id,
@@ -1500,6 +1597,12 @@ export function DailyNewsDashboard() {
                             title: item.title || '',
                             description: item.description,
                             ai_summary: item.ai_summary,
+                            ai_summary_short: item.ai_summary_short,
+                            ai_summary_long: item.ai_summary_long,
+                            summary_generated_at: item.summary_generated_at,
+                            summary_model: item.summary_model,
+                            summary_status: item.summary_status,
+                            summary_error_message: item.summary_error_message,
                             url: item.url,
                             platform: item.platform,
                             creator_id: item.creator_id,
@@ -1524,6 +1627,12 @@ export function DailyNewsDashboard() {
                             title: item.title || '',
                             description: item.description,
                             ai_summary: item.ai_summary,
+                            ai_summary_short: item.ai_summary_short,
+                            ai_summary_long: item.ai_summary_long,
+                            summary_generated_at: item.summary_generated_at,
+                            summary_model: item.summary_model,
+                            summary_status: item.summary_status,
+                            summary_error_message: item.summary_error_message,
                             url: item.url,
                             platform: item.platform,
                             creator_id: item.creator_id,
