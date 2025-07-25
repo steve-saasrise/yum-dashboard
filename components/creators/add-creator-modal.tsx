@@ -32,7 +32,6 @@ import { useToast } from '@/components/ui/use-toast';
 import {
   Youtube,
   Linkedin,
-  AtSign,
   Rss,
   Globe,
   Loader2,
@@ -48,7 +47,7 @@ const platformIcons = {
   youtube: Youtube,
   twitter: Icons.x,
   linkedin: Linkedin,
-  threads: AtSign,
+  threads: Icons.threads,
   rss: Rss,
   unknown: Globe,
 };
@@ -171,6 +170,12 @@ export function AddCreatorModal({
     // Detect platform
     try {
       const platformInfo = PlatformDetector.detect(trimmedUrl);
+      console.log('Platform detection result:', {
+        url: trimmedUrl,
+        platform: platformInfo.platform,
+        platformUserId: platformInfo.platformUserId,
+        fullPlatformInfo: platformInfo
+      });
 
       // Check for duplicates
       const isDuplicate = urls.some(
@@ -183,7 +188,7 @@ export function AddCreatorModal({
       }
 
       // Add the URL
-      form.setValue('urls', [
+      const newUrls = [
         ...urls,
         {
           url: trimmedUrl,
@@ -195,10 +200,24 @@ export function AddCreatorModal({
             | 'rss'
             | 'unknown',
         },
-      ]);
+      ];
+      
+      console.log('Adding URL to form:', {
+        newUrls,
+        currentUrls: urls,
+        platformDetected: platformInfo.platform,
+        isValidPlatform: ['youtube', 'twitter', 'linkedin', 'threads', 'rss', 'unknown'].includes(platformInfo.platform)
+      });
+
+      form.setValue('urls', newUrls, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
+      });
 
       setUrlInput('');
-    } catch {
+    } catch (error) {
+      console.error('Platform detection error:', error);
       setUrlError('URL not recognized. Please check the URL and try again.');
     }
   };
@@ -218,6 +237,8 @@ export function AddCreatorModal({
   };
 
   const onSubmit = async (data: CreateCreatorFormData) => {
+    console.log('Form submitted with data:', data);
+    
     if (!session) {
       toast({
         title: 'Authentication required',
@@ -246,20 +267,24 @@ export function AddCreatorModal({
     try {
       if (mode === 'add') {
         // Use the API endpoint for creator creation
+        const requestBody = {
+          display_name: data.display_name,
+          description: data.description || undefined,
+          urls: data.urls.map((u) => u.url),
+          topics: data.topics,
+        };
+        console.log('Sending request to /api/creators:', requestBody);
+        
         const response = await fetch('/api/creators', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            display_name: data.display_name,
-            description: data.description || undefined,
-            urls: data.urls.map((u) => u.url),
-            topics: data.topics,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         const result = await response.json();
+        console.log('API response:', { status: response.status, ok: response.ok, result });
 
         if (!response.ok) {
           throw new Error(result.error || 'Failed to create creator');
@@ -442,7 +467,10 @@ export function AddCreatorModal({
                   {urls.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2">
                       {urls.map((urlItem, index) => {
-                        const Icon = platformIcons[urlItem.platform];
+                        const Icon =
+                          platformIcons[
+                            urlItem.platform as keyof typeof platformIcons
+                          ] || platformIcons.unknown;
                         return (
                           <Badge
                             key={index}

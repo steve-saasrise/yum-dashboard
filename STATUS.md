@@ -655,7 +655,25 @@
 
 ## 💡 Next Session Should
 
-1. **Priority 1**: Deploy and Test AI Summary Generation
+1. **Priority 1**: Implement Auto-Summarization for All Content
+   - [ ] Integrate AI summary generation into content fetching pipeline
+   - [ ] Update cron job to automatically generate summaries after fetching
+   - [ ] Add summary generation to manual refresh endpoint
+   - [ ] Create batch processing for existing content without summaries
+   - [ ] Add rate limiting to respect OpenAI API limits
+   - [ ] Monitor API costs and implement safeguards
+   - [ ] Test with all content types (RSS, YouTube, X, Threads, LinkedIn)
+
+2. **Priority 2**: Add YouTube Transcript Support for Better Summaries
+   - [ ] Install youtube-transcript npm package
+   - [ ] Create transcript fetcher service
+   - [ ] Update YouTube fetcher to include transcript fetching
+   - [ ] Modify AI summary service to use transcripts when available
+   - [ ] Add graceful fallback to title+description when no transcript
+   - [ ] Test transcript-based summaries vs description-based
+   - [ ] Consider adding transcript_text field to database (optional)
+
+3. **Priority 3**: Deploy and Test AI Summary Generation
    - [ ] Add OPENAI_API_KEY to Railway environment variables
    - [ ] Test summary generation with real content
    - [ ] Monitor API usage and costs
@@ -663,7 +681,7 @@
    - [ ] Test toggle between short/long/original views
    - [ ] Create background job for automated summary generation
 
-2. **Priority 2**: Implement Email Digest System
+4. **Priority 4**: Implement Email Digest System
    - [ ] Design digest preferences schema
    - [ ] Create email templates with summaries
    - [ ] Build digest generation service
@@ -671,7 +689,7 @@
    - [ ] Add unsubscribe management
    - [ ] Test email delivery
 
-3. **Priority 3**: Analytics Dashboard
+5. **Priority 5**: Analytics Dashboard
    - [ ] Track content consumption metrics
    - [ ] Build creator engagement analytics
    - [ ] Visualize topic trends

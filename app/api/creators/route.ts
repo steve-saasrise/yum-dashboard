@@ -45,11 +45,24 @@ const getCreatorsSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('POST /api/creators - Starting request processing');
+    
     // Authenticate user
     const cookieStore = await cookies();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+    
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseUrl,
+      supabaseKey,
       {
         cookies: {
           getAll() {
@@ -77,8 +90,11 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
+    console.log('Received request body:', JSON.stringify(body, null, 2));
+    
     const validation = createCreatorSchema.safeParse(body);
     if (!validation.success) {
+      console.error('Validation failed:', validation.error.errors);
       return NextResponse.json(
         {
           error: 'Invalid input',
@@ -94,10 +110,13 @@ export async function POST(request: NextRequest) {
     const urlsWithPlatforms = [];
     const platformUserIds = new Set();
 
+    console.log('Processing URLs:', urls);
+
     for (const url of urls) {
       let platformInfo;
       try {
         platformInfo = PlatformDetector.detect(url);
+        console.log('Platform detection result for', url, ':', platformInfo);
 
         // Check for duplicate platform/user combinations
         const platformKey = `${platformInfo.platform}:${platformInfo.platformUserId}`;
@@ -117,6 +136,7 @@ export async function POST(request: NextRequest) {
           metadata: platformInfo.metadata,
         });
       } catch (error) {
+        console.error('Platform detection error:', error);
         if (error instanceof PlatformDetectionError) {
           return NextResponse.json(
             { error: `Platform detection failed for ${url}: ${error.message}` },
@@ -127,57 +147,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if any of the URLs already exist for this user
-    // Use a simpler approach to avoid dynamic query issues
+    // Check if any of the URLs already exist for THIS user
     const existingUrls = [];
     let checkError = null;
 
     try {
       for (const info of urlsWithPlatforms) {
-        // First check if this normalized URL exists for ANY user
-        const { data: globalUrlExists, error: globalCheckError } =
+        // Check if this user already has this URL
+        const { data: userUrlExists, error: urlCheckError } =
           await supabase
             .from('creator_urls')
-            .select('id, normalized_url')
+            .select(`
+              id, 
+              url, 
+              normalized_url,
+              creators!inner(
+                id,
+                display_name,
+                user_id
+              )
+            `)
             .eq('normalized_url', info.profileUrl)
+            .eq('creators.user_id', user.id)
             .limit(1);
 
-        if (globalCheckError) {
-          checkError = globalCheckError;
+        if (urlCheckError) {
+          console.error('Error checking existing URLs:', urlCheckError);
+          checkError = urlCheckError;
           break;
         }
 
-        // If it exists globally, check if it belongs to current user
-        if (globalUrlExists && globalUrlExists.length > 0) {
-          const { data: urlExists, error: urlCheckError } = await supabase
-            .from('creator_urls')
-            .select('url, creators!inner(display_name, user_id)')
-            .eq('normalized_url', info.profileUrl)
-            .limit(1);
-
-          if (urlCheckError) {
-            checkError = urlCheckError;
-            break;
-          }
-
-          if (urlExists && urlExists.length > 0) {
-            const belongsToCurrentUser = urlExists.some(
-              (u: any) => u.creators?.user_id === user.id
-            );
-
-            if (belongsToCurrentUser) {
-              existingUrls.push(...urlExists);
-            } else {
-              // URL exists but belongs to another user
-              return NextResponse.json(
-                {
-                  error: 'This creator URL is already in use',
-                  details: `The URL ${info.url} is already being tracked by another user.`,
-                },
-                { status: 409 }
-              );
-            }
-          }
+        if (userUrlExists && userUrlExists.length > 0) {
+          // User already tracks this creator
+          existingUrls.push(...userUrlExists);
         }
       }
     } catch (error) {
@@ -247,6 +249,8 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     }));
 
+    console.log('Creator URLs data to insert:', creatorUrlsData);
+
     const { error: urlsError } = await supabase
       .from('creator_urls')
       .insert(creatorUrlsData);
@@ -256,6 +260,9 @@ export async function POST(request: NextRequest) {
       console.error('Failed to create creator URLs:', {
         error: urlsError,
         data: creatorUrlsData,
+        errorDetails: urlsError.message,
+        errorCode: urlsError.code,
+        errorHint: urlsError.hint,
       });
 
       // Rollback creator creation
@@ -318,7 +325,7 @@ export async function POST(request: NextRequest) {
       route: 'POST /api/creators',
     };
 
-    // Error in POST /api/creators - details captured in errorDetails
+    console.error('Error in POST /api/creators:', errorDetails);
 
     return NextResponse.json(
       {

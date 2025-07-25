@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Daily News is a content aggregation platform that unifies content from multiple social media platforms into a single, intelligent dashboard. Users can follow creators from YouTube, Twitter, LinkedIn, Threads, and RSS feeds while receiving AI-powered summaries and personalized digests.
+Daily News is a content aggregation platform that unifies content from multiple social media platforms into a single, intelligent dashboard. Users can follow creators from YouTube, X (Twitter), LinkedIn, Threads, and RSS feeds while receiving AI-powered summaries and personalized digests.
 
 ### Technical Stack
 
@@ -14,16 +14,20 @@ Daily News is a content aggregation platform that unifies content from multiple 
 - **Authentication**: Supabase Auth (magic links, OAuth, email/password)
 - **Database**: Supabase PostgreSQL with Row Level Security
 - **Caching**: Upstash Redis for session management
-- **Deployment**: Optimized for Vercel
+- **AI Integration**: OpenAI for content summarization
+- **Content Fetching**: Apify for social media, YouTube Data API, RSS Parser
+- **Deployment**: Railway with automated deployments
 
 ## Current Development Status
 
-**Phase**: Phase 2 - Core Features Development  
+**Phase**: Phase 3 - Advanced Features  
 **Foundation**: ✅ Complete (100%)  
-**Next Priority**: Creator Management System
+**Core Features**: ✅ Complete (100%)  
+**Next Priority**: Email Digest System & Analytics
 
-### Completed Features (Phase 1)
+### Completed Features
 
+#### Phase 1 - Foundation (✅ Complete)
 - ✅ Multi-method authentication system
 - ✅ User profiles with avatar uploads
 - ✅ GDPR compliance suite
@@ -31,11 +35,19 @@ Daily News is a content aggregation platform that unifies content from multiple 
 - ✅ 49 production-ready UI components
 - ✅ Complete database schema for users
 
-### In Progress (Phase 2)
+#### Phase 2 - Core Features (✅ Complete)
+- ✅ Creator management with smart URL processing
+- ✅ Multi-platform content ingestion (RSS, YouTube, X, LinkedIn, Threads)
+- ✅ Automated content fetching with cron jobs
+- ✅ Dashboard feed with infinite scroll
+- ✅ AI-powered content summaries (dual-length)
+- ✅ Real-time content updates
 
-- 🎯 Creator management with smart URL processing
-- 📋 Content ingestion pipeline
-- 📋 Dashboard feed interface
+### In Progress (Phase 3)
+
+- 🎯 Email Digest System
+- 📋 Analytics Dashboard
+- 📋 Advanced AI Features (thread summarization, topic extraction)
 
 For detailed status, see `STATUS.md`
 
@@ -171,10 +183,23 @@ The project has specific build settings in `next.config.mjs`:
 
 ### Environment Variables Required
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_APP_URL`
-- Redis connection variables for Upstash
+**Core Services**:
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY` - Service role key (for scripts only)
+- `NEXT_PUBLIC_APP_URL` - Application URL (e.g., https://yourdomain.com)
+- `UPSTASH_REDIS_REST_URL` - Redis URL for session management
+- `UPSTASH_REDIS_REST_TOKEN` - Redis authentication token
+- `CRON_SECRET` - Secret for securing cron job endpoints
+
+**Content Fetching APIs**:
+- `YOUTUBE_API_KEY` - YouTube Data API v3 key
+- `APIFY_API_KEY` - Apify API key for X, LinkedIn, Threads scraping
+- `OPENAI_API_KEY` - OpenAI API key for AI summaries
+
+**Optional APIs** (for future features):
+- `TWITTER_BEARER_TOKEN` - Twitter API v2 bearer token
+- `LINKEDIN_API_KEY` - LinkedIn API credentials
 
 ### Git Hooks
 
@@ -209,28 +234,49 @@ The project includes GDPR-compliant features:
 - Automatic cleanup on logout
 - Enhanced logout clears all auth-related storage
 
-## Phase 2 Development Priorities
+## Development Priorities
 
-### 1. Creator Management System (Current Focus)
+### Phase 2 - Core Features (✅ Complete)
 
-- **Smart URL Input**: Auto-detect platform from any creator URL
-- **Multi-Platform Support**: YouTube, Twitter, LinkedIn, Threads, RSS
-- **Creator Profiles**: Store metadata, assign topics
-- **Bulk Import**: CSV/OPML file support
+1. **Creator Management System** ✅
+   - Smart URL detection for all platforms
+   - Multi-platform support (YouTube, X, LinkedIn, Threads, RSS)
+   - Topic management with inline creation
+   - Bulk import via CSV/OPML
 
-### 2. Content Ingestion Pipeline (Next)
+2. **Content Ingestion Pipeline** ✅
+   - YouTube Data API integration
+   - Apify integration for X, LinkedIn, Threads
+   - RSS feed parsing
+   - Automated cron job fetching (30-minute intervals)
+   - Manual refresh with 6-hour cooldown
 
-- **API Integrations**: YouTube Data API, Twitter API v2
-- **RSS Parsing**: Universal feed support
-- **Web Scraping**: LinkedIn and Threads content
-- **Background Jobs**: Automated content fetching
+3. **Dashboard Feed Interface** ✅
+   - Infinite scroll with dynamic batch sizing
+   - Real-time updates via Supabase subscriptions
+   - Platform filtering and search
+   - Bookmark/save functionality
+   - AI-powered content summaries
 
-### 3. Dashboard Feed Interface (Following)
+### Phase 3 - Advanced Features (Current Focus)
 
-- **Chronological Feed**: All content in unified timeline
-- **Real-time Updates**: Via Supabase subscriptions
-- **Filtering & Search**: By creator, topic, platform
-- **Content Actions**: Save, share, summarize
+1. **Email Digest System** 🎯
+   - Daily/weekly digest preferences
+   - AI-summarized content selection
+   - Personalized email templates
+   - Unsubscribe management
+
+2. **Analytics Dashboard** 📋
+   - Content consumption metrics
+   - Creator engagement tracking
+   - Topic trend visualization
+   - User activity insights
+
+3. **Advanced AI Features** 📋
+   - Thread and conversation summarization
+   - Topic extraction and auto-tagging
+   - Content recommendations
+   - Trending topic identification
 
 ## Development Notes
 
@@ -240,7 +286,13 @@ The project includes GDPR-compliant features:
 - The app is mobile-responsive with dedicated mobile detection hooks
 - Phase 1 foundation is production-ready and fully tested
 - **Testing**: Jest + React Testing Library setup with comprehensive coverage
-- **Platform Detection**: Smart URL parsing service for YouTube, Twitter, LinkedIn, Threads, RSS
+- **Platform Detection**: Smart URL parsing service for YouTube, X, LinkedIn, Threads, RSS
+- **AI Integration**: OpenAI for dual-length content summaries
+- **Content Fetching**: 
+  - YouTube Data API v3 for channel videos
+  - Apify actors for X, LinkedIn, and Threads
+  - RSS Parser for feed content
+- **Deployment**: Railway with continuous deployment from GitHub
 
 ## Auto-Fix Standards
 
@@ -335,16 +387,38 @@ Example:
 processing_status:
   validatedInput.platform === 'rss' ||
   validatedInput.platform === 'youtube' ||
-  validatedInput.platform === 'twitter'  // Add new platform here
+  validatedInput.platform === 'twitter' ||
+  validatedInput.platform === 'linkedin' ||
+  validatedInput.platform === 'threads'  // All platforms now supported
     ? 'processed'
     : 'pending',
 ```
 
 This was discovered during YouTube integration where content was being fetched and stored but not displaying because it remained in 'pending' status.
 
+## Service Integrations
+
+### AI Summary Service
+- **Provider**: OpenAI API
+- **Models**: GPT-4 Turbo for summaries
+- **Features**: Dual-length summaries (short ≤30 words, long ≤100 words)
+- **Implementation**: `lib/services/ai-summary-service.ts`
+
+### Content Fetching Services
+- **YouTube**: YouTube Data API v3 (`lib/content-fetcher/youtube-fetcher.ts`)
+- **X/Twitter**: Apify Twitter Scraper actor
+- **LinkedIn**: Apify LinkedIn Posts Scraper actor (and APImaestro for testing)
+- **Threads**: Apify Instagram/Threads Scraper actor
+- **RSS**: RSS Parser library (`lib/content-fetcher/rss-fetcher.ts`)
+
+### Deployment
+- **Platform**: Railway (replaced Vercel)
+- **Features**: Automatic deployments from GitHub, cron job support
+- **Environment**: All API keys configured in Railway dashboard
+
 ## Additional Resources
 
 - **Product Requirements**: See `scripts/updated_prd.txt` for full PRD
 - **Development Status**: See `STATUS.md` for current progress
-- **Phase 2 Specs**: See `/docs/phase2/` for feature details (to be created)
+- **Phase 2 Specs**: See `/docs/phase2/` for feature details
 - **Session Logs**: See `/docs/sessions/` for development history
