@@ -11,7 +11,7 @@ import { useViewportInfo } from './use-viewport-info';
 export interface ContentFilters {
   platform?: 'youtube' | 'twitter' | 'linkedin' | 'threads' | 'rss' | 'website';
   creator_id?: string;
-  topic_id?: string;
+  lounge_id?: string;
   search?: string;
   sort_by?: 'published_at' | 'created_at';
   sort_order?: 'asc' | 'desc';
@@ -74,8 +74,8 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
           params.append('platform', currentFilters.platform);
         if (currentFilters?.creator_id)
           params.append('creator_id', currentFilters.creator_id);
-        if (currentFilters?.topic_id)
-          params.append('topic_id', currentFilters.topic_id);
+        if (currentFilters?.lounge_id)
+          params.append('lounge_id', currentFilters.lounge_id);
         if (currentFilters?.search)
           params.append('search', currentFilters.search);
         if (currentFilters?.sort_by)
@@ -127,7 +127,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     fetchContent,
     filters?.platform,
     filters?.creator_id,
-    filters?.topic_id,
+    filters?.lounge_id,
     filters?.search,
     filters?.sort_by,
     filters?.sort_order,

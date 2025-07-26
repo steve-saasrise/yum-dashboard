@@ -34,6 +34,7 @@ const getCreatorsSchema = z.object({
     .optional()
     .nullable(),
   topic: z.string().optional().nullable(),
+  lounge_id: z.string().uuid().optional().nullable(),
   search: z.string().optional().nullable(),
   sort: z
     .enum(['display_name', 'platform', 'created_at', 'updated_at'])
@@ -376,6 +377,7 @@ export async function GET(request: NextRequest) {
       limit: searchParams.get('limit'),
       platform: searchParams.get('platform'),
       topic: searchParams.get('topic'),
+      lounge_id: searchParams.get('lounge_id'),
       search: searchParams.get('search'),
       sort: searchParams.get('sort'),
       order: searchParams.get('order'),
@@ -392,13 +394,46 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { page = 1, limit = 20, platform, search } = queryValidation.data;
+    const {
+      page = 1,
+      limit = 20,
+      platform,
+      search,
+      lounge_id,
+    } = queryValidation.data;
 
     // Build simplified query - avoid complex joins that cause timeouts
-    let baseQuery = supabase
-      .from('creators')
-      .select('*')
-      .eq('user_id', user.id);
+    let baseQuery = supabase.from('creators').select('*');
+
+    if (lounge_id) {
+      // If lounge_id is provided, get creators for that lounge
+      const { data: loungeCreators } = await supabase
+        .from('creator_lounges')
+        .select('creator_id')
+        .eq('lounge_id', lounge_id);
+
+      const creatorIds = loungeCreators?.map((lc) => lc.creator_id) || [];
+      if (creatorIds.length > 0) {
+        baseQuery = baseQuery.in('id', creatorIds);
+      } else {
+        // No creators in this lounge
+        return NextResponse.json({
+          success: true,
+          data: {
+            creators: [],
+            pagination: {
+              page: page || 1,
+              limit: limit || 20,
+              total: 0,
+              totalPages: 0,
+            },
+          },
+        });
+      }
+    } else {
+      // Default to user's creators
+      baseQuery = baseQuery.eq('user_id', user.id);
+    }
 
     // Apply search filter
     if (search) {
@@ -511,7 +546,13 @@ export async function GET(request: NextRequest) {
       // Get lounges for this creator
       const creatorLoungesList = creatorLounges
         .filter((cl) => cl.creator_id === creator.id)
-        .map((cl) => cl.lounge?.name)
+        .map((cl) => (cl as any).lounges?.name)
+        .filter(Boolean);
+
+      // Also get lounge IDs for the edit modal
+      const creatorLoungeIds = creatorLounges
+        .filter((cl) => cl.creator_id === creator.id)
+        .map((cl) => (cl as any).lounges?.id)
         .filter(Boolean);
 
       // Get the primary platform from the first URL
@@ -523,6 +564,7 @@ export async function GET(request: NextRequest) {
         urls: creatorUrlsList,
         creator_urls: creatorUrlsList, // Keep original structure for compatibility
         lounges: creatorLoungesList,
+        lounge_ids: creatorLoungeIds, // Add lounge IDs for edit modal
         is_active: creator.status === 'active',
       };
     });

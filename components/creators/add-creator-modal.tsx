@@ -37,7 +37,6 @@ import {
   Loader2,
   AlertCircle,
   X,
-  Edit2,
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -117,7 +116,7 @@ export function AddCreatorModal({
         display_name: creator.display_name || '',
         description: creator.bio || '',
         urls: [], // In edit mode, we manage existing URLs separately
-        topics: creator.lounges || [],
+        topics: creator.lounge_ids || [], // Use lounge_ids for edit mode
       });
       setDeletedUrlIds([]); // Reset deleted URLs tracking
     } else {
@@ -844,6 +843,7 @@ export function AddCreatorModal({
                   <FormLabel>Lounges</FormLabel>
                   <FormControl>
                     <LoungeSelector
+                      key={creator?.id || 'new-creator'}
                       selectedLounges={field.value || []}
                       onChange={field.onChange}
                       placeholder="Select lounges..."

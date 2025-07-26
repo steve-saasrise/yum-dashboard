@@ -35,6 +35,7 @@ export interface Creator {
   created_at: string;
   updated_at: string;
   lounges?: string[];
+  lounge_ids?: string[]; // IDs for edit modal
   // New field for multiple URLs
   urls?: CreatorUrl[];
   creator_urls?: CreatorUrl[];

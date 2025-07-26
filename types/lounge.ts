@@ -6,6 +6,7 @@ export interface Lounge {
   user_id?: string;
   name: string;
   description?: string;
+  subdomain?: string;
   parent_lounge_id?: string;
   created_at: string;
   updated_at: string;
@@ -46,6 +47,14 @@ export const LoungeSchema = z.object({
   user_id: z.string().uuid().optional().nullable(),
   name: z.string().min(1, 'Lounge name is required').max(50),
   description: z.string().max(200).optional().nullable(),
+  subdomain: z
+    .string()
+    .regex(
+      /^[a-z0-9-]+$/,
+      'Subdomain must be lowercase alphanumeric with hyphens only'
+    )
+    .optional()
+    .nullable(),
   parent_lounge_id: z.string().uuid().optional().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -58,12 +67,27 @@ export const LoungeSchema = z.object({
 export const CreateLoungeSchema = z.object({
   name: z.string().min(1, 'Lounge name is required').max(50),
   description: z.string().max(200).optional(),
+  subdomain: z
+    .string()
+    .regex(
+      /^[a-z0-9-]+$/,
+      'Subdomain must be lowercase alphanumeric with hyphens only'
+    )
+    .optional(),
   parent_lounge_id: z.string().uuid().optional(),
 });
 
 export const UpdateLoungeSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   description: z.string().max(200).optional().nullable(),
+  subdomain: z
+    .string()
+    .regex(
+      /^[a-z0-9-]+$/,
+      'Subdomain must be lowercase alphanumeric with hyphens only'
+    )
+    .optional()
+    .nullable(),
   parent_lounge_id: z.string().uuid().optional().nullable(),
 });
 
@@ -104,12 +128,14 @@ export const LoungeListResponseSchema = z.object({
 export interface CreateLoungeData {
   name: string;
   description?: string;
+  subdomain?: string;
   parent_lounge_id?: string;
 }
 
 export interface UpdateLoungeData {
   name?: string;
   description?: string;
+  subdomain?: string;
   parent_lounge_id?: string;
 }
 

@@ -5,6 +5,8 @@
 **Date**: 2025-07-26  
 **New Direction**: Transform existing dashboard into internal curator tool for Lounge.ai platform  
 **Update**: 2025-07-26 - Completed renaming from "topic" to "lounge" throughout entire codebase and Supabase
+**Update**: 2025-07-26 - Added subdomain field to lounges table and made sidebar lounges functional with click-to-select filtering
+**Update**: 2025-07-26 - Implemented lounge-based filtering for both content and creators when selecting lounges in sidebar
 
 ### Founder's Vision (Simplified)
 
@@ -41,9 +43,9 @@
 
 - [x] Rename "Topics" to "Lounges" in UI
 - [x] Update TopicSelector to LoungeSelector throughout codebase
-- [ ] Make sidebar Lounges functional (currently mock data)
+- [x] Make sidebar Lounges functional (currently mock data)
 - [x] Renamed database table from `topics` to `lounges`
-- [ ] Add `subdomain` field to lounges table
+- [x] Add `subdomain` field to lounges table
 
 **Note**: All references to "topic" have been renamed to "lounge" throughout the entire codebase and Supabase database to avoid confusion.
 
@@ -91,13 +93,13 @@
 
 ### Minimal Changes Needed
 
-| Component         | Current      | Change Needed         |
-| ----------------- | ------------ | --------------------- |
-| Lounges table     | ✅ Exists    | Add `subdomain` field |
-| LoungeSelector    | ✅ Works     | ✅ Renamed throughout |
-| Sidebar Lounges   | Mock data    | Make functional       |
-| Creator ownership | Per user     | Per lounge            |
-| Authentication    | Public users | Curator login         |
+| Component         | Current       | Change Needed                |
+| ----------------- | ------------- | ---------------------------- |
+| Lounges table     | ✅ Exists     | ✅ Added `subdomain` field   |
+| LoungeSelector    | ✅ Works      | ✅ Renamed throughout        |
+| Sidebar Lounges   | ✅ Functional | ✅ Click-to-select filtering |
+| Creator ownership | Per user      | Per lounge                   |
+| Authentication    | Public users  | Curator login                |
 
 ### Everything Else Stays the Same
 
@@ -184,9 +186,9 @@ That's it! No complex migrations needed.
 
 ### Today
 
-1. [ ] Add `subdomain` to lounges table
+1. [x] Add `subdomain` to lounges table
 2. [x] Rename Topics → Lounges in UI and codebase
-3. [ ] Make sidebar functional
+3. [x] Make sidebar functional
 
 ### Tomorrow
 
@@ -205,3 +207,17 @@ That's it! No complex migrations needed.
 _Last Updated: 2025-07-26_  
 _Approach: Minimal changes, maximum reuse_  
 _Time Estimate: 1 week total_
+
+### Completed Today (2025-07-26)
+
+- ✅ Added subdomain field to lounges table with UNIQUE constraint and format validation
+- ✅ Updated all TypeScript types and schemas to include subdomain
+- ✅ Populated existing lounges with auto-generated subdomains
+- ✅ Replaced mock sidebar lounges with real data from useLounges hook
+- ✅ Implemented click-to-select functionality for sidebar lounges
+- ✅ Added visual indicators for selected lounges in sidebar
+- ✅ Fixed all TypeScript and linting errors
+- ✅ Implemented lounge-based filtering for content and creators
+- ✅ Updated API endpoints to support lounge_id parameter
+- ✅ Connected sidebar lounge selection to content/creator filtering
+- ✅ All type checking and linting passing

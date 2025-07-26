@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useAuth, useProfile } from '@/hooks/use-auth';
 import { useContent } from '@/hooks/use-content';
+import { useLounges } from '@/hooks/use-lounges';
 import type { Creator, Platform } from '@/types/creator';
 import type { Lounge } from '@/types/lounge';
 import { toast } from 'sonner';
@@ -95,9 +96,8 @@ import {
   MoreHorizontal,
   Youtube,
   Linkedin,
-  RefreshCw,
-  Sparkles,
   Brain,
+  Loader2,
 } from 'lucide-react';
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel';
@@ -119,92 +119,7 @@ const platforms = [
   { name: 'Blogs', icon: Rss, count: 22 },
 ];
 
-const topics = [
-  {
-    id: 1,
-    name: 'Venture Capital',
-    description: 'Funding, startups, and innovation.',
-    color: 'bg-blue-100 text-blue-800',
-    count: 5,
-  },
-  {
-    id: 2,
-    name: 'AI',
-    description: 'Artificial intelligence and machine learning.',
-    color: 'bg-purple-100 text-purple-800',
-    count: 8,
-  },
-  {
-    id: 3,
-    name: 'SaaS',
-    description: 'Software as a Service business models.',
-    color: 'bg-green-100 text-green-800',
-    count: 12,
-  },
-  {
-    id: 4,
-    name: 'Science',
-    description: 'Scientific discoveries and research.',
-    color: 'bg-indigo-100 text-indigo-800',
-    count: 4,
-  },
-  {
-    id: 5,
-    name: 'Politics',
-    description: 'Global and domestic political analysis.',
-    color: 'bg-red-100 text-red-800',
-    count: 2,
-  },
-  {
-    id: 6,
-    name: 'Investing',
-    description: 'Financial markets and investment strategies.',
-    color: 'bg-yellow-100 text-yellow-800',
-    count: 3,
-  },
-  {
-    id: 7,
-    name: 'Future',
-    description: 'Trends and predictions about the future.',
-    color: 'bg-cyan-100 text-cyan-800',
-    count: 7,
-  },
-  {
-    id: 8,
-    name: 'Philosophy',
-    description: 'Exploring fundamental questions about existence.',
-    color: 'bg-gray-100 text-gray-800',
-    count: 6,
-  },
-  {
-    id: 9,
-    name: 'Spirituality',
-    description: 'Matters of the spirit and belief systems.',
-    color: 'bg-pink-100 text-pink-800',
-    count: 3,
-  },
-  {
-    id: 10,
-    name: 'Relationships',
-    description: 'Interpersonal dynamics and connections.',
-    color: 'bg-rose-100 text-rose-800',
-    count: 2,
-  },
-  {
-    id: 11,
-    name: 'Biohacking',
-    description: 'Optimizing human biology and performance.',
-    color: 'bg-lime-100 text-lime-800',
-    count: 1,
-  },
-  {
-    id: 12,
-    name: 'B2B Growth',
-    description: 'Business-to-business growth strategies and tactics.',
-    color: 'bg-orange-100 text-orange-800',
-    count: 4,
-  },
-];
+// Mock topics array removed - now using real lounges from useLounges hook
 
 // Static creators array removed - now fetched from database in DailyNewsDashboard component
 
@@ -264,10 +179,7 @@ interface AppSidebarProps {
     platform: string;
     handle: string;
   }) => void;
-  onCreatorDelete: (creator: {
-    id: string;
-    name: string;
-  }) => void;
+  onCreatorDelete: (creator: { id: string; name: string }) => void;
   creators: Array<{
     id: string;
     name: string;
@@ -278,6 +190,10 @@ interface AppSidebarProps {
     lastFetchedAt?: string;
   }>;
   isLoadingCreators: boolean;
+  lounges: Lounge[];
+  isLoadingLounges: boolean;
+  selectedLoungeId: string | null;
+  onLoungeSelect: (loungeId: string | null) => void;
 }
 
 function AppSidebar({
@@ -289,6 +205,10 @@ function AppSidebar({
   onCreatorDelete,
   creators,
   isLoadingCreators,
+  lounges,
+  isLoadingLounges,
+  selectedLoungeId,
+  onLoungeSelect,
 }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" side="left">
@@ -367,44 +287,89 @@ function AppSidebar({
             <CollapsibleContent className="transition-all duration-300 ease-in-out data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {topics.map((topic) => (
-                    <SidebarMenuItem
-                      key={topic.id}
-                      className="group/topic-item"
-                    >
-                      <SidebarMenuButton tooltip={topic.name}>
-                        <span
-                          className={`w-2 h-2 rounded-full ${topic.color.split(' ')[0]}`}
-                        />
-                        <span className="truncate">{topic.name}</span>
-                        <SidebarMenuBadge className="group-hover/topic-item:opacity-0 transition-opacity duration-200">
-                          {topic.count}
-                        </SidebarMenuBadge>
+                  {isLoadingLounges ? (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton disabled>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="truncate">Loading lounges...</span>
                       </SidebarMenuButton>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/topic-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="right" align="start">
-                          <DropdownMenuItem onClick={() => onTopicEdit(topic)}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => onTopicDelete(topic)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </SidebarMenuItem>
-                  ))}
+                  ) : lounges.length === 0 ? (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton disabled>
+                        <span className="truncate text-gray-500">
+                          No lounges yet
+                        </span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ) : (
+                    lounges.map((lounge) => (
+                      <SidebarMenuItem
+                        key={lounge.id}
+                        className="group/topic-item"
+                      >
+                        <SidebarMenuButton
+                          tooltip={lounge.name}
+                          onClick={() =>
+                            onLoungeSelect(
+                              selectedLoungeId === lounge.id ? null : lounge.id
+                            )
+                          }
+                          className={
+                            selectedLoungeId === lounge.id
+                              ? 'bg-gray-100 dark:bg-gray-800'
+                              : ''
+                          }
+                        >
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              selectedLoungeId === lounge.id
+                                ? 'bg-primary'
+                                : 'bg-gray-400 dark:bg-gray-600'
+                            }`}
+                          />
+                          <span className="truncate">{lounge.name}</span>
+                          <SidebarMenuBadge className="group-hover/topic-item:opacity-0 transition-opacity duration-200">
+                            {lounge.creator_count || 0}
+                          </SidebarMenuBadge>
+                        </SidebarMenuButton>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/topic-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent side="right" align="start">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                onTopicEdit({
+                                  id: parseInt(lounge.id),
+                                  name: lounge.name,
+                                })
+                              }
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() =>
+                                onTopicDelete({
+                                  id: parseInt(lounge.id),
+                                  name: lounge.name,
+                                })
+                              }
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </SidebarMenuItem>
+                    ))
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
@@ -504,7 +469,9 @@ function AppSidebar({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start">
-                              <DropdownMenuItem onClick={() => onCreatorEdit(creator)}>
+                              <DropdownMenuItem
+                                onClick={() => onCreatorEdit(creator)}
+                              >
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -1059,10 +1026,16 @@ function MobileFiltersSheet({
   open,
   onOpenChange,
   creators,
+  lounges,
+  selectedLoungeId,
+  setSelectedLoungeId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   creators: Creator[];
+  lounges: Lounge[];
+  selectedLoungeId: string | null;
+  setSelectedLoungeId: (id: string | null) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1108,14 +1081,20 @@ function MobileFiltersSheet({
             <div className="space-y-3">
               <h3 className="font-medium text-sm">Lounges</h3>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                {topics.map((t) => (
-                  <div key={t.id} className="flex items-center space-x-2">
-                    <Checkbox id={`mobile-topic-${t.id}`} />
+                {lounges.map((lounge) => (
+                  <div key={lounge.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`mobile-lounge-${lounge.id}`}
+                      checked={selectedLoungeId === lounge.id}
+                      onCheckedChange={(checked) =>
+                        setSelectedLoungeId(checked ? lounge.id : null)
+                      }
+                    />
                     <label
-                      htmlFor={`mobile-topic-${t.id}`}
+                      htmlFor={`mobile-lounge-${lounge.id}`}
                       className="text-sm font-medium leading-none"
                     >
-                      {t.name}
+                      {lounge.name}
                     </label>
                   </div>
                 ))}
@@ -1202,6 +1181,9 @@ export function DailyNewsDashboard() {
   const [isMobileFiltersOpen, setMobileFiltersOpen] = React.useState(false);
   const [creators, setCreators] = React.useState<Creator[]>([]);
   const [isLoadingCreators, setIsLoadingCreators] = React.useState(true);
+  const [selectedLoungeId, setSelectedLoungeId] = React.useState<string | null>(
+    null
+  );
 
   // Use the content hook to fetch real content
   const {
@@ -1212,7 +1194,12 @@ export function DailyNewsDashboard() {
     unsaveContent,
     refreshContent,
     loadMore,
-  } = useContent();
+  } = useContent({
+    lounge_id: selectedLoungeId || undefined,
+  });
+
+  // Use the lounges hook to fetch real lounges
+  const { lounges, loading: isLoadingLounges, refreshLounges } = useLounges();
 
   const handleCreateTopic = () => {
     setSelectedTopic(null);
@@ -1271,10 +1258,7 @@ export function DailyNewsDashboard() {
     setCreatorModalMode('add');
     setCreatorModalOpen(true);
   };
-  const handleDeleteCreator = async (creator: {
-    id: string;
-    name: string;
-  }) => {
+  const handleDeleteCreator = async (creator: { id: string; name: string }) => {
     if (!confirm(`Are you sure you want to delete ${creator.name}?`)) {
       return;
     }
@@ -1308,11 +1292,18 @@ export function DailyNewsDashboard() {
 
     setIsLoadingCreators(true);
     try {
-      const response = await fetch('/api/creators', {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const params = new URLSearchParams();
+      if (selectedLoungeId) {
+        params.append('lounge_id', selectedLoungeId);
+      }
+      const response = await fetch(
+        `/api/creators${params.toString() ? '?' + params.toString() : ''}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -1323,7 +1314,7 @@ export function DailyNewsDashboard() {
     } finally {
       setIsLoadingCreators(false);
     }
-  }, [user, session]);
+  }, [user, session, selectedLoungeId]);
 
   // Fetch creators on mount and when user/session changes
   React.useEffect(() => {
@@ -1350,6 +1341,10 @@ export function DailyNewsDashboard() {
             lastFetchedAt: c.metadata?.last_fetched_at as string | undefined,
           }))}
           isLoadingCreators={isLoadingCreators}
+          lounges={lounges}
+          isLoadingLounges={isLoadingLounges}
+          selectedLoungeId={selectedLoungeId}
+          onLoungeSelect={setSelectedLoungeId}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
           <Header onSignOut={handleSignOut} onRefresh={refreshContent} />
@@ -1419,9 +1414,15 @@ export function DailyNewsDashboard() {
                       <DropdownMenuSubTrigger>Lounges</DropdownMenuSubTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent>
-                          {topics.map((t) => (
-                            <DropdownMenuCheckboxItem key={t.id}>
-                              {t.name}
+                          {lounges.map((lounge) => (
+                            <DropdownMenuCheckboxItem
+                              key={lounge.id}
+                              checked={selectedLoungeId === lounge.id}
+                              onCheckedChange={(checked) =>
+                                setSelectedLoungeId(checked ? lounge.id : null)
+                              }
+                            >
+                              {lounge.name}
                             </DropdownMenuCheckboxItem>
                           ))}
                         </DropdownMenuSubContent>
@@ -1681,7 +1682,10 @@ export function DailyNewsDashboard() {
       <AddCreatorModal
         open={isCreatorModalOpen}
         onOpenChange={setCreatorModalOpen}
-        onCreatorAdded={fetchCreators}
+        onCreatorAdded={() => {
+          fetchCreators();
+          refreshLounges(); // Refresh lounges to update counts
+        }}
         mode={creatorModalMode}
         creator={selectedCreator || undefined}
       />
@@ -1706,6 +1710,9 @@ export function DailyNewsDashboard() {
         open={isMobileFiltersOpen}
         onOpenChange={setMobileFiltersOpen}
         creators={creators}
+        lounges={lounges}
+        selectedLoungeId={selectedLoungeId}
+        setSelectedLoungeId={setSelectedLoungeId}
       />
     </SidebarProvider>
   );

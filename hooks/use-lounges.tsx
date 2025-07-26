@@ -190,12 +190,54 @@ export function useLounges(filters?: LoungeFilters): UseLoungesReturn {
     [session]
   );
 
-  const refreshLounges = useCallback(() => {
+  const refreshLounges = useCallback(async () => {
+    if (!session) return;
+
     // Reset the fetching ref to allow a new fetch
     isFetchingRef.current = false;
-    // Trigger a re-render by updating state
-    setLounges((prev) => [...prev]);
-  }, []);
+
+    try {
+      const params = new URLSearchParams();
+      const currentFilters = filtersRef.current;
+
+      if (currentFilters?.search)
+        params.append('search', currentFilters.search);
+      if (currentFilters?.parent_lounge_id)
+        params.append('parent_lounge_id', currentFilters.parent_lounge_id);
+      if (currentFilters?.is_system_lounge !== undefined) {
+        params.append(
+          'is_system_lounge',
+          String(currentFilters.is_system_lounge)
+        );
+      }
+      if (currentFilters?.has_creators !== undefined) {
+        params.append('has_creators', String(currentFilters.has_creators));
+      }
+      if (currentFilters?.sort) params.append('sort', currentFilters.sort);
+      if (currentFilters?.order) params.append('order', currentFilters.order);
+      if (currentFilters?.page)
+        params.append('page', String(currentFilters.page));
+      if (currentFilters?.limit)
+        params.append('limit', String(currentFilters.limit));
+
+      const response = await fetch(`/api/lounges?${params}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch lounges');
+      }
+
+      const result = await response.json();
+      setLounges(result.data.lounges);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load lounges';
+      toast.error(message);
+    }
+  }, [session]);
 
   return {
     lounges,

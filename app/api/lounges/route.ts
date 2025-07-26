@@ -78,6 +78,9 @@ export async function GET(request: NextRequest) {
         parent_lounge:lounges!parent_lounge_id (
           id,
           name
+        ),
+        creator_lounges (
+          creator_id
         )
       `,
         { count: 'exact' }
@@ -122,10 +125,19 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil((count || 0) / limit);
 
+    // Transform lounges to include creator count
+    const transformedLounges = (lounges || []).map((lounge) => {
+      const { creator_lounges, ...loungeData } = lounge;
+      return {
+        ...loungeData,
+        creator_count: creator_lounges?.length || 0,
+      };
+    });
+
     return NextResponse.json({
       success: true,
       data: {
-        lounges: lounges || [],
+        lounges: transformedLounges,
         pagination: {
           page,
           limit,

@@ -88,6 +88,13 @@ export function LoungeSelector({
     }
   }, [open, lounges.length, fetchLounges]);
 
+  // Fetch lounges on mount if we have selected lounges to display
+  useEffect(() => {
+    if (selectedLounges.length > 0 && lounges.length === 0 && !loading) {
+      fetchLounges();
+    }
+  }, [selectedLounges.length, lounges.length, loading, fetchLounges]);
+
   const handleLoungeSelect = (loungeId: string) => {
     const isSelected = selectedLounges.includes(loungeId);
 

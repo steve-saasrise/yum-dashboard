@@ -155,6 +155,12 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
               .map((cl: any) => cl.lounges?.name)
               .filter(Boolean);
 
+            // Also get lounge IDs for the edit modal
+            const creatorLoungeIds = creatorLounges
+              .filter((cl) => cl.creator_id === creator.id)
+              .map((cl: any) => cl.lounges?.id)
+              .filter(Boolean);
+
             // Get the primary platform from the first URL
             const primaryUrl = creatorUrlsList[0];
 
@@ -164,6 +170,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
               urls: creatorUrlsList,
               creator_urls: creatorUrlsList, // Keep for compatibility
               lounges: creatorLoungesList,
+              lounge_ids: creatorLoungeIds, // Add lounge IDs for edit modal
               is_active: creator.status === 'active',
             };
           });

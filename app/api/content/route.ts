@@ -12,7 +12,7 @@ const querySchema = z.object({
     .enum(['youtube', 'twitter', 'linkedin', 'threads', 'rss', 'website'])
     .optional(),
   creator_id: z.string().uuid().optional(),
-  topic_id: z.string().uuid().optional(),
+  lounge_id: z.string().uuid().optional(),
   search: z.string().optional(),
   sort_by: z.enum(['published_at', 'created_at']).default('published_at'),
   sort_order: z.enum(['asc', 'desc']).default('desc'),
@@ -52,21 +52,43 @@ export async function GET(request: NextRequest) {
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = querySchema.parse(searchParams);
 
-    // First, get the user's creators
-    const { data: creators, error: creatorsError } = await supabase
-      .from('creators')
-      .select('id')
-      .eq('user_id', user.id);
+    // Get creator IDs based on lounge_id or user
+    let creatorIds: string[] = [];
 
-    if (creatorsError) {
-      // Error fetching creators
-      return NextResponse.json(
-        { error: 'Failed to fetch creators' },
-        { status: 500 }
-      );
+    if (query.lounge_id) {
+      // If lounge_id is provided, get creators for that lounge
+      const { data: loungeCreators, error: loungeCreatorsError } =
+        await supabase
+          .from('creator_lounges')
+          .select('creator_id')
+          .eq('lounge_id', query.lounge_id);
+
+      if (loungeCreatorsError) {
+        return NextResponse.json(
+          { error: 'Failed to fetch lounge creators' },
+          { status: 500 }
+        );
+      }
+
+      creatorIds = loungeCreators?.map((lc) => lc.creator_id) || [];
+    } else {
+      // Otherwise, get the user's creators (old behavior)
+      const { data: creators, error: creatorsError } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (creatorsError) {
+        return NextResponse.json(
+          { error: 'Failed to fetch creators' },
+          { status: 500 }
+        );
+      }
+
+      creatorIds = creators?.map((c) => c.id) || [];
     }
 
-    if (!creators || creators.length === 0) {
+    if (creatorIds.length === 0) {
       // No creators, return empty content
       return NextResponse.json({
         content: [],
@@ -76,8 +98,6 @@ export async function GET(request: NextRequest) {
         has_more: false,
       });
     }
-
-    const creatorIds = creators.map((c) => c.id);
 
     // Build the content query
     let contentQuery = supabase
