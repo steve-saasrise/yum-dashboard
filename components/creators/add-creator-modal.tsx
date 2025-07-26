@@ -37,6 +37,7 @@ import {
   Loader2,
   AlertCircle,
   X,
+  Edit2,
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -95,6 +96,9 @@ export function AddCreatorModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [deletedUrlIds, setDeletedUrlIds] = useState<string[]>([]);
+  const [editingUrlId, setEditingUrlId] = useState<string | null>(null);
+  const [editingUrlValue, setEditingUrlValue] = useState<string>('');
 
   const form = useForm<CreateCreatorFormData>({
     resolver: zodResolver(createCreatorSchema),
@@ -112,19 +116,10 @@ export function AddCreatorModal({
       form.reset({
         display_name: creator.display_name || '',
         description: creator.bio || '',
-        urls:
-          creator.creator_urls?.map((url) => ({
-            url: url.url,
-            platform: url.platform as
-              | 'youtube'
-              | 'twitter'
-              | 'linkedin'
-              | 'threads'
-              | 'rss'
-              | 'unknown',
-          })) || [],
+        urls: [], // In edit mode, we manage existing URLs separately
         topics: creator.topics || [],
       });
+      setDeletedUrlIds([]); // Reset deleted URLs tracking
     } else {
       form.reset({
         display_name: '',
@@ -132,6 +127,7 @@ export function AddCreatorModal({
         urls: [],
         topics: [],
       });
+      setDeletedUrlIds([]);
     }
   }, [mode, creator, form]);
 
@@ -187,6 +183,21 @@ export function AddCreatorModal({
         return;
       }
 
+      // In edit mode, check if platform already exists in existing URLs
+      if (mode === 'edit' && creator?.creator_urls) {
+        const existingPlatform = creator.creator_urls.find(
+          (u) =>
+            u.platform === platformInfo.platform &&
+            !deletedUrlIds.includes(u.id)
+        );
+        if (existingPlatform) {
+          setUrlError(
+            `A ${platformInfo.platform} URL already exists for this creator`
+          );
+          return;
+        }
+      }
+
       // Add the URL
       const newUrls = [
         ...urls,
@@ -240,6 +251,98 @@ export function AddCreatorModal({
     if (e.key === 'Enter') {
       e.preventDefault();
       addUrl();
+    }
+  };
+
+  const handleDeleteExistingUrl = (urlId: string) => {
+    // Check if this is the last URL
+    const remainingUrls =
+      creator?.creator_urls?.filter(
+        (u) => u.id !== urlId && !deletedUrlIds.includes(u.id)
+      ).length || 0;
+    
+    if (remainingUrls === 0 && urls.length === 0) {
+      toast({
+        title: 'Cannot delete URL',
+        description: 'A creator must have at least one URL',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setDeletedUrlIds([...deletedUrlIds, urlId]);
+  };
+
+  const startEditingUrl = (urlId: string, currentUrl: string) => {
+    setEditingUrlId(urlId);
+    setEditingUrlValue(currentUrl);
+  };
+
+  const cancelEditingUrl = () => {
+    setEditingUrlId(null);
+    setEditingUrlValue('');
+  };
+
+  const saveEditedUrl = async () => {
+    if (!editingUrlId || !creator?.id) return;
+
+    // Validate the new URL
+    try {
+      new URL(editingUrlValue);
+    } catch {
+      toast({
+        title: 'Invalid URL',
+        description: 'Please enter a valid URL',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(
+        `/api/creators/${creator.id}/urls/${editingUrlId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: editingUrlValue }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update URL');
+      }
+
+      // Update the URL in the creator object
+      if (creator.creator_urls) {
+        const updatedUrls = creator.creator_urls.map((u) =>
+          u.id === editingUrlId
+            ? { ...u, url: editingUrlValue, platform: result.data.platform }
+            : u
+        );
+        creator.creator_urls = updatedUrls;
+      }
+
+      toast({
+        title: 'URL updated',
+        description: 'The URL has been updated successfully',
+      });
+
+      setEditingUrlId(null);
+      setEditingUrlValue('');
+      onCreatorAdded?.(); // Refresh the list
+    } catch (error) {
+      toast({
+        title: 'Failed to update URL',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -319,6 +422,44 @@ export function AddCreatorModal({
 
         if (updateError) {
           throw new Error(updateError.message || 'Failed to update creator');
+        }
+
+        // Handle URL changes
+        if (creator?.id) {
+          // Delete URLs marked for deletion
+          for (const urlId of deletedUrlIds) {
+            const { error: deleteError } = await fetch(
+              `/api/creators/${creator.id}/urls/${urlId}`,
+              {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              }
+            ).then((res) => res.json());
+
+            if (deleteError) {
+              console.error('Failed to delete URL:', deleteError);
+            }
+          }
+
+          // Add new URLs
+          for (const newUrl of data.urls) {
+            const { error: addError } = await fetch(
+              `/api/creators/${creator.id}/urls`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: newUrl.url }),
+              }
+            ).then((res) => res.json());
+
+            if (addError) {
+              console.error('Failed to add URL:', addError);
+            }
+          }
         }
 
         // Update topics
@@ -515,38 +656,169 @@ export function AddCreatorModal({
               </div>
             )}
 
-            {mode === 'edit' &&
-              creator?.creator_urls &&
-              creator.creator_urls.length > 0 && (
-                <div className="space-y-4">
-                  <FormItem>
-                    <FormLabel>Connected Platforms</FormLabel>
-                    <FormDescription>
-                      Current social media accounts (URL editing coming soon)
-                    </FormDescription>
+            {mode === 'edit' && (
+              <div className="space-y-4">
+                <FormItem>
+                  <FormLabel>Creator URLs</FormLabel>
+                  <FormDescription>
+                    Manage URLs where this creator posts content. Click on a URL to edit it inline.
+                  </FormDescription>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter creator URL (YouTube, X, LinkedIn, RSS...)"
+                        value={urlInput}
+                        onChange={(e) => {
+                          setUrlInput(e.target.value);
+                          setUrlError(null);
+                        }}
+                        onKeyPress={handleKeyPress}
+                        disabled={isSubmitting}
+                        className={cn(urlError && 'border-red-500')}
+                      />
+                      <Button
+                        type="button"
+                        onClick={addUrl}
+                        disabled={isSubmitting}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {urlError && (
+                      <div className="flex items-center gap-2 text-sm text-red-600">
+                        <AlertCircle className="h-3 w-3" />
+                        {urlError}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Combined list of existing and new URLs */}
+                  {(creator?.creator_urls || urls.length > 0) && (
                     <div className="flex flex-wrap gap-2 pt-2">
-                      {creator.creator_urls.map((urlItem) => {
+                      {/* Existing URLs */}
+                      {creator?.creator_urls
+                        ?.filter((url) => !deletedUrlIds.includes(url.id))
+                        .map((urlItem) => {
+                          const Icon =
+                            platformIcons[
+                              urlItem.platform as keyof typeof platformIcons
+                            ] || platformIcons.unknown;
+                          
+                          // Check if only one URL remains
+                          const isLastUrl = 
+                            creator.creator_urls?.filter(u => !deletedUrlIds.includes(u.id)).length === 1 &&
+                            urls.length === 0;
+                          
+                          if (editingUrlId === urlItem.id) {
+                            // Show inline edit form
+                            return (
+                              <div key={urlItem.id} className="flex items-center gap-2 w-full">
+                                <Icon className="h-4 w-4" />
+                                <Input
+                                  value={editingUrlValue}
+                                  onChange={(e) => setEditingUrlValue(e.target.value)}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      saveEditedUrl();
+                                    }
+                                  }}
+                                  className="flex-1"
+                                  disabled={isSubmitting}
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={saveEditedUrl}
+                                  disabled={isSubmitting}
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={cancelEditingUrl}
+                                  disabled={isSubmitting}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <Badge
+                              key={urlItem.id}
+                              variant="secondary"
+                              className="pl-2 pr-1 py-1.5 flex items-center gap-2 text-sm group"
+                            >
+                              <Icon className="h-4 w-4" />
+                              <span 
+                                className="max-w-[200px] truncate cursor-pointer hover:underline"
+                                onClick={() => startEditingUrl(urlItem.id, urlItem.url)}
+                                title="Click to edit"
+                              >
+                                {urlItem.url}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteExistingUrl(urlItem.id)}
+                                className={cn(
+                                  "ml-1 rounded-full p-0.5 transition-colors",
+                                  isLastUrl 
+                                    ? "cursor-not-allowed opacity-50" 
+                                    : "hover:bg-gray-300 dark:hover:bg-gray-600"
+                                )}
+                                disabled={isSubmitting || isLastUrl}
+                                title={isLastUrl ? "Cannot delete the last URL" : "Delete URL"}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                      {/* New URLs to be added */}
+                      {urls.map((urlItem, index) => {
                         const Icon =
                           platformIcons[
                             urlItem.platform as keyof typeof platformIcons
                           ] || platformIcons.unknown;
                         return (
                           <Badge
-                            key={urlItem.id}
-                            variant="secondary"
-                            className="pl-2 pr-2 py-1.5 flex items-center gap-2 text-sm"
+                            key={`new-${index}`}
+                            variant="outline"
+                            className="pl-2 pr-1 py-1.5 flex items-center gap-2 text-sm border-dashed"
                           >
                             <Icon className="h-4 w-4" />
                             <span className="max-w-[200px] truncate">
                               {urlItem.url}
                             </span>
+                            <span className="text-xs text-green-600 dark:text-green-400 ml-1">
+                              (new)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeUrl(index)}
+                              className="ml-1 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-0.5 transition-colors"
+                              disabled={isSubmitting}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
                           </Badge>
                         );
                       })}
                     </div>
-                  </FormItem>
-                </div>
-              )}
+                  )}
+
+                  {form.formState.errors.urls && (
+                    <p className="text-sm text-red-600">
+                      {form.formState.errors.urls.message}
+                    </p>
+                  )}
+                </FormItem>
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -579,6 +851,7 @@ export function AddCreatorModal({
                   onOpenChange(false);
                   setUrlInput('');
                   setUrlError(null);
+                  setDeletedUrlIds([]);
                 }}
                 disabled={isSubmitting}
               >

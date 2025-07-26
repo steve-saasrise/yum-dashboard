@@ -583,7 +583,9 @@ function Header({
                     onClick={onRefresh}
                   >
                     <Brain className="h-5 w-5" />
-                    <span className="sr-only">Refresh content with AI summaries</span>
+                    <span className="sr-only">
+                      Refresh content with AI summaries
+                    </span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -1257,7 +1259,6 @@ export function DailyNewsDashboard() {
     setCreatorModalMode('add');
     setCreatorModalOpen(true);
   };
-
 
   // Fetch creators from the database
   const fetchCreators = React.useCallback(async () => {
