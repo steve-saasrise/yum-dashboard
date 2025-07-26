@@ -51,7 +51,7 @@ export async function GET() {
       user_account: Record<string, unknown>;
       profile: Record<string, unknown>;
       saved_content: Array<Record<string, unknown>>;
-      user_topics: Array<Record<string, unknown>>;
+      user_lounges: Array<Record<string, unknown>>;
       email_digests: Array<Record<string, unknown>>;
       user_sessions: Array<Record<string, unknown>>;
       api_usage: Array<Record<string, unknown>>;
@@ -65,7 +65,7 @@ export async function GET() {
       user_account: {},
       profile: {},
       saved_content: [],
-      user_topics: [],
+      user_lounges: [],
       email_digests: [],
       user_sessions: [],
       api_usage: [],
@@ -146,13 +146,13 @@ export async function GET() {
       }));
     }
 
-    // 4. Get user topics
-    const { data: userTopicsData } = await supabase
-      .from('user_topics')
+    // 4. Get user lounges
+    const { data: userLoungesData } = await supabase
+      .from('user_lounges')
       .select(
         `
         *,
-        topics (
+        lounges (
           name,
           description
         )
@@ -160,12 +160,12 @@ export async function GET() {
       )
       .eq('user_id', user.id);
 
-    if (userTopicsData) {
-      exportData.user_topics = userTopicsData.map((item) => ({
+    if (userLoungesData) {
+      exportData.user_lounges = userLoungesData.map((item) => ({
         subscribed_at: item.created_at,
-        topic: {
-          name: item.topics?.name,
-          description: item.topics?.description,
+        lounge: {
+          name: item.lounges?.name,
+          description: item.lounges?.description,
         },
       }));
     }
@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
         'user_account',
         'profile',
         'saved_content',
-        'user_topics',
+        'user_lounges',
         'email_digests',
         'user_sessions',
         'api_usage',

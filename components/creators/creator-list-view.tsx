@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useTopics } from '@/hooks/use-topics';
+import { useLounges } from '@/hooks/use-lounges';
 import { useCreators } from '@/hooks/use-creators';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -130,15 +130,15 @@ function CreatorFilters({
     { value: 'rss', label: 'RSS' },
   ];
 
-  // Use dynamic topics from the database
-  const { topics: dynamicTopics, loading: topicsLoading } = useTopics();
-  const topics = dynamicTopics.map((topic) => ({
-    value: topic.id,
-    label: topic.name,
+  // Use dynamic lounges from the database
+  const { lounges: dynamicLounges, loading: loungesLoading } = useLounges();
+  const lounges = dynamicLounges.map((lounge) => ({
+    value: lounge.id,
+    label: lounge.name,
   }));
 
   const hasActiveFilters =
-    filters.platform || filters.topic || filters.status !== 'all';
+    filters.platform || filters.lounge || filters.status !== 'all';
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -183,14 +183,14 @@ function CreatorFilters({
           <Button
             variant="outline"
             size="sm"
-            data-testid="topic-filter"
-            disabled={topicsLoading}
+            data-testid="lounge-filter"
+            disabled={loungesLoading}
           >
-            Topic
-            {filters.topic && (
+            Lounge
+            {filters.lounge && (
               <Badge variant="secondary" className="ml-2">
-                {topics.find((t) => t.value === filters.topic)?.label ||
-                  filters.topic}
+                {lounges.find((l) => l.value === filters.lounge)?.label ||
+                  filters.lounge}
               </Badge>
             )}
             <ChevronDown className="h-4 w-4 ml-2" />
@@ -198,16 +198,16 @@ function CreatorFilters({
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem
-            onClick={() => onFiltersChange({ topic: undefined })}
+            onClick={() => onFiltersChange({ lounge: undefined })}
           >
-            All Topics
+            All Lounges
           </DropdownMenuItem>
-          {topics.map((topic) => (
+          {lounges.map((lounge) => (
             <DropdownMenuItem
-              key={topic.value}
-              onClick={() => onFiltersChange({ topic: topic.value })}
+              key={lounge.value}
+              onClick={() => onFiltersChange({ lounge: lounge.value })}
             >
-              {topic.label}
+              {lounge.label}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -301,7 +301,7 @@ function CreatorTable({
               )}
             </TableHead>
             <TableHead>Platform</TableHead>
-            <TableHead>Topics</TableHead>
+            <TableHead>Lounges</TableHead>
             <TableHead>Status</TableHead>
             <TableHead
               className="cursor-pointer"
@@ -359,18 +359,18 @@ function CreatorTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {creator.topics?.slice(0, 2).map((topic) => (
+                    {creator.lounges?.slice(0, 2).map((lounge) => (
                       <Badge
-                        key={topic}
+                        key={lounge}
                         variant="secondary"
                         className="text-xs"
                       >
-                        {topic}
+                        {lounge}
                       </Badge>
                     ))}
-                    {creator.topics && creator.topics.length > 2 && (
+                    {creator.lounges && creator.lounges.length > 2 && (
                       <Badge variant="outline" className="text-xs">
-                        +{creator.topics.length - 2}
+                        +{creator.lounges.length - 2}
                       </Badge>
                     )}
                   </div>
@@ -480,9 +480,9 @@ function CreatorCards({
                   </p>
                 )}
                 <div className="flex flex-wrap gap-1">
-                  {creator.topics?.slice(0, 3).map((topic) => (
-                    <Badge key={topic} variant="secondary" className="text-xs">
-                      {topic}
+                  {creator.lounges?.slice(0, 3).map((lounge) => (
+                    <Badge key={lounge} variant="secondary" className="text-xs">
+                      {lounge}
                     </Badge>
                   ))}
                 </div>

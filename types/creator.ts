@@ -34,7 +34,7 @@ export interface Creator {
   is_active?: boolean;
   created_at: string;
   updated_at: string;
-  topics?: string[];
+  lounges?: string[];
   // New field for multiple URLs
   urls?: CreatorUrl[];
   creator_urls?: CreatorUrl[];
@@ -53,7 +53,7 @@ export interface CreatorListResponse {
 export interface CreatorFilters {
   search?: string;
   platform?: Platform;
-  topic?: string;
+  lounge?: string;
   status?: 'active' | 'inactive' | 'all';
   sort?: 'display_name' | 'platform' | 'created_at' | 'updated_at';
   order?: 'asc' | 'desc';

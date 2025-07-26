@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth, useProfile } from '@/hooks/use-auth';
 import { useContent } from '@/hooks/use-content';
 import type { Creator, Platform } from '@/types/creator';
+import type { Lounge } from '@/types/lounge';
 import { toast } from 'sonner';
 import {
   Sidebar,
@@ -239,8 +240,8 @@ interface FeedItem {
   }>;
 }
 
-// Topic interface
-interface Topic {
+// Lounge interface for sidebar
+interface SidebarLounge {
   id: string;
   name: string;
   slug?: string;
@@ -299,6 +300,14 @@ function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Manage Creators">
+                  <Link href="/creators">
+                    <Edit className="w-4 h-4" />
+                    <span className="truncate">Manage Creators</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton
                   tooltip="Add Creator (Quick)"
                   onClick={onCreatorCreate}
@@ -308,17 +317,9 @@ function AppSidebar({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Manage Creators">
-                  <Link href="/creators">
-                    <Edit className="w-4 h-4" />
-                    <span className="truncate">Manage Creators</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Add Topic" onClick={onTopicCreate}>
+                <SidebarMenuButton tooltip="Add Lounge" onClick={onTopicCreate}>
                   <PlusCircle className="w-4 h-4" />
-                  <span className="truncate">Add Topic</span>
+                  <span className="truncate">Add Lounge</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -358,7 +359,7 @@ function AppSidebar({
           <Collapsible defaultOpen>
             <SidebarGroupLabel asChild>
               <CollapsibleTrigger className="w-full flex items-center justify-between hover:bg-sidebar-accent rounded-md px-2 py-1 transition-colors duration-200 group">
-                <span>Topics</span>
+                <span>Lounges</span>
                 <ChevronDown className="h-4 w-4 transition-transform duration-300 ease-in-out group-data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
             </SidebarGroupLabel>
@@ -835,7 +836,7 @@ function TopicManagementModal({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  topic?: Topic;
+  topic?: SidebarLounge;
 }) {
   const isEditing = !!topic;
   return (
@@ -1095,7 +1096,7 @@ function MobileFiltersSheet({
 
             {/* Topics */}
             <div className="space-y-3">
-              <h3 className="font-medium text-sm">Topics</h3>
+              <h3 className="font-medium text-sm">Lounges</h3>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                 {topics.map((t) => (
                   <div key={t.id} className="flex items-center space-x-2">
@@ -1179,7 +1180,7 @@ export function DailyNewsDashboard() {
   const [view, setView] = React.useState<'grid' | 'list'>('grid');
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [selectedTopic, setSelectedTopic] = React.useState<Topic | null>(null);
+  const [selectedTopic, setSelectedTopic] = React.useState<SidebarLounge | null>(null);
   const [selectedCreator, setSelectedCreator] = React.useState<Creator | null>(
     null
   );
@@ -1213,7 +1214,7 @@ export function DailyNewsDashboard() {
     color?: string;
   }) => {
     // Convert to Topic type
-    const fullTopic: Topic = {
+    const fullTopic: SidebarLounge = {
       id: String(topic.id),
       name: topic.name,
       slug: topic.name.toLowerCase().replace(/\s+/g, '-'),
@@ -1229,7 +1230,7 @@ export function DailyNewsDashboard() {
     color?: string;
   }) => {
     // Convert to Topic type
-    const fullTopic: Topic = {
+    const fullTopic: SidebarLounge = {
       id: String(topic.id),
       name: topic.name,
       slug: topic.name.toLowerCase().replace(/\s+/g, '-'),
@@ -1302,7 +1303,7 @@ export function DailyNewsDashboard() {
             name: c.display_name,
             platform: c.platform || 'website',
             handle: c.platform_user_id || c.display_name,
-            category: c.topics?.[0],
+            category: c.lounges?.[0],
             isActive: c.is_active,
             lastFetchedAt: c.metadata?.last_fetched_at as string | undefined,
           }))}
@@ -1373,7 +1374,7 @@ export function DailyNewsDashboard() {
                       </DropdownMenuPortal>
                     </DropdownMenuSub>
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Topics</DropdownMenuSubTrigger>
+                      <DropdownMenuSubTrigger>Lounges</DropdownMenuSubTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent>
                           {topics.map((t) => (

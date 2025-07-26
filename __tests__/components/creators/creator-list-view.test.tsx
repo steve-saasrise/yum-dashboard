@@ -30,10 +30,10 @@ jest.mock('@/hooks/use-creators', () => ({
   useCreators: jest.fn(),
 }));
 
-// Mock useTopics hook
-jest.mock('@/hooks/use-topics', () => ({
-  useTopics: jest.fn(() => ({
-    topics: [
+// Mock useLounges hook
+jest.mock('@/hooks/use-lounges', () => ({
+  useLounges: jest.fn(() => ({
+    lounges: [
       { id: '1', name: 'Technology' },
       { id: '2', name: 'News' },
     ],

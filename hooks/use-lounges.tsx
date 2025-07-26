@@ -4,15 +4,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from './use-auth';
 import type {
-  Topic,
-  CreateTopicData,
-  UpdateTopicData,
-  TopicFilters,
-  UseTopicsReturn,
-} from '@/types/topic';
+  Lounge,
+  CreateLoungeData,
+  UpdateLoungeData,
+  LoungeFilters,
+  UseLoungesReturn,
+} from '@/types/lounge';
 
-export function useTopics(filters?: TopicFilters): UseTopicsReturn {
-  const [topics, setTopics] = useState<Topic[]>([]);
+export function useLounges(filters?: LoungeFilters): UseLoungesReturn {
+  const [lounges, setLounges] = useState<Lounge[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { state } = useAuth();
@@ -36,7 +36,7 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
       return;
     }
 
-    const fetchTopics = async () => {
+    const fetchLounges = async () => {
       isFetchingRef.current = true;
       setLoading(true);
       setError(null);
@@ -47,12 +47,12 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
 
         if (currentFilters?.search)
           params.append('search', currentFilters.search);
-        if (currentFilters?.parent_topic_id)
-          params.append('parent_topic_id', currentFilters.parent_topic_id);
-        if (currentFilters?.is_system_topic !== undefined) {
+        if (currentFilters?.parent_lounge_id)
+          params.append('parent_lounge_id', currentFilters.parent_lounge_id);
+        if (currentFilters?.is_system_lounge !== undefined) {
           params.append(
-            'is_system_topic',
-            String(currentFilters.is_system_topic)
+            'is_system_lounge',
+            String(currentFilters.is_system_lounge)
           );
         }
         if (currentFilters?.has_creators !== undefined) {
@@ -65,21 +65,21 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
         if (currentFilters?.limit)
           params.append('limit', String(currentFilters.limit));
 
-        const response = await fetch(`/api/topics?${params}`, {
+        const response = await fetch(`/api/lounges?${params}`, {
           headers: {
             'Content-Type': 'application/json',
           },
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch topics');
+          throw new Error('Failed to fetch lounges');
         }
 
         const result = await response.json();
-        setTopics(result.data.topics);
+        setLounges(result.data.lounges);
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : 'Failed to load topics';
+          err instanceof Error ? err.message : 'Failed to load lounges';
         setError(message);
         toast.error(message);
       } finally {
@@ -88,13 +88,13 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
       }
     };
 
-    fetchTopics();
+    fetchLounges();
   }, [session]); // Only depend on session, not filters
 
-  const createTopic = useCallback(
-    async (data: CreateTopicData): Promise<Topic> => {
+  const createLounge = useCallback(
+    async (data: CreateLoungeData): Promise<Lounge> => {
       try {
-        const response = await fetch('/api/topics', {
+        const response = await fetch('/api/lounges', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -104,19 +104,19 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || 'Failed to create topic');
+          throw new Error(error.error || 'Failed to create lounge');
         }
 
         const result = await response.json();
-        const newTopic = result.data;
+        const newLounge = result.data;
 
         // Add to local state
-        setTopics((prevTopics) => [...prevTopics, newTopic]);
+        setLounges((prevLounges) => [...prevLounges, newLounge]);
 
-        return newTopic;
+        return newLounge;
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : 'Failed to create topic';
+          err instanceof Error ? err.message : 'Failed to create lounge';
         toast.error(message);
         throw err;
       }
@@ -124,10 +124,10 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
     [session]
   );
 
-  const updateTopic = useCallback(
-    async (id: string, data: UpdateTopicData): Promise<Topic> => {
+  const updateLounge = useCallback(
+    async (id: string, data: UpdateLoungeData): Promise<Lounge> => {
       try {
-        const response = await fetch(`/api/topics/${id}`, {
+        const response = await fetch(`/api/lounges/${id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -137,21 +137,21 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || 'Failed to update topic');
+          throw new Error(error.error || 'Failed to update lounge');
         }
 
         const result = await response.json();
-        const updatedTopic = result.data;
+        const updatedLounge = result.data;
 
         // Update local state
-        setTopics((prevTopics) =>
-          prevTopics.map((topic) => (topic.id === id ? updatedTopic : topic))
+        setLounges((prevLounges) =>
+          prevLounges.map((lounge) => (lounge.id === id ? updatedLounge : lounge))
         );
 
-        return updatedTopic;
+        return updatedLounge;
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : 'Failed to update topic';
+          err instanceof Error ? err.message : 'Failed to update lounge';
         toast.error(message);
         throw err;
       }
@@ -159,28 +159,28 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
     [session]
   );
 
-  const deleteTopic = useCallback(
+  const deleteLounge = useCallback(
     async (id: string): Promise<void> => {
       try {
-        const response = await fetch(`/api/topics/${id}`, {
+        const response = await fetch(`/api/lounges/${id}`, {
           method: 'DELETE',
           headers: {},
         });
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || 'Failed to delete topic');
+          throw new Error(error.error || 'Failed to delete lounge');
         }
 
         // Remove from local state
-        setTopics((prevTopics) =>
-          prevTopics.filter((topic) => topic.id !== id)
+        setLounges((prevLounges) =>
+          prevLounges.filter((lounge) => lounge.id !== id)
         );
 
-        toast.success('Topic deleted successfully');
+        toast.success('Lounge deleted successfully');
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : 'Failed to delete topic';
+          err instanceof Error ? err.message : 'Failed to delete lounge';
         toast.error(message);
         throw err;
       }
@@ -188,20 +188,20 @@ export function useTopics(filters?: TopicFilters): UseTopicsReturn {
     [session]
   );
 
-  const refreshTopics = useCallback(() => {
+  const refreshLounges = useCallback(() => {
     // Reset the fetching ref to allow a new fetch
     isFetchingRef.current = false;
     // Trigger a re-render by updating state
-    setTopics((prev) => [...prev]);
+    setLounges((prev) => [...prev]);
   }, []);
 
   return {
-    topics,
+    lounges,
     loading,
     error,
-    createTopic,
-    updateTopic,
-    deleteTopic,
-    refreshTopics,
+    createLounge,
+    updateLounge,
+    deleteLounge,
+    refreshLounges,
   };
 }

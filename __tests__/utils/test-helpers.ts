@@ -10,7 +10,7 @@ export const createMockCreator = (overrides?: Partial<Creator>): Creator => ({
   display_name: 'Test Creator',
   bio: 'Test creator bio',
   avatar_url: undefined,
-  topics: [],
+  lounges: [],
   metadata: {},
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),

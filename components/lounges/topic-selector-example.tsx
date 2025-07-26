@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { TopicSelector } from './topic-selector';
+import { LoungeSelector } from './lounge-selector';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -29,14 +29,14 @@ const creatorFormSchema = z.object({
 type CreatorFormData = z.infer<typeof creatorFormSchema>;
 
 /**
- * Example component showing how to integrate TopicSelector with React Hook Form
+ * Example component showing how to integrate LoungeSelector with React Hook Form
  * This example demonstrates:
  * - Integration with react-hook-form
  * - Form validation with Zod
  * - Custom topic creation handler
  * - Proper error handling
  */
-export function TopicSelectorExample() {
+export function LoungeSelectorExample() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CreatorFormData>({
@@ -75,7 +75,7 @@ export function TopicSelectorExample() {
     // - Setting default descriptions
     // - Creating topics in a specific parent category
 
-    const response = await fetch('/api/topics', {
+    const response = await fetch('/api/lounges', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -144,14 +144,14 @@ export function TopicSelectorExample() {
             name="topics"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Topics</FormLabel>
+                <FormLabel>Lounges</FormLabel>
                 <FormControl>
-                  <TopicSelector
-                    selectedTopics={field.value}
+                  <LoungeSelector
+                    selectedLounges={field.value}
                     onChange={field.onChange}
                     placeholder="Select or create topics..."
                     maxSelections={5}
-                    onCreateTopic={handleCustomTopicCreation}
+                    onCreateLounge={handleCustomTopicCreation}
                   />
                 </FormControl>
                 <FormDescription>
@@ -210,24 +210,24 @@ export function TopicSelectorExample() {
 /**
  * Standalone example without form integration
  */
-export function TopicSelectorStandalone() {
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+export function LoungeSelectorStandalone() {
+  const [selectedLounges, setSelectedTopics] = useState<string[]>([]);
 
   return (
     <div className="max-w-md mx-auto p-6">
       <h3 className="text-lg font-semibold mb-4">Standalone Topic Selector</h3>
 
-      <TopicSelector
-        selectedTopics={selectedTopics}
+      <LoungeSelector
+        selectedLounges={selectedLounges}
         onChange={setSelectedTopics}
         placeholder="Choose your interests..."
         allowCreate={true}
       />
 
-      {selectedTopics.length > 0 && (
+      {selectedLounges.length > 0 && (
         <div className="mt-4">
           <p className="text-sm text-muted-foreground">
-            You have selected {selectedTopics.length} topic(s)
+            You have selected {selectedLounges.length} topic(s)
           </p>
         </div>
       )}

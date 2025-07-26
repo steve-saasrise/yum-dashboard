@@ -28,30 +28,30 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/components/ui/use-mobile';
-import type { Topic, TopicSelectorProps } from '@/types/topic';
+import type { Lounge, LoungeSelectorProps } from '@/types/lounge';
 
-export function TopicSelector({
-  selectedTopics = [],
+export function LoungeSelector({
+  selectedLounges = [],
   onChange,
-  placeholder = 'Select topics...',
+  placeholder = 'Select lounges...',
   maxSelections,
   allowCreate = true,
-  onCreateTopic,
+  onCreateLounge,
   disabled = false,
   className,
-}: TopicSelectorProps) {
+}: LoungeSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [topics, setTopics] = useState<Topic[]>([]);
+  const [lounges, setLounges] = useState<Lounge[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [creatingTopic, setCreatingTopic] = useState(false);
+  const [creatingLounge, setCreatingLounge] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { state } = useAuth();
   const { session } = state;
   const isMobile = useIsMobile();
 
-  // Fetch topics on mount and when dropdown opens
-  const fetchTopics = useCallback(async () => {
+  // Fetch lounges on mount and when dropdown opens
+  const fetchLounges = useCallback(async () => {
     if (!session) {
       setLoading(false);
       return;
@@ -59,7 +59,7 @@ export function TopicSelector({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/topics', {
+      const response = await fetch('/api/lounges', {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -67,129 +67,129 @@ export function TopicSelector({
 
       if (!response.ok) {
         await response.text();
-        // Topics API error - will be thrown
-        throw new Error(`Failed to fetch topics: ${response.status}`);
+        // Lounges API error - will be thrown
+        throw new Error(`Failed to fetch lounges: ${response.status}`);
       }
 
       const result = await response.json();
-      setTopics(result.data.topics);
+      setLounges(result.data.lounges);
     } catch {
-      toast.error('Failed to load topics');
-      // Error fetching topics - handled by toast
+      toast.error('Failed to load lounges');
+      // Error fetching lounges - handled by toast
     } finally {
       setLoading(false);
     }
   }, [session]);
 
   useEffect(() => {
-    if (open && topics.length === 0) {
+    if (open && lounges.length === 0) {
       setLoading(true);
-      fetchTopics();
+      fetchLounges();
     }
-  }, [open, topics.length, fetchTopics]);
+  }, [open, lounges.length, fetchLounges]);
 
-  const handleTopicSelect = (topicId: string) => {
-    const isSelected = selectedTopics.includes(topicId);
+  const handleLoungeSelect = (loungeId: string) => {
+    const isSelected = selectedLounges.includes(loungeId);
 
     if (isSelected) {
-      onChange(selectedTopics.filter((id) => id !== topicId));
+      onChange(selectedLounges.filter((id) => id !== loungeId));
     } else {
-      if (maxSelections && selectedTopics.length >= maxSelections) {
-        toast.error(`Maximum ${maxSelections} topics allowed`);
+      if (maxSelections && selectedLounges.length >= maxSelections) {
+        toast.error(`Maximum ${maxSelections} lounges allowed`);
         return;
       }
-      onChange([...selectedTopics, topicId]);
+      onChange([...selectedLounges, loungeId]);
     }
   };
 
-  const handleRemoveTopic = (topicId: string) => {
-    onChange(selectedTopics.filter((id) => id !== topicId));
+  const handleRemoveLounge = (loungeId: string) => {
+    onChange(selectedLounges.filter((id) => id !== loungeId));
   };
 
-  const handleCreateTopic = async () => {
-    const topicName = searchQuery.trim();
+  const handleCreateLounge = async () => {
+    const loungeName = searchQuery.trim();
 
-    if (!topicName) {
-      toast.error('Please enter a topic name');
+    if (!loungeName) {
+      toast.error('Please enter a lounge name');
       return;
     }
 
-    if (topicName.length > 50) {
-      toast.error('Topic name must be 50 characters or less');
+    if (loungeName.length > 50) {
+      toast.error('Lounge name must be 50 characters or less');
       return;
     }
 
-    // Check if topic already exists
-    const existingTopic = topics.find(
-      (t) => t.name.toLowerCase() === topicName.toLowerCase()
+    // Check if lounge already exists
+    const existingLounge = lounges.find(
+      (t) => t.name.toLowerCase() === loungeName.toLowerCase()
     );
 
-    if (existingTopic) {
-      handleTopicSelect(existingTopic.id);
+    if (existingLounge) {
+      handleLoungeSelect(existingLounge.id);
       setSearchQuery('');
       return;
     }
 
-    setCreatingTopic(true);
+    setCreatingLounge(true);
 
     try {
-      let newTopic: Topic;
+      let newLounge: Lounge;
 
-      if (onCreateTopic) {
+      if (onCreateLounge) {
         // Use custom creation handler if provided
-        newTopic = await onCreateTopic(topicName);
+        newLounge = await onCreateLounge(loungeName);
       } else {
         // Default creation via API
-        const response = await fetch('/api/topics', {
+        const response = await fetch('/api/lounges', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name: topicName }),
+          body: JSON.stringify({ name: loungeName }),
         });
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || 'Failed to create topic');
+          throw new Error(error.error || 'Failed to create lounge');
         }
 
         const result = await response.json();
-        newTopic = result.data;
+        newLounge = result.data;
       }
 
-      // Add to local topics list
-      setTopics([...topics, newTopic]);
+      // Add to local lounges list
+      setLounges([...lounges, newLounge]);
 
-      // Select the newly created topic
-      handleTopicSelect(newTopic.id);
+      // Select the newly created lounge
+      handleLoungeSelect(newLounge.id);
 
       // Clear search
       setSearchQuery('');
 
-      toast.success(`Topic "${topicName}" created`);
+      toast.success(`Lounge "${loungeName}" created`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Failed to create topic'
+        error instanceof Error ? error.message : 'Failed to create lounge'
       );
     } finally {
-      setCreatingTopic(false);
+      setCreatingLounge(false);
     }
   };
 
-  const selectedTopicDetails = topics.filter((topic) =>
-    selectedTopics.includes(topic.id)
+  const selectedLoungeDetails = lounges.filter((lounge) =>
+    selectedLounges.includes(lounge.id)
   );
 
-  const filteredTopics = topics.filter(
-    (topic) =>
-      topic.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      topic.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredLounges = lounges.filter(
+    (lounge) =>
+      lounge.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lounge.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const showCreateOption =
     allowCreate &&
     searchQuery.trim() &&
-    !filteredTopics.some(
+    !filteredLounges.some(
       (t) => t.name.toLowerCase() === searchQuery.trim().toLowerCase()
     );
 
@@ -199,26 +199,26 @@ export function TopicSelector({
       variant="outline"
       role="combobox"
       aria-expanded={open}
-      aria-label="Select topics"
+      aria-label="Select lounges"
       disabled={disabled}
       className={cn(
         'w-full justify-between h-10',
-        selectedTopics.length > 0 && 'h-auto min-h-10',
+        selectedLounges.length > 0 && 'h-auto min-h-10',
         isMobile && 'py-3' // Larger touch target on mobile
       )}
     >
       <div className="flex flex-wrap gap-1">
-        {selectedTopics.length > 0 ? (
-          selectedTopicDetails.map((topic) => (
+        {selectedLounges.length > 0 ? (
+          selectedLoungeDetails.map((lounge) => (
             <Badge
-              key={topic.id}
+              key={lounge.id}
               variant="secondary"
               className={cn(
                 'mr-1',
                 isMobile && 'text-sm py-1' // Slightly larger on mobile
               )}
             >
-              {topic.name}
+              {lounge.name}
               <span
                 className={cn(
                   'ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer inline-flex items-center justify-center',
@@ -231,7 +231,7 @@ export function TopicSelector({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleRemoveTopic(topic.id);
+                  handleRemoveLounge(lounge.id);
                 }}
                 role="button"
                 tabIndex={0}
@@ -239,10 +239,10 @@ export function TopicSelector({
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleRemoveTopic(topic.id);
+                    handleRemoveLounge(lounge.id);
                   }
                 }}
-                aria-label={`Remove ${topic.name}`}
+                aria-label={`Remove ${lounge.name}`}
               >
                 <X className={cn('h-3 w-3', isMobile && 'h-4 w-4')} />
               </span>
@@ -262,7 +262,7 @@ export function TopicSelector({
       <Command shouldFilter={false} className={cn(isMobile && 'h-full')}>
         <CommandInput
           ref={inputRef}
-          placeholder="Search or create topics..."
+          placeholder="Search or create lounges..."
           value={searchQuery}
           onValueChange={setSearchQuery}
           className={cn(isMobile && 'text-base py-3')} // Larger on mobile
@@ -272,26 +272,26 @@ export function TopicSelector({
             <div className="flex flex-col items-center justify-center py-6">
               <Loader2 className="h-4 w-4 animate-spin mb-2" />
               <span className="text-sm text-muted-foreground">
-                Loading topics...
+                Loading lounges...
               </span>
             </div>
           ) : (
             <>
-              {filteredTopics.length === 0 && !showCreateOption && (
-                <CommandEmpty className="py-6">No topics found.</CommandEmpty>
+              {filteredLounges.length === 0 && !showCreateOption && (
+                <CommandEmpty className="py-6">No lounges found.</CommandEmpty>
               )}
 
               {showCreateOption && (
                 <CommandGroup heading="Create new">
                   <CommandItem
-                    onSelect={handleCreateTopic}
-                    disabled={creatingTopic}
+                    onSelect={handleCreateLounge}
+                    disabled={creatingLounge}
                     className={cn(
                       'cursor-pointer',
                       isMobile && 'py-3' // Larger touch target on mobile
                     )}
                   >
-                    {creatingTopic ? (
+                    {creatingLounge ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                       <Plus className="mr-2 h-4 w-4" />
@@ -301,15 +301,15 @@ export function TopicSelector({
                 </CommandGroup>
               )}
 
-              {filteredTopics.length > 0 && (
-                <CommandGroup heading="Topics">
-                  {filteredTopics.map((topic) => {
-                    const isSelected = selectedTopics.includes(topic.id);
+              {filteredLounges.length > 0 && (
+                <CommandGroup heading="Lounges">
+                  {filteredLounges.map((lounge) => {
+                    const isSelected = selectedLounges.includes(lounge.id);
                     return (
                       <CommandItem
-                        key={topic.id}
-                        value={topic.name}
-                        onSelect={() => handleTopicSelect(topic.id)}
+                        key={lounge.id}
+                        value={lounge.name}
+                        onSelect={() => handleLoungeSelect(lounge.id)}
                         className={cn(
                           'cursor-pointer',
                           isMobile && 'py-3' // Larger touch target on mobile
@@ -328,20 +328,20 @@ export function TopicSelector({
                               isMobile && 'text-base'
                             )}
                           >
-                            {topic.name}
+                            {lounge.name}
                           </div>
-                          {topic.description && (
+                          {lounge.description && (
                             <div
                               className={cn(
                                 'text-sm text-muted-foreground',
                                 isMobile && 'text-sm mt-0.5'
                               )}
                             >
-                              {topic.description}
+                              {lounge.description}
                             </div>
                           )}
                         </div>
-                        {topic.is_system_topic && (
+                        {lounge.is_system_lounge && (
                           <Badge variant="outline" className="ml-2">
                             System
                           </Badge>
@@ -365,7 +365,7 @@ export function TopicSelector({
           <DrawerTrigger asChild>{TriggerButton}</DrawerTrigger>
           <DrawerContent className="px-0">
             <DrawerHeader className="pb-0">
-              <DrawerTitle className="text-center">Select Topics</DrawerTitle>
+              <DrawerTitle className="text-center">Select Lounges</DrawerTitle>
             </DrawerHeader>
             <div className="px-4 pb-4">{CommandContent}</div>
           </DrawerContent>

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Script to initialize system topics in the database
- * Run with: npm run init-topics
+ * Script to initialize system lounges in the database
+ * Run with: npm run init-lounges
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -28,7 +28,7 @@ if (fs.existsSync(envPath)) {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const SYSTEM_TOPICS = [
+const SYSTEM_LOUNGES = [
   'Technology',
   'Business',
   'Education',
@@ -49,53 +49,53 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
-async function initSystemTopics() {
+async function initSystemLounges() {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  console.log('Initializing system topics...\n');
+  console.log('Initializing system lounges...\n');
 
-  for (const topicName of SYSTEM_TOPICS) {
+  for (const loungeName of SYSTEM_LOUNGES) {
     try {
-      // Check if topic already exists
-      const { data: existingTopic, error: fetchError } = await supabase
-        .from('topics')
+      // Check if lounge already exists
+      const { data: existingLounge, error: fetchError } = await supabase
+        .from('lounges')
         .select('id')
-        .eq('name', topicName)
+        .eq('name', loungeName)
         .single();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error(`Error checking topic ${topicName}:`, fetchError);
+        console.error(`Error checking lounge ${loungeName}:`, fetchError);
         continue;
       }
 
-      if (existingTopic) {
-        console.log(`⏭️  Topic "${topicName}" already exists, skipping...`);
+      if (existingLounge) {
+        console.log(`⏭️  Lounge "${loungeName}" already exists, skipping...`);
         continue;
       }
 
-      // Create the topic
+      // Create the lounge
       const { data, error } = await supabase
-        .from('topics')
+        .from('lounges')
         .insert({
-          name: topicName,
-          is_system_topic: true,
-          description: `System topic for ${topicName.toLowerCase()} content`,
+          name: loungeName,
+          is_system_lounge: true,
+          description: `System lounge for ${loungeName.toLowerCase()} content`,
         })
         .select()
         .single();
 
       if (error) {
-        console.error(`❌ Error creating topic ${topicName}:`, error);
+        console.error(`❌ Error creating lounge ${loungeName}:`, error);
       } else {
-        console.log(`✅ Created system topic: ${topicName}`);
+        console.log(`✅ Created system lounge: ${loungeName}`);
       }
     } catch (error) {
-      console.error(`❌ Unexpected error for topic ${topicName}:`, error);
+      console.error(`❌ Unexpected error for lounge ${loungeName}:`, error);
     }
   }
 
-  console.log('\n✨ System topics initialization complete!');
+  console.log('\n✨ System lounges initialization complete!');
 }
 
 // Run the script
-initSystemTopics().catch(console.error);
+initSystemLounges().catch(console.error);

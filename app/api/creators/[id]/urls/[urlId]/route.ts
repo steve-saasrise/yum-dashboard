@@ -212,7 +212,10 @@ export async function DELETE(
 
     if (!urlCount || urlCount.length <= 1) {
       return NextResponse.json(
-        { error: 'Cannot delete the last URL. A creator must have at least one URL.' },
+        {
+          error:
+            'Cannot delete the last URL. A creator must have at least one URL.',
+        },
         { status: 400 }
       );
     }

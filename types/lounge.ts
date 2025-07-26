@@ -1,27 +1,27 @@
 import { z } from 'zod';
 
-// Core Topic interface matching database schema
-export interface Topic {
+// Core Lounge interface matching database schema
+export interface Lounge {
   id: string;
   user_id?: string;
   name: string;
   description?: string;
-  parent_topic_id?: string;
+  parent_lounge_id?: string;
   created_at: string;
   updated_at: string;
   usage_count: number;
-  is_system_topic: boolean;
+  is_system_lounge: boolean;
   creator_count: number;
   content_count: number;
-  // For UI: nested parent topic info
-  parent_topic?: Topic;
-  // For UI: child topics
-  child_topics?: Topic[];
+  // For UI: nested parent lounge info
+  parent_lounge?: Lounge;
+  // For UI: child lounges
+  child_lounges?: Lounge[];
 }
 
-// Topic list response from API
-export interface TopicListResponse {
-  topics: Topic[];
+// Lounge list response from API
+export interface LoungeListResponse {
+  lounges: Lounge[];
   total: number;
   page: number;
   limit: number;
@@ -29,10 +29,10 @@ export interface TopicListResponse {
 }
 
 // Filtering and sorting options
-export interface TopicFilters {
+export interface LoungeFilters {
   search?: string;
-  parent_topic_id?: string;
-  is_system_topic?: boolean;
+  parent_lounge_id?: string;
+  is_system_lounge?: boolean;
   has_creators?: boolean;
   sort?: 'name' | 'usage_count' | 'creator_count' | 'created_at' | 'updated_at';
   order?: 'asc' | 'desc';
@@ -41,36 +41,36 @@ export interface TopicFilters {
 }
 
 // Zod schemas for validation
-export const TopicSchema = z.object({
+export const LoungeSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid().optional().nullable(),
-  name: z.string().min(1, 'Topic name is required').max(50),
+  name: z.string().min(1, 'Lounge name is required').max(50),
   description: z.string().max(200).optional().nullable(),
-  parent_topic_id: z.string().uuid().optional().nullable(),
+  parent_lounge_id: z.string().uuid().optional().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
   usage_count: z.number().int().min(0).default(0),
-  is_system_topic: z.boolean().default(false),
+  is_system_lounge: z.boolean().default(false),
   creator_count: z.number().int().min(0).default(0),
   content_count: z.number().int().min(0).default(0),
 });
 
-export const CreateTopicSchema = z.object({
-  name: z.string().min(1, 'Topic name is required').max(50),
+export const CreateLoungeSchema = z.object({
+  name: z.string().min(1, 'Lounge name is required').max(50),
   description: z.string().max(200).optional(),
-  parent_topic_id: z.string().uuid().optional(),
+  parent_lounge_id: z.string().uuid().optional(),
 });
 
-export const UpdateTopicSchema = z.object({
+export const UpdateLoungeSchema = z.object({
   name: z.string().min(1).max(50).optional(),
   description: z.string().max(200).optional().nullable(),
-  parent_topic_id: z.string().uuid().optional().nullable(),
+  parent_lounge_id: z.string().uuid().optional().nullable(),
 });
 
-export const TopicFiltersSchema = z.object({
+export const LoungeFiltersSchema = z.object({
   search: z.string().optional(),
-  parent_topic_id: z.string().uuid().optional(),
-  is_system_topic: z
+  parent_lounge_id: z.string().uuid().optional(),
+  is_system_lounge: z
     .string()
     .transform((val) => val === 'true')
     .pipe(z.boolean())
@@ -92,41 +92,41 @@ export const TopicFiltersSchema = z.object({
     .optional(),
 });
 
-export const TopicListResponseSchema = z.object({
-  topics: z.array(TopicSchema),
+export const LoungeListResponseSchema = z.object({
+  lounges: z.array(LoungeSchema),
   total: z.number(),
   page: z.number(),
   limit: z.number(),
   totalPages: z.number(),
 });
 
-// Form data for creating/updating topics
-export interface CreateTopicData {
+// Form data for creating/updating lounges
+export interface CreateLoungeData {
   name: string;
   description?: string;
-  parent_topic_id?: string;
+  parent_lounge_id?: string;
 }
 
-export interface UpdateTopicData {
+export interface UpdateLoungeData {
   name?: string;
   description?: string;
-  parent_topic_id?: string;
+  parent_lounge_id?: string;
 }
 
 // Component props interfaces (for Phase 2)
-export interface TopicSelectorProps {
-  selectedTopics?: string[];
-  onChange: (topics: string[]) => void;
+export interface LoungeSelectorProps {
+  selectedLounges?: string[];
+  onChange: (lounges: string[]) => void;
   placeholder?: string;
   maxSelections?: number;
   allowCreate?: boolean;
-  onCreateTopic?: (name: string) => Promise<Topic>;
+  onCreateLounge?: (name: string) => Promise<Lounge>;
   disabled?: boolean;
   className?: string;
 }
 
-export interface TopicBadgeProps {
-  topic: Topic;
+export interface LoungeBadgeProps {
+  lounge: Lounge;
   onRemove?: () => void;
   onClick?: () => void;
   variant?: 'default' | 'outline' | 'secondary';
@@ -134,42 +134,42 @@ export interface TopicBadgeProps {
 }
 
 // Error types
-export class TopicError extends Error {
+export class LoungeError extends Error {
   constructor(
     message: string,
     public code: string,
     public statusCode?: number
   ) {
     super(message);
-    this.name = 'TopicError';
+    this.name = 'LoungeError';
   }
 }
 
 // Hook return types (for Phase 2)
-export interface UseTopicsReturn {
-  topics: Topic[];
+export interface UseLoungesReturn {
+  lounges: Lounge[];
   loading: boolean;
   error: string | null;
-  createTopic: (data: CreateTopicData) => Promise<Topic>;
-  updateTopic: (id: string, data: UpdateTopicData) => Promise<Topic>;
-  deleteTopic: (id: string) => Promise<void>;
-  refreshTopics: () => void;
+  createLounge: (data: CreateLoungeData) => Promise<Lounge>;
+  updateLounge: (id: string, data: UpdateLoungeData) => Promise<Lounge>;
+  deleteLounge: (id: string) => Promise<void>;
+  refreshLounges: () => void;
 }
 
 // Constants
-export const DEFAULT_TOPIC_FILTERS: TopicFilters = {
+export const DEFAULT_LOUNGE_FILTERS: LoungeFilters = {
   page: 1,
   limit: 50,
   sort: 'name',
   order: 'asc',
 };
 
-export const MAX_TOPIC_NAME_LENGTH = 50;
-export const MAX_TOPIC_DESCRIPTION_LENGTH = 200;
-export const MAX_TOPIC_DEPTH = 3; // Maximum nesting depth for hierarchical topics
+export const MAX_LOUNGE_NAME_LENGTH = 50;
+export const MAX_LOUNGE_DESCRIPTION_LENGTH = 200;
+export const MAX_LOUNGE_DEPTH = 3; // Maximum nesting depth for hierarchical lounges
 
-// Common system topics
-export const SYSTEM_TOPICS = [
+// Common system lounges
+export const SYSTEM_LOUNGES = [
   'Technology',
   'Business',
   'Education',
@@ -182,4 +182,4 @@ export const SYSTEM_TOPICS = [
   'News',
 ] as const;
 
-export type SystemTopic = (typeof SYSTEM_TOPICS)[number];
+export type SystemLounge = (typeof SYSTEM_LOUNGES)[number];

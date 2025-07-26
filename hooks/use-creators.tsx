@@ -114,26 +114,26 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
             );
           }
 
-          // Fetch topics separately
-          const { data: topicsData } = await supabase
-            .from('creator_topics')
-            .select('creator_id, topic_id, topics(id, name)')
+          // Fetch lounges separately
+          const { data: loungesData } = await supabase
+            .from('creator_lounges')
+            .select('creator_id, lounge_id, lounges(id, name)')
             .in(
               'creator_id',
               filteredCreators.map((c) => c.id)
             );
 
-          const creatorTopics = topicsData || [];
+          const creatorLounges = loungesData || [];
 
-          // If topic filtering is applied, filter creators that have the selected topic
-          if (filters.topic) {
-            const creatorsWithTopic = new Set(
-              creatorTopics
-                .filter((ct: any) => ct.topics?.id === filters.topic)
-                .map((ct) => ct.creator_id)
+          // If lounge filtering is applied, filter creators that have the selected lounge
+          if (filters.lounge) {
+            const creatorsWithLounge = new Set(
+              creatorLounges
+                .filter((cl: any) => cl.lounges?.id === filters.lounge)
+                .map((cl) => cl.creator_id)
             );
             filteredCreators = filteredCreators.filter((creator) =>
-              creatorsWithTopic.has(creator.id)
+              creatorsWithLounge.has(creator.id)
             );
           }
 
@@ -149,10 +149,10 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
               (url) => url.creator_id === creator.id
             );
 
-            // Get topics for this creator
-            const creatorTopicsList = creatorTopics
-              .filter((ct) => ct.creator_id === creator.id)
-              .map((ct: any) => ct.topics?.name)
+            // Get lounges for this creator
+            const creatorLoungesList = creatorLounges
+              .filter((cl) => cl.creator_id === creator.id)
+              .map((cl: any) => cl.lounges?.name)
               .filter(Boolean);
 
             // Get the primary platform from the first URL
@@ -163,7 +163,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
               platform: primaryUrl?.platform || 'website',
               urls: creatorUrlsList,
               creator_urls: creatorUrlsList, // Keep for compatibility
-              topics: creatorTopicsList,
+              lounges: creatorLoungesList,
               is_active: creator.status === 'active',
             };
           });

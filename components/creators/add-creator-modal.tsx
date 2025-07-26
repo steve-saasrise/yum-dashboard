@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { TopicSelector } from '@/components/topics/topic-selector';
+import { LoungeSelector } from '@/components/lounges/lounge-selector';
 
 // Platform icons mapping
 const platformIcons = {
@@ -117,7 +117,7 @@ export function AddCreatorModal({
         display_name: creator.display_name || '',
         description: creator.bio || '',
         urls: [], // In edit mode, we manage existing URLs separately
-        topics: creator.topics || [],
+        topics: creator.lounges || [],
       });
       setDeletedUrlIds([]); // Reset deleted URLs tracking
     } else {
@@ -260,7 +260,7 @@ export function AddCreatorModal({
       creator?.creator_urls?.filter(
         (u) => u.id !== urlId && !deletedUrlIds.includes(u.id)
       ).length || 0;
-    
+
     if (remainingUrls === 0 && urls.length === 0) {
       toast({
         title: 'Cannot delete URL',
@@ -338,7 +338,8 @@ export function AddCreatorModal({
     } catch (error) {
       toast({
         title: 'Failed to update URL',
-        description: error instanceof Error ? error.message : 'An error occurred',
+        description:
+          error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
       });
     } finally {
@@ -462,28 +463,28 @@ export function AddCreatorModal({
           }
         }
 
-        // Update topics
+        // Update lounges
         if (creator?.id) {
-          // First, delete existing topics
+          // First, delete existing lounges
           await supabase
-            .from('creator_topics')
+            .from('creator_lounges')
             .delete()
             .eq('creator_id', creator.id);
 
-          // Then add new topics
+          // Then add new lounges
           if (data.topics && data.topics.length > 0) {
-            const { error: topicError } = await supabase
-              .from('creator_topics')
+            const { error: loungeError } = await supabase
+              .from('creator_lounges')
               .insert(
-                data.topics.map((topicId) => ({
+                data.topics.map((loungeId) => ({
                   creator_id: creator.id,
-                  topic_id: topicId,
+                  lounge_id: loungeId,
                 }))
               );
 
-            if (topicError) {
-              // Failed to update topics - not failing whole operation
-              // Don't fail the whole operation if topics fail
+            if (loungeError) {
+              // Failed to update lounges - not failing whole operation
+              // Don't fail the whole operation if lounges fail
             }
           }
         }
@@ -661,7 +662,8 @@ export function AddCreatorModal({
                 <FormItem>
                   <FormLabel>Creator URLs</FormLabel>
                   <FormDescription>
-                    Manage URLs where this creator posts content. Click on a URL to edit it inline.
+                    Manage URLs where this creator posts content. Click on a URL
+                    to edit it inline.
                   </FormDescription>
                   <div className="space-y-3">
                     <div className="flex gap-2">
@@ -703,20 +705,26 @@ export function AddCreatorModal({
                             platformIcons[
                               urlItem.platform as keyof typeof platformIcons
                             ] || platformIcons.unknown;
-                          
+
                           // Check if only one URL remains
-                          const isLastUrl = 
-                            creator.creator_urls?.filter(u => !deletedUrlIds.includes(u.id)).length === 1 &&
-                            urls.length === 0;
-                          
+                          const isLastUrl =
+                            creator.creator_urls?.filter(
+                              (u) => !deletedUrlIds.includes(u.id)
+                            ).length === 1 && urls.length === 0;
+
                           if (editingUrlId === urlItem.id) {
                             // Show inline edit form
                             return (
-                              <div key={urlItem.id} className="flex items-center gap-2 w-full">
+                              <div
+                                key={urlItem.id}
+                                className="flex items-center gap-2 w-full"
+                              >
                                 <Icon className="h-4 w-4" />
                                 <Input
                                   value={editingUrlValue}
-                                  onChange={(e) => setEditingUrlValue(e.target.value)}
+                                  onChange={(e) =>
+                                    setEditingUrlValue(e.target.value)
+                                  }
                                   onKeyPress={(e) => {
                                     if (e.key === 'Enter') {
                                       e.preventDefault();
@@ -746,7 +754,7 @@ export function AddCreatorModal({
                               </div>
                             );
                           }
-                          
+
                           return (
                             <Badge
                               key={urlItem.id}
@@ -754,24 +762,32 @@ export function AddCreatorModal({
                               className="pl-2 pr-1 py-1.5 flex items-center gap-2 text-sm group"
                             >
                               <Icon className="h-4 w-4" />
-                              <span 
+                              <span
                                 className="max-w-[200px] truncate cursor-pointer hover:underline"
-                                onClick={() => startEditingUrl(urlItem.id, urlItem.url)}
+                                onClick={() =>
+                                  startEditingUrl(urlItem.id, urlItem.url)
+                                }
                                 title="Click to edit"
                               >
                                 {urlItem.url}
                               </span>
                               <button
                                 type="button"
-                                onClick={() => handleDeleteExistingUrl(urlItem.id)}
+                                onClick={() =>
+                                  handleDeleteExistingUrl(urlItem.id)
+                                }
                                 className={cn(
-                                  "ml-1 rounded-full p-0.5 transition-colors",
-                                  isLastUrl 
-                                    ? "cursor-not-allowed opacity-50" 
-                                    : "hover:bg-gray-300 dark:hover:bg-gray-600"
+                                  'ml-1 rounded-full p-0.5 transition-colors',
+                                  isLastUrl
+                                    ? 'cursor-not-allowed opacity-50'
+                                    : 'hover:bg-gray-300 dark:hover:bg-gray-600'
                                 )}
                                 disabled={isSubmitting || isLastUrl}
-                                title={isLastUrl ? "Cannot delete the last URL" : "Delete URL"}
+                                title={
+                                  isLastUrl
+                                    ? 'Cannot delete the last URL'
+                                    : 'Delete URL'
+                                }
                               >
                                 <X className="h-3 w-3" />
                               </button>
@@ -825,12 +841,12 @@ export function AddCreatorModal({
               name="topics"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Topics</FormLabel>
+                  <FormLabel>Lounges</FormLabel>
                   <FormControl>
-                    <TopicSelector
-                      selectedTopics={field.value || []}
+                    <LoungeSelector
+                      selectedLounges={field.value || []}
                       onChange={field.onChange}
-                      placeholder="Select topics..."
+                      placeholder="Select lounges..."
                       allowCreate={true}
                       disabled={isSubmitting}
                     />

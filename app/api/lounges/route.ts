@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { CreateTopicSchema, TopicFiltersSchema } from '@/types/topic';
+import { CreateLoungeSchema, LoungeFiltersSchema } from '@/types/lounge';
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,12 +37,12 @@ export async function GET(request: NextRequest) {
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
-    const queryValidation = TopicFiltersSchema.safeParse({
+    const queryValidation = LoungeFiltersSchema.safeParse({
       page: searchParams.get('page') || undefined,
       limit: searchParams.get('limit') || undefined,
       search: searchParams.get('search') || undefined,
-      parent_topic_id: searchParams.get('parent_topic_id') || undefined,
-      is_system_topic: searchParams.get('is_system_topic') || undefined,
+      parent_lounge_id: searchParams.get('parent_lounge_id') || undefined,
+      is_system_lounge: searchParams.get('is_system_lounge') || undefined,
       has_creators: searchParams.get('has_creators') || undefined,
       sort: searchParams.get('sort') || undefined,
       order: searchParams.get('order') || undefined,
@@ -62,39 +62,39 @@ export async function GET(request: NextRequest) {
       page = 1,
       limit = 50,
       search,
-      parent_topic_id,
-      is_system_topic,
+      parent_lounge_id,
+      is_system_lounge,
       has_creators,
       sort = 'name',
       order = 'asc',
     } = queryValidation.data;
 
-    // Build query - get user's topics and system topics
+    // Build query - get user's lounges and system lounges
     let query = supabase
-      .from('topics')
+      .from('lounges')
       .select(
         `
         *,
-        parent_topic:topics!parent_topic_id (
+        parent_lounge:lounges!parent_lounge_id (
           id,
           name
         )
       `,
         { count: 'exact' }
       )
-      .or(`user_id.eq.${user.id},is_system_topic.eq.true`);
+      .or(`user_id.eq.${user.id},is_system_lounge.eq.true`);
 
     // Apply filters
     if (search) {
       query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
-    if (parent_topic_id !== undefined) {
-      query = query.eq('parent_topic_id', parent_topic_id);
+    if (parent_lounge_id !== undefined) {
+      query = query.eq('parent_lounge_id', parent_lounge_id);
     }
 
-    if (is_system_topic !== undefined) {
-      query = query.eq('is_system_topic', is_system_topic);
+    if (is_system_lounge !== undefined) {
+      query = query.eq('is_system_lounge', is_system_lounge);
     }
 
     if (has_creators) {
@@ -110,12 +110,12 @@ export async function GET(request: NextRequest) {
     const to = from + limit - 1;
     query = query.range(from, to);
 
-    const { data: topics, count, error: fetchError } = await query;
+    const { data: lounges, count, error: fetchError } = await query;
 
     if (fetchError) {
-      // Error fetching topics - details in response
+      // Error fetching lounges - details in response
       return NextResponse.json(
-        { error: 'Failed to fetch topics' },
+        { error: 'Failed to fetch lounges' },
         { status: 500 }
       );
     }
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        topics: topics || [],
+        lounges: lounges || [],
         pagination: {
           page,
           limit,
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const validation = CreateTopicSchema.safeParse(body);
+    const validation = CreateLoungeSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -191,56 +191,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, description, parent_topic_id } = validation.data;
+    const { name, description, parent_lounge_id } = validation.data;
 
-    // Check if topic name already exists for this user
-    const { data: existingTopic } = await supabase
-      .from('topics')
+    // Check if lounge name already exists for this user
+    const { data: existingLounge } = await supabase
+      .from('lounges')
       .select('id, name')
       .eq('user_id', user.id)
       .ilike('name', name)
       .single();
 
-    if (existingTopic) {
+    if (existingLounge) {
       return NextResponse.json(
         {
-          error: 'Topic already exists',
-          details: `A topic named "${existingTopic.name}" already exists`,
+          error: 'Lounge already exists',
+          details: `A lounge named "${existingLounge.name}" already exists`,
         },
         { status: 409 }
       );
     }
 
-    // Validate parent topic if provided
-    if (parent_topic_id) {
-      const { data: parentTopic } = await supabase
-        .from('topics')
+    // Validate parent lounge if provided
+    if (parent_lounge_id) {
+      const { data: parentLounge } = await supabase
+        .from('lounges')
         .select('id, name')
-        .eq('id', parent_topic_id)
-        .or(`user_id.eq.${user.id},is_system_topic.eq.true`)
+        .eq('id', parent_lounge_id)
+        .or(`user_id.eq.${user.id},is_system_lounge.eq.true`)
         .single();
 
-      if (!parentTopic) {
+      if (!parentLounge) {
         return NextResponse.json(
-          { error: 'Parent topic not found or not accessible' },
+          { error: 'Parent lounge not found or not accessible' },
           { status: 404 }
         );
       }
 
       // Check nesting depth
-      let currentParentId = parent_topic_id;
+      let currentParentId = parent_lounge_id;
       let depth = 1;
       const MAX_DEPTH = 3;
 
       while (currentParentId && depth < MAX_DEPTH) {
         const { data: parent } = await supabase
-          .from('topics')
-          .select('parent_topic_id')
+          .from('lounges')
+          .select('parent_lounge_id')
           .eq('id', currentParentId)
           .single();
 
-        if (!parent || !parent.parent_topic_id) break;
-        currentParentId = parent.parent_topic_id;
+        if (!parent || !parent.parent_lounge_id) break;
+        currentParentId = parent.parent_lounge_id;
         depth++;
       }
 
@@ -248,20 +248,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: 'Maximum nesting depth exceeded',
-            details: `Topics can only be nested up to ${MAX_DEPTH} levels deep`,
+            details: `Lounges can only be nested up to ${MAX_DEPTH} levels deep`,
           },
           { status: 400 }
         );
       }
     }
 
-    // Create topic
-    const topicData = {
+    // Create lounge
+    const loungeData = {
       user_id: user.id,
       name: name.trim(),
       description: description?.trim(),
-      parent_topic_id,
-      is_system_topic: false,
+      parent_lounge_id,
+      is_system_lounge: false,
       usage_count: 0,
       creator_count: 0,
       content_count: 0,
@@ -269,13 +269,13 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
-    const { data: newTopic, error: createError } = await supabase
-      .from('topics')
-      .insert(topicData)
+    const { data: newLounge, error: createError } = await supabase
+      .from('lounges')
+      .insert(loungeData)
       .select(
         `
         *,
-        parent_topic:topics!parent_topic_id (
+        parent_lounge:lounges!parent_lounge_id (
           id,
           name
         )
@@ -284,9 +284,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (createError) {
-      // Error creating topic - details in response
+      // Error creating lounge - details in response
       return NextResponse.json(
-        { error: 'Failed to create topic' },
+        { error: 'Failed to create lounge' },
         { status: 500 }
       );
     }
@@ -294,8 +294,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Topic created successfully',
-        data: newTopic,
+        message: 'Lounge created successfully',
+        data: newLounge,
         timestamp: new Date().toISOString(),
       },
       { status: 201 }

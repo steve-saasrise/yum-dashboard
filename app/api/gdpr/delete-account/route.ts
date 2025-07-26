@@ -88,9 +88,9 @@ export async function POST(request: NextRequest) {
       supabase.from('saved_content').delete().eq('user_id', user.id)
     );
 
-    // 2. Delete user topics
+    // 2. Delete user lounges
     deletionPromises.push(
-      supabase.from('user_topics').delete().eq('user_id', user.id)
+      supabase.from('user_lounges').delete().eq('user_id', user.id)
     );
 
     // 3. Delete email digests

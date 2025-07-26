@@ -66,7 +66,7 @@ export default function ProfilePage() {
   // Notification settings state
   const [emailDigest, setEmailDigest] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(false);
-  const [selectedTopics, setSelectedTopics] = useState<number[]>([1, 2, 3]);
+  const [selectedLounges, setSelectedTopics] = useState<number[]>([1, 2, 3]);
 
   // Redirect if not authenticated
   if (!loading && !user) {
@@ -144,9 +144,9 @@ export default function ProfilePage() {
   };
 
   const handleTopicToggle = (topicId: number) => {
-    const newTopics = selectedTopics.includes(topicId)
-      ? selectedTopics.filter((id) => id !== topicId)
-      : [...selectedTopics, topicId];
+    const newTopics = selectedLounges.includes(topicId)
+      ? selectedLounges.filter((id) => id !== topicId)
+      : [...selectedLounges, topicId];
     handleNotificationUpdate('topics', newTopics);
   };
 
@@ -333,19 +333,19 @@ export default function ProfilePage() {
                   {emailDigest && (
                     <div className="space-y-3">
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Select topics for your digest:
+                        Select lounges for your digest:
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {topics.map((topic) => (
                           <Badge
                             key={topic.id}
                             variant={
-                              selectedTopics.includes(topic.id)
+                              selectedLounges.includes(topic.id)
                                 ? 'default'
                                 : 'outline'
                             }
                             className={`cursor-pointer transition-colors ${
-                              selectedTopics.includes(topic.id)
+                              selectedLounges.includes(topic.id)
                                 ? topic.color
                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                             }`}

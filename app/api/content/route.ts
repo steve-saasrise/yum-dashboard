@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
       contentQuery = contentQuery.eq('creator_id', query.creator_id);
     }
 
-    // Note: Topic filtering removed as content_topics table doesn't exist yet
+    // Note: Lounge filtering removed as content_topics table doesn't exist yet
 
     if (query.search) {
       contentQuery = contentQuery.or(

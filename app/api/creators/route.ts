@@ -453,10 +453,10 @@ export async function GET(request: NextRequest) {
       url: string;
       validation_status: string;
     }> = [];
-    let creatorTopics: Array<{
+    let creatorLounges: Array<{
       creator_id: string;
-      topic_id: string;
-      topic?: {
+      lounge_id: string;
+      lounge?: {
         id: string;
         name: string;
         slug: string;
@@ -487,16 +487,16 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Fetch topics separately (simplified without deep join)
-      const { data: topics } = await supabase
-        .from('creator_topics')
-        .select('creator_id, topic_id, topics(id, name)')
+      // Fetch lounges separately (simplified without deep join)
+      const { data: lounges } = await supabase
+        .from('creator_lounges')
+        .select('creator_id, lounge_id, lounges(id, name)')
         .in(
           'creator_id',
           creators.map((c) => c.id)
         ); // Use filtered creator IDs
 
-      creatorTopics = topics || [];
+      creatorLounges = lounges || [];
     }
 
     const totalPages = Math.ceil((count || 0) / (limit || 10));
@@ -508,10 +508,10 @@ export async function GET(request: NextRequest) {
         (url) => url.creator_id === creator.id
       );
 
-      // Get topics for this creator
-      const creatorTopicsList = creatorTopics
-        .filter((ct) => ct.creator_id === creator.id)
-        .map((ct) => ct.topic?.name)
+      // Get lounges for this creator
+      const creatorLoungesList = creatorLounges
+        .filter((cl) => cl.creator_id === creator.id)
+        .map((cl) => cl.lounge?.name)
         .filter(Boolean);
 
       // Get the primary platform from the first URL
@@ -522,7 +522,7 @@ export async function GET(request: NextRequest) {
         platform: primaryUrl?.platform || 'website',
         urls: creatorUrlsList,
         creator_urls: creatorUrlsList, // Keep original structure for compatibility
-        topics: creatorTopicsList,
+        lounges: creatorLoungesList,
         is_active: creator.status === 'active',
       };
     });

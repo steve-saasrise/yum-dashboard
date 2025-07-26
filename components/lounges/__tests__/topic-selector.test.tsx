@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { TopicSelector } from '../topic-selector';
+import { LoungeSelector } from '../lounge-selector';
 import { toast } from 'sonner';
 
 // Mock ResizeObserver (required for cmdk Command component)
@@ -50,7 +50,7 @@ const mockTopics = [
   },
 ];
 
-describe.skip('TopicSelector', () => {
+describe.skip('LoungeSelector', () => {
   const mockOnChange = jest.fn();
   const user = userEvent.setup();
 
@@ -81,8 +81,8 @@ describe.skip('TopicSelector', () => {
 
   it('renders with placeholder text', () => {
     render(
-      <TopicSelector
-        selectedTopics={[]}
+      <LoungeSelector
+        selectedLounges={[]}
         onChange={mockOnChange}
         placeholder="Choose topics"
       />
@@ -92,7 +92,7 @@ describe.skip('TopicSelector', () => {
   });
 
   it('fetches and displays topics when opened', async () => {
-    render(<TopicSelector selectedTopics={[]} onChange={mockOnChange} />);
+    render(<LoungeSelector selectedLounges={[]} onChange={mockOnChange} />);
 
     // Open the dropdown
     const trigger = screen.getByRole('combobox');
@@ -107,7 +107,7 @@ describe.skip('TopicSelector', () => {
 
   it('displays selected topics as badges', async () => {
     const { container } = render(
-      <TopicSelector selectedTopics={['1']} onChange={mockOnChange} />
+      <LoungeSelector selectedLounges={['1']} onChange={mockOnChange} />
     );
 
     // Wait for topics to load (happens automatically for selected topics)
@@ -120,7 +120,7 @@ describe.skip('TopicSelector', () => {
   });
 
   it('allows selecting topics', async () => {
-    render(<TopicSelector selectedTopics={[]} onChange={mockOnChange} />);
+    render(<LoungeSelector selectedLounges={[]} onChange={mockOnChange} />);
 
     // Open dropdown
     await user.click(screen.getByRole('combobox'));
@@ -141,8 +141,8 @@ describe.skip('TopicSelector', () => {
 
   it('enforces max selections limit', async () => {
     render(
-      <TopicSelector
-        selectedTopics={['1']}
+      <LoungeSelector
+        selectedLounges={['1']}
         onChange={mockOnChange}
         maxSelections={1}
       />
@@ -170,8 +170,8 @@ describe.skip('TopicSelector', () => {
 
   it('shows create option for new topics', async () => {
     render(
-      <TopicSelector
-        selectedTopics={[]}
+      <LoungeSelector
+        selectedLounges={[]}
         onChange={mockOnChange}
         allowCreate={true}
       />
@@ -182,7 +182,7 @@ describe.skip('TopicSelector', () => {
 
     // Type a new topic name
     const searchInput = screen.getByPlaceholderText(
-      'Search or create topics...'
+      'Search or create lounges...'
     );
     await user.type(searchInput, 'New Topic');
 
@@ -234,8 +234,8 @@ describe.skip('TopicSelector', () => {
     });
 
     render(
-      <TopicSelector
-        selectedTopics={[]}
+      <LoungeSelector
+        selectedLounges={[]}
         onChange={mockOnChange}
         allowCreate={true}
       />
@@ -246,7 +246,7 @@ describe.skip('TopicSelector', () => {
 
     // Type a new topic name
     const searchInput = screen.getByPlaceholderText(
-      'Search or create topics...'
+      'Search or create lounges...'
     );
     await user.type(searchInput, 'New Topic');
 
@@ -278,7 +278,7 @@ describe.skip('TopicSelector', () => {
       json: async () => ({ error: 'Failed to fetch topics' }),
     });
 
-    render(<TopicSelector selectedTopics={[]} onChange={mockOnChange} />);
+    render(<LoungeSelector selectedLounges={[]} onChange={mockOnChange} />);
 
     // Open dropdown
     await user.click(screen.getByRole('combobox'));
@@ -291,8 +291,8 @@ describe.skip('TopicSelector', () => {
 
   it('disables interaction when disabled prop is true', () => {
     render(
-      <TopicSelector
-        selectedTopics={[]}
+      <LoungeSelector
+        selectedLounges={[]}
         onChange={mockOnChange}
         disabled={true}
       />

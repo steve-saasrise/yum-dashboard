@@ -155,10 +155,7 @@ export async function POST(
       .single();
 
     if (insertError) {
-      return NextResponse.json(
-        { error: 'Failed to add URL' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to add URL' }, { status: 500 });
     }
 
     // Update creator's updated_at timestamp
