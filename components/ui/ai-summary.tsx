@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Sparkles, Zap, FileText } from 'lucide-react';
+import { Sparkles, Zap, FileText, Quote } from 'lucide-react';
 import type { SummaryStatus } from '@/types/content';
 
 interface AISummaryProps {
@@ -178,7 +178,7 @@ export function AISummary({
                     className="h-7 w-7"
                     onClick={() => setViewMode('original')}
                   >
-                    <FileText className="h-3.5 w-3.5" />
+                    <Quote className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Original Description</TooltipContent>

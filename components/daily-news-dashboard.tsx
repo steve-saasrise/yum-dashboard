@@ -264,6 +264,10 @@ interface AppSidebarProps {
     platform: string;
     handle: string;
   }) => void;
+  onCreatorDelete: (creator: {
+    id: string;
+    name: string;
+  }) => void;
   creators: Array<{
     id: string;
     name: string;
@@ -282,6 +286,7 @@ function AppSidebar({
   onTopicDelete,
   onCreatorCreate,
   onCreatorEdit,
+  onCreatorDelete,
   creators,
   isLoadingCreators,
 }: AppSidebarProps) {
@@ -487,20 +492,29 @@ function AppSidebar({
                                 {creator.name}
                               </span>
                             </div>
-                            {creator.platform && (
-                              <SidebarMenuBadge className="group-hover/creator-item:opacity-0 transition-opacity duration-200">
-                                {creator.platform}
-                              </SidebarMenuBadge>
-                            )}
                           </SidebarMenuButton>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/creator-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
-                            onClick={() => onCreatorEdit(creator)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/creator-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="right" align="start">
+                              <DropdownMenuItem onClick={() => onCreatorEdit(creator)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => onCreatorDelete(creator)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </SidebarMenuItem>
                       );
                     })
@@ -1257,6 +1271,36 @@ export function DailyNewsDashboard() {
     setCreatorModalMode('add');
     setCreatorModalOpen(true);
   };
+  const handleDeleteCreator = async (creator: {
+    id: string;
+    name: string;
+  }) => {
+    if (!confirm(`Are you sure you want to delete ${creator.name}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/creators/${creator.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete creator');
+      }
+
+      // Remove creator from local state
+      setCreators((prev) => prev.filter((c) => c.id !== creator.id));
+      toast.success(`${creator.name} has been deleted`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to delete creator'
+      );
+    }
+  };
 
   // Fetch creators from the database
   const fetchCreators = React.useCallback(async () => {
@@ -1295,6 +1339,7 @@ export function DailyNewsDashboard() {
           onTopicDelete={handleDeleteTopic}
           onCreatorCreate={handleCreateCreator}
           onCreatorEdit={handleEditCreator}
+          onCreatorDelete={handleDeleteCreator}
           creators={creators.map((c) => ({
             id: c.id,
             name: c.display_name,
