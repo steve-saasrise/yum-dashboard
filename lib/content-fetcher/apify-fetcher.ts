@@ -81,18 +81,16 @@ export class ApifyFetcher {
     const searchTerms = urls.map((url) => {
       // If it's already a search term, add -filter:replies if not present
       if (url.includes('from:')) {
-        return url.includes('-filter:replies') 
-          ? url 
-          : `${url} -filter:replies`;
+        return url.includes('-filter:replies') ? url : `${url} -filter:replies`;
       }
-      
+
       // Extract username from URL
       const usernameMatch = url.match(/(?:x\.com|twitter\.com)\/(@?\w+)/);
       if (usernameMatch) {
         const username = usernameMatch[1].replace('@', '');
         return `from:${username} -filter:replies`;
       }
-      
+
       // Fallback to original URL if pattern doesn't match
       return url;
     });

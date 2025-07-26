@@ -6,6 +6,7 @@ import { YouTubeFetcher } from '@/lib/content-fetcher/youtube-fetcher';
 import { ApifyFetcher } from '@/lib/content-fetcher/apify-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
+import { getAISummaryService } from '@/lib/services/ai-summary-service';
 import type { CreateContentInput } from '@/types/content';
 
 // Verify cron authorization
@@ -69,12 +70,15 @@ export async function GET(request: NextRequest) {
         apiKey: process.env.APIFY_API_KEY,
       });
     }
-    const stats = {
-      processed: 0,
-      new: 0,
-      updated: 0,
-      errors: 0,
-      creators: [] as Array<{
+    const stats: {
+      processed: number;
+      new: number;
+      updated: number;
+      errors: number;
+      summariesGenerated?: number;
+      summaryErrors?: number;
+      summaryGenerationError?: string;
+      creators: Array<{
         id: string;
         name: string;
         urls: Array<{
@@ -87,7 +91,13 @@ export async function GET(request: NextRequest) {
           errors?: number;
           error?: string;
         }>;
-      }>,
+      }>;
+    } = {
+      processed: 0,
+      new: 0,
+      updated: 0,
+      errors: 0,
+      creators: [],
     };
 
     // Get all active creators with RSS, YouTube, Twitter, Threads, or LinkedIn URLs
@@ -491,6 +501,41 @@ export async function GET(request: NextRequest) {
           },
         })
         .eq('id', creator.id);
+    }
+
+    // Generate AI summaries for newly created content
+    if (stats.new > 0 && process.env.OPENAI_API_KEY) {
+      try {
+        const summaryService = getAISummaryService();
+
+        // Get all newly created content IDs that need summaries
+        const { data: newContent } = await supabase
+          .from('content')
+          .select('id')
+          .eq('summary_status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(stats.new);
+
+        if (newContent && newContent.length > 0) {
+          const contentIds = newContent.map((item: { id: string }) => item.id);
+          const summaryResults = await summaryService.generateBatchSummaries(
+            contentIds,
+            {
+              batchSize: 5, // Process 5 at a time to avoid rate limits
+            }
+          );
+
+          stats.summariesGenerated = summaryResults.processed;
+          stats.summaryErrors = summaryResults.errors;
+        }
+      } catch (summaryError) {
+        // Log summary generation error but don't fail the entire cron job
+        console.error('Error generating summaries:', summaryError);
+        stats.summaryGenerationError =
+          summaryError instanceof Error
+            ? summaryError.message
+            : 'Failed to generate summaries';
+      }
     }
 
     // Cron fetch completed

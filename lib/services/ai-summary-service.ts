@@ -7,14 +7,105 @@ import type {
   SummaryStatus,
 } from '@/types/content';
 
+// Rate limiting configuration
+const RATE_LIMITS = {
+  'gpt-4o-mini': {
+    requestsPerMinute: 500,
+    tokensPerMinute: 200000,
+    requestsPerDay: 10000,
+  },
+  'gpt-4': {
+    requestsPerMinute: 500,
+    tokensPerMinute: 40000,
+    requestsPerDay: 10000,
+  },
+  'gpt-3.5-turbo': {
+    requestsPerMinute: 3500,
+    tokensPerMinute: 90000,
+    requestsPerDay: 10000,
+  },
+};
+
+// Cost per 1M tokens (as of 2025)
+const COST_PER_MILLION_TOKENS = {
+  'gpt-4o-mini': {
+    input: 0.15, // $0.15 per 1M input tokens
+    output: 0.6, // $0.60 per 1M output tokens
+  },
+  'gpt-4': {
+    input: 30.0, // $30 per 1M input tokens
+    output: 60.0, // $60 per 1M output tokens
+  },
+  'gpt-3.5-turbo': {
+    input: 0.5, // $0.50 per 1M input tokens
+    output: 1.5, // $1.50 per 1M output tokens
+  },
+};
+
 export class AISummaryService {
   private openai: OpenAI | null = null;
+  private requestCount = 0;
+  private lastResetTime = Date.now();
+  private totalTokensUsed = { input: 0, output: 0 };
+  private sessionCost = 0;
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       this.openai = new OpenAI({ apiKey });
     }
+  }
+
+  private calculateCost(
+    model: string,
+    inputTokens: number,
+    outputTokens: number
+  ): number {
+    const costs =
+      COST_PER_MILLION_TOKENS[model as keyof typeof COST_PER_MILLION_TOKENS] ||
+      COST_PER_MILLION_TOKENS['gpt-4o-mini'];
+    const inputCost = (inputTokens / 1_000_000) * costs.input;
+    const outputCost = (outputTokens / 1_000_000) * costs.output;
+    return inputCost + outputCost;
+  }
+
+  getCostReport(): {
+    totalTokens: { input: number; output: number };
+    estimatedCost: number;
+  } {
+    return {
+      totalTokens: { ...this.totalTokensUsed },
+      estimatedCost: this.sessionCost,
+    };
+  }
+
+  private async checkRateLimit(model: string): Promise<void> {
+    const now = Date.now();
+    const timeSinceReset = now - this.lastResetTime;
+
+    // Reset counter every minute
+    if (timeSinceReset >= 60000) {
+      this.requestCount = 0;
+      this.lastResetTime = now;
+    }
+
+    const limits =
+      RATE_LIMITS[model as keyof typeof RATE_LIMITS] ||
+      RATE_LIMITS['gpt-4o-mini'];
+
+    // Check if we're approaching rate limit
+    if (this.requestCount >= limits.requestsPerMinute * 0.8) {
+      // Wait until the next minute
+      const waitTime = 60000 - timeSinceReset;
+      if (waitTime > 0) {
+        console.log(`Approaching rate limit, waiting ${waitTime}ms`);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        this.requestCount = 0;
+        this.lastResetTime = Date.now();
+      }
+    }
+
+    this.requestCount++;
   }
 
   async generateSummary(
@@ -144,6 +235,9 @@ export class AISummaryService {
   ): Promise<string> {
     if (!this.openai) throw new Error('OpenAI not initialized');
 
+    // Check rate limits before making request
+    await this.checkRateLimit(model);
+
     const response = await this.openai.chat.completions.create({
       model,
       messages: [
@@ -166,6 +260,18 @@ export class AISummaryService {
       throw new Error('No summary generated');
     }
 
+    // Track token usage and cost
+    if (response.usage) {
+      this.totalTokensUsed.input += response.usage.prompt_tokens;
+      this.totalTokensUsed.output += response.usage.completion_tokens;
+      const cost = this.calculateCost(
+        model,
+        response.usage.prompt_tokens,
+        response.usage.completion_tokens
+      );
+      this.sessionCost += cost;
+    }
+
     // Validate word count
     const wordCount = this.countWords(summary);
     if (wordCount > 30) {
@@ -182,6 +288,9 @@ export class AISummaryService {
     model: string
   ): Promise<string> {
     if (!this.openai) throw new Error('OpenAI not initialized');
+
+    // Check rate limits before making request
+    await this.checkRateLimit(model);
 
     const response = await this.openai.chat.completions.create({
       model,
@@ -205,6 +314,18 @@ export class AISummaryService {
       throw new Error('No summary generated');
     }
 
+    // Track token usage and cost
+    if (response.usage) {
+      this.totalTokensUsed.input += response.usage.prompt_tokens;
+      this.totalTokensUsed.output += response.usage.completion_tokens;
+      const cost = this.calculateCost(
+        model,
+        response.usage.prompt_tokens,
+        response.usage.completion_tokens
+      );
+      this.sessionCost += cost;
+    }
+
     // Validate word count
     const wordCount = this.countWords(summary);
     if (wordCount > 100) {
@@ -218,11 +339,22 @@ export class AISummaryService {
 
   async generateBatchSummaries(
     contentIds: string[],
-    options: { model?: string; batchSize?: number } = {}
-  ): Promise<{ processed: number; errors: number }> {
-    const { model = 'gpt-4o-mini', batchSize = 5 } = options;
+    options: {
+      model?: string;
+      batchSize?: number;
+      delayMs?: number;
+      maxCost?: number;
+    } = {}
+  ): Promise<{ processed: number; errors: number; estimatedCost?: number }> {
+    const {
+      model = 'gpt-4o-mini',
+      batchSize = 5,
+      delayMs = 1000,
+      maxCost = 10.0, // Default $10 limit per batch run
+    } = options;
     let processed = 0;
     let errors = 0;
+    const startingCost = this.sessionCost;
 
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -250,6 +382,15 @@ export class AISummaryService {
 
     // Process in batches to avoid rate limits
     for (let i = 0; i < contentIds.length; i += batchSize) {
+      // Check cost limit
+      const currentBatchCost = this.sessionCost - startingCost;
+      if (currentBatchCost >= maxCost) {
+        console.warn(
+          `Cost limit reached: $${currentBatchCost.toFixed(2)}. Stopping batch processing.`
+        );
+        break;
+      }
+
       const batch = contentIds.slice(i, i + batchSize);
 
       // Fetch content for this batch
@@ -292,11 +433,20 @@ export class AISummaryService {
 
       // Add delay between batches to respect rate limits
       if (i + batchSize < contentIds.length) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
 
-    return { processed, errors };
+    const totalCost = this.sessionCost - startingCost;
+    console.log(
+      `Batch summary generation complete. Cost: $${totalCost.toFixed(4)}`
+    );
+
+    return {
+      processed,
+      errors,
+      estimatedCost: totalCost,
+    };
   }
 
   async getPendingSummaries(limit: number = 100): Promise<string[]> {

@@ -174,7 +174,7 @@ export function AddCreatorModal({
         url: trimmedUrl,
         platform: platformInfo.platform,
         platformUserId: platformInfo.platformUserId,
-        fullPlatformInfo: platformInfo
+        fullPlatformInfo: platformInfo,
       });
 
       // Check for duplicates
@@ -201,12 +201,19 @@ export function AddCreatorModal({
             | 'unknown',
         },
       ];
-      
+
       console.log('Adding URL to form:', {
         newUrls,
         currentUrls: urls,
         platformDetected: platformInfo.platform,
-        isValidPlatform: ['youtube', 'twitter', 'linkedin', 'threads', 'rss', 'unknown'].includes(platformInfo.platform)
+        isValidPlatform: [
+          'youtube',
+          'twitter',
+          'linkedin',
+          'threads',
+          'rss',
+          'unknown',
+        ].includes(platformInfo.platform),
       });
 
       form.setValue('urls', newUrls, {
@@ -238,7 +245,7 @@ export function AddCreatorModal({
 
   const onSubmit = async (data: CreateCreatorFormData) => {
     console.log('Form submitted with data:', data);
-    
+
     if (!session) {
       toast({
         title: 'Authentication required',
@@ -274,7 +281,7 @@ export function AddCreatorModal({
           topics: data.topics,
         };
         console.log('Sending request to /api/creators:', requestBody);
-        
+
         const response = await fetch('/api/creators', {
           method: 'POST',
           headers: {
@@ -284,7 +291,11 @@ export function AddCreatorModal({
         });
 
         const result = await response.json();
-        console.log('API response:', { status: response.status, ok: response.ok, result });
+        console.log('API response:', {
+          status: response.status,
+          ok: response.ok,
+          result,
+        });
 
         if (!response.ok) {
           throw new Error(result.error || 'Failed to create creator');

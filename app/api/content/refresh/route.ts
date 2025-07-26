@@ -6,6 +6,7 @@ import { YouTubeFetcher } from '@/lib/content-fetcher/youtube-fetcher';
 import { ApifyFetcher } from '@/lib/content-fetcher/apify-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
+import { getAISummaryService } from '@/lib/services/ai-summary-service';
 import type { CreateContentInput } from '@/types/content';
 
 export async function POST() {
@@ -58,12 +59,15 @@ export async function POST() {
         apiKey: process.env.APIFY_API_KEY,
       });
     }
-    const stats = {
-      processed: 0,
-      new: 0,
-      updated: 0,
-      errors: 0,
-      creators: [] as Array<{
+    const stats: {
+      processed: number;
+      new: number;
+      updated: number;
+      errors: number;
+      summariesGenerated?: number;
+      summaryErrors?: number;
+      summaryGenerationError?: string;
+      creators: Array<{
         id: string;
         name: string;
         urls: Array<{
@@ -76,7 +80,13 @@ export async function POST() {
           errors?: number;
           error?: string;
         }>;
-      }>,
+      }>;
+    } = {
+      processed: 0,
+      new: 0,
+      updated: 0,
+      errors: 0,
+      creators: [],
     };
 
     // Get user's creators across all supported platforms
@@ -523,6 +533,43 @@ export async function POST() {
           },
         })
         .eq('id', creator.id);
+    }
+
+    // Generate AI summaries for newly created content
+    if (stats.new > 0 && process.env.OPENAI_API_KEY) {
+      try {
+        const summaryService = getAISummaryService();
+
+        // Get all newly created content IDs from user's creators that need summaries
+        const creatorIds = creators.map((c: { id: string }) => c.id);
+        const { data: newContent } = await supabase
+          .from('content')
+          .select('id')
+          .in('creator_id', creatorIds)
+          .eq('summary_status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(Math.min(stats.new, 50)); // Limit to 50 summaries per refresh to control costs
+
+        if (newContent && newContent.length > 0) {
+          const contentIds = newContent.map((item: { id: string }) => item.id);
+          const summaryResults = await summaryService.generateBatchSummaries(
+            contentIds,
+            {
+              batchSize: 3, // Smaller batch size for manual refresh to be faster
+            }
+          );
+
+          stats.summariesGenerated = summaryResults.processed;
+          stats.summaryErrors = summaryResults.errors;
+        }
+      } catch (summaryError) {
+        // Log summary generation error but don't fail the entire refresh
+        console.error('Error generating summaries:', summaryError);
+        stats.summaryGenerationError =
+          summaryError instanceof Error
+            ? summaryError.message
+            : 'Failed to generate summaries';
+      }
     }
 
     // Manual refresh completed

@@ -96,6 +96,7 @@ import {
   Linkedin,
   RefreshCw,
   Sparkles,
+  Brain,
 } from 'lucide-react';
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel';
@@ -520,11 +521,9 @@ function AppSidebar({
 function Header({
   onSignOut,
   onRefresh,
-  onGenerateSummaries,
 }: {
   onSignOut: () => void;
   onRefresh?: () => void;
-  onGenerateSummaries?: () => void;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   // User not needed in this component
@@ -572,54 +571,36 @@ function Header({
         </div>
       </div>
       <div className="flex items-center gap-2 ml-2">
-        {onRefresh && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                  onClick={onRefresh}
-                >
-                  <RefreshCw className="h-5 w-5 transition-transform hover:rotate-180 duration-300" />
-                  <span className="sr-only">Refresh content</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Refresh content</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        {onGenerateSummaries && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                  onClick={onGenerateSummaries}
-                >
-                  <Sparkles className="h-5 w-5" />
-                  <span className="sr-only">Generate AI summaries</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Generate AI summaries</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Notifications</span>
-        </Button>
+        <div className="flex items-center">
+          {onRefresh && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                    onClick={onRefresh}
+                  >
+                    <Brain className="h-5 w-5" />
+                    <span className="sr-only">Refresh content with AI summaries</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Refresh content & generate AI summaries</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+          >
+            <Bell className="h-5 w-5" />
+            <span className="sr-only">Notifications</span>
+          </Button>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-9 w-9 cursor-pointer">
@@ -1277,42 +1258,6 @@ export function DailyNewsDashboard() {
     setCreatorModalOpen(true);
   };
 
-  const handleGenerateSummaries = async () => {
-    const toastId = toast.loading('Generating AI summaries...');
-
-    try {
-      const response = await fetch('/api/content/summarize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          limit: 10, // Generate summaries for up to 10 pending items
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate summaries');
-      }
-
-      const result = await response.json();
-
-      toast.dismiss(toastId);
-
-      if (result.processed > 0) {
-        toast.success(`Generated summaries for ${result.processed} items`);
-        // Refresh the content to show new summaries
-        refreshContent();
-      } else {
-        toast.info('No pending summaries to generate');
-      }
-    } catch {
-      toast.dismiss(toastId);
-      toast.error('Failed to generate summaries');
-      // Error generating summaries
-    }
-  };
 
   // Fetch creators from the database
   const fetchCreators = React.useCallback(async () => {
@@ -1363,11 +1308,7 @@ export function DailyNewsDashboard() {
           isLoadingCreators={isLoadingCreators}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
-          <Header
-            onSignOut={handleSignOut}
-            onRefresh={refreshContent}
-            onGenerateSummaries={handleGenerateSummaries}
-          />
+          <Header onSignOut={handleSignOut} onRefresh={refreshContent} />
           <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -1520,9 +1461,9 @@ export function DailyNewsDashboard() {
                         {creators.length !== 1 ? 's' : ''}. New content will be
                         fetched automatically.
                       </p>
-                      <Button variant="outline" disabled>
-                        <RefreshCw className="w-4 w-4 mr-2" />
-                        Content fetching coming soon
+                      <Button variant="outline" onClick={refreshContent}>
+                        <Brain className="w-4 h-4 mr-2" />
+                        Refresh & Generate AI Summaries
                       </Button>
                     </div>
                   )}

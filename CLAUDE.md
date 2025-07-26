@@ -28,6 +28,7 @@ Daily News is a content aggregation platform that unifies content from multiple 
 ### Completed Features
 
 #### Phase 1 - Foundation (✅ Complete)
+
 - ✅ Multi-method authentication system
 - ✅ User profiles with avatar uploads
 - ✅ GDPR compliance suite
@@ -36,6 +37,7 @@ Daily News is a content aggregation platform that unifies content from multiple 
 - ✅ Complete database schema for users
 
 #### Phase 2 - Core Features (✅ Complete)
+
 - ✅ Creator management with smart URL processing
 - ✅ Multi-platform content ingestion (RSS, YouTube, X, LinkedIn, Threads)
 - ✅ Automated content fetching with cron jobs
@@ -184,6 +186,7 @@ The project has specific build settings in `next.config.mjs`:
 ### Environment Variables Required
 
 **Core Services**:
+
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
 - `SUPABASE_SERVICE_ROLE_KEY` - Service role key (for scripts only)
@@ -193,11 +196,13 @@ The project has specific build settings in `next.config.mjs`:
 - `CRON_SECRET` - Secret for securing cron job endpoints
 
 **Content Fetching APIs**:
+
 - `YOUTUBE_API_KEY` - YouTube Data API v3 key
 - `APIFY_API_KEY` - Apify API key for X, LinkedIn, Threads scraping
 - `OPENAI_API_KEY` - OpenAI API key for AI summaries
 
 **Optional APIs** (for future features):
+
 - `TWITTER_BEARER_TOKEN` - Twitter API v2 bearer token
 - `LINKEDIN_API_KEY` - LinkedIn API credentials
 
@@ -288,7 +293,7 @@ The project includes GDPR-compliant features:
 - **Testing**: Jest + React Testing Library setup with comprehensive coverage
 - **Platform Detection**: Smart URL parsing service for YouTube, X, LinkedIn, Threads, RSS
 - **AI Integration**: OpenAI for dual-length content summaries
-- **Content Fetching**: 
+- **Content Fetching**:
   - YouTube Data API v3 for channel videos
   - Apify actors for X, LinkedIn, and Threads
   - RSS Parser for feed content
@@ -399,12 +404,14 @@ This was discovered during YouTube integration where content was being fetched a
 ## Service Integrations
 
 ### AI Summary Service
+
 - **Provider**: OpenAI API
 - **Models**: GPT-4 Turbo for summaries
 - **Features**: Dual-length summaries (short ≤30 words, long ≤100 words)
 - **Implementation**: `lib/services/ai-summary-service.ts`
 
 ### Content Fetching Services
+
 - **YouTube**: YouTube Data API v3 (`lib/content-fetcher/youtube-fetcher.ts`)
 - **X/Twitter**: Apify Twitter Scraper actor
 - **LinkedIn**: Apify LinkedIn Posts Scraper actor (and APImaestro for testing)
@@ -412,6 +419,7 @@ This was discovered during YouTube integration where content was being fetched a
 - **RSS**: RSS Parser library (`lib/content-fetcher/rss-fetcher.ts`)
 
 ### Deployment
+
 - **Platform**: Railway (replaced Vercel)
 - **Features**: Automatic deployments from GitHub, cron job support
 - **Environment**: All API keys configured in Railway dashboard

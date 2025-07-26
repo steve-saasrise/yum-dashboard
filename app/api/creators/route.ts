@@ -46,12 +46,12 @@ const getCreatorsSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     console.log('POST /api/creators - Starting request processing');
-    
+
     // Authenticate user
     const cookieStore = await cookies();
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
+
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase environment variables');
       return NextResponse.json(
@@ -59,23 +59,19 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    
-    const supabase = createServerClient(
-      supabaseUrl,
-      supabaseKey,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
+
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
         },
-      }
-    );
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        },
+      },
+    });
 
     const {
       data: { user },
@@ -91,7 +87,7 @@ export async function POST(request: NextRequest) {
     // Parse and validate request body
     const body = await request.json();
     console.log('Received request body:', JSON.stringify(body, null, 2));
-    
+
     const validation = createCreatorSchema.safeParse(body);
     if (!validation.success) {
       console.error('Validation failed:', validation.error.errors);
@@ -154,10 +150,10 @@ export async function POST(request: NextRequest) {
     try {
       for (const info of urlsWithPlatforms) {
         // Check if this user already has this URL
-        const { data: userUrlExists, error: urlCheckError } =
-          await supabase
-            .from('creator_urls')
-            .select(`
+        const { data: userUrlExists, error: urlCheckError } = await supabase
+          .from('creator_urls')
+          .select(
+            `
               id, 
               url, 
               normalized_url,
@@ -166,10 +162,11 @@ export async function POST(request: NextRequest) {
                 display_name,
                 user_id
               )
-            `)
-            .eq('normalized_url', info.profileUrl)
-            .eq('creators.user_id', user.id)
-            .limit(1);
+            `
+          )
+          .eq('normalized_url', info.profileUrl)
+          .eq('creators.user_id', user.id)
+          .limit(1);
 
         if (urlCheckError) {
           console.error('Error checking existing URLs:', urlCheckError);

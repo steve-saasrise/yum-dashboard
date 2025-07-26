@@ -9,7 +9,7 @@ const testUrls = [
 
 console.log('Testing Platform Detection:\n');
 
-testUrls.forEach(url => {
+testUrls.forEach((url) => {
   try {
     const result = PlatformDetector.detect(url);
     console.log(`URL: ${url}`);
