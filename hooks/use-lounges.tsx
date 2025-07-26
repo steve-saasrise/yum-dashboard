@@ -145,7 +145,9 @@ export function useLounges(filters?: LoungeFilters): UseLoungesReturn {
 
         // Update local state
         setLounges((prevLounges) =>
-          prevLounges.map((lounge) => (lounge.id === id ? updatedLounge : lounge))
+          prevLounges.map((lounge) =>
+            lounge.id === id ? updatedLounge : lounge
+          )
         );
 
         return updatedLounge;

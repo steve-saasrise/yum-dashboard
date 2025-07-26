@@ -4,14 +4,13 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Sparkles, ChevronDown, ChevronUp, Zap, FileText } from 'lucide-react';
+import { Sparkles, Zap, FileText } from 'lucide-react';
 import type { SummaryStatus } from '@/types/content';
 
 interface AISummaryProps {
@@ -22,7 +21,6 @@ interface AISummaryProps {
   summaryModel?: string | null;
   generatedAt?: string | null;
   className?: string;
-  defaultExpanded?: boolean;
   defaultMode?: 'short' | 'long' | 'original';
 }
 
@@ -34,10 +32,8 @@ export function AISummary({
   summaryModel,
   generatedAt,
   className,
-  defaultExpanded = false,
   defaultMode = 'short',
 }: AISummaryProps) {
-  const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const [viewMode, setViewMode] = React.useState<'short' | 'long' | 'original'>(
     defaultMode
   );
@@ -192,42 +188,8 @@ export function AISummary({
         </div>
       </div>
 
-      {/* Collapsible Content */}
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <div className="space-y-2">
-          <p
-            className={cn(
-              'text-sm text-muted-foreground',
-              !isExpanded && 'line-clamp-3'
-            )}
-          >
-            {displayContent}
-          </p>
-
-          {/* Show expand/collapse button only if content is long enough */}
-          {displayContent.length > 150 && (
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-xs hover:bg-transparent"
-              >
-                {isExpanded ? (
-                  <>
-                    <ChevronUp className="h-3 w-3 mr-1" />
-                    Show less
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-3 w-3 mr-1" />
-                    Show more
-                  </>
-                )}
-              </Button>
-            </CollapsibleTrigger>
-          )}
-        </div>
-      </Collapsible>
+      {/* Content without collapsible */}
+      <p className="text-sm text-muted-foreground">{displayContent}</p>
     </div>
   );
 }

@@ -107,6 +107,7 @@ import {
   ContentSkeleton,
   ContentSkeletonList,
 } from '@/components/content-skeleton';
+import { LoungeLogo } from '@/components/lounge-logo';
 
 // --- MOCK DATA ---
 
@@ -285,14 +286,9 @@ function AppSidebar({
   isLoadingCreators,
 }: AppSidebarProps) {
   return (
-    <Sidebar collapsible="icon" variant="inset" side="left">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <Icons.logo className="w-7 h-7 text-primary" />
-          <span className="text-xl font-bold text-gray-800 dark:text-white group-data-[collapsible=icon]:hidden">
-            Daily News
-          </span>
-        </div>
+    <Sidebar collapsible="icon" side="left">
+      <SidebarHeader className="h-16 px-4 flex items-center justify-center border-b border-gray-200 dark:border-gray-800">
+        <LoungeLogo className="h-6 w-auto text-gray-900 dark:text-white" />
       </SidebarHeader>
 
       <SidebarContent className="p-2 stable-scrollbar sidebar-scrollbar">
@@ -1180,7 +1176,8 @@ export function DailyNewsDashboard() {
   const [view, setView] = React.useState<'grid' | 'list'>('grid');
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [selectedTopic, setSelectedTopic] = React.useState<SidebarLounge | null>(null);
+  const [selectedTopic, setSelectedTopic] =
+    React.useState<SidebarLounge | null>(null);
   const [selectedCreator, setSelectedCreator] = React.useState<Creator | null>(
     null
   );
