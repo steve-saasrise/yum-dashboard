@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { CuratorAuthService } from '@/lib/services/curator-auth-service';
+import { cookies } from 'next/headers';
 
 // Session configuration
 const SESSION_CONFIG = {
@@ -68,9 +68,11 @@ export async function middleware(request: NextRequest) {
     const isCuratorAuthRoute =
       SESSION_CONFIG.CURATOR_AUTH_ROUTES.includes(pathname);
 
-    // For curator routes, use curator authentication
+    // For curator routes, check session cookie directly
     if (isCuratorProtectedRoute || isCuratorAuthRoute) {
-      const isAuthenticated = await CuratorAuthService.isAuthenticated();
+      // Check if curator session exists
+      const curatorSession = request.cookies.get('curator-session');
+      const isAuthenticated = !!curatorSession;
 
       // Handle unauthenticated access to curator protected routes
       if (isCuratorProtectedRoute && !isAuthenticated) {
