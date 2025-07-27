@@ -11,16 +11,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -31,66 +27,77 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { useCuratorAuth } from '@/hooks/use-curator-auth';
-import {
-  UserPlus,
-  Copy,
-  Trash2,
-  Mail,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Loader2,
-} from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { createBrowserSupabaseClient } from '@/lib/supabase';
+import { UserCog, Shield, Users, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
-interface CuratorInvite {
+interface UserWithRole {
   id: string;
   email: string;
-  token: string;
-  expires_at: string;
-  accepted_at: string | null;
+  full_name?: string;
+  role: 'viewer' | 'curator' | 'admin';
   created_at: string;
-  inviter?: {
-    email: string;
-  };
+  last_sign_in_at?: string;
 }
 
-export default function AdminPage() {
+export default function AdminDashboard() {
   const router = useRouter();
-  const { curator, loading: authLoading } = useCuratorAuth();
-  const [invites, setInvites] = useState<CuratorInvite[]>([]);
+  const { state } = useAuth();
+  const { user, loading: authLoading } = state;
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [sendingInvite, setSendingInvite] = useState(false);
+  const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !curator?.is_admin) {
-      router.push('/dashboard');
-    }
-  }, [curator, authLoading, router]);
-
-  useEffect(() => {
-    if (curator?.is_admin) {
-      fetchInvites();
-    }
-  }, [curator]);
-
-  async function fetchInvites() {
-    try {
-      const response = await fetch('/api/curator/invites', {
-        credentials: 'include',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setInvites(data.invites);
+    async function checkAdminAccess() {
+      if (!user) {
+        router.push('/auth/login');
+        return;
       }
+
+      const supabase = createBrowserSupabaseClient();
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (userData?.role === 'admin') {
+        setIsAdmin(true);
+        fetchUsers();
+      } else {
+        toast({
+          title: 'Access Denied',
+          description: 'Admin privileges required',
+          variant: 'destructive',
+        });
+        router.push('/dashboard');
+      }
+    }
+
+    if (!authLoading) {
+      checkAdminAccess();
+    }
+  }, [user, authLoading, router]);
+
+  async function fetchUsers() {
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, full_name, role, created_at, last_sign_in_at')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setUsers(data || []);
     } catch (error) {
-      console.error('Failed to fetch invites:', error);
+      // Error fetching users
       toast({
         title: 'Error',
-        description: 'Failed to load invites',
+        description: 'Failed to fetch users',
         variant: 'destructive',
       });
     } finally {
@@ -98,113 +105,70 @@ export default function AdminPage() {
     }
   }
 
-  async function sendInvite() {
-    setSendingInvite(true);
-
-    try {
-      const response = await fetch('/api/curator/invites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email: inviteEmail }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: 'Invite sent!',
-          description: `An invite has been sent to ${inviteEmail}`,
-        });
-        setInviteDialogOpen(false);
-        setInviteEmail('');
-        fetchInvites();
-      } else {
-        console.error('Invite error:', data);
-        toast({
-          title: 'Error',
-          description: data.error || 'Failed to send invite',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
+  async function updateUserRole(
+    userId: string,
+    newRole: 'viewer' | 'curator' | 'admin'
+  ) {
+    if (userId === user?.id && newRole !== 'admin') {
       toast({
         title: 'Error',
-        description: 'Something went wrong',
+        description: 'You cannot remove your own admin privileges',
         variant: 'destructive',
       });
-    } finally {
-      setSendingInvite(false);
-    }
-  }
-
-  async function deleteInvite(inviteId: string) {
-    if (!confirm('Are you sure you want to delete this invite?')) {
       return;
     }
 
+    setUpdating(userId);
     try {
-      const response = await fetch(`/api/curator/invites/${inviteId}`, {
-        method: 'DELETE',
-      });
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase
+        .from('users')
+        .update({ role: newRole })
+        .eq('id', userId);
 
-      if (response.ok) {
-        toast({
-          title: 'Invite deleted',
-          description: 'The invite has been removed',
-        });
-        fetchInvites();
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to delete invite',
-          variant: 'destructive',
-        });
-      }
+      if (error) throw error;
+
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+      );
+
+      toast({
+        title: 'Success',
+        description: `User role updated to ${newRole}`,
+      });
     } catch (error) {
+      // Error updating role
       toast({
         title: 'Error',
-        description: 'Something went wrong',
+        description: 'Failed to update user role',
         variant: 'destructive',
       });
+    } finally {
+      setUpdating(null);
     }
   }
 
-  function copyInviteLink(token: string) {
-    const link = `${window.location.origin}/curator/accept-invite?token=${token}`;
-    navigator.clipboard.writeText(link);
-    toast({
-      title: 'Link copied!',
-      description: 'Invite link has been copied to clipboard',
-    });
-  }
-
-  function getInviteStatus(invite: CuratorInvite) {
-    if (invite.accepted_at) {
-      return (
-        <Badge variant="secondary">
-          <CheckCircle className="w-3 h-3 mr-1" /> Accepted
-        </Badge>
-      );
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'destructive';
+      case 'curator':
+        return 'default';
+      default:
+        return 'secondary';
     }
+  };
 
-    const isExpired = new Date(invite.expires_at) < new Date();
-    if (isExpired) {
-      return (
-        <Badge variant="destructive">
-          <XCircle className="w-3 h-3 mr-1" /> Expired
-        </Badge>
-      );
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <Shield className="h-4 w-4 mr-1" />;
+      case 'curator':
+        return <UserCog className="h-4 w-4 mr-1" />;
+      default:
+        return <Users className="h-4 w-4 mr-1" />;
     }
-
-    return (
-      <Badge variant="default">
-        <Clock className="w-3 h-3 mr-1" /> Pending
-      </Badge>
-    );
-  }
+  };
 
   if (authLoading || loading) {
     return (
@@ -214,130 +178,138 @@ export default function AdminPage() {
     );
   }
 
-  if (!curator?.is_admin) {
+  if (!isAdmin) {
     return null;
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Admin Dashboard</CardTitle>
-              <CardDescription>Manage curator invitations</CardDescription>
-            </div>
-            <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Invite Curator
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Invite a new curator</DialogTitle>
-                  <DialogDescription>
-                    Send an invitation email to add a new curator to the
-                    platform.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="curator@example.com"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={sendInvite}
-                    disabled={!inviteEmail || sendingInvite}
-                  >
-                    {sendingInvite ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Send Invite
-                      </>
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Invited by</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invites.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center text-muted-foreground"
-                  >
-                    No invites yet
-                  </TableCell>
-                </TableRow>
-              ) : (
-                invites.map((invite) => (
-                  <TableRow key={invite.id}>
-                    <TableCell className="font-medium">
-                      {invite.email}
-                    </TableCell>
-                    <TableCell>{getInviteStatus(invite)}</TableCell>
-                    <TableCell>{invite.inviter?.email || 'System'}</TableCell>
-                    <TableCell>
-                      {format(new Date(invite.created_at), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {!invite.accepted_at &&
-                          new Date(invite.expires_at) > new Date() && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => copyInviteLink(invite.token)}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => deleteInvite(invite.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                      </div>
-                    </TableCell>
+    <div className="container mx-auto py-8 px-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+        <p className="text-muted-foreground">
+          Manage user roles and permissions
+        </p>
+      </div>
+
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>User Management</CardTitle>
+            <CardDescription>
+              View and manage user roles for your application
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Last Sign In</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.email}
+                      </TableCell>
+                      <TableCell>{user.full_name || '—'}</TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(user.role)}>
+                          {getRoleIcon(user.role)}
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(user.created_at), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        {user.last_sign_in_at
+                          ? format(
+                              new Date(user.last_sign_in_at),
+                              'MMM d, yyyy'
+                            )
+                          : '—'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Select
+                          value={user.role}
+                          onValueChange={(value) =>
+                            updateUserRole(
+                              user.id,
+                              value as 'viewer' | 'curator' | 'admin'
+                            )
+                          }
+                          disabled={updating === user.id}
+                        >
+                          <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="viewer">Viewer</SelectItem>
+                            <SelectItem value="curator">Curator</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {users.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center text-muted-foreground py-8"
+                      >
+                        No users found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{users.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Curators</CardTitle>
+              <UserCog className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {users.filter((u) => u.role === 'curator').length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Admins</CardTitle>
+              <Shield className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {users.filter((u) => u.role === 'admin').length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

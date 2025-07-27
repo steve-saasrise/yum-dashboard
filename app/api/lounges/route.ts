@@ -5,8 +5,9 @@ import { CreateLoungeSchema, LoungeFiltersSchema } from '@/types/lounge';
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate user
     const cookieStore = await cookies();
+
+    // Initialize Supabase client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -24,16 +25,20 @@ export async function GET(request: NextRequest) {
       }
     );
 
+    // Check authentication
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
+
+    const userId = user.id;
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
@@ -85,7 +90,7 @@ export async function GET(request: NextRequest) {
       `,
         { count: 'exact' }
       )
-      .or(`user_id.eq.${user.id},is_system_lounge.eq.true`);
+      .or(`user_id.eq.${userId},is_system_lounge.eq.true`);
 
     // Apply filters
     if (search) {
@@ -160,8 +165,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
     const cookieStore = await cookies();
+
+    // Initialize Supabase client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -179,16 +185,38 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    // Check authentication
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
+
+    // Check if user has curator or admin role
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (
+      userError ||
+      !userData ||
+      (userData.role !== 'curator' && userData.role !== 'admin')
+    ) {
+      return NextResponse.json(
+        { error: 'Curator or admin role required' },
+        { status: 403 }
+      );
+    }
+
+    const userId = user.id;
 
     // Parse and validate request body
     const body = await request.json();
@@ -209,7 +237,7 @@ export async function POST(request: NextRequest) {
     const { data: existingLounge } = await supabase
       .from('lounges')
       .select('id, name')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .ilike('name', name)
       .single();
 
@@ -229,7 +257,7 @@ export async function POST(request: NextRequest) {
         .from('lounges')
         .select('id, name')
         .eq('id', parent_lounge_id)
-        .or(`user_id.eq.${user.id},is_system_lounge.eq.true`)
+        .or(`user_id.eq.${userId},is_system_lounge.eq.true`)
         .single();
 
       if (!parentLounge) {
@@ -269,7 +297,7 @@ export async function POST(request: NextRequest) {
 
     // Create lounge
     const loungeData = {
-      user_id: user.id,
+      user_id: userId,
       name: name.trim(),
       description: description?.trim(),
       parent_lounge_id,

@@ -18,7 +18,6 @@ export async function PUT(
   try {
     const { id: creatorId, urlId } = await params;
 
-    // Authenticate user
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,14 +36,34 @@ export async function PUT(
       }
     );
 
+    // Check authentication
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
+      );
+    }
+
+    // Check if user has curator or admin role
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (
+      userError ||
+      !userData ||
+      (userData.role !== 'curator' && userData.role !== 'admin')
+    ) {
+      return NextResponse.json(
+        { error: 'Curator or admin role required' },
+        { status: 403 }
       );
     }
 
@@ -63,21 +82,12 @@ export async function PUT(
 
     const { url } = validation.data;
 
-    // Get current URL with ownership check
+    // Get current URL
     const { data: currentUrl, error: fetchError } = await supabase
       .from('creator_urls')
-      .select(
-        `
-        *,
-        creators!inner(
-          id,
-          user_id
-        )
-      `
-      )
+      .select('*')
       .eq('id', urlId)
       .eq('creator_id', creatorId)
-      .eq('creators.user_id', user.id)
       .single();
 
     if (fetchError || !currentUrl) {
@@ -167,7 +177,6 @@ export async function DELETE(
   try {
     const { id: creatorId, urlId } = await params;
 
-    // Authenticate user
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -186,14 +195,34 @@ export async function DELETE(
       }
     );
 
+    // Check authentication
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
+      );
+    }
+
+    // Check if user has curator or admin role
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (
+      userError ||
+      !userData ||
+      (userData.role !== 'curator' && userData.role !== 'admin')
+    ) {
+      return NextResponse.json(
+        { error: 'Curator or admin role required' },
+        { status: 403 }
       );
     }
 
@@ -220,20 +249,12 @@ export async function DELETE(
       );
     }
 
-    // First verify ownership
+    // First verify the URL exists
     const { data: urlToDelete, error: verifyError } = await supabase
       .from('creator_urls')
-      .select(
-        `
-        id,
-        creators!inner(
-          user_id
-        )
-      `
-      )
+      .select('id')
       .eq('id', urlId)
       .eq('creator_id', creatorId)
-      .eq('creators.user_id', user.id)
       .single();
 
     if (verifyError || !urlToDelete) {

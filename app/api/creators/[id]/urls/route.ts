@@ -18,7 +18,6 @@ export async function POST(
   try {
     const { id: creatorId } = await params;
 
-    // Authenticate user
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,10 +36,12 @@ export async function POST(
       }
     );
 
+    // Check authentication
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -48,19 +49,33 @@ export async function POST(
       );
     }
 
-    // Verify creator ownership
+    // Check if user has curator or admin role
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (
+      userError ||
+      !userData ||
+      (userData.role !== 'curator' && userData.role !== 'admin')
+    ) {
+      return NextResponse.json(
+        { error: 'Curator or admin role required' },
+        { status: 403 }
+      );
+    }
+
+    // Verify creator exists
     const { data: creator, error: creatorError } = await supabase
       .from('creators')
-      .select('id, user_id')
+      .select('id')
       .eq('id', creatorId)
-      .eq('user_id', user.id)
       .single();
 
     if (creatorError || !creator) {
-      return NextResponse.json(
-        { error: 'Creator not found or access denied' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
 
     // Parse and validate request body
@@ -215,20 +230,11 @@ export async function GET(
       );
     }
 
-    // Get URLs for the creator (with ownership check via join)
+    // Get URLs for the creator (curators can see all creators)
     const { data: urls, error: fetchError } = await supabase
       .from('creator_urls')
-      .select(
-        `
-        *,
-        creators!inner(
-          id,
-          user_id
-        )
-      `
-      )
+      .select('*')
       .eq('creator_id', creatorId)
-      .eq('creators.user_id', user.id)
       .order('created_at', { ascending: true });
 
     if (fetchError) {
@@ -245,8 +251,8 @@ export async function GET(
       );
     }
 
-    // Remove the joined creator data from response
-    const cleanUrls = urls.map(({ creators, ...url }) => url);
+    // No need to clean up the response since we're not joining with creators
+    const cleanUrls = urls;
 
     return NextResponse.json({
       success: true,

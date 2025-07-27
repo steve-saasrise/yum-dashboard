@@ -89,7 +89,8 @@ export async function POST() {
       creators: [],
     };
 
-    // Get user's creators across all supported platforms
+    // Get all creators across all supported platforms
+    // Role-based access: curators and admins can refresh all creators
     const { data: creators, error: creatorsError } = await supabase
       .from('creators')
       .select(
@@ -109,8 +110,7 @@ export async function POST() {
         'twitter',
         'threads',
         'linkedin',
-      ])
-      .eq('user_id', user.id); // Only fetch user's creators
+      ]);
 
     if (creatorsError) {
       // Error fetching creators - details in response

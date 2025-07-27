@@ -143,14 +143,36 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
       subscriptionRef.current.unsubscribe();
     }
 
-    // Get user's creator IDs for filtering real-time updates
+    // Get creator IDs based on lounge filter or all user lounges
     const fetchCreatorIds = async () => {
-      const { data: creators } = await supabase
-        .from('creators')
-        .select('id')
-        .eq('user_id', session.user.id);
+      let creatorIds: string[] = [];
 
-      const creatorIds = creators?.map((c) => c.id) || [];
+      if (filtersRef.current?.lounge_id) {
+        // Get creators for specific lounge
+        const { data: creators } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('lounge_id', filtersRef.current.lounge_id);
+
+        creatorIds = creators?.map((c) => c.id) || [];
+      } else {
+        // Get all creators from user's lounges
+        const { data: userLounges } = await supabase
+          .from('user_lounges')
+          .select('lounge_id')
+          .eq('user_id', session.user.id);
+
+        const loungeIds = userLounges?.map((ul) => ul.lounge_id) || [];
+
+        if (loungeIds.length > 0) {
+          const { data: creators } = await supabase
+            .from('creators')
+            .select('id')
+            .in('lounge_id', loungeIds);
+
+          creatorIds = creators?.map((c) => c.id) || [];
+        }
+      }
 
       // Subscribe to content changes for user's creators
       subscriptionRef.current = supabase
@@ -221,7 +243,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, [session, supabase]);
+  }, [session, supabase, filters?.lounge_id]);
 
   // Save content
   const saveContent = useCallback(

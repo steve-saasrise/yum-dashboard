@@ -2,8 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useAuth, useProfile } from '@/hooks/use-auth';
-import { useCuratorAuth } from '@/hooks/use-curator-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { useContent } from '@/hooks/use-content';
 import { useLounges } from '@/hooks/use-lounges';
 import type { Creator, Platform } from '@/types/creator';
@@ -81,7 +80,6 @@ import { Icons } from '@/components/icons';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   Search,
-  User,
   LogOut,
   PlusCircle,
   Bookmark,
@@ -506,11 +504,12 @@ function Header({
   onRefresh?: () => void;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
-  // Use curator auth instead of user profile
-  const { curator } = useCuratorAuth();
+  // Use unified auth with user profile
+  const { state } = useAuth();
+  const { user } = state;
 
   const getInitials = (email?: string) => {
-    if (!email) return 'C';
+    if (!email) return 'U';
     return email[0].toUpperCase();
   };
   return (
@@ -583,22 +582,20 @@ function Header({
             <Avatar className="h-9 w-9 cursor-pointer">
               <AvatarImage
                 src={'/placeholder.svg?height=40&width=40'}
-                alt={curator?.email || 'Curator'}
+                alt={user?.email || 'User'}
               />
-              <AvatarFallback>{getInitials(curator?.email)}</AvatarFallback>
+              <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium">Curator</p>
-                <p className="text-xs text-muted-foreground">
-                  {curator?.email}
-                </p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {curator?.is_admin && (
+            {state.profile?.role === 'admin' && (
               <>
                 <DropdownMenuItem
                   onClick={() => (window.location.href = '/dashboard/admin')}
@@ -1156,10 +1153,10 @@ function MobileFiltersSheet({
 // --- MAIN DASHBOARD COMPONENT ---
 
 export function DailyNewsDashboard() {
-  const { logout: curatorLogout } = useCuratorAuth();
+  const { signOut } = useAuth();
 
   const handleSignOut = async () => {
-    await curatorLogout();
+    await signOut();
   };
   const [view, setView] = React.useState<'grid' | 'list'>('grid');
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
@@ -1169,6 +1166,12 @@ export function DailyNewsDashboard() {
   const [selectedCreator, setSelectedCreator] = React.useState<Creator | null>(
     null
   );
+  const [isDeleteCreatorDialogOpen, setDeleteCreatorDialogOpen] =
+    React.useState(false);
+  const [creatorToDelete, setCreatorToDelete] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [isCreatorModalOpen, setCreatorModalOpen] = React.useState(false);
   const [creatorModalMode, setCreatorModalMode] = React.useState<
     'add' | 'edit'
@@ -1253,13 +1256,16 @@ export function DailyNewsDashboard() {
     setCreatorModalMode('add');
     setCreatorModalOpen(true);
   };
-  const handleDeleteCreator = async (creator: { id: string; name: string }) => {
-    if (!confirm(`Are you sure you want to delete ${creator.name}?`)) {
-      return;
-    }
+  const handleDeleteCreator = (creator: { id: string; name: string }) => {
+    setCreatorToDelete(creator);
+    setDeleteCreatorDialogOpen(true);
+  };
+
+  const confirmDeleteCreator = async () => {
+    if (!creatorToDelete) return;
 
     try {
-      const response = await fetch(`/api/creators/${creator.id}`, {
+      const response = await fetch(`/api/creators/${creatorToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -1272,8 +1278,10 @@ export function DailyNewsDashboard() {
       }
 
       // Remove creator from local state
-      setCreators((prev) => prev.filter((c) => c.id !== creator.id));
-      toast.success(`${creator.name} has been deleted`);
+      setCreators((prev) => prev.filter((c) => c.id !== creatorToDelete.id));
+      toast.success(`${creatorToDelete.name} has been deleted`);
+      setDeleteCreatorDialogOpen(false);
+      setCreatorToDelete(null);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : 'Failed to delete creator'
@@ -1681,6 +1689,7 @@ export function DailyNewsDashboard() {
         }}
         mode={creatorModalMode}
         creator={selectedCreator || undefined}
+        selectedLoungeId={selectedLoungeId}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -1695,6 +1704,38 @@ export function DailyNewsDashboard() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction className="bg-red-600 hover:bg-red-700">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={isDeleteCreatorDialogOpen}
+        onOpenChange={setDeleteCreatorDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Creator</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{' '}
+              <span className="font-semibold">{creatorToDelete?.name}</span>?
+              This will remove them from your feed and delete all their saved
+              content. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setDeleteCreatorDialogOpen(false);
+                setCreatorToDelete(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              onClick={confirmDeleteCreator}
+            >
+              Delete Creator
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

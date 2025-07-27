@@ -52,31 +52,30 @@ export async function GET(request: NextRequest) {
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = querySchema.parse(searchParams);
 
-    // Get creator IDs based on lounge_id or user
+    // Get creator IDs based on lounge_id
     let creatorIds: string[] = [];
 
     if (query.lounge_id) {
-      // If lounge_id is provided, get creators for that lounge
-      const { data: loungeCreators, error: loungeCreatorsError } =
-        await supabase
-          .from('creator_lounges')
-          .select('creator_id')
-          .eq('lounge_id', query.lounge_id);
+      // If lounge_id is provided, get creators for that specific lounge
+      const { data: creators, error: creatorsError } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('lounge_id', query.lounge_id);
 
-      if (loungeCreatorsError) {
+      if (creatorsError) {
         return NextResponse.json(
           { error: 'Failed to fetch lounge creators' },
           { status: 500 }
         );
       }
 
-      creatorIds = loungeCreators?.map((lc) => lc.creator_id) || [];
+      creatorIds = creators?.map((c) => c.id) || [];
     } else {
-      // Otherwise, get the user's creators (old behavior)
+      // When no lounge is selected, show ALL content from ALL creators
+      // This provides a unified feed view
       const { data: creators, error: creatorsError } = await supabase
         .from('creators')
-        .select('id')
-        .eq('user_id', user.id);
+        .select('id');
 
       if (creatorsError) {
         return NextResponse.json(

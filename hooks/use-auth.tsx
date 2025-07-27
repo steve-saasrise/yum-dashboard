@@ -27,6 +27,7 @@ export interface UserProfile {
   created_at?: string;
   updated_at?: string;
   last_sign_in_at?: string;
+  role?: 'viewer' | 'curator' | 'admin';
 }
 
 // Authentication state interface
@@ -107,6 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // First try to get role from users table
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
       // Add timeout to prevent hanging
       const profileQuery = supabase
         .from('user_profiles')
@@ -136,10 +144,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatar_url: profileData.avatar_url || basicProfile.avatar_url,
           username: profileData.username || basicProfile.username,
           updated_at: profileData.updated_at || basicProfile.updated_at,
+          role: userData?.role || 'viewer',
         };
       }
 
-      return basicProfile;
+      return {
+        ...basicProfile,
+        role: userData?.role || 'viewer',
+      };
     } catch (error: any) {
       // Handle abort error specifically
       if (error?.name === 'AbortError' || error?.message?.includes('timeout')) {

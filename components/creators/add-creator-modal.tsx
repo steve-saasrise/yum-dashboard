@@ -70,6 +70,7 @@ const createCreatorSchema = z.object({
     })
   ),
   topics: z.array(z.string()).optional(),
+  lounge_id: z.string().optional(), // Add lounge_id to form schema
 });
 
 type CreateCreatorFormData = z.infer<typeof createCreatorSchema>;
@@ -80,6 +81,7 @@ interface AddCreatorModalProps {
   onCreatorAdded?: () => void;
   mode?: 'add' | 'edit';
   creator?: Creator;
+  selectedLoungeId?: string | null;
 }
 
 export function AddCreatorModal({
@@ -88,6 +90,7 @@ export function AddCreatorModal({
   onCreatorAdded,
   mode = 'add',
   creator,
+  selectedLoungeId,
 }: AddCreatorModalProps) {
   const { state } = useAuth();
   const { session } = state;
@@ -117,18 +120,22 @@ export function AddCreatorModal({
         description: creator.bio || '',
         urls: [], // In edit mode, we manage existing URLs separately
         topics: creator.lounge_ids || [], // Use lounge_ids for edit mode
+        lounge_id: undefined, // Not needed for edit mode
       });
       setDeletedUrlIds([]); // Reset deleted URLs tracking
     } else {
+      // Add mode - initialize with selected lounge
+      const initialTopics = selectedLoungeId ? [selectedLoungeId] : [];
       form.reset({
         display_name: '',
         description: '',
         urls: [],
-        topics: [],
+        topics: initialTopics,
+        lounge_id: selectedLoungeId || undefined,
       });
       setDeletedUrlIds([]);
     }
-  }, [mode, creator, form]);
+  }, [mode, creator, form, selectedLoungeId]);
 
   const urls = form.watch('urls');
 
@@ -306,6 +313,7 @@ export function AddCreatorModal({
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include', // Include cookies for curator auth
           body: JSON.stringify({ url: editingUrlValue }),
         }
       );
@@ -377,11 +385,27 @@ export function AddCreatorModal({
     try {
       if (mode === 'add') {
         // Use the API endpoint for creator creation
+        // Get the lounge_id from the form data or use the first selected lounge
+        const loungeId =
+          data.lounge_id ||
+          (data.topics && data.topics.length > 0 ? data.topics[0] : null);
+
+        if (!loungeId) {
+          toast({
+            title: 'No lounge selected',
+            description: 'Please select at least one lounge for this creator',
+            variant: 'destructive',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
         const requestBody = {
           display_name: data.display_name,
           description: data.description || undefined,
           urls: data.urls.map((u) => u.url),
           topics: data.topics,
+          lounge_id: loungeId,
         };
         console.log('Sending request to /api/creators:', requestBody);
 
@@ -390,6 +414,7 @@ export function AddCreatorModal({
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include', // Include cookies for curator auth
           body: JSON.stringify(requestBody),
         });
 
@@ -435,6 +460,7 @@ export function AddCreatorModal({
                 headers: {
                   'Content-Type': 'application/json',
                 },
+                credentials: 'include', // Include cookies for curator auth
               }
             ).then((res) => res.json());
 
@@ -452,6 +478,7 @@ export function AddCreatorModal({
                 headers: {
                   'Content-Type': 'application/json',
                 },
+                credentials: 'include', // Include cookies for curator auth
                 body: JSON.stringify({ url: newUrl.url }),
               }
             ).then((res) => res.json());
@@ -843,7 +870,7 @@ export function AddCreatorModal({
                   <FormLabel>Lounges</FormLabel>
                   <FormControl>
                     <LoungeSelector
-                      key={creator?.id || 'new-creator'}
+                      key={`${mode}-${creator?.id || 'new'}-${selectedLoungeId || 'none'}`}
                       selectedLounges={field.value || []}
                       onChange={field.onChange}
                       placeholder="Select lounges..."
@@ -852,7 +879,7 @@ export function AddCreatorModal({
                     />
                   </FormControl>
                   <FormDescription>
-                    Select or create topics to categorize this creator
+                    Select or create lounges to categorize this creator
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

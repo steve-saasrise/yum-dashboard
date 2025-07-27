@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
 
 // Session configuration
 const SESSION_CONFIG = {
@@ -11,14 +10,11 @@ const SESSION_CONFIG = {
   // Auto-refresh when session expires in less than 5 minutes
   REFRESH_THRESHOLD: 5 * 60 * 1000, // 5 minutes in milliseconds
 
-  // Protected routes that require curator authentication
-  CURATOR_PROTECTED_ROUTES: ['/dashboard', '/profile', '/settings'],
+  // Protected routes that require authentication
+  PROTECTED_ROUTES: ['/dashboard', '/profile', '/settings'],
 
   // Auth routes that should redirect if already authenticated
   AUTH_ROUTES: ['/auth/login', '/auth/signup', '/auth/forgot-password'],
-
-  // Curator auth routes
-  CURATOR_AUTH_ROUTES: ['/curator/login'],
 
   // Public routes that don't require any checks
   PUBLIC_ROUTES: ['/', '/auth/callback', '/auth/error', '/api/health'],
@@ -60,43 +56,6 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Check if route requires curator authentication
-    const isCuratorProtectedRoute =
-      SESSION_CONFIG.CURATOR_PROTECTED_ROUTES.some((route) =>
-        pathname.startsWith(route)
-      );
-    const isCuratorAuthRoute =
-      SESSION_CONFIG.CURATOR_AUTH_ROUTES.includes(pathname);
-
-    // For curator routes, check session cookie directly
-    if (isCuratorProtectedRoute || isCuratorAuthRoute) {
-      // Check if curator session exists
-      const curatorSession = request.cookies.get('curator-session');
-      const isAuthenticated = !!curatorSession;
-
-      // Handle unauthenticated access to curator protected routes
-      if (isCuratorProtectedRoute && !isAuthenticated) {
-        const redirectUrl = new URL('/curator/login', origin);
-        redirectUrl.searchParams.set('redirectTo', pathname);
-        return NextResponse.redirect(redirectUrl);
-      }
-
-      // Handle authenticated access to curator auth routes
-      if (isCuratorAuthRoute && isAuthenticated) {
-        const redirectTo =
-          request.nextUrl.searchParams.get('redirectTo') || '/dashboard';
-        return NextResponse.redirect(new URL(redirectTo, origin));
-      }
-
-      // For authenticated curators, continue with the request
-      if (isAuthenticated) {
-        return response;
-      }
-    }
-
-    // For non-curator routes, use regular Supabase auth (commented out for now)
-    // This preserves the existing auth flow if needed in the future
-    /*
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -126,25 +85,43 @@ export async function middleware(request: NextRequest) {
 
     const isAuthRoute = SESSION_CONFIG.AUTH_ROUTES.includes(pathname);
 
+    // Redirect to login if accessing protected route without session
     if (isProtectedRoute && (!session || error)) {
       const redirectUrl = new URL('/auth/login', origin);
       redirectUrl.searchParams.set('redirectTo', pathname);
       return NextResponse.redirect(redirectUrl);
     }
-    */
+
+    // Redirect to dashboard if accessing auth route with active session
+    if (isAuthRoute && session && !error) {
+      const redirectTo =
+        request.nextUrl.searchParams.get('redirectTo') || '/dashboard';
+      return NextResponse.redirect(new URL(redirectTo, origin));
+    }
+
+    // For curator login routes, redirect to regular login
+    if (pathname.startsWith('/curator/')) {
+      const redirectUrl = new URL('/auth/login', origin);
+      if (pathname !== '/curator/login') {
+        redirectUrl.searchParams.set(
+          'redirectTo',
+          pathname.replace('/curator', '')
+        );
+      }
+      return NextResponse.redirect(redirectUrl);
+    }
 
     return response;
   } catch (error) {
     console.error('Middleware error:', error);
 
-    // On middleware errors for curator protected routes, redirect to curator login
-    const isCuratorProtectedRoute =
-      SESSION_CONFIG.CURATOR_PROTECTED_ROUTES.some((route) =>
-        pathname.startsWith(route)
-      );
+    // On middleware errors for protected routes, redirect to login
+    const isProtectedRoute = SESSION_CONFIG.PROTECTED_ROUTES.some((route) =>
+      pathname.startsWith(route)
+    );
 
-    if (isCuratorProtectedRoute) {
-      const redirectUrl = new URL('/curator/login', origin);
+    if (isProtectedRoute) {
+      const redirectUrl = new URL('/auth/login', origin);
       redirectUrl.searchParams.set('redirectTo', pathname);
       redirectUrl.searchParams.set('reason', 'middleware_error');
       return NextResponse.redirect(redirectUrl);

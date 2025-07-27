@@ -14,6 +14,7 @@ const createCreatorSchema = z.object({
     .array(z.string().url('Invalid URL format'))
     .min(1, 'At least one URL is required'),
   topics: z.array(z.string()).optional(),
+  lounge_id: z.string().uuid('Invalid lounge ID'),
 });
 
 const getCreatorsSchema = z.object({
@@ -48,8 +49,8 @@ export async function POST(request: NextRequest) {
   try {
     console.log('POST /api/creators - Starting request processing');
 
-    // Authenticate user
     const cookieStore = await cookies();
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -74,14 +75,34 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Check authentication and role
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
+      );
+    }
+
+    // Check if user has curator or admin role
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (
+      userError ||
+      !userData ||
+      (userData.role !== 'curator' && userData.role !== 'admin')
+    ) {
+      return NextResponse.json(
+        { error: 'Curator or admin role required' },
+        { status: 403 }
       );
     }
 
@@ -101,7 +122,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { urls, display_name, description, topics } = validation.data;
+    const { urls, display_name, description, topics, lounge_id } =
+      validation.data;
 
     // Validate and detect platforms for all URLs
     const urlsWithPlatforms = [];
@@ -144,40 +166,49 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if any of the URLs already exist for THIS user
+    // Check if any of the URLs already exist in THIS lounge
     const existingUrls = [];
     let checkError = null;
 
     try {
       for (const info of urlsWithPlatforms) {
-        // Check if this user already has this URL
-        const { data: userUrlExists, error: urlCheckError } = await supabase
+        // Check if this lounge already has this creator URL
+        // First check if the URL exists
+        const { data: existingUrl, error: urlCheckError } = await supabase
           .from('creator_urls')
           .select(
             `
               id, 
               url, 
               normalized_url,
+              creator_id,
               creators!inner(
                 id,
-                display_name,
-                user_id
+                display_name
               )
             `
           )
           .eq('normalized_url', info.profileUrl)
-          .eq('creators.user_id', user.id)
           .limit(1);
+          
+        if (!urlCheckError && existingUrl && existingUrl.length > 0) {
+          // Now check if this creator is already in the lounge
+          const { data: creatorInLounge, error: loungeCheckError } = await supabase
+            .from('creator_lounges')
+            .select('*')
+            .eq('creator_id', existingUrl[0].creator_id)
+            .eq('lounge_id', lounge_id)
+            .limit(1);
+            
+          if (!loungeCheckError && creatorInLounge && creatorInLounge.length > 0) {
+            existingUrls.push(...existingUrl);
+          }
+        }
 
         if (urlCheckError) {
           console.error('Error checking existing URLs:', urlCheckError);
           checkError = urlCheckError;
           break;
-        }
-
-        if (userUrlExists && userUrlExists.length > 0) {
-          // User already tracks this creator
-          existingUrls.push(...userUrlExists);
         }
       }
     } catch (error) {
@@ -201,7 +232,7 @@ export async function POST(request: NextRequest) {
     if (existingUrls && existingUrls.length > 0) {
       return NextResponse.json(
         {
-          error: 'You are already tracking this creator',
+          error: 'This lounge already has this creator',
           details: existingUrls.map((u: any) => ({
             url: u.url,
             creator: u.creators?.display_name || 'Unknown',
@@ -211,9 +242,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create creator
+    // Create creator without lounge_id (will be handled via junction table)
     const creatorData = {
-      user_id: user.id,
       display_name,
       bio: description,
       status: 'active',
@@ -229,6 +259,12 @@ export async function POST(request: NextRequest) {
 
     if (createError) {
       // Error creating creator - details in response
+      console.error('Failed to create creator:', {
+        error: createError,
+        data: creatorData,
+        errorMessage: createError.message,
+        errorCode: createError.code,
+      });
 
       return NextResponse.json(
         { error: 'Failed to create creator' },
@@ -282,10 +318,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Handle topics if provided
+    // Create creator-lounge relationship
+    if (lounge_id) {
+      const { error: loungeError } = await supabase
+        .from('creator_lounges')
+        .insert({
+          creator_id: newCreator.id,
+          lounge_id: lounge_id,
+        });
+
+      if (loungeError) {
+        console.error('Failed to create creator-lounge relationship:', {
+          error: loungeError,
+          creatorId: newCreator.id,
+          loungeId: lounge_id,
+        });
+        
+        // Rollback: delete creator and URLs
+        await supabase.from('creator_urls').delete().eq('creator_id', newCreator.id);
+        await supabase.from('creators').delete().eq('id', newCreator.id);
+        
+        return NextResponse.json(
+          {
+            error: 'Failed to assign creator to lounge',
+            details: process.env.NODE_ENV === 'development' ? loungeError.message : undefined,
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Handle additional topics if provided (beyond the primary lounge)
     if (topics && topics.length > 0) {
-      // TODO: Implement topic assignment
-      // This would require topic management endpoints to be implemented first
+      const additionalLounges = topics.filter(t => t !== lounge_id);
+      if (additionalLounges.length > 0) {
+        const loungeRelations = additionalLounges.map(loungeId => ({
+          creator_id: newCreator.id,
+          lounge_id: loungeId,
+        }));
+        
+        const { error: topicsError } = await supabase
+          .from('creator_lounges')
+          .insert(loungeRelations);
+          
+        if (topicsError) {
+          console.error('Failed to create additional lounge relationships:', topicsError);
+          // Non-critical error - continue with single lounge
+        }
+      }
     }
 
     // Fetch the complete creator with URLs
@@ -339,8 +419,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate user
     const cookieStore = await cookies();
+
+    // Initialize Supabase client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -358,6 +439,7 @@ export async function GET(request: NextRequest) {
       }
     );
 
+    // Check authentication
     const {
       data: { user },
       error: authError,
@@ -402,17 +484,26 @@ export async function GET(request: NextRequest) {
       lounge_id,
     } = queryValidation.data;
 
-    // Build simplified query - avoid complex joins that cause timeouts
+    // Build query to get creators, optionally filtered by lounge
     let baseQuery = supabase.from('creators').select('*');
-
+    let creatorIds: string[] = [];
+    
+    // If filtering by lounge, we need to join with creator_lounges
     if (lounge_id) {
-      // If lounge_id is provided, get creators for that lounge
-      const { data: loungeCreators } = await supabase
+      // Get creator IDs for this lounge first
+      const { data: creatorLounges, error: loungeError } = await supabase
         .from('creator_lounges')
         .select('creator_id')
         .eq('lounge_id', lounge_id);
-
-      const creatorIds = loungeCreators?.map((lc) => lc.creator_id) || [];
+        
+      if (loungeError) {
+        return NextResponse.json(
+          { error: 'Failed to fetch lounge creators', details: loungeError.message },
+          { status: 500 }
+        );
+      }
+      
+      creatorIds = creatorLounges?.map(cl => cl.creator_id) || [];
       if (creatorIds.length > 0) {
         baseQuery = baseQuery.in('id', creatorIds);
       } else {
@@ -423,16 +514,16 @@ export async function GET(request: NextRequest) {
             creators: [],
             pagination: {
               page: page || 1,
-              limit: limit || 20,
+              limit: limit || 10,
               total: 0,
               totalPages: 0,
+              hasNext: false,
+              hasPrev: false,
             },
           },
+          timestamp: new Date().toISOString(),
         });
       }
-    } else {
-      // Default to user's creators
-      baseQuery = baseQuery.eq('user_id', user.id);
     }
 
     // Apply search filter
@@ -465,11 +556,16 @@ export async function GET(request: NextRequest) {
     // Use mutable variable for potential filtering
     let creators = creatorsData;
 
-    // Get total count for pagination (simplified)
-    const { count, error: countError } = await supabase
+    // Get total count for pagination
+    let countQuery = supabase
       .from('creators')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
+      .select('*', { count: 'exact', head: true });
+
+    if (lounge_id && creatorIds && creatorIds.length > 0) {
+      countQuery = countQuery.in('id', creatorIds);
+    }
+
+    const { count, error: countError } = await countQuery;
 
     if (countError) {
       // Error counting creators - details in response
@@ -480,7 +576,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch related data separately for better performance
-    const creatorIds = creators.map((c) => c.id);
+    const allCreatorIds = creators.map((c) => c.id);
     let creatorUrls: Array<{
       id: string;
       creator_id: string;
@@ -498,12 +594,12 @@ export async function GET(request: NextRequest) {
       };
     }> = [];
 
-    if (creatorIds.length > 0) {
+    if (allCreatorIds.length > 0) {
       // Fetch URLs separately with optional platform filter
       let urlQuery = supabase
         .from('creator_urls')
         .select('id, creator_id, platform, url, validation_status')
-        .in('creator_id', creatorIds);
+        .in('creator_id', allCreatorIds);
 
       if (platform) {
         urlQuery = urlQuery.eq('platform', platform);
