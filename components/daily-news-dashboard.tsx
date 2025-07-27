@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useAuth, useProfile } from '@/hooks/use-auth';
+import { useCuratorAuth } from '@/hooks/use-curator-auth';
 import { useContent } from '@/hooks/use-content';
 import { useLounges } from '@/hooks/use-lounges';
 import type { Creator, Platform } from '@/types/creator';
@@ -98,6 +99,7 @@ import {
   Linkedin,
   Brain,
   Loader2,
+  UserCog,
 } from 'lucide-react';
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel';
@@ -504,17 +506,12 @@ function Header({
   onRefresh?: () => void;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
-  // User not needed in this component
-  const profile = useProfile();
+  // Use curator auth instead of user profile
+  const { curator } = useCuratorAuth();
 
-  const getInitials = (name?: string) => {
-    if (!name) return profile?.email?.[0]?.toUpperCase() || 'U';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const getInitials = (email?: string) => {
+    if (!email) return 'C';
+    return email[0].toUpperCase();
   };
   return (
     <header className="flex items-center h-16 px-3 md:px-6 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
@@ -585,32 +582,33 @@ function Header({
           <DropdownMenuTrigger asChild>
             <Avatar className="h-9 w-9 cursor-pointer">
               <AvatarImage
-                src={
-                  profile?.avatar_url || '/placeholder.svg?height=40&width=40'
-                }
-                alt={profile?.full_name || profile?.email || 'User'}
+                src={'/placeholder.svg?height=40&width=40'}
+                alt={curator?.email || 'Curator'}
               />
-              <AvatarFallback>{getInitials(profile?.full_name)}</AvatarFallback>
+              <AvatarFallback>{getInitials(curator?.email)}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">
-                  {profile?.full_name || 'User'}
-                </p>
+                <p className="text-sm font-medium">Curator</p>
                 <p className="text-xs text-muted-foreground">
-                  {profile?.email}
+                  {curator?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="/profile" className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                <span>Account</span>
-              </a>
-            </DropdownMenuItem>
+            {curator?.is_admin && (
+              <>
+                <DropdownMenuItem
+                  onClick={() => (window.location.href = '/dashboard/admin')}
+                >
+                  <UserCog className="mr-2 h-4 w-4" />
+                  <span>Admin</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={onSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
@@ -1158,13 +1156,10 @@ function MobileFiltersSheet({
 // --- MAIN DASHBOARD COMPONENT ---
 
 export function DailyNewsDashboard() {
-  const { signOut } = useAuth();
-  const { state } = useAuth();
-  const { user, session } = state;
+  const { logout: curatorLogout } = useCuratorAuth();
 
   const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/auth/login';
+    await curatorLogout();
   };
   const [view, setView] = React.useState<'grid' | 'list'>('grid');
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
@@ -1288,8 +1283,6 @@ export function DailyNewsDashboard() {
 
   // Fetch creators from the database
   const fetchCreators = React.useCallback(async () => {
-    if (!user || !session) return;
-
     setIsLoadingCreators(true);
     try {
       const params = new URLSearchParams();
@@ -1314,7 +1307,7 @@ export function DailyNewsDashboard() {
     } finally {
       setIsLoadingCreators(false);
     }
-  }, [user, session, selectedLoungeId]);
+  }, [selectedLoungeId]);
 
   // Fetch creators on mount and when user/session changes
   React.useEffect(() => {

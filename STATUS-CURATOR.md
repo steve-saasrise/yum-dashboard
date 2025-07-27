@@ -51,9 +51,9 @@
 
 #### Simple Auth
 
-- [ ] Create basic `curators` table (id, email, password_hash)
-- [ ] Add `/curator/login` page
-- [ ] Gate dashboard to curators only
+- [x] Create basic `curators` table (id, email, password_hash)
+- [x] Add `/curator/login` page
+- [x] Gate dashboard to curators only
 
 ### Phase 2: Creator Ownership Change (Day 3-4)
 
@@ -196,6 +196,13 @@ That's it! No complex migrations needed.
 5. [ ] Change creator ownership model
 6. [ ] Test with first lounge
 
+### Email Setup Tasks
+
+- [ ] Verify domain on Resend.com (Add saasrise.com to https://resend.com/domains)
+- [ ] Add DNS records from Resend to domain provider
+- [ ] Update EMAIL_FROM in .env.local after domain verification
+- [ ] Test email functionality with verified domain
+
 ### This Week
 
 7. [ ] Add simple analytics
@@ -221,3 +228,10 @@ _Time Estimate: 1 week total_
 - ✅ Updated API endpoints to support lounge_id parameter
 - ✅ Connected sidebar lounge selection to content/creator filtering
 - ✅ All type checking and linting passing
+- ✅ Created curators table with secure password hashing
+- ✅ Implemented full curator authentication system (login/logout/session management)
+- ✅ Added /curator/login page with professional UI
+- ✅ Protected dashboard routes with curator-only middleware
+- ✅ Updated UI to show curator info instead of user profile
+- ✅ Created curator authentication API endpoints
+- ✅ All tests passing and TypeScript compilation successful
