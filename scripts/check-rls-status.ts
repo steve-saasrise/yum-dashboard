@@ -21,8 +21,10 @@ async function checkRLSStatus() {
 
   try {
     // Check if RLS is enabled on creators table
-    const { data: rlsStatus, error: rlsError } = await supabase
-      .rpc('check_rls_enabled', { table_name: 'creators' });
+    const { data: rlsStatus, error: rlsError } = await supabase.rpc(
+      'check_rls_enabled',
+      { table_name: 'creators' }
+    );
 
     if (rlsError) {
       // Try a different approach
@@ -40,14 +42,18 @@ async function checkRLSStatus() {
     }
 
     // Check RLS policies on creators table
-    const { data: policies, error: policiesError } = await supabase
-      .rpc('get_policies_for_table', { table_name: 'creators' });
+    const { data: policies, error: policiesError } = await supabase.rpc(
+      'get_policies_for_table',
+      { table_name: 'creators' }
+    );
 
     if (policiesError) {
       // Alternative approach using direct SQL
-      const { data: policiesAlt, error: policiesAltError } = await supabase
-        .rpc('get_table_policies', { schema_name: 'public', table_name: 'creators' });
-      
+      const { data: policiesAlt, error: policiesAltError } = await supabase.rpc(
+        'get_table_policies',
+        { schema_name: 'public', table_name: 'creators' }
+      );
+
       if (policiesAltError) {
         console.log('Error fetching policies:', policiesAltError);
       } else {
@@ -80,7 +86,10 @@ async function checkRLSStatus() {
       if (creatorsError) {
         console.log('\nError fetching user creators:', creatorsError);
       } else {
-        console.log('\nCreators owned by test user:', userCreators?.length || 0);
+        console.log(
+          '\nCreators owned by test user:',
+          userCreators?.length || 0
+        );
       }
     }
 
@@ -96,7 +105,6 @@ async function checkRLSStatus() {
     } else {
       console.log('\nSystem policies for creators table:', systemPolicies);
     }
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }
@@ -127,14 +135,14 @@ async function testCreatorInsert() {
       console.log('Insert error:', error);
     } else {
       console.log('Insert successful:', data);
-      
+
       // Clean up
       if (data?.id) {
         const { error: deleteError } = await supabase
           .from('creators')
           .delete()
           .eq('id', data.id);
-        
+
         if (deleteError) {
           console.log('Cleanup error:', deleteError);
         } else {
@@ -148,12 +156,15 @@ async function testCreatorInsert() {
 }
 
 // Run the checks
-checkRLSStatus().then(() => {
-  return testCreatorInsert();
-}).then(() => {
-  console.log('\n=== Check Complete ===');
-  process.exit(0);
-}).catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+checkRLSStatus()
+  .then(() => {
+    return testCreatorInsert();
+  })
+  .then(() => {
+    console.log('\n=== Check Complete ===');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });

@@ -35,9 +35,9 @@ async function createTestAccount() {
 
   try {
     // First, check if user already exists
-    const { data: existingUser } = await supabase.auth.admin.getUserById(
-      'llm-test-user-id'
-    ).catch(() => ({ data: null }));
+    const { data: existingUser } = await supabase.auth.admin
+      .getUserById('llm-test-user-id')
+      .catch(() => ({ data: null }));
 
     if (existingUser) {
       console.log('✅ Test account already exists');
@@ -48,11 +48,12 @@ async function createTestAccount() {
     }
 
     // Create user in auth.users
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: testEmail,
-      password: testPassword,
-      email_confirm: true,
-    });
+    const { data: authUser, error: authError } =
+      await supabase.auth.admin.createUser({
+        email: testEmail,
+        password: testPassword,
+        email_confirm: true,
+      });
 
     if (authError) {
       console.error('❌ Error creating auth user:', authError.message);
@@ -62,16 +63,14 @@ async function createTestAccount() {
     console.log('✅ Created auth user:', authUser.user.id);
 
     // Create user in public.users with curator role
-    const { error: publicError } = await supabase
-      .from('users')
-      .insert({
-        id: authUser.user.id,
-        email: testEmail,
-        password_hash: 'supabase-auth', // Placeholder since Supabase handles auth
-        role: 'curator', // Give curator access for testing
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+    const { error: publicError } = await supabase.from('users').insert({
+      id: authUser.user.id,
+      email: testEmail,
+      password_hash: 'supabase-auth', // Placeholder since Supabase handles auth
+      role: 'curator', // Give curator access for testing
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
 
     if (publicError) {
       console.error('❌ Error creating public user:', publicError.message);
@@ -84,9 +83,10 @@ async function createTestAccount() {
     console.log('\n📧 Login Credentials:');
     console.log(`   Email: ${testEmail}`);
     console.log(`   Password: ${testPassword}`);
-    console.log('\n🔐 Access Level: Curator (can create/edit lounges and creators)');
+    console.log(
+      '\n🔐 Access Level: Curator (can create/edit lounges and creators)'
+    );
     console.log('\n🌐 Login URL: http://localhost:3000/auth/login');
-
   } catch (error) {
     console.error('❌ Unexpected error:', error);
   }

@@ -56,12 +56,15 @@ For detailed status, see `STATUS.md`
 ## Test Accounts
 
 ### LLM Test Account
+
 For testing dashboard features with curator access:
+
 - **Email**: `llm-test@dailynews.com`
 - **Password**: `LLMTest123!@#`
 - **Role**: Curator (can create/edit lounges and creators)
 - **Login URL**: http://localhost:3000/auth/login
 
 ### Admin Accounts
+
 - **steve@saasrise.com** - Admin role (magic link only)
 - **stevecanfieldweb@gmail.com** - Admin role (Google OAuth)

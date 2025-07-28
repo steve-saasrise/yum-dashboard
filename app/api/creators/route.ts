@@ -190,17 +190,22 @@ export async function POST(request: NextRequest) {
           )
           .eq('normalized_url', info.profileUrl)
           .limit(1);
-          
+
         if (!urlCheckError && existingUrl && existingUrl.length > 0) {
           // Now check if this creator is already in the lounge
-          const { data: creatorInLounge, error: loungeCheckError } = await supabase
-            .from('creator_lounges')
-            .select('*')
-            .eq('creator_id', existingUrl[0].creator_id)
-            .eq('lounge_id', lounge_id)
-            .limit(1);
-            
-          if (!loungeCheckError && creatorInLounge && creatorInLounge.length > 0) {
+          const { data: creatorInLounge, error: loungeCheckError } =
+            await supabase
+              .from('creator_lounges')
+              .select('*')
+              .eq('creator_id', existingUrl[0].creator_id)
+              .eq('lounge_id', lounge_id)
+              .limit(1);
+
+          if (
+            !loungeCheckError &&
+            creatorInLounge &&
+            creatorInLounge.length > 0
+          ) {
             existingUrls.push(...existingUrl);
           }
         }
@@ -333,15 +338,21 @@ export async function POST(request: NextRequest) {
           creatorId: newCreator.id,
           loungeId: lounge_id,
         });
-        
+
         // Rollback: delete creator and URLs
-        await supabase.from('creator_urls').delete().eq('creator_id', newCreator.id);
+        await supabase
+          .from('creator_urls')
+          .delete()
+          .eq('creator_id', newCreator.id);
         await supabase.from('creators').delete().eq('id', newCreator.id);
-        
+
         return NextResponse.json(
           {
             error: 'Failed to assign creator to lounge',
-            details: process.env.NODE_ENV === 'development' ? loungeError.message : undefined,
+            details:
+              process.env.NODE_ENV === 'development'
+                ? loungeError.message
+                : undefined,
           },
           { status: 500 }
         );
@@ -350,19 +361,22 @@ export async function POST(request: NextRequest) {
 
     // Handle additional topics if provided (beyond the primary lounge)
     if (topics && topics.length > 0) {
-      const additionalLounges = topics.filter(t => t !== lounge_id);
+      const additionalLounges = topics.filter((t) => t !== lounge_id);
       if (additionalLounges.length > 0) {
-        const loungeRelations = additionalLounges.map(loungeId => ({
+        const loungeRelations = additionalLounges.map((loungeId) => ({
           creator_id: newCreator.id,
           lounge_id: loungeId,
         }));
-        
+
         const { error: topicsError } = await supabase
           .from('creator_lounges')
           .insert(loungeRelations);
-          
+
         if (topicsError) {
-          console.error('Failed to create additional lounge relationships:', topicsError);
+          console.error(
+            'Failed to create additional lounge relationships:',
+            topicsError
+          );
           // Non-critical error - continue with single lounge
         }
       }
@@ -487,7 +501,7 @@ export async function GET(request: NextRequest) {
     // Build query to get creators, optionally filtered by lounge
     let baseQuery = supabase.from('creators').select('*');
     let creatorIds: string[] = [];
-    
+
     // If filtering by lounge, we need to join with creator_lounges
     if (lounge_id) {
       // Get creator IDs for this lounge first
@@ -495,15 +509,18 @@ export async function GET(request: NextRequest) {
         .from('creator_lounges')
         .select('creator_id')
         .eq('lounge_id', lounge_id);
-        
+
       if (loungeError) {
         return NextResponse.json(
-          { error: 'Failed to fetch lounge creators', details: loungeError.message },
+          {
+            error: 'Failed to fetch lounge creators',
+            details: loungeError.message,
+          },
           { status: 500 }
         );
       }
-      
-      creatorIds = creatorLounges?.map(cl => cl.creator_id) || [];
+
+      creatorIds = creatorLounges?.map((cl) => cl.creator_id) || [];
       if (creatorIds.length > 0) {
         baseQuery = baseQuery.in('id', creatorIds);
       } else {

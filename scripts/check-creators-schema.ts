@@ -16,11 +16,11 @@ if (!supabaseUrl || !supabaseServiceKey) {
 // Create Supabase client with service role key (bypasses RLS)
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   db: {
-    schema: 'public'
+    schema: 'public',
   },
   auth: {
-    persistSession: false
-  }
+    persistSession: false,
+  },
 });
 
 async function checkCreatorsSchema() {
@@ -42,7 +42,8 @@ async function checkCreatorsSchema() {
       .limit(1)
       .single();
 
-    if (sampleError && sampleError.code !== 'PGRST116') { // PGRST116 is "no rows found"
+    if (sampleError && sampleError.code !== 'PGRST116') {
+      // PGRST116 is "no rows found"
       console.log('Error getting sample creator:', sampleError);
     } else if (sampleCreator) {
       console.log('Sample creator structure:', Object.keys(sampleCreator));
@@ -50,8 +51,9 @@ async function checkCreatorsSchema() {
     }
 
     // Check if RLS is enabled using a raw SQL query
-    const { data: rlsCheck, error: rlsError } = await supabase.rpc('query_raw', {
-      query: `
+    const { data: rlsCheck, error: rlsError } = await supabase
+      .rpc('query_raw', {
+        query: `
         SELECT 
           schemaname,
           tablename,
@@ -59,8 +61,9 @@ async function checkCreatorsSchema() {
         FROM pg_tables 
         WHERE schemaname = 'public' 
         AND tablename = 'creators'
-      `
-    }).single();
+      `,
+      })
+      .single();
 
     if (!rlsError) {
       console.log('\nRLS status from pg_tables:', rlsCheck);
@@ -70,8 +73,10 @@ async function checkCreatorsSchema() {
     }
 
     // Check policies using raw SQL
-    const { data: policies, error: policiesError } = await supabase.rpc('query_raw', {
-      query: `
+    const { data: policies, error: policiesError } = await supabase.rpc(
+      'query_raw',
+      {
+        query: `
         SELECT 
           policyname,
           cmd,
@@ -80,15 +85,15 @@ async function checkCreatorsSchema() {
         FROM pg_policies 
         WHERE schemaname = 'public' 
         AND tablename = 'creators'
-      `
-    });
+      `,
+      }
+    );
 
     if (!policiesError) {
       console.log('\nPolicies on creators table:', policies);
     } else {
       console.log('\nPolicies check error:', policiesError);
     }
-
   } catch (error) {
     console.error('Unexpected error:', error);
   }
@@ -114,7 +119,8 @@ async function simulateCreatorInsert() {
     console.log('Data that API tries to insert:', creatorData);
 
     // Try to insert with auth context (similar to what API does)
-    const { data: authUser } = await supabase.auth.admin.getUserById(testUserId);
+    const { data: authUser } =
+      await supabase.auth.admin.getUserById(testUserId);
     console.log('\nAuth user found:', authUser?.user?.email);
 
     // Check if the creator table expects a user_id
@@ -122,21 +128,21 @@ async function simulateCreatorInsert() {
       .from('creators')
       .insert({
         ...creatorData,
-        display_name: 'Schema Test Creator'
+        display_name: 'Schema Test Creator',
       })
       .select()
       .single();
 
     if (insertError) {
       console.log('\nInsert without user_id error:', insertError);
-      
+
       // Try with user_id
       const { data: insertWithUser, error: userError } = await supabase
         .from('creators')
         .insert({
           ...creatorData,
           display_name: 'Schema Test Creator 2',
-          user_id: testUserId
+          user_id: testUserId,
         })
         .select()
         .single();
@@ -157,19 +163,21 @@ async function simulateCreatorInsert() {
         await supabase.from('creators').delete().eq('id', insertTest.id);
       }
     }
-
   } catch (error) {
     console.error('Simulation error:', error);
   }
 }
 
 // Execute the checks
-checkCreatorsSchema().then(() => {
-  return simulateCreatorInsert();
-}).then(() => {
-  console.log('\n=== Schema Check Complete ===');
-  process.exit(0);
-}).catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+checkCreatorsSchema()
+  .then(() => {
+    return simulateCreatorInsert();
+  })
+  .then(() => {
+    console.log('\n=== Schema Check Complete ===');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });

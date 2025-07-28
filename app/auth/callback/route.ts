@@ -7,6 +7,13 @@ export async function GET(request: NextRequest) {
   // Use the configured app URL instead of extracting origin from request
   const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const code = searchParams.get('code');
+  const type = searchParams.get('type');
+
+  // For password reset, always redirect to reset-password page
+  if (type === 'recovery') {
+    return NextResponse.redirect(`${origin}/auth/reset-password?code=${code}`);
+  }
+
   // Check for redirectTo first (our app's parameter), then next, then default to /dashboard
   const redirectTo =
     searchParams.get('redirectTo') ?? searchParams.get('next') ?? '/dashboard';

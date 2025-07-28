@@ -2,7 +2,7 @@
 
 /**
  * Test script for unified authentication system
- * 
+ *
  * This script tests the new RBAC authentication flow:
  * 1. Verifies role column exists in users table
  * 2. Tests role-based access for different user types
@@ -28,7 +28,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function testRoleColumn() {
   console.log('\n🧪 Testing role column in users table...');
-  
+
   try {
     // Query users table to check role column
     const { data, error } = await supabase
@@ -42,7 +42,10 @@ async function testRoleColumn() {
     }
 
     console.log('✅ Role column exists in users table');
-    console.log('📊 Sample users:', data?.map(u => ({ email: u.email, role: u.role })));
+    console.log(
+      '📊 Sample users:',
+      data?.map((u) => ({ email: u.email, role: u.role }))
+    );
     return true;
   } catch (error) {
     console.error('❌ Unexpected error:', error);
@@ -52,7 +55,7 @@ async function testRoleColumn() {
 
 async function testRoleBasedAccess() {
   console.log('\n🧪 Testing role-based access...');
-  
+
   try {
     // Get user counts by role
     const { data: roleCounts, error } = await supabase
@@ -65,10 +68,13 @@ async function testRoleBasedAccess() {
       return false;
     }
 
-    const counts = roleCounts?.reduce((acc, { role }) => {
-      acc[role] = (acc[role] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const counts = roleCounts?.reduce(
+      (acc, { role }) => {
+        acc[role] = (acc[role] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     console.log('✅ User role distribution:');
     console.log('   - Viewers:', counts?.viewer || 0);
@@ -84,7 +90,7 @@ async function testRoleBasedAccess() {
 
 async function testAPIEndpointAccess() {
   console.log('\n🧪 Testing API endpoint access (using service role)...');
-  
+
   try {
     // Test creating a lounge (should require curator/admin role)
     const { data: lounges, error: loungeError } = await supabase
@@ -98,7 +104,7 @@ async function testAPIEndpointAccess() {
     }
 
     console.log('✅ Lounges table accessible');
-    
+
     // Test creating a creator (should require curator/admin role)
     const { data: creators, error: creatorError } = await supabase
       .from('creators')
@@ -111,7 +117,7 @@ async function testAPIEndpointAccess() {
     }
 
     console.log('✅ Creators table accessible');
-    
+
     return true;
   } catch (error) {
     console.error('❌ Unexpected error:', error);
@@ -123,11 +129,7 @@ async function main() {
   console.log('🚀 Testing Unified Authentication System');
   console.log('=====================================');
 
-  const tests = [
-    testRoleColumn,
-    testRoleBasedAccess,
-    testAPIEndpointAccess,
-  ];
+  const tests = [testRoleColumn, testRoleBasedAccess, testAPIEndpointAccess];
 
   let passed = 0;
   for (const test of tests) {
@@ -141,7 +143,9 @@ async function main() {
   console.log(`   ❌ Failed: ${tests.length - passed}/${tests.length}`);
 
   if (passed === tests.length) {
-    console.log('\n🎉 All tests passed! The unified authentication system is working correctly.');
+    console.log(
+      '\n🎉 All tests passed! The unified authentication system is working correctly.'
+    );
     console.log('\n📝 Next steps:');
     console.log('   1. Run the database migrations to add the role column');
     console.log('   2. Update existing users with appropriate roles');
