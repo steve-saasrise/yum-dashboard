@@ -298,11 +298,15 @@ function AppSidebar({
                       >
                         <SidebarMenuButton
                           tooltip={lounge.name}
-                          onClick={() =>
-                            onLoungeSelect(
-                              selectedLoungeId === lounge.id ? null : lounge.id
-                            )
-                          }
+                          onClick={() => {
+                            const newSelection = selectedLoungeId === lounge.id ? null : lounge.id;
+                            console.log('Lounge selection changed:', {
+                              previousLoungeId: selectedLoungeId,
+                              newLoungeId: newSelection,
+                              loungeName: lounge.name
+                            });
+                            onLoungeSelect(newSelection);
+                          }}
                           className={
                             selectedLoungeId === lounge.id
                               ? 'bg-gray-100 dark:bg-gray-800'
@@ -1486,6 +1490,13 @@ export function DailyNewsDashboard() {
       if (selectedLoungeId) {
         params.append('lounge_id', selectedLoungeId);
       }
+      
+      console.log('Fetching creators with params:', {
+        selectedLoungeId,
+        paramsString: params.toString(),
+        fullUrl: `/api/creators${params.toString() ? '?' + params.toString() : ''}`
+      });
+      
       const response = await fetch(
         `/api/creators${params.toString() ? '?' + params.toString() : ''}`,
         {
@@ -1497,10 +1508,17 @@ export function DailyNewsDashboard() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Creators API response:', {
+          selectedLoungeId,
+          creatorsCount: data.data?.creators?.length || 0,
+          creators: data.data?.creators?.map((c: any) => ({ id: c.id, name: c.display_name })) || []
+        });
         setCreators(data.data?.creators || []);
+      } else {
+        console.error('Failed to fetch creators:', response.status, response.statusText);
       }
-    } catch {
-      // Error fetching creators - handled by loading state
+    } catch (error) {
+      console.error('Error fetching creators:', error);
     } finally {
       setIsLoadingCreators(false);
     }

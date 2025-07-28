@@ -87,9 +87,9 @@ export async function GET(request: NextRequest) {
 
     if (query.lounge_id) {
       // If lounge_id is provided, get creators for that specific lounge
-      const { data: creators, error: creatorsError } = await supabase
-        .from('creators')
-        .select('id')
+      const { data: creatorLounges, error: creatorsError } = await supabase
+        .from('creator_lounges')
+        .select('creator_id')
         .eq('lounge_id', query.lounge_id);
 
       if (creatorsError) {
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      creatorIds = creators?.map((c) => c.id) || [];
+      creatorIds = creatorLounges?.map((cl) => cl.creator_id) || [];
     } else {
       // When no lounge is selected, show ALL content from ALL creators
       // This provides a unified feed view
