@@ -200,7 +200,7 @@ export async function DELETE(
     }
 
     // Delete all associated data in the correct order to avoid foreign key constraints
-    
+
     // 1. Delete all content for this creator
     const { error: contentDeleteError } = await supabase
       .from('content')

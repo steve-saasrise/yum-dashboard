@@ -44,10 +44,11 @@ import { format } from 'date-fns';
 interface UserWithRole {
   id: string;
   email: string;
-  full_name?: string;
+  first_name?: string;
+  last_name?: string;
   role: 'viewer' | 'curator' | 'admin';
   created_at: string;
-  last_sign_in_at?: string;
+  last_login?: string;
 }
 
 export default function AdminDashboard() {
@@ -93,20 +94,20 @@ export default function AdminDashboard() {
 
   async function fetchUsers() {
     try {
-      const supabase = createBrowserSupabaseClient();
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, email, full_name, role, created_at, last_sign_in_at')
-        .order('created_at', { ascending: false });
+      const response = await fetch('/api/admin/users');
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch users');
+      }
 
-      if (error) throw error;
-
-      setUsers(data || []);
+      const { users } = await response.json();
+      setUsers(users || []);
     } catch (error) {
       // Error fetching users
       toast({
         title: 'Error',
-        description: 'Failed to fetch users',
+        description: error instanceof Error ? error.message : 'Failed to fetch users',
         variant: 'destructive',
       });
     } finally {
@@ -129,13 +130,21 @@ export default function AdminDashboard() {
 
     setUpdating(userId);
     try {
-      const supabase = createBrowserSupabaseClient();
-      const { error } = await supabase
-        .from('users')
-        .update({ role: newRole })
-        .eq('id', userId);
+      const response = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          role: newRole,
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update user role');
+      }
 
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
@@ -149,7 +158,7 @@ export default function AdminDashboard() {
       // Error updating role
       toast({
         title: 'Error',
-        description: 'Failed to update user role',
+        description: error instanceof Error ? error.message : 'Failed to update user role',
         variant: 'destructive',
       });
     } finally {
@@ -241,7 +250,11 @@ export default function AdminDashboard() {
                       <TableCell className="font-medium">
                         {user.email}
                       </TableCell>
-                      <TableCell>{user.full_name || '—'}</TableCell>
+                      <TableCell>
+                        {user.first_name || user.last_name
+                          ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                          : '—'}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {getRoleIcon(user.role)}
@@ -252,9 +265,9 @@ export default function AdminDashboard() {
                         {format(new Date(user.created_at), 'MMM d, yyyy')}
                       </TableCell>
                       <TableCell>
-                        {user.last_sign_in_at
+                        {user.last_login
                           ? format(
-                              new Date(user.last_sign_in_at),
+                              new Date(user.last_login),
                               'MMM d, yyyy'
                             )
                           : '—'}

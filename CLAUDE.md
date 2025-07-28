@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Important Instructions
+
+- **Always use `supabase-saasrise` MCP server** for this project when accessing Supabase
+- Project ID: `gtmynspbdgdlxgwlkpye`
+
 ## Project Overview
 
 Daily News is a content aggregation platform that unifies content from multiple social media platforms into a single, intelligent dashboard. Users can follow creators from YouTube, X (Twitter), LinkedIn, Threads, and RSS feeds while receiving AI-powered summaries and personalized digests.

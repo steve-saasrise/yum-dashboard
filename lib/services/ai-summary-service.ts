@@ -174,8 +174,9 @@ export class AISummaryService {
         }
       }
 
-      // Generate long summary if requested and text is long enough
-      if (generateLong && text.length > 200) {
+      // Generate long summary if requested and text has at least 100 words
+      const wordCount = this.countWords(text);
+      if (generateLong && wordCount >= 100) {
         try {
           const longSummary = await this.generateLongSummary(text, model);
           results.longSummary = longSummary;
