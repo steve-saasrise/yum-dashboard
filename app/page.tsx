@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Users, Shield, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Brain, Coffee, Sparkles } from 'lucide-react';
 
 export default function Home() {
   const user = useUser();
@@ -45,15 +45,15 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center space-y-6 mb-16">
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            Welcome to <span className="text-primary">Daily News</span>
+            Welcome to <span className="text-primary">Lounge</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            The Daily Newspaper Reinvented
+            The Curated Internet for Smart Professionals
           </p>
           <div className="flex gap-4 justify-center">
             <Button size="lg" asChild>
               <Link href="/auth/signup" className="gap-2">
-                Get Started <ArrowRight className="h-4 w-4" />
+                Join Lounge <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
@@ -66,49 +66,48 @@ export default function Home() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           <Card>
             <CardHeader>
-              <BarChart3 className="h-8 w-8 text-primary" />
-              <CardTitle className="text-lg">Analytics</CardTitle>
+              <Brain className="h-8 w-8 text-primary" />
+              <CardTitle className="text-lg">Expert Curation</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Real-time data visualization and comprehensive reporting tools.
+                Hand-picked content by topic experts who filter out the noise and surface only what matters.
               </CardDescription>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <Users className="h-8 w-8 text-primary" />
-              <CardTitle className="text-lg">Team Management</CardTitle>
+              <Sparkles className="h-8 w-8 text-primary" />
+              <CardTitle className="text-lg">AI-Powered Summaries</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Collaborate effectively with role-based access and team
-                features.
+                Get the essence of long-form content in 4-minute reads, perfect for busy professionals.
               </CardDescription>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <Shield className="h-8 w-8 text-primary" />
-              <CardTitle className="text-lg">Secure</CardTitle>
+              <Coffee className="h-8 w-8 text-primary" />
+              <CardTitle className="text-lg">Daily Digests</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Enterprise-grade security with advanced authentication options.
+                Replace morning doomscrolling with brain food delivered via web, app, and email.
               </CardDescription>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <Zap className="h-8 w-8 text-primary" />
-              <CardTitle className="text-lg">Fast & Reliable</CardTitle>
+              <BookOpen className="h-8 w-8 text-primary" />
+              <CardTitle className="text-lg">Topic Lounges</CardTitle>
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Lightning-fast performance with 99.9% uptime guarantee.
+                From SaaS to crypto, VC to biohacking — find your niche and dive deep.
               </CardDescription>
             </CardContent>
           </Card>
@@ -116,14 +115,13 @@ export default function Home() {
 
         {/* CTA Section */}
         <div className="text-center bg-primary/5 rounded-lg p-8">
-          <h2 className="text-2xl font-bold mb-4">Ready to get started?</h2>
+          <h2 className="text-2xl font-bold mb-4">Ready to make your mornings smarter?</h2>
           <p className="text-muted-foreground mb-6">
-            Join thousands of users who trust Daily News for their news
-            aggregation needs.
+            Join smart professionals who've replaced doomscrolling with curated intelligence.
           </p>
           <Button size="lg" asChild>
             <Link href="/auth/signup" className="gap-2">
-              Start Your Free Trial <ArrowRight className="h-4 w-4" />
+              Join Lounge <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
