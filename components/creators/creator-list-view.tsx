@@ -365,7 +365,9 @@ function CreatorTable({
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4" />
-                    <span>{getPlatformDisplayName(creator.platform || 'website')}</span>
+                    <span>
+                      {getPlatformDisplayName(creator.platform || 'website')}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>

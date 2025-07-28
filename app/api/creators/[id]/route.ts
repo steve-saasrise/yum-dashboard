@@ -199,14 +199,58 @@ export async function DELETE(
       );
     }
 
-    // Delete creator - curators can delete any creator
+    // Delete all associated data in the correct order to avoid foreign key constraints
+    
+    // 1. Delete all content for this creator
+    const { error: contentDeleteError } = await supabase
+      .from('content')
+      .delete()
+      .eq('creator_id', id);
+
+    if (contentDeleteError) {
+      console.error('Failed to delete creator content:', contentDeleteError);
+      return NextResponse.json(
+        { error: 'Failed to delete creator content' },
+        { status: 500 }
+      );
+    }
+
+    // 2. Delete creator URLs
+    const { error: urlsDeleteError } = await supabase
+      .from('creator_urls')
+      .delete()
+      .eq('creator_id', id);
+
+    if (urlsDeleteError) {
+      console.error('Failed to delete creator URLs:', urlsDeleteError);
+      return NextResponse.json(
+        { error: 'Failed to delete creator URLs' },
+        { status: 500 }
+      );
+    }
+
+    // 3. Delete creator-lounge relationships
+    const { error: loungesDeleteError } = await supabase
+      .from('creator_lounges')
+      .delete()
+      .eq('creator_id', id);
+
+    if (loungesDeleteError) {
+      console.error('Failed to delete creator lounges:', loungesDeleteError);
+      return NextResponse.json(
+        { error: 'Failed to delete creator lounge relationships' },
+        { status: 500 }
+      );
+    }
+
+    // 4. Finally, delete the creator record itself
     const { error: deleteError } = await supabase
       .from('creators')
       .delete()
       .eq('id', id);
 
     if (deleteError) {
-      // Error deleting creator - details in response
+      console.error('Failed to delete creator:', deleteError);
       return NextResponse.json(
         { error: 'Failed to delete creator' },
         { status: 500 }

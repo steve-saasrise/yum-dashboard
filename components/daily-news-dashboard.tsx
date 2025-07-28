@@ -243,7 +243,10 @@ function AppSidebar({
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Add Lounge" onClick={onTopicCreate}>
+                    <SidebarMenuButton
+                      tooltip="Add Lounge"
+                      onClick={onTopicCreate}
+                    >
                       <PlusCircle className="w-4 h-4" />
                       <span className="truncate">Add Lounge</span>
                     </SidebarMenuButton>
@@ -254,10 +257,10 @@ function AppSidebar({
             <SidebarSeparator />
           </>
         )}
-        
+
         {/* Extra spacing above Lounges for non-curator users */}
         {!canManageCreators && <div className="h-3"></div>}
-        
+
         {/* Lounges Section */}
         <SidebarGroup>
           <Collapsible defaultOpen>
@@ -1363,7 +1366,11 @@ export function DailyNewsDashboard() {
           canManageCreators={canManageCreators}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
-          <Header onSignOut={handleSignOut} onRefresh={refreshContent} canManageCreators={canManageCreators} />
+          <Header
+            onSignOut={handleSignOut}
+            onRefresh={refreshContent}
+            canManageCreators={canManageCreators}
+          />
           <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
