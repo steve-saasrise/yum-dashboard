@@ -339,7 +339,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     try {
       toastId = toast.loading('Checking for new content...');
 
-      const response = await fetch('/api/content/refresh', {
+      const response = await fetch('/api/content/refresh-service', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
