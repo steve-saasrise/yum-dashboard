@@ -272,6 +272,7 @@ export interface YouTubeFetchOptions {
   order?: 'date' | 'rating' | 'relevance' | 'title' | 'viewCount';
   videoDuration?: 'short' | 'medium' | 'long';
   videoDefinition?: 'high' | 'standard';
+  excludeShorts?: boolean;
   storage?: {
     enabled: boolean;
     supabaseClient?: unknown;
@@ -344,6 +345,7 @@ export class YouTubeFetchError extends Error {
 export const DEFAULT_YOUTUBE_FETCH_OPTIONS: Partial<YouTubeFetchOptions> = {
   maxResults: 50,
   order: 'date',
+  excludeShorts: true,
 };
 
 // Helper function to extract channel ID from URL

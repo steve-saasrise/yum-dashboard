@@ -194,6 +194,7 @@ interface AppSidebarProps {
   isLoadingLounges: boolean;
   selectedLoungeId: string | null;
   onLoungeSelect: (loungeId: string | null) => void;
+  canManageCreators: boolean;
 }
 
 function AppSidebar({
@@ -209,6 +210,7 @@ function AppSidebar({
   isLoadingLounges,
   selectedLoungeId,
   onLoungeSelect,
+  canManageCreators,
 }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" side="left">
@@ -217,65 +219,46 @@ function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent className="p-2 stable-scrollbar sidebar-scrollbar">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Manage Creators">
-                  <Link href="/creators">
-                    <Edit className="w-4 h-4" />
-                    <span className="truncate">Manage Creators</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  tooltip="Add Creator (Quick)"
-                  onClick={onCreatorCreate}
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span className="truncate">Add Creator</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Add Lounge" onClick={onTopicCreate}>
-                  <PlusCircle className="w-4 h-4" />
-                  <span className="truncate">Add Lounge</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarSeparator />
-
-        {/* Platforms Section */}
-        <SidebarGroup>
-          <Collapsible defaultOpen>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="w-full flex items-center justify-between hover:bg-sidebar-accent rounded-md px-2 py-1 transition-colors duration-200 group">
-                <span>Platforms</span>
-                <ChevronDown className="h-4 w-4 transition-transform duration-300 ease-in-out group-data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent className="transition-all duration-300 ease-in-out data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
+        {/* Curator Management Options - Moved to top for curator users */}
+        {canManageCreators && (
+          <>
+            <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {platforms.map((platform) => (
-                    <SidebarMenuItem key={platform.name}>
-                      <SidebarMenuButton tooltip={platform.name}>
-                        <platform.icon className="w-4 h-4" />
-                        <span className="truncate">{platform.name}</span>
-                        <SidebarMenuBadge>{platform.count}</SidebarMenuBadge>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Manage Creators">
+                      <Link href="/creators">
+                        <Edit className="w-4 h-4" />
+                        <span className="truncate">Manage Creators</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      tooltip="Add Creator (Quick)"
+                      onClick={onCreatorCreate}
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      <span className="truncate">Add Creator</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton tooltip="Add Lounge" onClick={onTopicCreate}>
+                      <PlusCircle className="w-4 h-4" />
+                      <span className="truncate">Add Lounge</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarGroup>
-
-        {/* Topics Section */}
+            </SidebarGroup>
+            <SidebarSeparator />
+          </>
+        )}
+        
+        {/* Extra spacing above Lounges for non-curator users */}
+        {!canManageCreators && <div className="h-3"></div>}
+        
+        {/* Lounges Section */}
         <SidebarGroup>
           <Collapsible defaultOpen>
             <SidebarGroupLabel asChild>
@@ -370,6 +353,33 @@ function AppSidebar({
                       </SidebarMenuItem>
                     ))
                   )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
+        {/* Platforms Section */}
+        <SidebarGroup>
+          <Collapsible defaultOpen>
+            <SidebarGroupLabel asChild>
+              <CollapsibleTrigger className="w-full flex items-center justify-between hover:bg-sidebar-accent rounded-md px-2 py-1 transition-colors duration-200 group">
+                <span>Platforms</span>
+                <ChevronDown className="h-4 w-4 transition-transform duration-300 ease-in-out group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent className="transition-all duration-300 ease-in-out data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {platforms.map((platform) => (
+                    <SidebarMenuItem key={platform.name}>
+                      <SidebarMenuButton tooltip={platform.name}>
+                        <platform.icon className="w-4 h-4" />
+                        <span className="truncate">{platform.name}</span>
+                        <SidebarMenuBadge>{platform.count}</SidebarMenuBadge>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
@@ -499,9 +509,11 @@ function AppSidebar({
 function Header({
   onSignOut,
   onRefresh,
+  canManageCreators,
 }: {
   onSignOut: () => void;
   onRefresh?: () => void;
+  canManageCreators: boolean;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   // Use unified auth with user profile
@@ -546,7 +558,7 @@ function Header({
       </div>
       <div className="flex items-center gap-2 ml-2">
         <div className="flex items-center">
-          {onRefresh && (
+          {onRefresh && canManageCreators && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1153,7 +1165,9 @@ function MobileFiltersSheet({
 // --- MAIN DASHBOARD COMPONENT ---
 
 export function DailyNewsDashboard() {
-  const { signOut } = useAuth();
+  const { signOut, state: authState } = useAuth();
+  const userRole = authState.profile?.role;
+  const canManageCreators = userRole === 'curator' || userRole === 'admin';
 
   const handleSignOut = async () => {
     await signOut();
@@ -1346,9 +1360,10 @@ export function DailyNewsDashboard() {
           isLoadingLounges={isLoadingLounges}
           selectedLoungeId={selectedLoungeId}
           onLoungeSelect={setSelectedLoungeId}
+          canManageCreators={canManageCreators}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
-          <Header onSignOut={handleSignOut} onRefresh={refreshContent} />
+          <Header onSignOut={handleSignOut} onRefresh={refreshContent} canManageCreators={canManageCreators} />
           <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -1494,7 +1509,7 @@ export function DailyNewsDashboard() {
                         : "Content from your creators will appear here once it's fetched"}
                     </p>
                   </div>
-                  {creators.length === 0 && (
+                  {creators.length === 0 && canManageCreators && (
                     <Button onClick={handleCreateCreator} size="lg">
                       <PlusCircle className="w-5 h-5 mr-2" />
                       Add Your First Creator
@@ -1507,10 +1522,12 @@ export function DailyNewsDashboard() {
                         {creators.length !== 1 ? 's' : ''}. New content will be
                         fetched automatically.
                       </p>
-                      <Button variant="outline" onClick={refreshContent}>
-                        <Brain className="w-4 h-4 mr-2" />
-                        Refresh & Generate AI Summaries
-                      </Button>
+                      {canManageCreators && (
+                        <Button variant="outline" onClick={refreshContent}>
+                          <Brain className="w-4 h-4 mr-2" />
+                          Refresh & Generate AI Summaries
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>

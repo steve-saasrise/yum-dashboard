@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLounges } from '@/hooks/use-lounges';
 import { useCreators } from '@/hooks/use-creators';
+import { useAuth } from '@/hooks/use-auth';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import type {
@@ -40,7 +41,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Youtube,
-  Twitter,
   Linkedin,
   Rss,
   AtSign,
@@ -54,17 +54,26 @@ import {
   Globe,
   Edit,
 } from 'lucide-react';
+import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { AddCreatorModal } from './add-creator-modal';
 
 // Platform icons mapping
 const platformIcons = {
   youtube: Youtube,
-  twitter: Twitter,
+  twitter: Icons.x,
+  x: Icons.x,
   linkedin: Linkedin,
-  threads: AtSign,
+  threads: Icons.threads,
   rss: Rss,
   website: Globe,
+};
+
+// Get platform display name
+const getPlatformDisplayName = (platform: string) => {
+  if (platform?.toLowerCase() === 'twitter') return 'X';
+  if (platform?.toLowerCase() === 'x') return 'X';
+  return platform?.charAt(0).toUpperCase() + platform?.slice(1) || 'Website';
 };
 
 // Search component with debouncing
@@ -124,7 +133,7 @@ function CreatorFilters({
 }) {
   const platforms = [
     { value: 'youtube', label: 'YouTube' },
-    { value: 'twitter', label: 'Twitter' },
+    { value: 'twitter', label: 'X' },
     { value: 'linkedin', label: 'LinkedIn' },
     { value: 'threads', label: 'Threads' },
     { value: 'rss', label: 'RSS' },
@@ -264,6 +273,7 @@ function CreatorTable({
   sortOrder,
   onEdit,
   onDelete,
+  canManageCreators,
 }: {
   creators: Creator[];
   selectedCreators: Set<string>;
@@ -274,6 +284,7 @@ function CreatorTable({
   sortOrder?: string;
   onEdit?: (creator: Creator) => void;
   onDelete?: (id: string) => void;
+  canManageCreators: boolean;
 }) {
   const allSelected =
     creators.length > 0 && creators.every((c) => selectedCreators.has(c.id));
@@ -354,7 +365,7 @@ function CreatorTable({
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4" />
-                    <span className="capitalize">{creator.platform}</span>
+                    <span>{getPlatformDisplayName(creator.platform || 'website')}</span>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -394,24 +405,26 @@ function CreatorTable({
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit?.(creator)}
-                      className="h-8 w-8"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDelete?.(creator.id)}
-                      className="h-8 w-8"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {canManageCreators && (
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit?.(creator)}
+                        className="h-8 w-8"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete?.(creator.id)}
+                        className="h-8 w-8"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             );
@@ -429,12 +442,14 @@ function CreatorCards({
   onSelectCreator,
   onEdit,
   onDelete,
+  canManageCreators,
 }: {
   creators: Creator[];
   selectedCreators: Set<string>;
   onSelectCreator: (id: string, selected: boolean) => void;
   onEdit?: (creator: Creator) => void;
   onDelete?: (id: string) => void;
+  canManageCreators: boolean;
 }) {
   return (
     <div className="grid gap-4" data-testid="creators-cards">
@@ -487,24 +502,26 @@ function CreatorCards({
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-1 ml-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onEdit?.(creator)}
-                  className="h-8 w-8"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onDelete?.(creator.id)}
-                  className="h-8 w-8"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              {canManageCreators && (
+                <div className="flex items-center gap-1 ml-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit?.(creator)}
+                    className="h-8 w-8"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete?.(creator.id)}
+                    className="h-8 w-8"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         );
@@ -525,6 +542,10 @@ export function CreatorListView() {
     clearFilters,
     refreshCreators,
   } = useCreators();
+
+  const { state: authState } = useAuth();
+  const userRole = authState.profile?.role;
+  const canManageCreators = userRole === 'curator' || userRole === 'admin';
 
   const [selectedCreators, setSelectedCreators] = useState<Set<string>>(
     new Set()
@@ -721,10 +742,12 @@ export function CreatorListView() {
             onChange={(search) => updateFilters({ search })}
             isLoading={loading}
           />
-          <Button onClick={handleAddCreator}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Creator
-          </Button>
+          {canManageCreators && (
+            <Button onClick={handleAddCreator}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Creator
+            </Button>
+          )}
         </div>
       </div>
 
@@ -742,15 +765,17 @@ export function CreatorListView() {
           <p className="text-sm text-muted-foreground">
             Add your first creator to get started
           </p>
-          <Button onClick={handleAddCreator}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Your First Creator
-          </Button>
+          {canManageCreators && (
+            <Button onClick={handleAddCreator}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Your First Creator
+            </Button>
+          )}
         </div>
       )}
 
       {/* Bulk Actions */}
-      {selectedCreators.size > 0 && (
+      {selectedCreators.size > 0 && canManageCreators && (
         <div
           className="flex items-center gap-4 p-4 bg-muted rounded-lg"
           data-testid="bulk-actions"
@@ -781,6 +806,7 @@ export function CreatorListView() {
               onSelectCreator={selectCreator}
               onEdit={handleEditCreator}
               onDelete={handleDeleteCreator}
+              canManageCreators={canManageCreators}
             />
           ) : (
             <CreatorTable
@@ -793,6 +819,7 @@ export function CreatorListView() {
               sortOrder={filters.order}
               onEdit={handleEditCreator}
               onDelete={handleDeleteCreator}
+              canManageCreators={canManageCreators}
             />
           )}
         </>

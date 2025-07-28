@@ -58,8 +58,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
         // Build base query - fetch creators only first
         let baseQuery = supabase
           .from('creators')
-          .select('*', { count: 'exact' })
-          .eq('user_id', user.id);
+          .select('*', { count: 'exact' });
 
         // Apply search filter
         if (filters.search) {

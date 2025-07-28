@@ -77,18 +77,25 @@ export class ApifyFetcher {
       `[ApifyFetcher] Fetching Twitter content for ${urls.length} URLs`
     );
 
-    // Convert URLs to search terms to exclude replies
+    // Convert URLs to search terms to exclude replies and retweets
     const searchTerms = urls.map((url) => {
-      // If it's already a search term, add -filter:replies if not present
+      // If it's already a search term, add filters if not present
       if (url.includes('from:')) {
-        return url.includes('-filter:replies') ? url : `${url} -filter:replies`;
+        let searchTerm = url;
+        if (!searchTerm.includes('-filter:replies')) {
+          searchTerm = `${searchTerm} -filter:replies`;
+        }
+        if (!searchTerm.includes('-filter:retweets')) {
+          searchTerm = `${searchTerm} -filter:retweets`;
+        }
+        return searchTerm;
       }
 
       // Extract username from URL
       const usernameMatch = url.match(/(?:x\.com|twitter\.com)\/(@?\w+)/);
       if (usernameMatch) {
         const username = usernameMatch[1].replace('@', '');
-        return `from:${username} -filter:replies`;
+        return `from:${username} -filter:replies -filter:retweets`;
       }
 
       // Fallback to original URL if pattern doesn't match

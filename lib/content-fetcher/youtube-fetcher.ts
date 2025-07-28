@@ -15,6 +15,25 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
 
 /**
+ * Parse YouTube ISO 8601 duration to seconds
+ * @param duration - ISO 8601 duration string (e.g., 'PT1M30S', 'PT1H2M10S')
+ * @returns Duration in seconds
+ */
+function parseYouTubeDuration(duration: string): number {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  
+  if (!match) {
+    return 0;
+  }
+  
+  const hours = parseInt(match[1] || '0', 10);
+  const minutes = parseInt(match[2] || '0', 10);
+  const seconds = parseInt(match[3] || '0', 10);
+  
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
  * YouTube Fetcher Service
  *
  * Handles fetching videos from YouTube channels using the YouTube Data API v3.
@@ -147,6 +166,18 @@ export class YouTubeFetcher {
           ) {
             return false;
           }
+          return true;
+        });
+      }
+
+      // Filter out YouTube Shorts (videos 60 seconds or less)
+      if (fetchOptions.excludeShorts !== false) {
+        filteredVideos = filteredVideos.filter((video) => {
+          if (video.contentDetails?.duration) {
+            const durationInSeconds = parseYouTubeDuration(video.contentDetails.duration);
+            return durationInSeconds > 60;
+          }
+          // If no duration info, include the video
           return true;
         });
       }
