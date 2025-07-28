@@ -8,6 +8,7 @@ import { useLounges } from '@/hooks/use-lounges';
 import type { Creator, Platform } from '@/types/creator';
 import type { Lounge } from '@/types/lounge';
 import { toast } from 'sonner';
+import { toast as toastUI } from '@/hooks/use-toast';
 import {
   Sidebar,
   SidebarProvider,
@@ -149,6 +150,7 @@ interface FeedItem {
   };
   published_at: string;
   is_saved?: boolean;
+  is_deleted?: boolean; // Only present for curators/admins
   topics?: Array<{
     id: string;
     name: string;
@@ -637,14 +639,21 @@ function ContentCard({
   creators,
   onSave,
   onUnsave,
+  onDelete,
+  onUndelete,
+  canDelete,
 }: {
   item: FeedItem;
   creators: Creator[];
   onSave?: (id: string) => Promise<void>;
   onUnsave?: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
+  onUndelete?: (id: string) => Promise<void>;
+  canDelete?: boolean;
 }) {
   const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
   const [isLoading, setIsLoading] = React.useState(true);
+  const isDeleted = item.is_deleted || false;
   const creator =
     item.creator || creators.find((c) => c.id === item.creator_id);
 
@@ -703,7 +712,16 @@ function ContentCard({
   }
 
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 flex flex-col">
+    <Card
+      className={`overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 flex flex-col ${isDeleted ? 'opacity-60' : ''}`}
+    >
+      {isDeleted && canDelete && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 border-b border-yellow-200 dark:border-yellow-800">
+          <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
+            This content is hidden from users
+          </p>
+        </div>
+      )}
       <CardContent className="p-4 flex flex-col flex-grow">
         <div className="flex-grow">
           <div className="flex items-start justify-between mb-3">
@@ -744,37 +762,72 @@ function ContentCard({
                 </div>
               </div>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-gray-500 hover:text-primary"
-                    onClick={async () => {
-                      try {
-                        if (bookmarked && onUnsave) {
-                          await onUnsave(item.id);
-                          setBookmarked(false);
-                        } else if (!bookmarked && onSave) {
-                          await onSave(item.id);
-                          setBookmarked(true);
+            <div className="flex items-center gap-1">
+              {canDelete && (onDelete || onUndelete) && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-8 w-8 ${isDeleted ? 'text-green-600 hover:text-green-700' : 'text-gray-500 hover:text-red-600'}`}
+                        onClick={async () => {
+                          try {
+                            if (isDeleted && onUndelete) {
+                              await onUndelete(item.id);
+                            } else if (!isDeleted && onDelete) {
+                              await onDelete(item.id);
+                            }
+                          } catch {
+                            // Error is handled by the hook with toast
+                          }
+                        }}
+                      >
+                        {isDeleted ? (
+                          <Icons.undo className="h-4 w-4" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isDeleted ? 'Undelete' : 'Delete'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-gray-500 hover:text-primary"
+                      onClick={async () => {
+                        try {
+                          if (bookmarked && onUnsave) {
+                            await onUnsave(item.id);
+                            setBookmarked(false);
+                          } else if (!bookmarked && onSave) {
+                            await onSave(item.id);
+                            setBookmarked(true);
+                          }
+                        } catch {
+                          // Error is handled by the hook with toast
                         }
-                      } catch {
-                        // Error is handled by the hook with toast
-                      }
-                    }}
-                  >
-                    <Bookmark
-                      className={`h-4 w-4 ${bookmarked ? 'fill-primary text-primary' : ''}`}
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Bookmark</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                      }}
+                    >
+                      <Bookmark
+                        className={`h-4 w-4 ${bookmarked ? 'fill-primary text-primary' : ''}`}
+                      />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Bookmark</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
           <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-white">
             {item.title}
@@ -878,13 +931,20 @@ function ContentListItem({
   creators,
   onSave,
   onUnsave,
+  onDelete,
+  onUndelete,
+  canDelete,
 }: {
   item: FeedItem;
   creators: Creator[];
   onSave?: (id: string) => Promise<void>;
   onUnsave?: (id: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
+  onUndelete?: (id: string) => Promise<void>;
+  canDelete?: boolean;
 }) {
   const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
+  const isDeleted = item.is_deleted || false;
   const creator =
     item.creator || creators.find((c) => c.id === item.creator_id);
 
@@ -909,7 +969,16 @@ function ContentListItem({
   if (!creator) return null;
 
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 w-full">
+    <Card
+      className={`overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 w-full ${isDeleted ? 'opacity-60' : ''}`}
+    >
+      {isDeleted && canDelete && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 border-b border-yellow-200 dark:border-yellow-800">
+          <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
+            This content is hidden from users
+          </p>
+        </div>
+      )}
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           <Avatar className="h-12 w-12 border flex-shrink-0">
@@ -1025,6 +1094,40 @@ function ContentListItem({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
+            {canDelete && (onDelete || onUndelete) && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-9 w-9 ${isDeleted ? 'text-green-600 hover:text-green-700' : 'text-gray-500 hover:text-red-600'}`}
+                      onClick={async () => {
+                        try {
+                          if (isDeleted && onUndelete) {
+                            await onUndelete(item.id);
+                          } else if (!isDeleted && onDelete) {
+                            await onDelete(item.id);
+                          }
+                        } catch {
+                          // Error is handled by the hook with toast
+                        }
+                      }}
+                    >
+                      {isDeleted ? (
+                        <Icons.undo className="h-4 w-4" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isDeleted ? 'Undelete' : 'Delete'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
       </CardContent>
@@ -1174,6 +1277,7 @@ export function DailyNewsDashboard() {
 
   const handleSignOut = async () => {
     await signOut();
+    window.location.href = '/';
   };
   const [view, setView] = React.useState<'grid' | 'list'>('grid');
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
@@ -1208,10 +1312,78 @@ export function DailyNewsDashboard() {
     saveContent,
     unsaveContent,
     refreshContent,
+    refreshDisplay,
     loadMore,
   } = useContent({
     lounge_id: selectedLoungeId || undefined,
   });
+
+  // Server-side delete and undelete handlers
+  const handleDeleteContent = React.useCallback(
+    async (contentId: string) => {
+      try {
+        const response = await fetch(
+          `/api/content?content_id=${contentId}&action=delete`,
+          {
+            method: 'DELETE',
+            credentials: 'include',
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to delete content');
+        }
+
+        toastUI({
+          title: 'Content hidden',
+          description: 'This content is now hidden from regular users',
+        });
+
+        // Refresh display to reflect changes
+        refreshDisplay();
+      } catch (error) {
+        toastUI({
+          title: 'Error',
+          description: 'Failed to delete content',
+          variant: 'destructive',
+        });
+      }
+    },
+    [refreshDisplay]
+  );
+
+  const handleUndeleteContent = React.useCallback(
+    async (contentId: string) => {
+      try {
+        const response = await fetch(
+          `/api/content?content_id=${contentId}&action=undelete`,
+          {
+            method: 'DELETE',
+            credentials: 'include',
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to undelete content');
+        }
+
+        toastUI({
+          title: 'Content restored',
+          description: 'This content is now visible to all users',
+        });
+
+        // Refresh display to reflect changes
+        refreshDisplay();
+      } catch (error) {
+        toastUI({
+          title: 'Error',
+          description: 'Failed to restore content',
+          variant: 'destructive',
+        });
+      }
+    },
+    [refreshDisplay]
+  );
 
   // Use the lounges hook to fetch real lounges
   const { lounges, loading: isLoadingLounges, refreshLounges } = useLounges();
@@ -1572,11 +1744,15 @@ export function DailyNewsDashboard() {
                           creator: item.creator,
                           published_at: item.published_at || item.created_at,
                           is_saved: item.is_saved,
+                          is_deleted: item.is_deleted,
                           topics: item.topics,
                         }}
                         creators={creators}
                         onSave={saveContent}
                         onUnsave={unsaveContent}
+                        onDelete={handleDeleteContent}
+                        onUndelete={handleUndeleteContent}
+                        canDelete={canManageCreators}
                       />
                     ))}
                   </div>
@@ -1604,11 +1780,15 @@ export function DailyNewsDashboard() {
                             creator: item.creator,
                             published_at: item.published_at || item.created_at,
                             is_saved: item.is_saved,
+                            is_deleted: item.is_deleted,
                             topics: item.topics,
                           }}
                           creators={creators}
                           onSave={saveContent}
                           onUnsave={unsaveContent}
+                          onDelete={handleDeleteContent}
+                          onUndelete={handleUndeleteContent}
+                          canDelete={canManageCreators}
                         />
                       ))}
                     </div>
@@ -1634,11 +1814,15 @@ export function DailyNewsDashboard() {
                             creator: item.creator,
                             published_at: item.published_at || item.created_at,
                             is_saved: item.is_saved,
+                            is_deleted: item.is_deleted,
                             topics: item.topics,
                           }}
                           creators={creators}
                           onSave={saveContent}
                           onUnsave={unsaveContent}
+                          onDelete={handleDeleteContent}
+                          onUndelete={handleUndeleteContent}
+                          canDelete={canManageCreators}
                         />
                       ))}
                     </div>

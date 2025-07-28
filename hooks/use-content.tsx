@@ -28,6 +28,7 @@ export interface UseContentReturn {
   saveContent: (contentId: string) => Promise<void>;
   unsaveContent: (contentId: string) => Promise<void>;
   refreshContent: () => void;
+  refreshDisplay: () => void;
   loadMore: () => void;
 }
 
@@ -386,6 +387,11 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     fetchContent(page + 1, true);
   }, [fetchContent, hasMore, page]);
 
+  // Refresh display without fetching new content from external sources
+  const refreshDisplay = useCallback(() => {
+    fetchContent(1, false);
+  }, [fetchContent]);
+
   return {
     content,
     loading,
@@ -395,6 +401,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     saveContent,
     unsaveContent,
     refreshContent,
+    refreshDisplay,
     loadMore,
   };
 }

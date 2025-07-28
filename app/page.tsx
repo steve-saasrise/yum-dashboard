@@ -71,7 +71,8 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Hand-picked content by topic experts who filter out the noise and surface only what matters.
+                Hand-picked content by topic experts who filter out the noise
+                and surface only what matters.
               </CardDescription>
             </CardContent>
           </Card>
@@ -83,7 +84,8 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Get the essence of long-form content in 4-minute reads, perfect for busy professionals.
+                Get the essence of long-form content in 4-minute reads, perfect
+                for busy professionals.
               </CardDescription>
             </CardContent>
           </Card>
@@ -95,7 +97,8 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Replace morning doomscrolling with brain food delivered via web, app, and email.
+                Replace morning doomscrolling with brain food delivered via web,
+                app, and email.
               </CardDescription>
             </CardContent>
           </Card>
@@ -107,7 +110,8 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                From SaaS to crypto, VC to biohacking — find your niche and dive deep.
+                From SaaS to crypto, VC to biohacking — find your niche and dive
+                deep.
               </CardDescription>
             </CardContent>
           </Card>
@@ -115,9 +119,12 @@ export default function Home() {
 
         {/* CTA Section */}
         <div className="text-center bg-primary/5 rounded-lg p-8">
-          <h2 className="text-2xl font-bold mb-4">Ready to make your mornings smarter?</h2>
+          <h2 className="text-2xl font-bold mb-4">
+            Ready to make your mornings smarter?
+          </h2>
           <p className="text-muted-foreground mb-6">
-            Join smart professionals who've replaced doomscrolling with curated intelligence.
+            Join smart professionals who've replaced doomscrolling with curated
+            intelligence.
           </p>
           <Button size="lg" asChild>
             <Link href="/auth/signup" className="gap-2">
