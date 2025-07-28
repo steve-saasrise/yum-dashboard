@@ -4,8 +4,11 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
-  title: 'Daily News',
-  description: 'Your personalized news aggregation platform',
+  title: 'Lounge',
+  description: 'The Curated Internet for Smart Professionals',
+  icons: {
+    icon: '/lounge_favicon.png',
+  },
 };
 
 export default function RootLayout({
