@@ -32,7 +32,10 @@ async function testSignup() {
       console.log('User created successfully!');
       console.log('User ID:', data.user.id);
       console.log('User email:', data.user.email);
-      console.log('Email confirmed:', data.user.email_confirmed_at ? 'Yes' : 'No');
+      console.log(
+        'Email confirmed:',
+        data.user.email_confirmed_at ? 'Yes' : 'No'
+      );
       console.log('Confirmation sent at:', data.user.confirmation_sent_at);
     }
   } catch (err) {

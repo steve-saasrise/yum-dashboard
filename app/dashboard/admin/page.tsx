@@ -305,9 +305,7 @@ export default function AdminDashboard() {
                       <TableCell className="font-medium">
                         {user.email}
                       </TableCell>
-                      <TableCell>
-                        {user.full_name || '—'}
-                      </TableCell>
+                      <TableCell>{user.full_name || '—'}</TableCell>
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {getRoleIcon(user.role)}

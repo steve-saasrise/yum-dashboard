@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       if (data.user && data.session) {
         // The user will be automatically created in the users table by the trigger
         // No need to manually create profile data anymore
-        
+
         // Successful authentication - redirect to the intended page
         return NextResponse.redirect(`${origin}${redirectTo}`);
       }

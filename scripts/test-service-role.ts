@@ -16,23 +16,22 @@ async function testServiceRole() {
   try {
     // Create service role client
     const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     console.log('\nFetching all users with service role...');
     const { data: users, error } = await serviceSupabase
       .from('users')
       .select('id, email, role')
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       console.error('Error fetching users:', error);
       return;
     }
-    
+
     console.log(`\nFound ${users?.length || 0} users:`);
-    users?.forEach(user => {
+    users?.forEach((user) => {
       console.log(`- ${user.email} (${user.role})`);
     });
-    
   } catch (err) {
     console.error('Unexpected error:', err);
   }

@@ -1541,27 +1541,11 @@ export function DailyNewsDashboard() {
               </div>
             ) : isLoadingContent ? (
               // Loading state
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <Card key={i} className="overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-3/4" />
-                          <Skeleton className="h-3 w-1/4" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-5 w-full mb-2" />
-                      <Skeleton className="h-4 w-full mb-1" />
-                      <Skeleton className="h-4 w-2/3 mb-4" />
-                      <div className="flex gap-2">
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="flex items-center justify-center py-16">
+                <div className="relative w-12 h-12">
+                  <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-gray-800"></div>
+                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin"></div>
+                </div>
               </div>
             ) : (
               // Content feed

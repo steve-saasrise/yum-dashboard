@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('Fetching users with service role for admin:', user.email);
-    
+
     const { data: users, error } = await serviceSupabase
       .from('users')
       .select('id, email, full_name, role, created_at, last_login')
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`Found ${users?.length || 0} users for admin:`, user.email);
-    
+
     return NextResponse.json({ users });
   } catch (error) {
     console.error('Unexpected error:', error);
@@ -283,7 +283,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Also delete the user from Supabase Auth
-    const { error: authDeleteError } = await serviceSupabase.auth.admin.deleteUser(userId);
+    const { error: authDeleteError } =
+      await serviceSupabase.auth.admin.deleteUser(userId);
 
     if (authDeleteError) {
       console.error('Error deleting user from auth:', authDeleteError);
