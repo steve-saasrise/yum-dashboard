@@ -35,10 +35,20 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
-import { UserCog, Shield, Users, Loader2 } from 'lucide-react';
+import { UserCog, Shield, Users, Loader2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface UserWithRole {
@@ -59,6 +69,9 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserWithRole | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function checkAdminAccess() {
@@ -95,7 +108,7 @@ export default function AdminDashboard() {
   async function fetchUsers() {
     try {
       const response = await fetch('/api/admin/users');
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to fetch users');
@@ -107,7 +120,8 @@ export default function AdminDashboard() {
       // Error fetching users
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to fetch users',
+        description:
+          error instanceof Error ? error.message : 'Failed to fetch users',
         variant: 'destructive',
       });
     } finally {
@@ -158,11 +172,52 @@ export default function AdminDashboard() {
       // Error updating role
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update user role',
+        description:
+          error instanceof Error ? error.message : 'Failed to update user role',
         variant: 'destructive',
       });
     } finally {
       setUpdating(null);
+    }
+  }
+
+  async function deleteUser() {
+    if (!userToDelete) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userToDelete.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete user');
+      }
+
+      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+
+      toast({
+        title: 'Success',
+        description: 'User deleted successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description:
+          error instanceof Error ? error.message : 'Failed to delete user',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -266,32 +321,50 @@ export default function AdminDashboard() {
                       </TableCell>
                       <TableCell>
                         {user.last_login
-                          ? format(
-                              new Date(user.last_login),
-                              'MMM d, yyyy'
-                            )
+                          ? format(new Date(user.last_login), 'MMM d, yyyy')
                           : '—'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Select
-                          value={user.role}
-                          onValueChange={(value) =>
-                            updateUserRole(
-                              user.id,
-                              value as 'viewer' | 'curator' | 'admin'
-                            )
-                          }
-                          disabled={updating === user.id}
-                        >
-                          <SelectTrigger className="w-[120px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="viewer">Viewer</SelectItem>
-                            <SelectItem value="curator">Curator</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center justify-end gap-2">
+                          <Select
+                            value={user.role}
+                            onValueChange={(value) =>
+                              updateUserRole(
+                                user.id,
+                                value as 'viewer' | 'curator' | 'admin'
+                              )
+                            }
+                            disabled={updating === user.id}
+                          >
+                            <SelectTrigger className="w-[120px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="viewer">Viewer</SelectItem>
+                              <SelectItem value="curator">Curator</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              if (user.id === state.user?.id) {
+                                toast({
+                                  title: 'Error',
+                                  description: 'You cannot delete your own account',
+                                  variant: 'destructive',
+                                });
+                                return;
+                              }
+                              setUserToDelete(user);
+                              setDeleteDialogOpen(true);
+                            }}
+                            disabled={user.id === state.user?.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -346,6 +419,46 @@ export default function AdminDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user? This action cannot be
+              undone and will permanently remove the user and all their data.
+              {userToDelete && (
+                <div className="mt-4 p-3 bg-muted rounded-md">
+                  <p className="font-medium">{userToDelete.email}</p>
+                  {(userToDelete.first_name || userToDelete.last_name) && (
+                    <p className="text-sm text-muted-foreground">
+                      {userToDelete.first_name} {userToDelete.last_name}
+                    </p>
+                  )}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteUser}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete User'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
