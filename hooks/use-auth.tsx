@@ -108,49 +108,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // First try to get role from users table
+      // Get user data from the consolidated users table
       const { data: userData } = await supabase
         .from('users')
-        .select('role')
+        .select('role, full_name, avatar_url, username, updated_at')
         .eq('id', user.id)
         .single();
 
-      // Add timeout to prevent hanging
-      const profileQuery = supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout')), 10000)
-      );
-
-      const { data: profileData, error } = (await Promise.race([
-        profileQuery,
-        timeoutPromise,
-      ])) as any;
-
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 is "no rows returned" - not an error for new users
-        console.warn('Error fetching user profile:', error);
-      }
-
-      // Merge database profile data with basic profile
-      if (profileData) {
+      if (userData) {
         return {
           ...basicProfile,
-          full_name: profileData.full_name || basicProfile.full_name,
-          avatar_url: profileData.avatar_url || basicProfile.avatar_url,
-          username: profileData.username || basicProfile.username,
-          updated_at: profileData.updated_at || basicProfile.updated_at,
-          role: userData?.role || 'viewer',
+          full_name: userData.full_name || basicProfile.full_name,
+          avatar_url: userData.avatar_url || basicProfile.avatar_url,
+          username: userData.username || basicProfile.username,
+          updated_at: userData.updated_at || basicProfile.updated_at,
+          role: userData.role || 'viewer',
         };
       }
 
       return {
         ...basicProfile,
-        role: userData?.role || 'viewer',
+        role: 'viewer',
       };
     } catch (error: any) {
       // Handle abort error specifically
@@ -653,9 +631,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('User not authenticated');
       }
 
-      // Update the user_profiles table with the new data
+      // Update the users table with the new data
       const { error: updateError } = await supabase
-        .from('user_profiles')
+        .from('users')
         .update({
           ...updates,
           updated_at: new Date().toISOString(),

@@ -54,8 +54,7 @@ import { format } from 'date-fns';
 interface UserWithRole {
   id: string;
   email: string;
-  first_name?: string;
-  last_name?: string;
+  full_name?: string;
   role: 'viewer' | 'curator' | 'admin';
   created_at: string;
   last_login?: string;
@@ -114,8 +113,9 @@ export default function AdminDashboard() {
         throw new Error(error.error || 'Failed to fetch users');
       }
 
-      const { users } = await response.json();
-      setUsers(users || []);
+      const data = await response.json();
+      console.log('Admin dashboard received data:', data);
+      setUsers(data.users || []);
     } catch (error) {
       // Error fetching users
       toast({
@@ -306,9 +306,7 @@ export default function AdminDashboard() {
                         {user.email}
                       </TableCell>
                       <TableCell>
-                        {user.first_name || user.last_name
-                          ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-                          : '—'}
+                        {user.full_name || '—'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.role)}>
@@ -352,7 +350,8 @@ export default function AdminDashboard() {
                               if (user.id === state.user?.id) {
                                 toast({
                                   title: 'Error',
-                                  description: 'You cannot delete your own account',
+                                  description:
+                                    'You cannot delete your own account',
                                   variant: 'destructive',
                                 });
                                 return;
@@ -431,9 +430,9 @@ export default function AdminDashboard() {
               {userToDelete && (
                 <div className="mt-4 p-3 bg-muted rounded-md">
                   <p className="font-medium">{userToDelete.email}</p>
-                  {(userToDelete.first_name || userToDelete.last_name) && (
+                  {userToDelete.full_name && (
                     <p className="text-sm text-muted-foreground">
-                      {userToDelete.first_name} {userToDelete.last_name}
+                      {userToDelete.full_name}
                     </p>
                   )}
                 </div>

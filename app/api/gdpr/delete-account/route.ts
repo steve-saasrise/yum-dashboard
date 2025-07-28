@@ -106,10 +106,7 @@ export async function POST(request: NextRequest) {
     // 5. Delete API usage tracking (keep audit trail)
     // We'll keep this for compliance/audit purposes
 
-    // 6. Delete user profile
-    deletionPromises.push(
-      supabase.from('user_profiles').delete().eq('id', user.id)
-    );
+    // User data will be deleted through cascade when we delete from auth.users
 
     // Execute all deletions
     const deletionResults = await Promise.allSettled(deletionPromises);

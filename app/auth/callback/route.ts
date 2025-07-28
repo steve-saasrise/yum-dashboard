@@ -89,40 +89,9 @@ export async function GET(request: NextRequest) {
       }
 
       if (data.user && data.session) {
-        // Get or create user profile data
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        // If profile doesn't exist, create one
-        if (profileError && profileError.code === 'PGRST116') {
-          const { error: insertError } = await supabase
-            .from('user_profiles')
-            .insert({
-              id: data.user.id,
-              email: data.user.email,
-              full_name:
-                data.user.user_metadata?.full_name ||
-                data.user.user_metadata?.name,
-              avatar_url:
-                data.user.user_metadata?.avatar_url ||
-                data.user.user_metadata?.picture,
-              username:
-                data.user.user_metadata?.username ||
-                data.user.user_metadata?.user_name,
-              provider: data.user.app_metadata?.provider,
-              provider_id: data.user.user_metadata?.provider_id,
-              updated_at: new Date().toISOString(),
-            });
-
-          if (insertError) {
-            // Profile creation error - continuing anyway
-            // Continue anyway, profile can be created later
-          }
-        }
-
+        // The user will be automatically created in the users table by the trigger
+        // No need to manually create profile data anymore
+        
         // Successful authentication - redirect to the intended page
         return NextResponse.redirect(`${origin}${redirectTo}`);
       }

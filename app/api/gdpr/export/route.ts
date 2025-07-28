@@ -48,8 +48,7 @@ export async function GET() {
         export_type: string;
         data_format: string;
       };
-      user_account: Record<string, unknown>;
-      profile: Record<string, unknown>;
+      user_data: Record<string, unknown>;
       saved_content: Array<Record<string, unknown>>;
       user_lounges: Array<Record<string, unknown>>;
       email_digests: Array<Record<string, unknown>>;
@@ -62,8 +61,7 @@ export async function GET() {
         export_type: 'complete_user_data',
         data_format: 'json',
       },
-      user_account: {},
-      profile: {},
+      user_data: {},
       saved_content: [],
       user_lounges: [],
       email_digests: [],
@@ -71,43 +69,30 @@ export async function GET() {
       api_usage: [],
     };
 
-    // 1. Get user account information
-    const { data: userAccountData } = await supabase
+    // 1. Get user data from consolidated users table
+    const { data: userData } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single();
 
-    if (userAccountData) {
-      exportData.user_account = {
-        id: userAccountData.id,
-        email: userAccountData.email,
-        created_at: userAccountData.created_at,
-        updated_at: userAccountData.updated_at,
-        last_login: userAccountData.last_login,
-        account_status: userAccountData.account_status,
-        timezone: userAccountData.timezone,
-        gdpr_consent: userAccountData.gdpr_consent,
-        gdpr_consent_date: userAccountData.gdpr_consent_date,
-        data_deletion_requested: userAccountData.data_deletion_requested,
-      };
-    }
-
-    // 2. Get user profile information
-    const { data: profileData } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (profileData) {
-      exportData.profile = {
-        full_name: profileData.full_name,
-        username: profileData.username,
-        avatar_url: profileData.avatar_url,
-        bio: profileData.bio,
-        created_at: profileData.created_at,
-        updated_at: profileData.updated_at,
+    if (userData) {
+      exportData.user_data = {
+        id: userData.id,
+        email: userData.email,
+        role: userData.role,
+        full_name: userData.full_name,
+        username: userData.username,
+        avatar_url: userData.avatar_url,
+        bio: userData.bio,
+        created_at: userData.created_at,
+        updated_at: userData.updated_at,
+        last_login: userData.last_login,
+        account_status: userData.account_status,
+        timezone: userData.timezone,
+        gdpr_consent: userData.gdpr_consent,
+        gdpr_consent_date: userData.gdpr_consent_date,
+        data_deletion_requested: userData.data_deletion_requested,
       };
     }
 
@@ -297,8 +282,7 @@ export async function POST(request: NextRequest) {
       message: 'Custom export formats coming soon',
       available_formats: ['json'],
       available_sections: [
-        'user_account',
-        'profile',
+        'user_data',
         'saved_content',
         'user_lounges',
         'email_digests',

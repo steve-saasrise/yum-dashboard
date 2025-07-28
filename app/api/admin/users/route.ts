@@ -7,6 +7,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+console.log('Service key present:', !!supabaseServiceKey);
+console.log('Service key length:', supabaseServiceKey?.length);
+
 export async function GET(request: NextRequest) {
   try {
     // Create a Supabase client with the Auth context
@@ -60,9 +63,11 @@ export async function GET(request: NextRequest) {
     // Use service role to bypass RLS and get all users
     const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    console.log('Fetching users with service role for admin:', user.email);
+    
     const { data: users, error } = await serviceSupabase
       .from('users')
-      .select('id, email, first_name, last_name, role, created_at, last_login')
+      .select('id, email, full_name, role, created_at, last_login')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -73,6 +78,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log(`Found ${users?.length || 0} users for admin:`, user.email);
+    
     return NextResponse.json({ users });
   } catch (error) {
     console.error('Unexpected error:', error);
@@ -227,10 +234,7 @@ export async function DELETE(request: NextRequest) {
     const { userId } = body;
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Missing userId' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
     // Prevent admin from deleting themselves
@@ -245,8 +249,8 @@ export async function DELETE(request: NextRequest) {
     const serviceSupabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
-      }
+        persistSession: false,
+      },
     });
 
     // Check if user exists
@@ -257,10 +261,7 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (checkError || !existingUser) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Delete the user from the database
@@ -273,9 +274,21 @@ export async function DELETE(request: NextRequest) {
     if (dbDeleteError) {
       console.error('Error deleting user from database:', dbDeleteError);
       return NextResponse.json(
-        { error: 'Failed to delete user. The user may have associated data that prevents deletion.' },
+        {
+          error:
+            'Failed to delete user. The user may have associated data that prevents deletion.',
+        },
         { status: 500 }
       );
+    }
+
+    // Also delete the user from Supabase Auth
+    const { error: authDeleteError } = await serviceSupabase.auth.admin.deleteUser(userId);
+
+    if (authDeleteError) {
+      console.error('Error deleting user from auth:', authDeleteError);
+      // Note: We don't return an error here because the user is already deleted from our database
+      // This is a cleanup operation that might fail if the auth user doesn't exist
     }
 
     return NextResponse.json({ success: true });
