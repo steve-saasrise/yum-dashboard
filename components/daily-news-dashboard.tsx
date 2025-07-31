@@ -299,11 +299,12 @@ function AppSidebar({
                         <SidebarMenuButton
                           tooltip={lounge.name}
                           onClick={() => {
-                            const newSelection = selectedLoungeId === lounge.id ? null : lounge.id;
+                            const newSelection =
+                              selectedLoungeId === lounge.id ? null : lounge.id;
                             console.log('Lounge selection changed:', {
                               previousLoungeId: selectedLoungeId,
                               newLoungeId: newSelection,
-                              loungeName: lounge.name
+                              loungeName: lounge.name,
                             });
                             onLoungeSelect(newSelection);
                           }}
@@ -1490,13 +1491,13 @@ export function DailyNewsDashboard() {
       if (selectedLoungeId) {
         params.append('lounge_id', selectedLoungeId);
       }
-      
+
       console.log('Fetching creators with params:', {
         selectedLoungeId,
         paramsString: params.toString(),
-        fullUrl: `/api/creators${params.toString() ? '?' + params.toString() : ''}`
+        fullUrl: `/api/creators${params.toString() ? '?' + params.toString() : ''}`,
       });
-      
+
       const response = await fetch(
         `/api/creators${params.toString() ? '?' + params.toString() : ''}`,
         {
@@ -1511,11 +1512,19 @@ export function DailyNewsDashboard() {
         console.log('Creators API response:', {
           selectedLoungeId,
           creatorsCount: data.data?.creators?.length || 0,
-          creators: data.data?.creators?.map((c: any) => ({ id: c.id, name: c.display_name })) || []
+          creators:
+            data.data?.creators?.map((c: any) => ({
+              id: c.id,
+              name: c.display_name,
+            })) || [],
         });
         setCreators(data.data?.creators || []);
       } else {
-        console.error('Failed to fetch creators:', response.status, response.statusText);
+        console.error(
+          'Failed to fetch creators:',
+          response.status,
+          response.statusText
+        );
       }
     } catch (error) {
       console.error('Error fetching creators:', error);

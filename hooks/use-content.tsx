@@ -52,10 +52,19 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
+  // Store session and batchSize in refs to access current values without causing re-renders
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  const batchSizeRef = useRef(batchSize);
+  batchSizeRef.current = batchSize;
+
+  // Track if we've done the initial load
+  const hasInitialLoadRef = useRef(false);
+
   // Fetch content from API
   const fetchContent = useCallback(
     async (pageNumber: number = 1, append: boolean = false) => {
-      if (!session || isFetchingRef.current) {
+      if (!sessionRef.current || isFetchingRef.current) {
         setLoading(false);
         return;
       }
@@ -69,7 +78,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
         const currentFilters = filtersRef.current;
 
         params.append('page', String(pageNumber));
-        params.append('limit', String(currentFilters?.limit || batchSize));
+        params.append('limit', String(currentFilters?.limit || batchSizeRef.current));
 
         if (currentFilters?.platform)
           params.append('platform', currentFilters.platform);
@@ -118,12 +127,23 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
         isFetchingRef.current = false;
       }
     },
-    [session]
+    [] // No dependencies - using refs instead
   );
+
+  // Handle initial session load
+  useEffect(() => {
+    if (session && !hasInitialLoadRef.current) {
+      hasInitialLoadRef.current = true;
+      fetchContent(1, false);
+    }
+  }, [session, fetchContent]);
 
   // Initial fetch and refetch when filters change
   useEffect(() => {
-    fetchContent(1, false);
+    // Only fetch if we have a session and filters have changed after initial load
+    if (hasInitialLoadRef.current) {
+      fetchContent(1, false);
+    }
   }, [
     fetchContent,
     filters?.platform,
@@ -132,7 +152,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     filters?.search,
     filters?.sort_by,
     filters?.sort_order,
-    batchSize,
+    // Removed batchSize to prevent refetch on tab focus
   ]);
 
   // Set up real-time subscription for new content
@@ -249,7 +269,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
   // Save content
   const saveContent = useCallback(
     async (contentId: string) => {
-      if (!session) {
+      if (!sessionRef.current) {
         toast.error('Please sign in to save content');
         return;
       }
@@ -286,13 +306,13 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
         throw err;
       }
     },
-    [session]
+    [] // No dependencies - using refs instead
   );
 
   // Unsave content
   const unsaveContent = useCallback(
     async (contentId: string) => {
-      if (!session) {
+      if (!sessionRef.current) {
         toast.error('Please sign in to manage saved content');
         return;
       }
@@ -329,7 +349,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
         throw err;
       }
     },
-    [session]
+    [] // No dependencies - using refs instead
   );
 
   // Refresh content
