@@ -413,7 +413,10 @@ export class AISummaryService {
       });
 
       if (fetchError || !contents) {
-        console.error('[AI Summary] Failed to fetch content batch:', fetchError);
+        console.error(
+          '[AI Summary] Failed to fetch content batch:',
+          fetchError
+        );
         errors += batch.length;
         continue;
       }

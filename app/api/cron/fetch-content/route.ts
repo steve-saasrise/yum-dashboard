@@ -489,6 +489,42 @@ export async function GET(request: NextRequest) {
           },
         })
         .eq('id', creator.id);
+
+      // Generate AI summaries for this creator's new content immediately
+      // This ensures summaries are created even if the job times out later
+      if (
+        creatorStats.urls.some((u) => (u.new || 0) > 0) &&
+        process.env.OPENAI_API_KEY
+      ) {
+        try {
+          const summaryService = getAISummaryService();
+
+          // Get newly created content for this creator
+          const { data: newContent } = await supabase
+            .from('content')
+            .select('id')
+            .eq('creator_id', creator.id)
+            .eq('summary_status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(20); // Limit per creator to avoid overwhelming
+
+          if (newContent && newContent.length > 0) {
+            const contentIds = newContent.map(
+              (item: { id: string }) => item.id
+            );
+            await summaryService.generateBatchSummaries(contentIds, {
+              batchSize: 3, // Smaller batch for faster processing
+              supabaseClient: supabase,
+            });
+          }
+        } catch (summaryError) {
+          console.error(
+            `[CRON] Error generating summaries for creator ${creator.id}:`,
+            summaryError
+          );
+          // Don't fail the whole job, just log and continue
+        }
+      }
     }
 
     // Generate AI summaries for newly created content
@@ -497,7 +533,7 @@ export async function GET(request: NextRequest) {
       hasOpenAIKey: !!process.env.OPENAI_API_KEY,
       willGenerateSummaries: stats.new > 0 && !!process.env.OPENAI_API_KEY,
     });
-    
+
     if (stats.new > 0 && process.env.OPENAI_API_KEY) {
       try {
         const summaryService = getAISummaryService();
@@ -527,7 +563,7 @@ export async function GET(request: NextRequest) {
 
           stats.summariesGenerated = summaryResults.processed;
           stats.summaryErrors = summaryResults.errors;
-          
+
           console.log('[CRON] Summary generation results:', {
             processed: summaryResults.processed,
             errors: summaryResults.errors,
