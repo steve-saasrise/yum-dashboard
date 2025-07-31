@@ -492,6 +492,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate AI summaries for newly created content
+    console.log('[CRON] Summary generation check:', {
+      newContent: stats.new,
+      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+      willGenerateSummaries: stats.new > 0 && !!process.env.OPENAI_API_KEY,
+    });
+    
     if (stats.new > 0 && process.env.OPENAI_API_KEY) {
       try {
         const summaryService = getAISummaryService();
@@ -503,6 +509,11 @@ export async function GET(request: NextRequest) {
           .eq('summary_status', 'pending')
           .order('created_at', { ascending: false })
           .limit(stats.new);
+
+        console.log('[CRON] Content needing summaries:', {
+          foundContent: newContent?.length || 0,
+          contentIds: newContent?.slice(0, 5).map((c: any) => c.id), // Log first 5 IDs
+        });
 
         if (newContent && newContent.length > 0) {
           const contentIds = newContent.map((item: { id: string }) => item.id);
@@ -516,6 +527,11 @@ export async function GET(request: NextRequest) {
 
           stats.summariesGenerated = summaryResults.processed;
           stats.summaryErrors = summaryResults.errors;
+          
+          console.log('[CRON] Summary generation results:', {
+            processed: summaryResults.processed,
+            errors: summaryResults.errors,
+          });
         }
       } catch (summaryError) {
         // Log summary generation error but don't fail the entire cron job

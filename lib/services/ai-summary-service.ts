@@ -406,7 +406,14 @@ export class AISummaryService {
         .select('id, title, description')
         .in('id', batch);
 
+      console.log('[AI Summary] Batch fetch:', {
+        batchSize: batch.length,
+        foundContent: contents?.length || 0,
+        error: fetchError?.message,
+      });
+
       if (fetchError || !contents) {
+        console.error('[AI Summary] Failed to fetch content batch:', fetchError);
         errors += batch.length;
         continue;
       }
