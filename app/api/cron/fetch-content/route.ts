@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { RSSFetcher } from '@/lib/content-fetcher/rss-fetcher';
 import { YouTubeFetcher } from '@/lib/content-fetcher/youtube-fetcher';
 import { ApifyFetcher } from '@/lib/content-fetcher/apify-fetcher';
@@ -35,23 +34,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Create Supabase server client
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
+    // Create Supabase service client (bypasses RLS for cron job)
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     const contentService = new ContentService(supabase);
     const rssFetcher = new RSSFetcher();
