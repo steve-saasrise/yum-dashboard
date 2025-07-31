@@ -78,7 +78,10 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
         const currentFilters = filtersRef.current;
 
         params.append('page', String(pageNumber));
-        params.append('limit', String(currentFilters?.limit || batchSizeRef.current));
+        params.append(
+          'limit',
+          String(currentFilters?.limit || batchSizeRef.current)
+        );
 
         if (currentFilters?.platform)
           params.append('platform', currentFilters.platform);

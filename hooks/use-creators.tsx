@@ -208,7 +208,12 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
   }, [authLoading, user, session, filters, refreshTrigger]);
 
   const updateFilters = useCallback((newFilters: Partial<CreatorFilters>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
+    setFilters((prev) => ({
+      ...prev,
+      ...newFilters,
+      // Only reset to page 1 if we're changing filters other than page
+      page: newFilters.page !== undefined ? newFilters.page : 1,
+    }));
   }, []);
 
   const clearFilters = useCallback(() => {

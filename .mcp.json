@@ -1,0 +1,42 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "magicuidesign": {
+      "command": "npx",
+      "args": ["-y", "@magicuidesign/mcp@latest"]
+    },
+    "exa": {
+      "command": "npx",
+      "args": [
+        "exa-mcp-server",
+        "--tools=web_search_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check"
+      ],
+      "env": {
+        "EXA_API_KEY": "75821270-f92e-4630-a71c-7e469e4eb326"
+      }
+    },
+    "supabase-saasrise": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_617af5c729586f94703b3842356fa84a117bf966"
+      ]
+    },
+    "semgrep": {
+      "command": "uvx",
+      "args": ["semgrep-mcp"],
+      "env": {
+        "SEMGREP_APP_TOKEN": "f56088f5a47a877e0d4275f7dac71e25ecbaaf030cb5833df3d86094b8475aeb"
+      }
+    },
+    "Ref": {
+      "type": "http",
+      "url": "https://api.ref.tools/mcp?apiKey=ref-bb6a93a759a6656eacd4"
+    }
+  }
+}

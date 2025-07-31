@@ -15,7 +15,7 @@ export function useViewportInfo(): ViewportInfo {
     height: typeof window !== 'undefined' ? window.innerHeight : 800,
   });
 
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleResize = () => {

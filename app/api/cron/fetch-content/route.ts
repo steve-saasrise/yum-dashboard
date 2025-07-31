@@ -12,14 +12,16 @@ import type { CreateContentInput } from '@/types/content';
 // Verify cron authorization
 function verifyCronAuth(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
 
-  // In production, Vercel adds this header to cron requests
-  if (process.env.VERCEL && process.env.CRON_SECRET) {
-    return authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  // If CRON_SECRET is set, require it for authorization
+  if (cronSecret) {
+    return authHeader === `Bearer ${cronSecret}`;
   }
 
   // In development or when CRON_SECRET is not set, allow requests for testing
-  return true;
+  // WARNING: Always set CRON_SECRET in production to prevent unauthorized access
+  return process.env.NODE_ENV === 'development';
 }
 
 // Removed unused sleep function
