@@ -345,6 +345,7 @@ export class AISummaryService {
       batchSize?: number;
       delayMs?: number;
       maxCost?: number;
+      supabaseClient?: any; // Optional Supabase client for server contexts
     } = {}
   ): Promise<{ processed: number; errors: number; estimatedCost?: number }> {
     const {
@@ -352,34 +353,39 @@ export class AISummaryService {
       batchSize = 5,
       delayMs = 1000,
       maxCost = 10.0, // Default $10 limit per batch run
+      supabaseClient,
     } = options;
     let processed = 0;
     let errors = 0;
     const startingCost = this.sessionCost;
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
+    // Use provided client or create a new one
+    let supabase = supabaseClient;
+    if (!supabase) {
+      const cookieStore = await cookies();
+      supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll();
+            },
+            setAll(cookiesToSet) {
+              try {
+                cookiesToSet.forEach(({ name, value, options }) =>
+                  cookieStore.set(name, value, options)
+                );
+              } catch {
+                // The `setAll` method was called from a Server Component.
+                // This can be ignored if you have middleware refreshing
+                // user sessions.
+              }
+            },
           },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        },
-      }
-    );
+        }
+      );
+    }
 
     // Process in batches to avoid rate limits
     for (let i = 0; i < contentIds.length; i += batchSize) {

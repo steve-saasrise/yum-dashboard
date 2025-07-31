@@ -510,6 +510,7 @@ export async function GET(request: NextRequest) {
             contentIds,
             {
               batchSize: 5, // Process 5 at a time to avoid rate limits
+              supabaseClient: supabase, // Pass the service role client
             }
           );
 
