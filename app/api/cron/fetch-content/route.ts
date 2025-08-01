@@ -417,7 +417,7 @@ export async function GET(request: NextRequest) {
               const items = await apifyFetcher.fetchLinkedInContent(
                 [creatorUrl.url],
                 {
-                  maxResults: 20, // Limit to 20 most recent posts
+                  maxResults: 5, // Limit to 5 most recent posts
                 }
               );
 

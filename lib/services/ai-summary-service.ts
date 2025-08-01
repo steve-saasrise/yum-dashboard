@@ -174,11 +174,13 @@ export class AISummaryService {
 
       // Calculate word count once
       const wordCount = this.countWords(text);
-      
+
       // Only generate summaries if content has at least 30 words
       if (wordCount < 30) {
         // Content too short for summarization
-        console.log(`[AI Summary] Content too short (${wordCount} words), skipping summary generation`);
+        console.log(
+          `[AI Summary] Content too short (${wordCount} words), skipping summary generation`
+        );
       } else {
         // Generate short summary for content with 30+ words
         if (generateShort) {
@@ -230,7 +232,7 @@ export class AISummaryService {
         // Content long enough - update with generated summaries
         updateData.ai_summary_short = results.shortSummary || null;
         updateData.ai_summary_long = results.longSummary || null;
-        updateData.summary_status = 
+        updateData.summary_status =
           results.shortSummary || results.longSummary ? 'completed' : 'error';
         updateData.summary_word_count_short = results.shortSummary
           ? this.countWords(results.shortSummary)
