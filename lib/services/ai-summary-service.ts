@@ -445,7 +445,7 @@ export class AISummaryService {
       // Fetch content for this batch
       const { data: contents, error: fetchError } = await supabase
         .from('content')
-        .select('id, title, description')
+        .select('id, content_body')
         .in('id', batch);
 
       console.log('[AI Summary] Batch fetch:', {
@@ -468,12 +468,10 @@ export class AISummaryService {
         contents.map(
           async (content: {
             id: string;
-            title?: string;
-            description?: string;
+            content_body?: string;
           }) => {
             try {
-              const text =
-                `${content.title || ''}\n\n${content.description || ''}`.trim();
+              const text = content.content_body?.trim() || '';
               if (text) {
                 await this.generateSummary(
                   {

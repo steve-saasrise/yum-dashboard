@@ -47,6 +47,10 @@ export interface RSSItem {
   creator?: string;
   /** Content of the item (HTML) */
   content?: string;
+  /** Description of the item (HTML/text) */
+  description?: string;
+  /** Summary of the item (HTML/text) */
+  summary?: string;
   /** Content snippet (plain text) */
   contentSnippet?: string;
   /** Unique identifier */

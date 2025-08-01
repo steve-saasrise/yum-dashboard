@@ -50,8 +50,8 @@ export class ContentNormalizer {
     item: RSSItem,
     feedUrl?: string
   ): CreateContentInput {
-    // Extract text content
-    const contentBody = item.content || item.contentSnippet || '';
+    // Extract text content - prioritize full content over snippets
+    const contentBody = item.content || item.description || item.summary || item.contentSnippet || '';
     const textContent = extractTextFromHTML(contentBody);
 
     // Extract media URLs
