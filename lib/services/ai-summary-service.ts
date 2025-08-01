@@ -172,55 +172,77 @@ export class AISummaryService {
         success: false,
       };
 
-      // Generate short summary if requested
-      if (generateShort) {
-        try {
-          const shortSummary = await this.generateShortSummary(text, model);
-          results.shortSummary = shortSummary;
-        } catch (err) {
-          // Error generating short summary
-          results.error =
-            err instanceof Error
-              ? err.message
-              : 'Failed to generate short summary';
-        }
-      }
-
-      // Generate long summary if requested and text has at least 100 words
+      // Calculate word count once
       const wordCount = this.countWords(text);
-      if (generateLong && wordCount >= 100) {
-        try {
-          const longSummary = await this.generateLongSummary(text, model);
-          results.longSummary = longSummary;
-        } catch (err) {
-          // Error generating long summary
-          if (!results.error) {
+      
+      // Only generate summaries if content has at least 30 words
+      if (wordCount < 30) {
+        // Content too short for summarization
+        console.log(`[AI Summary] Content too short (${wordCount} words), skipping summary generation`);
+      } else {
+        // Generate short summary for content with 30+ words
+        if (generateShort) {
+          try {
+            const shortSummary = await this.generateShortSummary(text, model);
+            results.shortSummary = shortSummary;
+          } catch (err) {
+            // Error generating short summary
             results.error =
               err instanceof Error
                 ? err.message
-                : 'Failed to generate long summary';
+                : 'Failed to generate short summary';
+          }
+        }
+
+        // Generate long summary if requested and text has at least 100 words
+        if (generateLong && wordCount >= 100) {
+          try {
+            const longSummary = await this.generateLongSummary(text, model);
+            results.longSummary = longSummary;
+          } catch (err) {
+            // Error generating long summary
+            if (!results.error) {
+              results.error =
+                err instanceof Error
+                  ? err.message
+                  : 'Failed to generate long summary';
+            }
           }
         }
       }
 
       // Update database with results
+      const updateData: any = {
+        summary_generated_at: new Date().toISOString(),
+        summary_model: model,
+        summary_error_message: results.error || null,
+      };
+
+      // Determine status based on word count and results
+      if (wordCount < 30) {
+        // Content too short - mark as completed without summaries
+        updateData.summary_status = 'completed';
+        updateData.ai_summary_short = null;
+        updateData.ai_summary_long = null;
+        updateData.summary_word_count_short = 0;
+        updateData.summary_word_count_long = 0;
+      } else {
+        // Content long enough - update with generated summaries
+        updateData.ai_summary_short = results.shortSummary || null;
+        updateData.ai_summary_long = results.longSummary || null;
+        updateData.summary_status = 
+          results.shortSummary || results.longSummary ? 'completed' : 'error';
+        updateData.summary_word_count_short = results.shortSummary
+          ? this.countWords(results.shortSummary)
+          : 0;
+        updateData.summary_word_count_long = results.longSummary
+          ? this.countWords(results.longSummary)
+          : 0;
+      }
+
       const { error: updateError } = await supabase
         .from('content')
-        .update({
-          ai_summary_short: results.shortSummary || null,
-          ai_summary_long: results.longSummary || null,
-          summary_generated_at: new Date().toISOString(),
-          summary_model: model,
-          summary_status:
-            results.shortSummary || results.longSummary ? 'completed' : 'error',
-          summary_error_message: results.error || null,
-          summary_word_count_short: results.shortSummary
-            ? this.countWords(results.shortSummary)
-            : 0,
-          summary_word_count_long: results.longSummary
-            ? this.countWords(results.longSummary)
-            : 0,
-        })
+        .update(updateData)
         .eq('id', content_id);
 
       if (updateError) {
