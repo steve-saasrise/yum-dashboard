@@ -1,12 +1,19 @@
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from .env.local
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+// Load environment variables from .env.local only in development
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+}
 import { createCreatorProcessorWorker } from '@/lib/queue/workers/creator-processor';
 import { createSummaryProcessorWorker } from '@/lib/queue/workers/summary-processor';
 
 console.log('Starting queue workers...');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('Redis URL available:', !!process.env.UPSTASH_REDIS_REST_URL);
+console.log('Redis token available:', !!process.env.UPSTASH_REDIS_REST_TOKEN);
+console.log('Supabase key available:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log('OpenAI key available:', !!process.env.OPENAI_API_KEY);
 
 // Check Redis configuration
 if (

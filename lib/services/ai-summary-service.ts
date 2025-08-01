@@ -117,7 +117,7 @@ export class AISummaryService {
   ): Promise<GenerateSummaryResult> {
     // Try to initialize OpenAI if not already done
     this.initializeOpenAI();
-    
+
     if (!this.openai) {
       throw new Error('OpenAI API key not configured');
     }
@@ -243,7 +243,7 @@ export class AISummaryService {
   ): Promise<string> {
     // Try to initialize OpenAI if not already done
     this.initializeOpenAI();
-    
+
     if (!this.openai) throw new Error('OpenAI not initialized');
 
     // Check rate limits before making request
@@ -300,7 +300,7 @@ export class AISummaryService {
   ): Promise<string> {
     // Try to initialize OpenAI if not already done
     this.initializeOpenAI();
-    
+
     if (!this.openai) throw new Error('OpenAI not initialized');
 
     // Check rate limits before making request
