@@ -29,6 +29,8 @@ export interface UseContentReturn {
   total: number;
   saveContent: (contentId: string) => Promise<void>;
   unsaveContent: (contentId: string) => Promise<void>;
+  deleteContent: (contentId: string) => Promise<void>;
+  undeleteContent: (contentId: string) => Promise<void>;
   refreshContent: () => void;
   refreshDisplay: () => void;
   loadMore: () => void;
@@ -62,6 +64,9 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
 
   // Track if we've done the initial load
   const hasInitialLoadRef = useRef(false);
+
+  // Track the current user ID to detect user changes
+  const currentUserIdRef = useRef<string | null>(null);
 
   // Fetch content from API
   const fetchContent = useCallback(
@@ -135,13 +140,42 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     [] // No dependencies - using refs instead
   );
 
-  // Handle initial session load
+  // Handle initial session load and user changes
   useEffect(() => {
-    if (session && !hasInitialLoadRef.current) {
-      hasInitialLoadRef.current = true;
-      fetchContent(1, false);
+    const newUserId = session?.user?.id || null;
+
+    if (session) {
+      // Check if user changed
+      if (
+        currentUserIdRef.current !== null &&
+        currentUserIdRef.current !== newUserId
+      ) {
+        console.log(
+          '[use-content] User changed, clearing content and refetching',
+          {
+            previousUserId: currentUserIdRef.current,
+            newUserId,
+          }
+        );
+        setContent([]); // Clear content immediately
+        hasInitialLoadRef.current = false; // Reset initial load flag
+      }
+
+      // Update current user ID
+      currentUserIdRef.current = newUserId;
+
+      // Fetch content if not already loaded
+      if (!hasInitialLoadRef.current) {
+        hasInitialLoadRef.current = true;
+        fetchContent(1, false);
+      }
+    } else {
+      // No session, clear content
+      setContent([]);
+      hasInitialLoadRef.current = false;
+      currentUserIdRef.current = null;
     }
-  }, [session, fetchContent]);
+  }, [session?.user?.id, fetchContent]);
 
   // Initial fetch and refetch when filters change
   useEffect(() => {
@@ -417,6 +451,112 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     fetchContent(1, false);
   }, [fetchContent]);
 
+  // Delete content (optimistic update)
+  const deleteContent = useCallback(
+    async (contentId: string) => {
+      if (!sessionRef.current) {
+        toast.error('Please sign in to delete content');
+        return;
+      }
+
+      // Get user role from auth state
+      const userRole = state.profile?.role;
+      const isPrivilegedUser = userRole === 'curator' || userRole === 'admin';
+
+      if (!isPrivilegedUser) {
+        toast.error('You do not have permission to delete content');
+        return;
+      }
+
+      // Store original content for rollback
+      const originalContent = content;
+
+      try {
+        // Optimistic update - mark as deleted for privileged users
+        setContent((prev) =>
+          prev.map((item) =>
+            item.id === contentId ? { ...item, is_deleted: true } : item
+          )
+        );
+
+        const response = await fetch(
+          `/api/content?content_id=${contentId}&action=delete`,
+          {
+            method: 'DELETE',
+            credentials: 'include',
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to delete content');
+        }
+
+        toast.success('Content hidden from regular users');
+      } catch (err) {
+        // Rollback on failure
+        setContent(originalContent);
+        const message =
+          err instanceof Error ? err.message : 'Failed to delete content';
+        toast.error(message);
+        throw err;
+      }
+    },
+    [content, state.profile?.role]
+  );
+
+  // Undelete content (optimistic update)
+  const undeleteContent = useCallback(
+    async (contentId: string) => {
+      if (!sessionRef.current) {
+        toast.error('Please sign in to undelete content');
+        return;
+      }
+
+      // Get user role from auth state
+      const userRole = state.profile?.role;
+      const isPrivilegedUser = userRole === 'curator' || userRole === 'admin';
+
+      if (!isPrivilegedUser) {
+        toast.error('You do not have permission to undelete content');
+        return;
+      }
+
+      // Store original content for rollback
+      const originalContent = content;
+
+      try {
+        // Optimistic update - mark as not deleted
+        setContent((prev) =>
+          prev.map((item) =>
+            item.id === contentId ? { ...item, is_deleted: false } : item
+          )
+        );
+
+        const response = await fetch(
+          `/api/content?content_id=${contentId}&action=undelete`,
+          {
+            method: 'DELETE',
+            credentials: 'include',
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to undelete content');
+        }
+
+        toast.success('Content restored and visible to all users');
+      } catch (err) {
+        // Rollback on failure
+        setContent(originalContent);
+        const message =
+          err instanceof Error ? err.message : 'Failed to restore content';
+        toast.error(message);
+        throw err;
+      }
+    },
+    [content, state.profile?.role]
+  );
+
   return {
     content,
     loading,
@@ -425,6 +565,8 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     total,
     saveContent,
     unsaveContent,
+    deleteContent,
+    undeleteContent,
     refreshContent,
     refreshDisplay,
     loadMore,

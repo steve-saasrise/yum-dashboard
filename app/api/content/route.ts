@@ -74,8 +74,12 @@ export async function GET(request: NextRequest) {
       userError,
     });
 
-    const isPrivilegedUser =
-      userData?.role === 'curator' || userData?.role === 'admin';
+    // Default to non-privileged if query fails or returns no data
+    let isPrivilegedUser = false;
+    if (userData && !userError) {
+      isPrivilegedUser =
+        userData.role === 'curator' || userData.role === 'admin';
+    }
 
     console.log('User role check:', {
       userId: user.id,
@@ -140,6 +144,29 @@ export async function GET(request: NextRequest) {
         total: 0,
         has_more: false,
       });
+    }
+
+    // Get deleted content IDs first (before fetching content)
+    const deletedContentMap = new Map<string, boolean>();
+
+    if (!isPrivilegedUser && creatorIds.length > 0) {
+      // For viewers, get deleted content IDs using the database function
+      const { data: deletedContentIds, error: rpcError } = await supabase.rpc(
+        'get_deleted_content_for_filtering',
+        { creator_ids: creatorIds }
+      );
+
+      console.log('Deleted content IDs from RPC for viewer:', {
+        count: deletedContentIds?.length || 0,
+        error: rpcError,
+        ids: deletedContentIds?.map((d: any) => d.content_id),
+      });
+
+      if (deletedContentIds && deletedContentIds.length > 0) {
+        deletedContentIds.forEach((item: any) => {
+          deletedContentMap.set(item.content_id, true);
+        });
+      }
     }
 
     // Build the content query
@@ -208,10 +235,8 @@ export async function GET(request: NextRequest) {
       })),
     });
 
-    // Get deleted content for filtering or marking
-    const deletedContentMap = new Map<string, boolean>();
-
-    if (content && content.length > 0) {
+    // For privileged users, get deleted content data after fetching content
+    if (isPrivilegedUser && content && content.length > 0) {
       const { data: deletedContent, error: deletedError } = await supabase
         .from('deleted_content')
         .select('platform_content_id, platform, creator_id')
@@ -229,53 +254,42 @@ export async function GET(request: NextRequest) {
           const matchingContent = content.find((c) => {
             const matches =
               c.platform_content_id === dc.platform_content_id &&
-              c.platform === dc.platform &&
+              String(c.platform) === dc.platform &&
               c.creator_id === dc.creator_id;
-
-            if (c.platform_content_id === '7355329890079952898') {
-              console.log('Checking LinkedIn content:', {
-                contentId: c.id,
-                matches,
-                contentPlatformId: c.platform_content_id,
-                deletedPlatformId: dc.platform_content_id,
-                contentPlatform: c.platform,
-                deletedPlatform: dc.platform,
-                contentCreatorId: c.creator_id,
-                deletedCreatorId: dc.creator_id,
-              });
-            }
 
             return matches;
           });
 
           if (matchingContent) {
-            console.log('Matching deleted content:', {
-              contentId: matchingContent.id,
-              title: matchingContent.title,
-              platform: matchingContent.platform,
-              platformContentId: matchingContent.platform_content_id,
-              creatorId: matchingContent.creator_id,
-            });
             deletedContentMap.set(matchingContent.id, true);
-          } else {
-            console.log('No match found for deleted content:', dc);
           }
         });
       }
-
-      console.log('Deleted content map size:', deletedContentMap.size);
     }
 
     // Filter out deleted content for regular users
     let filteredContent = content || [];
     if (!isPrivilegedUser) {
       const beforeCount = filteredContent.length;
+      const deletedCount = Array.from(deletedContentMap.keys()).length;
+      console.log(`Filtering deleted content for viewer ${user.email}:`, {
+        isPrivilegedUser,
+        userRole: userData?.role || 'unknown',
+        contentBeforeFilter: beforeCount,
+        deletedContentCount: deletedCount,
+        deletedContentIds: Array.from(deletedContentMap.keys()),
+      });
+
       filteredContent = filteredContent.filter(
         (item) => !deletedContentMap.has(item.id)
       );
       const afterCount = filteredContent.length;
       console.log(
-        `Filtered content for non-privileged user: ${beforeCount} -> ${afterCount} items`
+        `Filtered content for non-privileged user: ${beforeCount} -> ${afterCount} items (removed ${beforeCount - afterCount})`
+      );
+    } else {
+      console.log(
+        `Not filtering content for privileged user ${user.email} (role: ${userData?.role})`
       );
     }
 
@@ -335,7 +349,13 @@ export async function GET(request: NextRequest) {
       })),
     });
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    });
   } catch (error) {
     // Error in content API
 

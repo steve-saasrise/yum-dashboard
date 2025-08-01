@@ -1364,6 +1364,15 @@ export function DailyNewsDashboard() {
   const userRole = authState.profile?.role;
   const canManageCreators = userRole === 'curator' || userRole === 'admin';
 
+  // Debug logging
+  console.log('[DailyNewsDashboard] Auth state:', {
+    userEmail: authState.user?.email,
+    userRole,
+    profileLoaded: !!authState.profile,
+    isViewer: userRole === 'viewer',
+    canManageCreators,
+  });
+
   const handleSignOut = async () => {
     await signOut();
     window.location.href = '/';
@@ -1411,6 +1420,8 @@ export function DailyNewsDashboard() {
     hasMore,
     saveContent,
     unsaveContent,
+    deleteContent,
+    undeleteContent,
     refreshContent,
     refreshDisplay,
     loadMore,
@@ -1420,72 +1431,9 @@ export function DailyNewsDashboard() {
       selectedPlatforms.length > 0 ? (selectedPlatforms as any) : undefined,
   });
 
-  // Server-side delete and undelete handlers
-  const handleDeleteContent = React.useCallback(
-    async (contentId: string) => {
-      try {
-        const response = await fetch(
-          `/api/content?content_id=${contentId}&action=delete`,
-          {
-            method: 'DELETE',
-            credentials: 'include',
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to delete content');
-        }
-
-        toastUI({
-          title: 'Content hidden',
-          description: 'This content is now hidden from regular users',
-        });
-
-        // Refresh display to reflect changes
-        refreshDisplay();
-      } catch (error) {
-        toastUI({
-          title: 'Error',
-          description: 'Failed to delete content',
-          variant: 'destructive',
-        });
-      }
-    },
-    [refreshDisplay]
-  );
-
-  const handleUndeleteContent = React.useCallback(
-    async (contentId: string) => {
-      try {
-        const response = await fetch(
-          `/api/content?content_id=${contentId}&action=undelete`,
-          {
-            method: 'DELETE',
-            credentials: 'include',
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to undelete content');
-        }
-
-        toastUI({
-          title: 'Content restored',
-          description: 'This content is now visible to all users',
-        });
-
-        // Refresh display to reflect changes
-        refreshDisplay();
-      } catch (error) {
-        toastUI({
-          title: 'Error',
-          description: 'Failed to restore content',
-          variant: 'destructive',
-        });
-      }
-    },
-    [refreshDisplay]
-  );
+  // Use the optimistic delete handlers from the hook
+  const handleDeleteContent = deleteContent;
+  const handleUndeleteContent = undeleteContent;
 
   // Use the lounges hook to fetch real lounges
   const { lounges, loading: isLoadingLounges, refreshLounges } = useLounges();
@@ -1933,43 +1881,25 @@ export function DailyNewsDashboard() {
               <>
                 <div className="lg:hidden">
                   <div className="grid grid-cols-1 gap-6">
-                    {content.map((item) => (
-                      <ContentCard
-                        key={item.id}
-                        item={{
-                          id: item.id,
-                          title: item.title || '',
-                          description: item.description,
-                          ai_summary: item.ai_summary,
-                          ai_summary_short: item.ai_summary_short,
-                          ai_summary_long: item.ai_summary_long,
-                          summary_generated_at: item.summary_generated_at,
-                          summary_model: item.summary_model,
-                          summary_status: item.summary_status,
-                          summary_error_message: item.summary_error_message,
-                          url: item.url,
-                          platform: item.platform,
-                          creator_id: item.creator_id,
-                          creator: item.creator,
-                          published_at: item.published_at || item.created_at,
-                          is_saved: item.is_saved,
-                          is_deleted: item.is_deleted,
-                          topics: item.topics,
-                        }}
-                        creators={creators}
-                        onSave={saveContent}
-                        onUnsave={unsaveContent}
-                        onDelete={handleDeleteContent}
-                        onUndelete={handleUndeleteContent}
-                        canDelete={canManageCreators}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="hidden lg:block">
-                  {view === 'grid' ? (
-                    <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
-                      {content.map((item) => (
+                    {content
+                      .filter((item) => {
+                        // Filter out deleted content for viewers
+                        if (userRole === 'viewer' && item.is_deleted) {
+                          console.log(
+                            '[Content Filter] Filtering deleted item:',
+                            {
+                              itemId: item.id,
+                              title: item.title,
+                              is_deleted: item.is_deleted,
+                              userRole,
+                              shouldFilter: true,
+                            }
+                          );
+                          return false;
+                        }
+                        return true;
+                      })
+                      .map((item) => (
                         <ContentCard
                           key={item.id}
                           item={{
@@ -2000,40 +1930,94 @@ export function DailyNewsDashboard() {
                           canDelete={canManageCreators}
                         />
                       ))}
+                  </div>
+                </div>
+                <div className="hidden lg:block">
+                  {view === 'grid' ? (
+                    <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
+                      {content
+                        .filter((item) => {
+                          // Filter out deleted content for viewers
+                          if (userRole === 'viewer' && item.is_deleted) {
+                            return false;
+                          }
+                          return true;
+                        })
+                        .map((item) => (
+                          <ContentCard
+                            key={item.id}
+                            item={{
+                              id: item.id,
+                              title: item.title || '',
+                              description: item.description,
+                              ai_summary: item.ai_summary,
+                              ai_summary_short: item.ai_summary_short,
+                              ai_summary_long: item.ai_summary_long,
+                              summary_generated_at: item.summary_generated_at,
+                              summary_model: item.summary_model,
+                              summary_status: item.summary_status,
+                              summary_error_message: item.summary_error_message,
+                              url: item.url,
+                              platform: item.platform,
+                              creator_id: item.creator_id,
+                              creator: item.creator,
+                              published_at:
+                                item.published_at || item.created_at,
+                              is_saved: item.is_saved,
+                              is_deleted: item.is_deleted,
+                              topics: item.topics,
+                            }}
+                            creators={creators}
+                            onSave={saveContent}
+                            onUnsave={unsaveContent}
+                            onDelete={handleDeleteContent}
+                            onUndelete={handleUndeleteContent}
+                            canDelete={canManageCreators}
+                          />
+                        ))}
                     </div>
                   ) : (
                     <div className="space-y-4 w-full">
-                      {content.map((item) => (
-                        <ContentListItem
-                          key={item.id}
-                          item={{
-                            id: item.id,
-                            title: item.title || '',
-                            description: item.description,
-                            ai_summary: item.ai_summary,
-                            ai_summary_short: item.ai_summary_short,
-                            ai_summary_long: item.ai_summary_long,
-                            summary_generated_at: item.summary_generated_at,
-                            summary_model: item.summary_model,
-                            summary_status: item.summary_status,
-                            summary_error_message: item.summary_error_message,
-                            url: item.url,
-                            platform: item.platform,
-                            creator_id: item.creator_id,
-                            creator: item.creator,
-                            published_at: item.published_at || item.created_at,
-                            is_saved: item.is_saved,
-                            is_deleted: item.is_deleted,
-                            topics: item.topics,
-                          }}
-                          creators={creators}
-                          onSave={saveContent}
-                          onUnsave={unsaveContent}
-                          onDelete={handleDeleteContent}
-                          onUndelete={handleUndeleteContent}
-                          canDelete={canManageCreators}
-                        />
-                      ))}
+                      {content
+                        .filter((item) => {
+                          // Filter out deleted content for viewers
+                          if (userRole === 'viewer' && item.is_deleted) {
+                            return false;
+                          }
+                          return true;
+                        })
+                        .map((item) => (
+                          <ContentListItem
+                            key={item.id}
+                            item={{
+                              id: item.id,
+                              title: item.title || '',
+                              description: item.description,
+                              ai_summary: item.ai_summary,
+                              ai_summary_short: item.ai_summary_short,
+                              ai_summary_long: item.ai_summary_long,
+                              summary_generated_at: item.summary_generated_at,
+                              summary_model: item.summary_model,
+                              summary_status: item.summary_status,
+                              summary_error_message: item.summary_error_message,
+                              url: item.url,
+                              platform: item.platform,
+                              creator_id: item.creator_id,
+                              creator: item.creator,
+                              published_at:
+                                item.published_at || item.created_at,
+                              is_saved: item.is_saved,
+                              is_deleted: item.is_deleted,
+                              topics: item.topics,
+                            }}
+                            creators={creators}
+                            onSave={saveContent}
+                            onUnsave={unsaveContent}
+                            onDelete={handleDeleteContent}
+                            onUndelete={handleUndeleteContent}
+                            canDelete={canManageCreators}
+                          />
+                        ))}
                     </div>
                   )}
                 </div>
