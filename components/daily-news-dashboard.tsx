@@ -200,6 +200,7 @@ interface AppSidebarProps {
     category?: string;
     isActive?: boolean;
     lastFetchedAt?: string;
+    avatar_url?: string;
   }>;
   isLoadingCreators: boolean;
   lounges: Lounge[];
@@ -520,7 +521,7 @@ function AppSidebar({
                             <div className="relative">
                               <Avatar className="w-5 h-5">
                                 <AvatarImage
-                                  src={'/placeholder.svg'}
+                                  src={creator.avatar_url || '/placeholder.svg'}
                                   alt={creator.name}
                                 />
                                 <AvatarFallback className="text-xs">
@@ -1657,6 +1658,7 @@ export function DailyNewsDashboard() {
             category: c.lounges?.[0],
             isActive: c.is_active,
             lastFetchedAt: c.metadata?.last_fetched_at as string | undefined,
+            avatar_url: c.avatar_url,
           }))}
           isLoadingCreators={isLoadingCreators}
           lounges={lounges}

@@ -15,6 +15,7 @@ const createCreatorSchema = z.object({
     .min(1, 'At least one URL is required'),
   topics: z.array(z.string()).optional(),
   lounge_id: z.string().uuid('Invalid lounge ID'),
+  avatar_url: z.string().url().optional(),
 });
 
 const getCreatorsSchema = z.object({
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { urls, display_name, description, topics, lounge_id } =
+    const { urls, display_name, description, topics, lounge_id, avatar_url } =
       validation.data;
 
     // Validate and detect platforms for all URLs
@@ -251,6 +252,7 @@ export async function POST(request: NextRequest) {
     const creatorData = {
       display_name,
       bio: description,
+      avatar_url: avatar_url || null,
       status: 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

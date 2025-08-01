@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, KeyboardEvent, useEffect } from 'react';
+import React, { useState, KeyboardEvent, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,6 +41,7 @@ import {
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { LoungeSelector } from '@/components/lounges/lounge-selector';
+import { CreatorAvatarUpload } from '@/components/creators/creator-avatar-upload';
 
 // Platform icons mapping
 const platformIcons = {
@@ -71,6 +72,7 @@ const createCreatorSchema = z.object({
   ),
   topics: z.array(z.string()).optional(),
   lounge_id: z.string().optional(), // Add lounge_id to form schema
+  avatar_url: z.string().optional(),
 });
 
 type CreateCreatorFormData = z.infer<typeof createCreatorSchema>;
@@ -101,6 +103,7 @@ export function AddCreatorModal({
   const [deletedUrlIds, setDeletedUrlIds] = useState<string[]>([]);
   const [editingUrlId, setEditingUrlId] = useState<string | null>(null);
   const [editingUrlValue, setEditingUrlValue] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
 
   const form = useForm<CreateCreatorFormData>({
     resolver: zodResolver(createCreatorSchema),
@@ -121,7 +124,9 @@ export function AddCreatorModal({
         urls: [], // In edit mode, we manage existing URLs separately
         topics: creator.lounge_ids || [], // Use lounge_ids for edit mode
         lounge_id: undefined, // Not needed for edit mode
+        avatar_url: creator.avatar_url || '',
       });
+      setAvatarUrl(creator.avatar_url || '');
       setDeletedUrlIds([]); // Reset deleted URLs tracking
     } else {
       // Add mode - initialize with selected lounge
@@ -132,7 +137,9 @@ export function AddCreatorModal({
         urls: [],
         topics: initialTopics,
         lounge_id: selectedLoungeId || undefined,
+        avatar_url: '',
       });
+      setAvatarUrl('');
       setDeletedUrlIds([]);
     }
   }, [mode, creator, form, selectedLoungeId]);
@@ -406,6 +413,7 @@ export function AddCreatorModal({
           urls: data.urls.map((u) => u.url),
           topics: data.topics,
           lounge_id: loungeId,
+          avatar_url: avatarUrl || undefined,
         };
         console.log('Sending request to /api/creators:', requestBody);
 
@@ -442,6 +450,7 @@ export function AddCreatorModal({
           .update({
             display_name: data.display_name,
             bio: data.description || null,
+            avatar_url: avatarUrl || null,
           })
           .eq('id', creator?.id);
 
@@ -605,6 +614,22 @@ export function AddCreatorModal({
                 </FormItem>
               )}
             />
+
+            <FormItem>
+              <FormLabel>Avatar</FormLabel>
+              <FormControl>
+                <CreatorAvatarUpload
+                  creatorId={mode === 'edit' ? creator?.id : undefined}
+                  currentAvatar={avatarUrl}
+                  creatorName={form.watch('display_name') || 'Creator'}
+                  onAvatarChange={setAvatarUrl}
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormDescription>
+                Upload an image for this creator (PNG, JPG or WebP, max 2MB)
+              </FormDescription>
+            </FormItem>
 
             {mode === 'add' && (
               <div className="space-y-4">

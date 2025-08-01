@@ -201,6 +201,13 @@ export async function DELETE(
 
     // Delete all associated data in the correct order to avoid foreign key constraints
 
+    // 0. Get creator to find avatar URL before deletion
+    const { data: creatorData } = await supabase
+      .from('creators')
+      .select('avatar_url')
+      .eq('id', id)
+      .single();
+
     // 1. Delete all content for this creator
     const { error: contentDeleteError } = await supabase
       .from('content')
@@ -255,6 +262,19 @@ export async function DELETE(
         { error: 'Failed to delete creator' },
         { status: 500 }
       );
+    }
+
+    // 5. Clean up avatar from storage if it exists
+    if (creatorData?.avatar_url) {
+      try {
+        const avatarPath = creatorData.avatar_url.split('/creators/')[1];
+        if (avatarPath) {
+          await supabase.storage.from('creators').remove([avatarPath]);
+        }
+      } catch (error) {
+        // Failed to delete avatar - not critical, log and continue
+        console.error('Failed to delete creator avatar:', error);
+      }
     }
 
     return NextResponse.json({
