@@ -465,30 +465,25 @@ export class AISummaryService {
 
       // Process each content item
       await Promise.all(
-        contents.map(
-          async (content: {
-            id: string;
-            content_body?: string;
-          }) => {
-            try {
-              const text = content.content_body?.trim() || '';
-              if (text) {
-                await this.generateSummary(
-                  {
-                    content_id: content.id,
-                    text,
-                    model,
-                  },
-                  supabase
-                );
-                processed++;
-              }
-            } catch {
-              // Error processing content
-              errors++;
+        contents.map(async (content: { id: string; content_body?: string }) => {
+          try {
+            const text = content.content_body?.trim() || '';
+            if (text) {
+              await this.generateSummary(
+                {
+                  content_id: content.id,
+                  text,
+                  model,
+                },
+                supabase
+              );
+              processed++;
             }
+          } catch {
+            // Error processing content
+            errors++;
           }
-        )
+        })
       );
 
       // Add delay between batches to respect rate limits

@@ -51,7 +51,12 @@ export class ContentNormalizer {
     feedUrl?: string
   ): CreateContentInput {
     // Extract text content - prioritize full content over snippets
-    const contentBody = item.content || item.description || item.summary || item.contentSnippet || '';
+    const contentBody =
+      item.content ||
+      item.description ||
+      item.summary ||
+      item.contentSnippet ||
+      '';
     const textContent = extractTextFromHTML(contentBody);
 
     // Extract media URLs
