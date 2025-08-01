@@ -113,7 +113,8 @@ export class AISummaryService {
   }
 
   async generateSummary(
-    input: GenerateSummaryInput
+    input: GenerateSummaryInput,
+    supabaseClient?: ReturnType<typeof createServerClient>
   ): Promise<GenerateSummaryResult> {
     // Try to initialize OpenAI if not already done
     this.initializeOpenAI();
@@ -134,29 +135,33 @@ export class AISummaryService {
       throw new Error('No text provided for summarization');
     }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
+    // Use provided client or create a new one
+    let supabase = supabaseClient;
+    if (!supabase) {
+      const cookieStore = await cookies();
+      supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll();
+            },
+            setAll(cookiesToSet) {
+              try {
+                cookiesToSet.forEach(({ name, value, options }) =>
+                  cookieStore.set(name, value, options)
+                );
+              } catch {
+                // The `setAll` method was called from a Server Component.
+                // This can be ignored if you have middleware refreshing
+                // user sessions.
+              }
+            },
           },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        },
-      }
-    );
+        }
+      );
+    }
 
     try {
       // Update status to processing
@@ -446,11 +451,14 @@ export class AISummaryService {
               const text =
                 `${content.title || ''}\n\n${content.description || ''}`.trim();
               if (text) {
-                await this.generateSummary({
-                  content_id: content.id,
-                  text,
-                  model,
-                });
+                await this.generateSummary(
+                  {
+                    content_id: content.id,
+                    text,
+                    model,
+                  },
+                  supabase
+                );
                 processed++;
               }
             } catch {

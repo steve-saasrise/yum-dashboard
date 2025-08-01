@@ -117,7 +117,7 @@ async function processCreator(job: Job) {
               platformStats.fetched = result.videos?.length || 0;
               platformStats.new = result.storedContent?.created || 0;
               platformStats.updated = result.storedContent?.updated || 0;
-              
+
               // Update main stats for YouTube
               stats.processed += platformStats.fetched;
               stats.new += platformStats.new;
@@ -203,9 +203,9 @@ async function processCreator(job: Job) {
     console.log(`[Creator ${creatorName}] Summary queue check:`, {
       newItems: stats.new,
       hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-      willQueue: stats.new > 0 && !!process.env.OPENAI_API_KEY
+      willQueue: stats.new > 0 && !!process.env.OPENAI_API_KEY,
     });
-    
+
     if (stats.new > 0 && process.env.OPENAI_API_KEY) {
       const { data: newContent } = await supabase
         .from('content')
@@ -215,12 +215,16 @@ async function processCreator(job: Job) {
         .order('created_at', { ascending: false })
         .limit(stats.new);
 
-      console.log(`[Creator ${creatorName}] Found ${newContent?.length || 0} items to queue for summaries`);
+      console.log(
+        `[Creator ${creatorName}] Found ${newContent?.length || 0} items to queue for summaries`
+      );
 
       if (newContent && newContent.length > 0) {
         const contentIds = newContent.map((item: { id: string }) => item.id);
         await queueContentForSummaries(contentIds, creatorId);
-        console.log(`[Creator ${creatorName}] Queued ${contentIds.length} items for AI summaries`);
+        console.log(
+          `[Creator ${creatorName}] Queued ${contentIds.length} items for AI summaries`
+        );
       }
     }
 

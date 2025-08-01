@@ -26,8 +26,10 @@ async function processSummaries(job: Job) {
   initializeServices();
 
   const { contentIds, creatorId } = job.data;
-  
-  console.log(`[Summary Job] Processing ${contentIds.length} items for creator ${creatorId}`);
+
+  console.log(
+    `[Summary Job] Processing ${contentIds.length} items for creator ${creatorId}`
+  );
 
   if (!process.env.OPENAI_API_KEY) {
     console.log('OpenAI API key not configured, skipping summary generation');
