@@ -50,8 +50,12 @@ export class AISummaryService {
   private sessionCost = 0;
 
   constructor() {
+    this.initializeOpenAI();
+  }
+
+  private initializeOpenAI() {
     const apiKey = process.env.OPENAI_API_KEY;
-    if (apiKey) {
+    if (apiKey && !this.openai) {
       this.openai = new OpenAI({ apiKey });
     }
   }
@@ -111,6 +115,9 @@ export class AISummaryService {
   async generateSummary(
     input: GenerateSummaryInput
   ): Promise<GenerateSummaryResult> {
+    // Try to initialize OpenAI if not already done
+    this.initializeOpenAI();
+    
     if (!this.openai) {
       throw new Error('OpenAI API key not configured');
     }
@@ -234,6 +241,9 @@ export class AISummaryService {
     text: string,
     model: string
   ): Promise<string> {
+    // Try to initialize OpenAI if not already done
+    this.initializeOpenAI();
+    
     if (!this.openai) throw new Error('OpenAI not initialized');
 
     // Check rate limits before making request
@@ -288,6 +298,9 @@ export class AISummaryService {
     text: string,
     model: string
   ): Promise<string> {
+    // Try to initialize OpenAI if not already done
+    this.initializeOpenAI();
+    
     if (!this.openai) throw new Error('OpenAI not initialized');
 
     // Check rate limits before making request
