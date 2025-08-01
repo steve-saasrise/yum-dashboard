@@ -260,6 +260,7 @@ export class ApifyFetcher {
         `https://twitter.com/i/status/${tweet.id}`,
       title: `Tweet by @${tweet.author?.userName || 'unknown'}`,
       description: tweet.text || '',
+      content_body: tweet.text || '', // Add content_body for AI summaries
       published_at: tweet.createdAt
         ? new Date(tweet.createdAt).toISOString()
         : new Date().toISOString(),
@@ -370,6 +371,7 @@ export class ApifyFetcher {
         url: postUrl,
         title: `Thread by @${post.user?.username || 'unknown'}`,
         description: post.caption?.text || '',
+        content_body: post.caption?.text || '', // Add content_body for AI summaries
         // Use taken_at field which is a Unix timestamp in seconds
         published_at: post.taken_at
           ? new Date(post.taken_at * 1000).toISOString()
@@ -466,6 +468,7 @@ export class ApifyFetcher {
             `LinkedIn post by ${post.author?.first_name || ''} ${post.author?.last_name || ''}`.trim() ||
             'LinkedIn post',
           description: post.text || '',
+          content_body: post.text || '', // Add content_body for AI summaries
           published_at: post.posted_at?.timestamp
             ? new Date(post.posted_at.timestamp).toISOString()
             : post.posted_at?.date || new Date().toISOString(),

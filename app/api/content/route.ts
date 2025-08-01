@@ -11,7 +11,11 @@ const querySchema = z.object({
   platforms: z
     .string()
     .transform((val) => val.split(',').filter(Boolean))
-    .pipe(z.array(z.enum(['youtube', 'twitter', 'linkedin', 'threads', 'rss', 'website'])))
+    .pipe(
+      z.array(
+        z.enum(['youtube', 'twitter', 'linkedin', 'threads', 'rss', 'website'])
+      )
+    )
     .optional(),
   creator_id: z.string().uuid().optional(),
   lounge_id: z.string().uuid().optional(),

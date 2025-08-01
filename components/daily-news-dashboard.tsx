@@ -435,7 +435,9 @@ function AppSidebar({
                           <SidebarMenuButton
                             tooltip={`${platform.name} (${platform.count} items)`}
                             onClick={() => onPlatformToggle(platform.platform)}
-                            className={isSelected ? 'bg-gray-100 dark:bg-gray-800' : ''}
+                            className={
+                              isSelected ? 'bg-gray-100 dark:bg-gray-800' : ''
+                            }
                           >
                             <Icon className="w-4 h-4" />
                             <span className="truncate">{platform.name}</span>
@@ -1251,8 +1253,11 @@ function MobileFiltersSheet({
                 {platformData.map((p) => {
                   const Icon = getPlatformIcon(p.platform);
                   return (
-                    <div key={p.platform} className="flex items-center space-x-2">
-                      <Checkbox 
+                    <div
+                      key={p.platform}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
                         id={`mobile-platform-${p.platform}`}
                         checked={selectedPlatforms.includes(p.platform)}
                         onCheckedChange={(checked) => {
@@ -1387,12 +1392,16 @@ export function DailyNewsDashboard() {
   const [selectedLoungeId, setSelectedLoungeId] = React.useState<string | null>(
     null
   );
-  const [selectedPlatforms, setSelectedPlatforms] = React.useState<string[]>([]);
-  const [platformData, setPlatformData] = React.useState<Array<{
-    name: string;
-    platform: string;
-    count: number;
-  }>>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = React.useState<string[]>(
+    []
+  );
+  const [platformData, setPlatformData] = React.useState<
+    Array<{
+      name: string;
+      platform: string;
+      count: number;
+    }>
+  >([]);
   const [isLoadingPlatforms, setIsLoadingPlatforms] = React.useState(true);
 
   // Use the content hook to fetch real content
@@ -1407,7 +1416,8 @@ export function DailyNewsDashboard() {
     loadMore,
   } = useContent({
     lounge_id: selectedLoungeId || undefined,
-    platforms: selectedPlatforms.length > 0 ? selectedPlatforms as any : undefined,
+    platforms:
+      selectedPlatforms.length > 0 ? (selectedPlatforms as any) : undefined,
   });
 
   // Server-side delete and undelete handlers
@@ -1780,7 +1790,9 @@ export function DailyNewsDashboard() {
                               <DropdownMenuCheckboxItem
                                 key={p.platform}
                                 checked={selectedPlatforms.includes(p.platform)}
-                                onCheckedChange={() => handlePlatformToggle(p.platform)}
+                                onCheckedChange={() =>
+                                  handlePlatformToggle(p.platform)
+                                }
                               >
                                 <Icon className="w-4 h-4 mr-2" />
                                 {p.name} ({p.count})

@@ -236,7 +236,7 @@ export class ContentNormalizer {
       published_at: data.created_at
         ? new Date(data.created_at).toISOString()
         : new Date().toISOString(),
-      content_body: data.text || '',
+      content_body: data.description || data.text || '',
       word_count: calculateWordCount(data.text || ''),
       reading_time_minutes: calculateReadingTime(data.text || ''),
       media_urls: this.extractTwitterMedia(data),
@@ -279,7 +279,7 @@ export class ContentNormalizer {
       description: data.text || '',
       thumbnail_url: data.image?.url,
       published_at: data.publishedAt || new Date().toISOString(),
-      content_body: data.text || '',
+      content_body: data.description || data.text || '',
       word_count: calculateWordCount(data.text || ''),
       reading_time_minutes: calculateReadingTime(data.text || ''),
       media_urls:
@@ -325,7 +325,7 @@ export class ContentNormalizer {
       description: data.text || '',
       thumbnail_url: data.media?.[0]?.url,
       published_at: data.timestamp || new Date().toISOString(),
-      content_body: data.text || '',
+      content_body: data.description || data.text || '',
       word_count: calculateWordCount(data.text || ''),
       reading_time_minutes: calculateReadingTime(data.text || ''),
       media_urls:

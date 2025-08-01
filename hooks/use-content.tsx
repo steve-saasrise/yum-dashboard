@@ -9,7 +9,9 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useViewportInfo } from './use-viewport-info';
 
 export interface ContentFilters {
-  platforms?: Array<'youtube' | 'twitter' | 'linkedin' | 'threads' | 'rss' | 'website'>;
+  platforms?: Array<
+    'youtube' | 'twitter' | 'linkedin' | 'threads' | 'rss' | 'website'
+  >;
   creator_id?: string;
   lounge_id?: string;
   search?: string;
