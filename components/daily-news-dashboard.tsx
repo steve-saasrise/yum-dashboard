@@ -321,7 +321,7 @@ function AppSidebar({
                                 : 'bg-gray-400 dark:bg-gray-600'
                             }`}
                           />
-                          <span className="truncate">{lounge.name}</span>
+                          <span className="truncate">{lounge.name}Lounge</span>
                           <SidebarMenuBadge className="group-hover/topic-item:opacity-0 transition-opacity duration-200">
                             {lounge.creator_count || 0}
                           </SidebarMenuBadge>
@@ -1573,7 +1573,9 @@ export function DailyNewsDashboard() {
           <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Your Feed
+                {lounges.find(l => l.id === selectedLoungeId)?.name ? 
+                  `${lounges.find(l => l.id === selectedLoungeId)?.name}Lounge` : 
+                  'Your Lounge'}
               </h1>
               <div className="flex items-center gap-2">
                 {/* Mobile Filter Button */}
