@@ -9,7 +9,7 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useViewportInfo } from './use-viewport-info';
 
 export interface ContentFilters {
-  platform?: 'youtube' | 'twitter' | 'linkedin' | 'threads' | 'rss' | 'website';
+  platforms?: Array<'youtube' | 'twitter' | 'linkedin' | 'threads' | 'rss' | 'website'>;
   creator_id?: string;
   lounge_id?: string;
   search?: string;
@@ -83,8 +83,8 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
           String(currentFilters?.limit || batchSizeRef.current)
         );
 
-        if (currentFilters?.platform)
-          params.append('platform', currentFilters.platform);
+        if (currentFilters?.platforms && currentFilters.platforms.length > 0)
+          params.append('platforms', currentFilters.platforms.join(','));
         if (currentFilters?.creator_id)
           params.append('creator_id', currentFilters.creator_id);
         if (currentFilters?.lounge_id)
@@ -149,7 +149,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
     }
   }, [
     fetchContent,
-    filters?.platform,
+    filters?.platforms?.join(','),
     filters?.creator_id,
     filters?.lounge_id,
     filters?.search,

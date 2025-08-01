@@ -8,8 +8,10 @@ import type { ContentWithCreator } from '@/types/content';
 const querySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(21),
-  platform: z
-    .enum(['youtube', 'twitter', 'linkedin', 'threads', 'rss', 'website'])
+  platforms: z
+    .string()
+    .transform((val) => val.split(',').filter(Boolean))
+    .pipe(z.array(z.enum(['youtube', 'twitter', 'linkedin', 'threads', 'rss', 'website'])))
     .optional(),
   creator_id: z.string().uuid().optional(),
   lounge_id: z.string().uuid().optional(),
@@ -155,8 +157,8 @@ export async function GET(request: NextRequest) {
       .eq('processing_status', 'processed');
 
     // Apply filters
-    if (query.platform) {
-      contentQuery = contentQuery.eq('platform', query.platform);
+    if (query.platforms && query.platforms.length > 0) {
+      contentQuery = contentQuery.in('platform', query.platforms);
     }
 
     if (query.creator_id && creatorIds.includes(query.creator_id)) {

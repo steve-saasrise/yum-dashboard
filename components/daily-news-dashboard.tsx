@@ -99,6 +99,7 @@ import {
   Brain,
   Loader2,
   UserCog,
+  X as XIcon,
 } from 'lucide-react';
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel';
@@ -110,15 +111,24 @@ import {
 } from '@/components/content-skeleton';
 import { LoungeLogo } from '@/components/lounge-logo';
 
-// --- MOCK DATA ---
+// --- PLATFORM ICONS ---
 
-const platforms = [
-  { name: 'YouTube', icon: Youtube, count: 12 },
-  { name: 'X', icon: Icons.x, count: 8 },
-  { name: 'LinkedIn', icon: Linkedin, count: 5 },
-  { name: 'Threads', icon: Icons.threads, count: 3 },
-  { name: 'Blogs', icon: Rss, count: 22 },
-];
+const getPlatformIcon = (platform: string) => {
+  switch (platform) {
+    case 'youtube':
+      return Youtube;
+    case 'twitter':
+      return Icons.x;
+    case 'linkedin':
+      return Linkedin;
+    case 'threads':
+      return Icons.threads;
+    case 'rss':
+      return Rss;
+    default:
+      return Rss;
+  }
+};
 
 // Mock topics array removed - now using real lounges from useLounges hook
 
@@ -197,6 +207,15 @@ interface AppSidebarProps {
   selectedLoungeId: string | null;
   onLoungeSelect: (loungeId: string | null) => void;
   canManageCreators: boolean;
+  platformData: Array<{
+    name: string;
+    platform: string;
+    count: number;
+  }>;
+  isLoadingPlatforms: boolean;
+  selectedPlatforms: string[];
+  onPlatformToggle: (platform: string) => void;
+  onClearPlatforms: () => void;
 }
 
 function AppSidebar({
@@ -213,6 +232,11 @@ function AppSidebar({
   selectedLoungeId,
   onLoungeSelect,
   canManageCreators,
+  platformData,
+  isLoadingPlatforms,
+  selectedPlatforms,
+  onPlatformToggle,
+  onClearPlatforms,
 }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" side="left">
@@ -381,15 +405,48 @@ function AppSidebar({
             <CollapsibleContent className="transition-all duration-300 ease-in-out data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {platforms.map((platform) => (
-                    <SidebarMenuItem key={platform.name}>
-                      <SidebarMenuButton tooltip={platform.name}>
-                        <platform.icon className="w-4 h-4" />
-                        <span className="truncate">{platform.name}</span>
-                        <SidebarMenuBadge>{platform.count}</SidebarMenuBadge>
+                  {selectedPlatforms.length > 0 && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        tooltip="Clear all platform filters"
+                        onClick={onClearPlatforms}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <XIcon className="w-3 h-3" />
+                        <span className="truncate">All Platforms</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  ))}
+                  )}
+                  {isLoadingPlatforms ? (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton disabled>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="truncate">Loading platforms...</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ) : (
+                    platformData.map((platform) => {
+                      const Icon = getPlatformIcon(platform.platform);
+                      const isSelected = selectedPlatforms.includes(
+                        platform.platform
+                      );
+                      return (
+                        <SidebarMenuItem key={platform.platform}>
+                          <SidebarMenuButton
+                            tooltip={`${platform.name} (${platform.count} items)`}
+                            onClick={() => onPlatformToggle(platform.platform)}
+                            className={isSelected ? 'bg-gray-100 dark:bg-gray-800' : ''}
+                          >
+                            <Icon className="w-4 h-4" />
+                            <span className="truncate">{platform.name}</span>
+                            <SidebarMenuBadge>
+                              {platform.count}
+                            </SidebarMenuBadge>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>
@@ -1147,6 +1204,9 @@ function MobileFiltersSheet({
   lounges,
   selectedLoungeId,
   setSelectedLoungeId,
+  platformData,
+  selectedPlatforms,
+  onPlatformToggle,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -1154,6 +1214,13 @@ function MobileFiltersSheet({
   lounges: Lounge[];
   selectedLoungeId: string | null;
   setSelectedLoungeId: (id: string | null) => void;
+  platformData: Array<{
+    name: string;
+    platform: string;
+    count: number;
+  }>;
+  selectedPlatforms: string[];
+  onPlatformToggle: (platform: string) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1181,17 +1248,29 @@ function MobileFiltersSheet({
             <div className="space-y-3">
               <h3 className="font-medium text-sm">Platforms</h3>
               <div className="space-y-2">
-                {platforms.map((p) => (
-                  <div key={p.name} className="flex items-center space-x-2">
-                    <Checkbox id={`mobile-platform-${p.name}`} />
-                    <label
-                      htmlFor={`mobile-platform-${p.name}`}
-                      className="text-sm font-medium leading-none"
-                    >
-                      {p.name}
-                    </label>
-                  </div>
-                ))}
+                {platformData.map((p) => {
+                  const Icon = getPlatformIcon(p.platform);
+                  return (
+                    <div key={p.platform} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`mobile-platform-${p.platform}`}
+                        checked={selectedPlatforms.includes(p.platform)}
+                        onCheckedChange={(checked) => {
+                          if (checked !== 'indeterminate') {
+                            onPlatformToggle(p.platform);
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`mobile-platform-${p.platform}`}
+                        className="text-sm font-medium leading-none flex items-center gap-2"
+                      >
+                        <Icon className="w-4 h-4" />
+                        {p.name} ({p.count})
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -1308,6 +1387,13 @@ export function DailyNewsDashboard() {
   const [selectedLoungeId, setSelectedLoungeId] = React.useState<string | null>(
     null
   );
+  const [selectedPlatforms, setSelectedPlatforms] = React.useState<string[]>([]);
+  const [platformData, setPlatformData] = React.useState<Array<{
+    name: string;
+    platform: string;
+    count: number;
+  }>>([]);
+  const [isLoadingPlatforms, setIsLoadingPlatforms] = React.useState(true);
 
   // Use the content hook to fetch real content
   const {
@@ -1321,6 +1407,7 @@ export function DailyNewsDashboard() {
     loadMore,
   } = useContent({
     lounge_id: selectedLoungeId || undefined,
+    platforms: selectedPlatforms.length > 0 ? selectedPlatforms as any : undefined,
   });
 
   // Server-side delete and undelete handlers
@@ -1538,6 +1625,62 @@ export function DailyNewsDashboard() {
     fetchCreators();
   }, [fetchCreators]);
 
+  // Fetch platform statistics
+  const fetchPlatforms = React.useCallback(async () => {
+    setIsLoadingPlatforms(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedLoungeId) {
+        params.append('lounge_id', selectedLoungeId);
+      }
+
+      const response = await fetch(
+        `/api/platforms${params.toString() ? '?' + params.toString() : ''}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setPlatformData(data.platforms || []);
+      } else {
+        console.error(
+          'Failed to fetch platforms:',
+          response.status,
+          response.statusText
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching platforms:', error);
+    } finally {
+      setIsLoadingPlatforms(false);
+    }
+  }, [selectedLoungeId]);
+
+  // Fetch platforms when lounge changes
+  React.useEffect(() => {
+    fetchPlatforms();
+  }, [fetchPlatforms]);
+
+  // Handle platform selection
+  const handlePlatformToggle = (platform: string) => {
+    setSelectedPlatforms((prev) => {
+      const isSelected = prev.includes(platform);
+      if (isSelected) {
+        return prev.filter((p) => p !== platform);
+      } else {
+        return [...prev, platform];
+      }
+    });
+  };
+
+  const handleClearPlatforms = () => {
+    setSelectedPlatforms([]);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -1563,6 +1706,11 @@ export function DailyNewsDashboard() {
           selectedLoungeId={selectedLoungeId}
           onLoungeSelect={setSelectedLoungeId}
           canManageCreators={canManageCreators}
+          platformData={platformData}
+          isLoadingPlatforms={isLoadingPlatforms}
+          selectedPlatforms={selectedPlatforms}
+          onPlatformToggle={handlePlatformToggle}
+          onClearPlatforms={handleClearPlatforms}
         />
         <SidebarInset className="flex-1 flex flex-col w-full">
           <Header
@@ -1573,9 +1721,9 @@ export function DailyNewsDashboard() {
           <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {lounges.find(l => l.id === selectedLoungeId)?.name ? 
-                  `${lounges.find(l => l.id === selectedLoungeId)?.name}Lounge` : 
-                  'Your Lounge'}
+                {lounges.find((l) => l.id === selectedLoungeId)?.name
+                  ? `${lounges.find((l) => l.id === selectedLoungeId)?.name}Lounge`
+                  : 'Your Lounge'}
               </h1>
               <div className="flex items-center gap-2">
                 {/* Mobile Filter Button */}
@@ -1614,11 +1762,31 @@ export function DailyNewsDashboard() {
                       <DropdownMenuSubTrigger>Platforms</DropdownMenuSubTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent>
-                          {platforms.map((p) => (
-                            <DropdownMenuCheckboxItem key={p.name}>
-                              {p.name}
-                            </DropdownMenuCheckboxItem>
-                          ))}
+                          {selectedPlatforms.length > 0 && (
+                            <>
+                              <DropdownMenuItem
+                                onClick={handleClearPlatforms}
+                                className="text-xs text-muted-foreground"
+                              >
+                                <XIcon className="w-3 h-3 mr-2" />
+                                Clear all
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          {platformData.map((p) => {
+                            const Icon = getPlatformIcon(p.platform);
+                            return (
+                              <DropdownMenuCheckboxItem
+                                key={p.platform}
+                                checked={selectedPlatforms.includes(p.platform)}
+                                onCheckedChange={() => handlePlatformToggle(p.platform)}
+                              >
+                                <Icon className="w-4 h-4 mr-2" />
+                                {p.name} ({p.count})
+                              </DropdownMenuCheckboxItem>
+                            );
+                          })}
                         </DropdownMenuSubContent>
                       </DropdownMenuPortal>
                     </DropdownMenuSub>
@@ -1968,6 +2136,9 @@ export function DailyNewsDashboard() {
         lounges={lounges}
         selectedLoungeId={selectedLoungeId}
         setSelectedLoungeId={setSelectedLoungeId}
+        platformData={platformData}
+        selectedPlatforms={selectedPlatforms}
+        onPlatformToggle={handlePlatformToggle}
       />
     </SidebarProvider>
   );
