@@ -29,7 +29,7 @@ async function downloadAndUploadAvatar(
 ): Promise<string | null> {
   try {
     console.log(`Downloading avatar from: ${imageUrl}`);
-    
+
     // Download the image
     const response = await fetch(imageUrl);
     if (!response.ok) {
@@ -71,9 +71,9 @@ async function downloadAndUploadAvatar(
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('creators')
-      .getPublicUrl(fileName);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('creators').getPublicUrl(fileName);
 
     console.log(`✓ Avatar uploaded successfully: ${publicUrl}`);
     return publicUrl;
@@ -84,12 +84,14 @@ async function downloadAndUploadAvatar(
 }
 
 // Function to search for creator avatars using their social profiles
-async function findCreatorAvatar(creator: CreatorWithUrls): Promise<string | null> {
+async function findCreatorAvatar(
+  creator: CreatorWithUrls
+): Promise<string | null> {
   console.log(`Searching for avatar: ${creator.display_name}`);
-  
+
   // Priority order for platforms
   const platformPriority = ['linkedin', 'twitter', 'youtube'];
-  
+
   // Sort URLs by platform priority
   const sortedUrls = creator.creator_urls.sort((a, b) => {
     const aIndex = platformPriority.indexOf(a.platform) || 999;
@@ -100,15 +102,15 @@ async function findCreatorAvatar(creator: CreatorWithUrls): Promise<string | nul
   // Try each platform
   for (const urlInfo of sortedUrls) {
     console.log(`  Checking ${urlInfo.platform}: ${urlInfo.url}`);
-    
+
     // Here you would use Exa API to:
     // 1. Search for the profile page
     // 2. Extract the profile image URL
     // 3. Return the highest quality version
-    
+
     // For demonstration, we'll construct search queries that would be used with Exa
     let searchQuery = '';
-    
+
     switch (urlInfo.platform) {
       case 'linkedin':
         searchQuery = `site:linkedin.com "${creator.display_name}" profile photo`;
@@ -122,20 +124,20 @@ async function findCreatorAvatar(creator: CreatorWithUrls): Promise<string | nul
       default:
         searchQuery = `"${creator.display_name}" profile picture headshot professional`;
     }
-    
+
     console.log(`  Would search Exa with: ${searchQuery}`);
-    
+
     // In production, you would:
     // const results = await exaClient.search({
     //   query: searchQuery,
     //   numResults: 5,
     //   crawl: true
     // });
-    // 
+    //
     // Then extract image URLs from the results
     // and return the best quality one
   }
-  
+
   return null;
 }
 
@@ -145,7 +147,8 @@ async function updateAllCreatorAvatars() {
     // Get creators without avatars
     const { data: creators, error: fetchError } = await supabase
       .from('creators')
-      .select(`
+      .select(
+        `
         id,
         display_name,
         avatar_url,
@@ -154,7 +157,8 @@ async function updateAllCreatorAvatars() {
           url,
           normalized_url
         )
-      `)
+      `
+      )
       .or('avatar_url.is.null,avatar_url.eq.')
       .order('display_name');
 
@@ -171,11 +175,13 @@ async function updateAllCreatorAvatars() {
     for (const creator of creators || []) {
       console.log(`\n${'='.repeat(50)}`);
       console.log(`Processing: ${creator.display_name}`);
-      console.log(`URLs: ${creator.creator_urls.map((u: any) => u.platform).join(', ')}`);
+      console.log(
+        `URLs: ${creator.creator_urls.map((u: any) => u.platform).join(', ')}`
+      );
 
       // Find avatar URL using Exa or other methods
       const avatarUrl = await findCreatorAvatar(creator);
-      
+
       if (avatarUrl) {
         // Download and upload the avatar
         const publicUrl = await downloadAndUploadAvatar(
@@ -188,17 +194,22 @@ async function updateAllCreatorAvatars() {
           // Update the creator's avatar_url
           const { error: updateError } = await supabase
             .from('creators')
-            .update({ 
+            .update({
               avatar_url: publicUrl,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq('id', creator.id);
 
           if (updateError) {
-            console.error(`Failed to update avatar for ${creator.display_name}:`, updateError);
+            console.error(
+              `Failed to update avatar for ${creator.display_name}:`,
+              updateError
+            );
             failureCount++;
           } else {
-            console.log(`✓ Successfully updated avatar for ${creator.display_name}`);
+            console.log(
+              `✓ Successfully updated avatar for ${creator.display_name}`
+            );
             successCount++;
           }
         } else {
@@ -211,7 +222,7 @@ async function updateAllCreatorAvatars() {
       }
 
       // Add a delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
     }
 
     console.log(`\n${'='.repeat(50)}`);
@@ -225,11 +236,7 @@ async function updateAllCreatorAvatars() {
 }
 
 // Export functions for use in other scripts
-export {
-  downloadAndUploadAvatar,
-  findCreatorAvatar,
-  updateAllCreatorAvatars
-};
+export { downloadAndUploadAvatar, findCreatorAvatar, updateAllCreatorAvatars };
 
 // Run if called directly
 if (require.main === module) {

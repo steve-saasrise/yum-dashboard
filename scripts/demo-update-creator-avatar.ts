@@ -13,8 +13,9 @@ const supabase = createClient(
 // Demo: Update Lenny Rachitsky's avatar
 async function updateLennyAvatar() {
   const creatorName = 'Lenny Rachitsky';
-  const avatarUrl = 'https://media.muckrack.com/profile/images/6959312/lenny-rachitsky.jpeg.256x256_q100_crop-smart.jpg';
-  
+  const avatarUrl =
+    'https://media.muckrack.com/profile/images/6959312/lenny-rachitsky.jpeg.256x256_q100_crop-smart.jpg';
+
   try {
     // Find Lenny's creator ID
     const { data: creator, error: findError } = await supabase
@@ -34,7 +35,7 @@ async function updateLennyAvatar() {
     // Download the image
     console.log(`\nDownloading avatar from: ${avatarUrl}`);
     const response = await fetch(avatarUrl);
-    
+
     if (!response.ok) {
       console.error('Failed to download image:', response.statusText);
       return;
@@ -66,18 +67,18 @@ async function updateLennyAvatar() {
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('creators')
-      .getPublicUrl(fileName);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('creators').getPublicUrl(fileName);
 
     console.log(`Upload successful! Public URL: ${publicUrl}`);
 
     // Update creator's avatar_url
     const { error: updateError } = await supabase
       .from('creators')
-      .update({ 
+      .update({
         avatar_url: publicUrl,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', creator.id);
 

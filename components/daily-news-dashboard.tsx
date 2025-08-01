@@ -242,7 +242,15 @@ function AppSidebar({
   return (
     <Sidebar collapsible="icon" side="left">
       <SidebarHeader className="h-16 px-4 flex items-center justify-center border-b border-gray-200 dark:border-gray-800">
-        <LoungeLogo className="h-6 w-auto text-gray-900 dark:text-white" />
+        <button
+          onClick={() => {
+            onLoungeSelect(null);
+            onClearPlatforms();
+          }}
+          className="flex items-center cursor-pointer focus:outline-none"
+        >
+          <LoungeLogo className="h-6 w-auto text-gray-900 dark:text-white" />
+        </button>
       </SidebarHeader>
 
       <SidebarContent className="p-2 stable-scrollbar sidebar-scrollbar">

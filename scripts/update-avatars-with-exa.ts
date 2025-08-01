@@ -42,13 +42,16 @@ async function downloadAndUploadAvatar(
       return null;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('creators')
-      .getPublicUrl(fileName);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('creators').getPublicUrl(fileName);
 
     return publicUrl;
   } catch (error) {
-    console.log('  ❌ Error:', error instanceof Error ? error.message : 'Unknown error');
+    console.log(
+      '  ❌ Error:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     return null;
   }
 }
@@ -61,7 +64,7 @@ async function updateCreatorWithExaSearch(creatorName: string) {
       .select('id, display_name, avatar_url')
       .eq('display_name', creatorName)
       .single();
-    
+
     if (!creator) {
       console.log(`  ❌ Creator not found: ${creatorName}`);
       return false;
@@ -73,18 +76,25 @@ async function updateCreatorWithExaSearch(creatorName: string) {
     }
 
     console.log(`\n🔍 Searching for ${creatorName}...`);
-    
+
     // This is where we'll call Exa from the main script
     return { creator, needsSearch: true };
   } catch (error) {
-    console.log(`  ❌ ${creatorName}:`, error instanceof Error ? error.message : 'Unknown error');
+    console.log(
+      `  ❌ ${creatorName}:`,
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     return false;
   }
 }
 
-async function updateAvatar(creatorId: string, creatorName: string, imageUrl: string) {
+async function updateAvatar(
+  creatorId: string,
+  creatorName: string,
+  imageUrl: string
+) {
   const publicUrl = await downloadAndUploadAvatar(imageUrl, creatorId);
-  
+
   if (!publicUrl) {
     console.log(`  ❌ Failed to upload avatar for ${creatorName}`);
     return false;
@@ -92,17 +102,17 @@ async function updateAvatar(creatorId: string, creatorName: string, imageUrl: st
 
   const { error: updateError } = await supabase
     .from('creators')
-    .update({ 
+    .update({
       avatar_url: publicUrl,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', creatorId);
-  
+
   if (updateError) {
     console.log(`  ❌ Update error for ${creatorName}:`, updateError.message);
     return false;
   }
-  
+
   console.log(`  ✅ ${creatorName} avatar updated!`);
   return true;
 }

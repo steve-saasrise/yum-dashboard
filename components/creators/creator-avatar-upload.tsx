@@ -23,7 +23,9 @@ export function CreatorAvatarUpload({
   disabled = false,
 }: CreatorAvatarUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>(currentAvatar);
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>(
+    currentAvatar
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const supabase = createBrowserSupabaseClient();
@@ -133,8 +135,7 @@ export function CreatorAvatarUpload({
         description: 'Creator avatar has been updated successfully.',
       });
     } catch (error) {
-      let errorMessage =
-        'Failed to update creator avatar. Please try again.';
+      let errorMessage = 'Failed to update creator avatar. Please try again.';
 
       if (
         error instanceof Error &&
@@ -168,7 +169,7 @@ export function CreatorAvatarUpload({
 
       onAvatarChange('');
       setPreviewUrl(undefined);
-      
+
       // Clear file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -208,7 +209,7 @@ export function CreatorAvatarUpload({
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(n => n[0])
+      .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -219,7 +220,9 @@ export function CreatorAvatarUpload({
       <div className="relative">
         <Avatar className="h-16 w-16">
           <AvatarImage src={previewUrl} alt={creatorName} />
-          <AvatarFallback className="text-sm">{getInitials(creatorName)}</AvatarFallback>
+          <AvatarFallback className="text-sm">
+            {getInitials(creatorName)}
+          </AvatarFallback>
         </Avatar>
 
         {/* Loading overlay */}
