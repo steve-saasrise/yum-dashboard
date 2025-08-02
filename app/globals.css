@@ -132,30 +132,31 @@
   * {
     -webkit-overflow-scrolling: touch;
   }
-  
+
   /* Fix viewport height issues on iOS Safari */
-  html, body {
+  html,
+  body {
     height: 100%;
     position: relative;
   }
-  
+
   /* Fix for iOS Safari scroll container issues */
   main {
     -webkit-overflow-scrolling: touch;
     transform: translateZ(0);
   }
-  
+
   /* Ensure proper height calculation for flex containers */
   .flex {
     min-height: 0;
   }
-  
+
   /* Fix for sticky elements on iOS */
-  [class*="sticky"] {
+  [class*='sticky'] {
     position: -webkit-sticky;
     position: sticky;
   }
-  
+
   /* Force hardware acceleration for better performance */
   [data-sidebar-inset] {
     -webkit-transform: translate3d(0, 0, 0);
@@ -169,36 +170,28 @@
   :root {
     --vh: 1vh;
   }
-  
+
   .min-h-screen {
     min-height: 100vh;
     min-height: calc(var(--vh, 1vh) * 100);
   }
 }
 
-/* Prevent iOS bounce scrolling on main content */
+/* Safari iOS scroll optimization */
 body {
-  position: fixed;
-  width: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
-#__next {
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* Allow scrolling only in designated areas */
+/* Allow scrolling in main content area */
 [data-sidebar-inset] {
-  height: 100vh;
-  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 /* Fix for iOS Safari infinite scroll trigger */
 @supports (-webkit-touch-callout: none) {
   /* Ensure scroll events fire properly */
-  [role="main"] {
+  [role='main'] {
     -webkit-overflow-scrolling: touch;
     overflow-y: scroll;
     height: 100%;
