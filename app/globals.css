@@ -144,6 +144,7 @@
   main {
     -webkit-overflow-scrolling: touch;
     transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
 
   /* Ensure proper height calculation for flex containers */
@@ -159,6 +160,21 @@
 
   /* Force hardware acceleration for better performance */
   [data-sidebar-inset] {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  /* Improve scroll performance on content containers */
+  [role='main'] {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: scroll-position;
+  }
+
+  /* Fix for Safari iOS infinite scroll containers */
+  .grid {
     -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
   }
