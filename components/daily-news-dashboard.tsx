@@ -103,7 +103,7 @@ import {
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
 import { BackToTop } from '@/components/back-to-top';
 import { AISummary } from '@/components/ui/ai-summary';
-import { LoungeLogo } from '@/components/lounge-logo';
+import { YumLogo } from '@/components/yum-logo';
 import { IntersectionObserverGrid } from '@/components/intersection-observer-grid';
 
 // --- PLATFORM ICONS ---
@@ -222,7 +222,7 @@ function AppSidebar({
           }}
           className="flex items-center cursor-pointer focus:outline-none"
         >
-          <LoungeLogo className="h-6 w-auto text-gray-900 dark:text-white" />
+          <YumLogo className="h-6 w-auto text-gray-900 dark:text-white" />
         </button>
       </SidebarHeader>
 
