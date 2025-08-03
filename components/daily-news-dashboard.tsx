@@ -177,8 +177,8 @@ interface SidebarLounge {
 
 interface AppSidebarProps {
   onTopicCreate: () => void;
-  onTopicEdit: (topic: { id: number; name: string; color?: string }) => void;
-  onTopicDelete: (topic: { id: number; name: string; color?: string }) => void;
+  onTopicEdit: (topic: { id: string; name: string; color?: string }) => void;
+  onTopicDelete: (topic: { id: string; name: string; color?: string }) => void;
   onCreatorCreate: () => void;
   lounges: Lounge[];
   isLoadingLounges: boolean;
@@ -353,7 +353,7 @@ function AppSidebar({
                               <DropdownMenuItem
                                 onClick={() =>
                                   onTopicEdit({
-                                    id: parseInt(lounge.id),
+                                    id: lounge.id,
                                     name: lounge.name,
                                   })
                                 }
@@ -364,7 +364,7 @@ function AppSidebar({
                                 className="text-red-600"
                                 onClick={() =>
                                   onTopicDelete({
-                                    id: parseInt(lounge.id),
+                                    id: lounge.id,
                                     name: lounge.name,
                                   })
                                 }
@@ -811,52 +811,138 @@ function TopicManagementModal({
   open,
   onOpenChange,
   topic,
+  onSuccess,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   topic?: SidebarLounge;
+  onSuccess?: () => void;
 }) {
   const isEditing = !!topic;
+  const [name, setName] = React.useState(topic?.name || '');
+  const [description, setDescription] = React.useState(topic?.description || '');
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (topic) {
+      setName(topic.name);
+      setDescription(topic.description || '');
+    } else {
+      setName('');
+      setDescription('');
+    }
+  }, [topic]);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      toast.error('Lounge name is required');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const payload: any = {
+        name: name.trim(),
+      };
+      
+      // Only add description if it has a value
+      if (description.trim()) {
+        payload.description = description.trim();
+      }
+
+      const response = await fetch(
+        isEditing ? `/api/lounges/${topic.id}` : '/api/lounges',
+        {
+          method: isEditing ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save lounge');
+      }
+
+      toast.success(
+        isEditing
+          ? `${name} has been updated`
+          : `${name} has been created`
+      );
+
+      onOpenChange(false);
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to save lounge'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Edit Topic' : 'Create New Topic'}
+            {isEditing ? 'Edit Lounge' : 'Create New Lounge'}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? `Update the details for the "${topic?.name}" topic.`
-              : 'Add a new topic to categorize content.'}
+              ? `Update the details for the "${topic?.name}" lounge.`
+              : 'Add a new lounge to organize creators and content.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">
               Name
             </Label>
             <Input
               id="name"
-              defaultValue={topic?.name || ''}
-              className="col-span-3"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. AI, Startups, Design"
+              autoFocus
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
-              Description
+          <div className="space-y-2">
+            <Label htmlFor="description">
+              Description <span className="text-sm text-muted-foreground">(optional)</span>
             </Label>
             <Input
               id="description"
-              defaultValue={topic?.description || ''}
-              className="col-span-3"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description of this lounge"
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
-          <Button>{isEditing ? 'Save Changes' : 'Create Topic'}</Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : null}
+            {isEditing ? 'Save Changes' : 'Create Lounge'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1154,13 +1240,13 @@ export function DailyNewsDashboard() {
   };
 
   const handleEditTopic = (topic: {
-    id: number;
+    id: string;
     name: string;
     color?: string;
   }) => {
     // Convert to Topic type
     const fullTopic: SidebarLounge = {
-      id: String(topic.id),
+      id: topic.id,
       name: topic.name,
       slug: topic.name.toLowerCase().replace(/\s+/g, '-'),
       color: topic.color,
@@ -1170,13 +1256,13 @@ export function DailyNewsDashboard() {
   };
 
   const handleDeleteTopic = (topic: {
-    id: number;
+    id: string;
     name: string;
     color?: string;
   }) => {
     // Convert to Topic type
     const fullTopic: SidebarLounge = {
-      id: String(topic.id),
+      id: topic.id,
       name: topic.name,
       slug: topic.name.toLowerCase().replace(/\s+/g, '-'),
       color: topic.color,
@@ -1604,6 +1690,10 @@ export function DailyNewsDashboard() {
         open={isTopicModalOpen}
         onOpenChange={setTopicModalOpen}
         topic={selectedTopic || undefined}
+        onSuccess={() => {
+          refreshLounges();
+          refreshContent();
+        }}
       />
       <AddCreatorModal
         open={isCreatorModalOpen}
@@ -1619,16 +1709,49 @@ export function DailyNewsDashboard() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Lounge</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the "
-              {selectedTopic?.name}" topic.
+              Are you sure you want to delete the "{selectedTopic?.name}" lounge? 
+              This will remove it from your sidebar, but any creators assigned to 
+              this lounge will remain in your system. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-600 hover:bg-red-700">
-              Delete
+            <AlertDialogAction 
+              className="bg-red-600 hover:bg-red-700"
+              onClick={async () => {
+                if (!selectedTopic) return;
+                
+                try {
+                  const response = await fetch(`/api/lounges/${selectedTopic.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                  });
+
+                  if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to delete lounge');
+                  }
+
+                  toast.success(`${selectedTopic.name} has been deleted`);
+                  setDeleteDialogOpen(false);
+                  setSelectedTopic(null);
+                  refreshLounges();
+                  // Clear selection if this lounge was selected
+                  if (selectedLoungeId === selectedTopic.id) {
+                    setSelectedLoungeId(null);
+                  }
+                } catch (error) {
+                  toast.error(
+                    error instanceof Error ? error.message : 'Failed to delete lounge'
+                  );
+                }
+              }}
+            >
+              Delete Lounge
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
