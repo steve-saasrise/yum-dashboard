@@ -327,8 +327,14 @@ function AppSidebar({
                                 : 'bg-gray-400 dark:bg-gray-600'
                             }`}
                           />
-                          <span className="truncate">{lounge.name}Lounge</span>
-                          <SidebarMenuBadge className={canManageCreators ? "md:group-hover/topic-item:opacity-0 md:transition-opacity md:duration-200" : ""}>
+                          <span className="truncate">{lounge.name} Lounge</span>
+                          <SidebarMenuBadge
+                            className={
+                              canManageCreators
+                                ? 'md:group-hover/topic-item:opacity-0 md:transition-opacity md:duration-200'
+                                : ''
+                            }
+                          >
                             {lounge.creator_count || 0}
                           </SidebarMenuBadge>
                         </SidebarMenuButton>
@@ -1372,7 +1378,7 @@ export function DailyNewsDashboard() {
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {lounges.find((l) => l.id === selectedLoungeId)?.name
-                  ? `${lounges.find((l) => l.id === selectedLoungeId)?.name}Lounge`
+                  ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
                   : 'Your Lounge'}
               </h1>
               <div className="flex items-center gap-2">
