@@ -52,7 +52,7 @@ export async function queueCreatorsForProcessing(
     // Use creator ID as job ID for deduplication
     const jobId = `creator-${creator.id}`;
     const existingJob = await creatorQueue.getJob(jobId);
-    
+
     // Only add if no existing job or previous job is completed/failed
     if (!existingJob) {
       jobsToAdd.push({
@@ -93,7 +93,8 @@ export async function queueCreatorsForProcessing(
   }
 
   // Add all jobs in bulk
-  const results = jobsToAdd.length > 0 ? await creatorQueue.addBulk(jobsToAdd) : [];
+  const results =
+    jobsToAdd.length > 0 ? await creatorQueue.addBulk(jobsToAdd) : [];
 
   return {
     queued: results.length,
@@ -135,7 +136,11 @@ const STATS_CACHE_TTL = 60000; // Cache for 1 minute
 // Get queue statistics with caching
 export async function getQueueStats(useCache = true) {
   // Return cached stats if fresh
-  if (useCache && statsCache && Date.now() - statsCache.timestamp < STATS_CACHE_TTL) {
+  if (
+    useCache &&
+    statsCache &&
+    Date.now() - statsCache.timestamp < STATS_CACHE_TTL
+  ) {
     return statsCache.data;
   }
 
@@ -146,7 +151,7 @@ export async function getQueueStats(useCache = true) {
     try {
       // Use getJobCounts which is more efficient (single Redis call)
       const counts = await queue.getJobCounts();
-      
+
       stats[name] = {
         waiting: counts.waiting || 0,
         active: counts.active || 0,
@@ -188,24 +193,24 @@ export async function cleanQueues(olderThan: number = 24 * 60 * 60 * 1000) {
 // Professional cleanup - balanced for performance and debugging
 export async function professionalCleanup() {
   const queues = getQueues();
-  
+
   console.log('[Queue Cleanup] Starting cleanup...');
-  
+
   for (const [name, queue] of Object.entries(queues)) {
     try {
       // Clean in batches to avoid memory issues
       // Remove completed jobs older than 1 hour
       await queue.clean(3600000, 100, 'completed');
-      
-      // Remove failed jobs older than 24 hours  
+
+      // Remove failed jobs older than 24 hours
       await queue.clean(86400000, 100, 'failed');
-      
+
       console.log(`[Queue Cleanup] ${name}: Cleaned old jobs`);
     } catch (error) {
       console.error(`[Queue Cleanup] Error cleaning queue ${name}:`, error);
     }
   }
-  
+
   console.log('[Queue Cleanup] Cleanup completed');
 }
 
