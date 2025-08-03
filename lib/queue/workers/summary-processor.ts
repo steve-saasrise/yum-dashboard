@@ -41,7 +41,7 @@ async function processSummaries(job: Job) {
   }
 
   try {
-    await job.updateProgress(10);
+    // Removed progress update to reduce Redis operations
 
     const summaryService = getAISummaryService();
 
@@ -66,12 +66,10 @@ async function processSummaries(job: Job) {
         errors += batch.length;
       }
 
-      // Update progress
-      const progress = 10 + (80 * (i + BATCH_SIZE)) / contentIds.length;
-      await job.updateProgress(Math.min(progress, 90));
+      // Removed progress update to reduce Redis operations
     }
 
-    await job.updateProgress(100);
+    // Removed final progress update
 
     return {
       success: true,
@@ -90,11 +88,15 @@ async function processSummaries(job: Job) {
 export function createSummaryProcessorWorker() {
   const worker = new Worker(QUEUE_NAMES.AI_SUMMARY, processSummaries, {
     connection: getRedisConnection(),
-    concurrency: WORKER_CONCURRENCY.AI_SUMMARY,
+    concurrency: 2, // Balanced for API rate limits
     limiter: {
       max: 5,
       duration: 60000, // Max 5 jobs per minute (OpenAI rate limits)
     },
+    // Professional settings
+    drainDelay: 5, // Standard drain delay
+    stalledInterval: 30000, // Standard stalled check
+    lockDuration: 30000, // Standard lock duration
   });
 
   worker.on('completed', (job) => {

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   queueCreatorsForProcessing,
   getQueueStats,
+  aggressiveCleanup,
 } from '@/lib/queue/queue-service';
 
 // Verify cron authorization
@@ -36,6 +37,14 @@ export async function GET(request: NextRequest) {
         },
         { status: 500 }
       );
+    }
+
+    // Clean up old jobs before starting new ones
+    try {
+      await aggressiveCleanup();
+    } catch (cleanupError) {
+      console.error('Queue cleanup failed:', cleanupError);
+      // Continue even if cleanup fails
     }
 
     // Create Supabase service client
@@ -73,9 +82,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Queued ${queueResult.queued} creators for processing`,
+      message: `Queued ${queueResult.queued} creators for processing (${queueResult.skipped} skipped)`,
       stats: {
         creatorsQueued: queueResult.queued,
+        creatorsSkipped: queueResult.skipped,
         totalCreators: creators.length,
         queueStatus: queueStats,
       },

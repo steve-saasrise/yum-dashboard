@@ -37,32 +37,67 @@ export function getQueues() {
   return queues;
 }
 
-// Add creators to processing queue
+// Add creators to processing queue with deduplication
 export async function queueCreatorsForProcessing(
   creators: Array<{ id: string; display_name: string }>
 ) {
   const queues = getQueues();
   const creatorQueue = queues[QUEUE_NAMES.CREATOR_PROCESSING];
 
-  // Add each creator as a separate job
-  const jobs = creators.map((creator) => ({
-    name: JOB_NAMES.PROCESS_SINGLE_CREATOR,
-    data: {
-      creatorId: creator.id,
-      creatorName: creator.display_name,
-      timestamp: new Date().toISOString(),
-    },
-    opts: {
-      priority: 1, // Default priority
-      delay: 0, // Process immediately
-    },
-  }));
+  // Check for existing jobs and only add new ones
+  const jobsToAdd = [];
+  let skipped = 0;
+
+  for (const creator of creators) {
+    // Use creator ID as job ID for deduplication
+    const jobId = `creator-${creator.id}`;
+    const existingJob = await creatorQueue.getJob(jobId);
+    
+    // Only add if no existing job or previous job is completed/failed
+    if (!existingJob) {
+      jobsToAdd.push({
+        name: JOB_NAMES.PROCESS_SINGLE_CREATOR,
+        data: {
+          creatorId: creator.id,
+          creatorName: creator.display_name,
+          timestamp: new Date().toISOString(),
+        },
+        opts: {
+          jobId, // Set job ID for deduplication
+          priority: 1, // Default priority
+          delay: 0, // Process immediately
+        },
+      });
+    } else {
+      const state = await existingJob.getState();
+      if (state === 'completed' || state === 'failed') {
+        // Remove old job and add new one
+        await existingJob.remove();
+        jobsToAdd.push({
+          name: JOB_NAMES.PROCESS_SINGLE_CREATOR,
+          data: {
+            creatorId: creator.id,
+            creatorName: creator.display_name,
+            timestamp: new Date().toISOString(),
+          },
+          opts: {
+            jobId, // Set job ID for deduplication
+            priority: 1, // Default priority
+            delay: 0, // Process immediately
+          },
+        });
+      } else {
+        skipped++;
+      }
+    }
+  }
 
   // Add all jobs in bulk
-  const results = await creatorQueue.addBulk(jobs);
+  const results = jobsToAdd.length > 0 ? await creatorQueue.addBulk(jobsToAdd) : [];
 
   return {
     queued: results.length,
+    skipped,
     jobs: results.map((job) => ({ id: job.id, name: job.name })),
   };
 }
@@ -93,27 +128,49 @@ export async function queueContentForSummaries(
   };
 }
 
-// Get queue statistics
-export async function getQueueStats() {
+// Cached queue stats to reduce Redis operations
+let statsCache: { data: any; timestamp: number } | null = null;
+const STATS_CACHE_TTL = 60000; // Cache for 1 minute
+
+// Get queue statistics with caching
+export async function getQueueStats(useCache = true) {
+  // Return cached stats if fresh
+  if (useCache && statsCache && Date.now() - statsCache.timestamp < STATS_CACHE_TTL) {
+    return statsCache.data;
+  }
+
   const queues = getQueues();
   const stats: Record<string, any> = {};
 
   for (const [name, queue] of Object.entries(queues)) {
-    const [waiting, active, completed, failed] = await Promise.all([
-      queue.getWaitingCount(),
-      queue.getActiveCount(),
-      queue.getCompletedCount(),
-      queue.getFailedCount(),
-    ]);
-
-    stats[name] = {
-      waiting,
-      active,
-      completed,
-      failed,
-      total: waiting + active,
-    };
+    try {
+      // Use getJobCounts which is more efficient (single Redis call)
+      const counts = await queue.getJobCounts();
+      
+      stats[name] = {
+        waiting: counts.waiting || 0,
+        active: counts.active || 0,
+        completed: counts.completed || 0,
+        failed: counts.failed || 0,
+        delayed: counts.delayed || 0,
+        total: (counts.waiting || 0) + (counts.active || 0),
+      };
+    } catch (error) {
+      console.error(`Failed to get stats for queue ${name}:`, error);
+      stats[name] = {
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0,
+        total: 0,
+        error: true,
+      };
+    }
   }
+
+  // Cache the stats
+  statsCache = { data: stats, timestamp: Date.now() };
 
   return stats;
 }
@@ -127,3 +184,30 @@ export async function cleanQueues(olderThan: number = 24 * 60 * 60 * 1000) {
     await queue.clean(olderThan * 7, 100, 'failed'); // Keep failed jobs longer
   }
 }
+
+// Professional cleanup - balanced for performance and debugging
+export async function professionalCleanup() {
+  const queues = getQueues();
+  
+  console.log('[Queue Cleanup] Starting cleanup...');
+  
+  for (const [name, queue] of Object.entries(queues)) {
+    try {
+      // Clean in batches to avoid memory issues
+      // Remove completed jobs older than 1 hour
+      await queue.clean(3600000, 100, 'completed');
+      
+      // Remove failed jobs older than 24 hours  
+      await queue.clean(86400000, 100, 'failed');
+      
+      console.log(`[Queue Cleanup] ${name}: Cleaned old jobs`);
+    } catch (error) {
+      console.error(`[Queue Cleanup] Error cleaning queue ${name}:`, error);
+    }
+  }
+  
+  console.log('[Queue Cleanup] Cleanup completed');
+}
+
+// Keep aggressive cleanup as an option for emergencies
+export const aggressiveCleanup = professionalCleanup;

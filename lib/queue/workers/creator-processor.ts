@@ -52,8 +52,7 @@ async function processCreator(job: Job) {
   };
 
   try {
-    // Update job progress
-    await job.updateProgress(10);
+    // Remove progress update to reduce Redis operations
 
     // Get creator's URLs
     const { data: creatorUrls, error: urlsError } = await supabase
@@ -65,7 +64,7 @@ async function processCreator(job: Job) {
       throw new Error(`Failed to fetch URLs for creator ${creatorId}`);
     }
 
-    await job.updateProgress(20);
+    // Removed progress update
 
     const contentService = new ContentService(supabase);
 
@@ -181,8 +180,7 @@ async function processCreator(job: Job) {
 
       stats.platforms[creatorUrl.platform] = platformStats;
 
-      // Update progress
-      await job.updateProgress(20 + (60 * (i + 1)) / creatorUrls.length);
+      // Removed progress update to reduce Redis operations
     }
 
     // Update creator's last_fetched_at
@@ -197,7 +195,7 @@ async function processCreator(job: Job) {
       })
       .eq('id', creatorId);
 
-    await job.updateProgress(90);
+    // Removed progress update
 
     // Queue new content for AI summary generation
     console.log(`[Creator ${creatorName}] Summary queue check:`, {
@@ -228,7 +226,8 @@ async function processCreator(job: Job) {
       }
     }
 
-    await job.updateProgress(100);
+    // Final progress update only if needed for monitoring
+    // await job.updateProgress(100);
 
     return {
       success: true,
@@ -246,11 +245,17 @@ async function processCreator(job: Job) {
 export function createCreatorProcessorWorker() {
   const worker = new Worker(QUEUE_NAMES.CREATOR_PROCESSING, processCreator, {
     connection: getRedisConnection(),
-    concurrency: WORKER_CONCURRENCY.CREATOR_PROCESSING,
+    concurrency: 5, // Balanced concurrency for medium scale
     limiter: {
       max: 10,
       duration: 1000, // Max 10 jobs per second
     },
+    // Professional optimization settings
+    drainDelay: 5, // Standard drain delay
+    stalledInterval: 30000, // Standard stalled check interval
+    lockDuration: 30000, // Standard lock duration
+    skipStalledCheck: false, // Keep stalled checks for reliability
+    // Additional settings for performance
   });
 
   worker.on('completed', (job) => {
