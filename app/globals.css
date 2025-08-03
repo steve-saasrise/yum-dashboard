@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Safari iOS Virtual Scroll Optimizations */
+@import '../styles/safari-ios-fixes.css';
+
+/* Smooth Scroll Optimizations */
+@import '../styles/smooth-scroll.css';
+
+/* Performance Optimizations for Infinite Scroll */
+@import '../styles/performance-optimizations.css';
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -70,7 +79,7 @@
     @apply border-border;
   }
   html {
-    scroll-behavior: smooth;
+    /* Removed smooth scrolling as it conflicts with virtualization */
   }
   body {
     @apply bg-background text-foreground;

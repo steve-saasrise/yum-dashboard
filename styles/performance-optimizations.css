@@ -1,0 +1,45 @@
+/* Performance optimizations for infinite scroll */
+
+/* Use CSS containment to isolate layout calculations */
+.content-card {
+  contain: layout style;
+  /* Prevent layout shifts by giving cards intrinsic sizing */
+  content-visibility: auto;
+  contain-intrinsic-size: 0 350px; /* Estimated height for cards */
+}
+
+/* Optimize repaints for list items */
+.content-list-item {
+  contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 120px; /* Estimated height for list items */
+}
+
+/* Force GPU acceleration for smoother scrolling */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+}
+
+/* Reduce repaints during scroll */
+.smooth-scroll * {
+  pointer-events: none;
+}
+
+.smooth-scroll:not(:hover) * {
+  pointer-events: auto;
+}
+
+/* Optimize images in cards */
+.content-card img,
+.content-list-item img {
+  content-visibility: auto;
+  contain-intrinsic-size: 100%;
+}
+
+/* Prevent expensive filters during scroll on iOS */
+@supports (-webkit-touch-callout: none) {
+  .smooth-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}

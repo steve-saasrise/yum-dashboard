@@ -1,0 +1,107 @@
+/* Smooth scroll optimizations */
+
+/* Enable smooth scrolling with hardware acceleration */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Optimize scrollbar appearance */
+.scrollbar-optimized {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.scrollbar-optimized::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-optimized::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-optimized::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.scrollbar-optimized::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
+
+.dark .scrollbar-optimized::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.5);
+}
+
+.dark .scrollbar-optimized::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(75, 85, 99, 0.7);
+}
+
+/* Optimize rendering performance */
+.virtuoso-scroller {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Prevent layout shifts during scroll */
+.content-card {
+  contain: layout style paint;
+}
+
+/* Smooth transitions for list/grid toggle */
+.view-transition {
+  transition: opacity 150ms ease-in-out;
+}
+
+/* Loading skeleton animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.05) 25%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+}
+
+/* Optimize touch scrolling on mobile */
+@media (pointer: coarse) {
+  .virtuoso-scroller {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: pan-y;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .smooth-scroll {
+    scroll-behavior: auto;
+  }
+
+  .view-transition {
+    transition: none;
+  }
+}

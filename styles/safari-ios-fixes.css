@@ -1,0 +1,133 @@
+/* Safari iOS Virtual Scroll Optimizations */
+
+/* Prevent scroll chaining and elastic bounce */
+.virtual-scroller-container {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000;
+}
+
+/* Fix position: fixed issues on iOS */
+.virtual-scroller-container * {
+  transform: translate3d(0, 0, 0);
+}
+
+/* Prevent layout shifts during scroll */
+.virtual-scroller-item {
+  contain: layout style paint;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Fix Safari rendering issues with dynamic content */
+.virtual-scroller-viewport {
+  position: relative;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+/* Optimize touch scrolling */
+@supports (-webkit-touch-callout: none) {
+  .virtual-scroller-container {
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translateZ(0);
+  }
+
+  /* Prevent text selection during scroll */
+  .virtual-scroller-container {
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Re-enable text selection for content */
+  .virtual-scroller-item {
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
+  }
+}
+
+/* Fix iOS momentum scrolling */
+.ios-scroll-fix {
+  position: relative;
+  height: 100%;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Prevent rubber-band scrolling at boundaries */
+.ios-scroll-fix::before,
+.ios-scroll-fix::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  z-index: -1;
+}
+
+.ios-scroll-fix::before {
+  top: -1px;
+}
+
+.ios-scroll-fix::after {
+  bottom: -1px;
+}
+
+/* Hardware acceleration for smooth scrolling */
+.virtual-scroller-container,
+.virtual-scroller-item {
+  -webkit-backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  -webkit-transform-style: preserve-3d;
+}
+
+/* Reduce repaints during scroll */
+.virtual-scroller-container {
+  pointer-events: none;
+}
+
+.virtual-scroller-container.is-scrolling {
+  pointer-events: none;
+}
+
+.virtual-scroller-container:not(.is-scrolling) {
+  pointer-events: auto;
+}
+
+.virtual-scroller-item {
+  pointer-events: auto;
+}
+
+/* Fix Safari position: sticky issues */
+@supports (-webkit-hyphens: none) {
+  .sticky-header {
+    position: -webkit-sticky;
+    position: sticky;
+    z-index: 10;
+    transform: translateZ(0);
+  }
+}
+
+/* Optimize images in virtual scroll */
+.virtual-scroller-item img {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Fix Safari flexbox issues in scroll containers */
+.virtual-scroller-item > * {
+  flex-shrink: 0;
+}
+
+/* Prevent content jumping on dynamic height changes */
+.virtual-scroller-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}

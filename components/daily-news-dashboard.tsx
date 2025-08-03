@@ -3,12 +3,11 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { useContent } from '@/hooks/use-content';
+import { useInfiniteContent } from '@/hooks/use-infinite-content';
 import { useLounges } from '@/hooks/use-lounges';
 import type { Creator, Platform } from '@/types/creator';
 import type { Lounge } from '@/types/lounge';
 import { toast } from 'sonner';
-import { toast as toastUI } from '@/hooks/use-toast';
 import {
   Sidebar,
   SidebarProvider,
@@ -102,14 +101,10 @@ import {
   X as XIcon,
 } from 'lucide-react';
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
-import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel';
 import { BackToTop } from '@/components/back-to-top';
-import { AISummary, AISummaryCompact } from '@/components/ui/ai-summary';
-import {
-  ContentSkeleton,
-  ContentSkeletonList,
-} from '@/components/content-skeleton';
+import { AISummary } from '@/components/ui/ai-summary';
 import { LoungeLogo } from '@/components/lounge-logo';
+import { IntersectionObserverGrid } from '@/components/intersection-observer-grid';
 
 // --- PLATFORM ICONS ---
 
@@ -707,7 +702,7 @@ function Header({
   );
 }
 
-function ContentCard({
+export const ContentCard = React.memo(function ContentCard({
   item,
   creators,
   onSave,
@@ -786,7 +781,7 @@ function ContentCard({
 
   return (
     <Card
-      className={`overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 flex flex-col ${isDeleted ? 'opacity-60' : ''}`}
+      className={`overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 flex flex-col h-full ${isDeleted ? 'opacity-60' : ''}`}
     >
       {isDeleted && canDelete && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 border-b border-yellow-200 dark:border-yellow-800">
@@ -940,7 +935,7 @@ function ContentCard({
       </CardContent>
     </Card>
   );
-}
+});
 
 function TopicManagementModal({
   open,
@@ -998,215 +993,7 @@ function TopicManagementModal({
   );
 }
 
-// --- NEW: Content List Item Component ---
-function ContentListItem({
-  item,
-  creators,
-  onSave,
-  onUnsave,
-  onDelete,
-  onUndelete,
-  canDelete,
-}: {
-  item: FeedItem;
-  creators: Creator[];
-  onSave?: (id: string) => Promise<void>;
-  onUnsave?: (id: string) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
-  onUndelete?: (id: string) => Promise<void>;
-  canDelete?: boolean;
-}) {
-  const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
-  const isDeleted = item.is_deleted || false;
-  const creator =
-    item.creator || creators.find((c) => c.id === item.creator_id);
-
-  const getPlatformIcon = (platformName: string) => {
-    switch (platformName?.toLowerCase()) {
-      case 'youtube':
-        return Youtube;
-      case 'x':
-      case 'twitter':
-        return Icons.x;
-      case 'linkedin':
-        return Linkedin;
-      case 'threads':
-        return Icons.threads;
-      default:
-        return Rss;
-    }
-  };
-
-  const PlatformIcon = getPlatformIcon(item.platform);
-
-  if (!creator) return null;
-
-  return (
-    <Card
-      className={`overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 w-full ${isDeleted ? 'opacity-60' : ''}`}
-    >
-      {isDeleted && canDelete && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 border-b border-yellow-200 dark:border-yellow-800">
-          <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
-            This content is hidden from users
-          </p>
-        </div>
-      )}
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          <Avatar className="h-12 w-12 border flex-shrink-0">
-            <AvatarImage
-              src={creator.avatar_url || '/placeholder.svg'}
-              alt={
-                'display_name' in creator ? creator.display_name : creator.name
-              }
-            />
-            <AvatarFallback>
-              {('display_name' in creator
-                ? creator.display_name
-                : creator.name
-              ).charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="font-semibold text-gray-800 dark:text-gray-100">
-                {'display_name' in creator
-                  ? creator.display_name
-                  : creator.name}
-              </p>
-              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                <PlatformIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="whitespace-nowrap">
-                  {item.published_at
-                    ? new Date(item.published_at).toLocaleDateString()
-                    : 'Recently'}
-                </span>
-              </div>
-            </div>
-
-            <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white line-clamp-2 leading-tight">
-              {item.title}
-            </h3>
-
-            <AISummaryCompact
-              shortSummary={item.ai_summary_short}
-              originalDescription={item.description}
-              className="mb-3"
-            />
-
-            <div className="flex flex-wrap gap-2">
-              {(item.topics || []).map((topic) => {
-                return (
-                  <Badge
-                    key={topic.id}
-                    variant="secondary"
-                    className={`${topic.color || 'bg-gray-100 text-gray-800'} hover:${topic.color || 'bg-gray-100'} font-normal text-xs`}
-                  >
-                    {topic.name}
-                  </Badge>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 bg-transparent"
-                    asChild
-                  >
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>View Original</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-gray-500 hover:text-primary"
-                    onClick={async () => {
-                      try {
-                        if (bookmarked && onUnsave) {
-                          await onUnsave(item.id);
-                          setBookmarked(false);
-                        } else if (!bookmarked && onSave) {
-                          await onSave(item.id);
-                          setBookmarked(true);
-                        }
-                      } catch {
-                        // Error is handled by the hook with toast
-                      }
-                    }}
-                  >
-                    <Bookmark
-                      className={`h-4 w-4 ${bookmarked ? 'fill-primary text-primary' : ''}`}
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Bookmark</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            {canDelete && (onDelete || onUndelete) && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={`h-9 w-9 ${isDeleted ? 'text-green-600 hover:text-green-700' : 'text-gray-500 hover:text-red-600'}`}
-                      onClick={async () => {
-                        try {
-                          if (isDeleted && onUndelete) {
-                            await onUndelete(item.id);
-                          } else if (!isDeleted && onDelete) {
-                            await onDelete(item.id);
-                          }
-                        } catch {
-                          // Error is handled by the hook with toast
-                        }
-                      }}
-                    >
-                      {isDeleted ? (
-                        <Icons.undo className="h-4 w-4" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{isDeleted ? 'Undelete' : 'Delete'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+// ContentListItem is now imported from separate component file
 
 function MobileFiltersSheet({
   open,
@@ -1422,7 +1209,27 @@ export function DailyNewsDashboard() {
   >([]);
   const [isLoadingPlatforms, setIsLoadingPlatforms] = React.useState(true);
 
-  // Use the content hook to fetch real content
+  // Get viewport width for responsive columns
+  const [columns, setColumns] = React.useState(3);
+
+  React.useEffect(() => {
+    const updateColumns = () => {
+      const width = window.innerWidth;
+      if (width < 1024) {
+        setColumns(1); // Mobile
+      } else if (width < 1280) {
+        setColumns(2); // Desktop lg
+      } else {
+        setColumns(3); // Desktop xl
+      }
+    };
+
+    updateColumns();
+    window.addEventListener('resize', updateColumns);
+    return () => window.removeEventListener('resize', updateColumns);
+  }, []);
+
+  // Use the infinite content hook with React Query
   const {
     content,
     loading: isLoadingContent,
@@ -1432,13 +1239,37 @@ export function DailyNewsDashboard() {
     deleteContent,
     undeleteContent,
     refreshContent,
-    refreshDisplay,
-    loadMore,
-  } = useContent({
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useInfiniteContent({
     lounge_id: selectedLoungeId || undefined,
     platforms:
       selectedPlatforms.length > 0 ? (selectedPlatforms as any) : undefined,
+    sort_by: 'published_at',
+    sort_order: 'desc',
   });
+
+  // Filter content based on user role
+  const filteredContent = React.useMemo(() => {
+    return content.filter((item) => {
+      // Filter out deleted content for viewers
+      if (userRole === 'viewer' && item.is_deleted) {
+        return false;
+      }
+      return true;
+    });
+  }, [content, userRole]);
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('Content state:', {
+      contentLength: content.length,
+      filteredContentLength: filteredContent.length,
+      isLoadingContent,
+      hasMore,
+      isFetchingNextPage,
+    });
+  }, [content, filteredContent, isLoadingContent, hasMore, isFetchingNextPage]);
 
   // Use the optimistic delete handlers from the hook
   const handleDeleteContent = deleteContent;
@@ -1838,7 +1669,7 @@ export function DailyNewsDashboard() {
                 </div>
               </div>
             </div>
-            {content.length === 0 && !isLoadingContent ? (
+            {filteredContent.length === 0 && !isLoadingContent ? (
               // Empty state
               <div className="flex flex-col items-center justify-center py-16 px-4">
                 <div className="max-w-md text-center space-y-6">
@@ -1869,7 +1700,10 @@ export function DailyNewsDashboard() {
                         fetched automatically.
                       </p>
                       {canManageCreators && (
-                        <Button variant="outline" onClick={refreshContent}>
+                        <Button
+                          variant="outline"
+                          onClick={() => refreshContent()}
+                        >
                           <Brain className="w-4 h-4 mr-2" />
                           Refresh & Generate AI Summaries
                         </Button>
@@ -1878,7 +1712,7 @@ export function DailyNewsDashboard() {
                   )}
                 </div>
               </div>
-            ) : isLoadingContent ? (
+            ) : isLoadingContent && filteredContent.length === 0 ? (
               // Loading state
               <div className="flex items-center justify-center py-16">
                 <div className="relative w-12 h-12">
@@ -1887,184 +1721,23 @@ export function DailyNewsDashboard() {
                 </div>
               </div>
             ) : (
-              // Content feed
-              <>
-                <div className="lg:hidden">
-                  <div className="grid grid-cols-1 gap-6">
-                    {content
-                      .filter((item) => {
-                        // Filter out deleted content for viewers
-                        if (userRole === 'viewer' && item.is_deleted) {
-                          console.log(
-                            '[Content Filter] Filtering deleted item:',
-                            {
-                              itemId: item.id,
-                              title: item.title,
-                              is_deleted: item.is_deleted,
-                              userRole,
-                              shouldFilter: true,
-                            }
-                          );
-                          return false;
-                        }
-                        return true;
-                      })
-                      .map((item) => (
-                        <ContentCard
-                          key={item.id}
-                          item={{
-                            id: item.id,
-                            title: item.title || '',
-                            description: item.description,
-                            ai_summary: item.ai_summary,
-                            ai_summary_short: item.ai_summary_short,
-                            ai_summary_long: item.ai_summary_long,
-                            summary_generated_at: item.summary_generated_at,
-                            summary_model: item.summary_model,
-                            summary_status: item.summary_status,
-                            summary_error_message: item.summary_error_message,
-                            url: item.url,
-                            platform: item.platform,
-                            creator_id: item.creator_id,
-                            creator: item.creator,
-                            published_at: item.published_at || item.created_at,
-                            is_saved: item.is_saved,
-                            is_deleted: item.is_deleted,
-                            topics: item.topics,
-                          }}
-                          creators={creators}
-                          onSave={saveContent}
-                          onUnsave={unsaveContent}
-                          onDelete={handleDeleteContent}
-                          onUndelete={handleUndeleteContent}
-                          canDelete={canManageCreators}
-                        />
-                      ))}
-                  </div>
-                </div>
-                <div className="hidden lg:block">
-                  {view === 'grid' ? (
-                    <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
-                      {content
-                        .filter((item) => {
-                          // Filter out deleted content for viewers
-                          if (userRole === 'viewer' && item.is_deleted) {
-                            return false;
-                          }
-                          return true;
-                        })
-                        .map((item) => (
-                          <ContentCard
-                            key={item.id}
-                            item={{
-                              id: item.id,
-                              title: item.title || '',
-                              description: item.description,
-                              ai_summary: item.ai_summary,
-                              ai_summary_short: item.ai_summary_short,
-                              ai_summary_long: item.ai_summary_long,
-                              summary_generated_at: item.summary_generated_at,
-                              summary_model: item.summary_model,
-                              summary_status: item.summary_status,
-                              summary_error_message: item.summary_error_message,
-                              url: item.url,
-                              platform: item.platform,
-                              creator_id: item.creator_id,
-                              creator: item.creator,
-                              published_at:
-                                item.published_at || item.created_at,
-                              is_saved: item.is_saved,
-                              is_deleted: item.is_deleted,
-                              topics: item.topics,
-                            }}
-                            creators={creators}
-                            onSave={saveContent}
-                            onUnsave={unsaveContent}
-                            onDelete={handleDeleteContent}
-                            onUndelete={handleUndeleteContent}
-                            canDelete={canManageCreators}
-                          />
-                        ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-4 w-full">
-                      {content
-                        .filter((item) => {
-                          // Filter out deleted content for viewers
-                          if (userRole === 'viewer' && item.is_deleted) {
-                            return false;
-                          }
-                          return true;
-                        })
-                        .map((item) => (
-                          <ContentListItem
-                            key={item.id}
-                            item={{
-                              id: item.id,
-                              title: item.title || '',
-                              description: item.description,
-                              ai_summary: item.ai_summary,
-                              ai_summary_short: item.ai_summary_short,
-                              ai_summary_long: item.ai_summary_long,
-                              summary_generated_at: item.summary_generated_at,
-                              summary_model: item.summary_model,
-                              summary_status: item.summary_status,
-                              summary_error_message: item.summary_error_message,
-                              url: item.url,
-                              platform: item.platform,
-                              creator_id: item.creator_id,
-                              creator: item.creator,
-                              published_at:
-                                item.published_at || item.created_at,
-                              is_saved: item.is_saved,
-                              is_deleted: item.is_deleted,
-                              topics: item.topics,
-                            }}
-                            creators={creators}
-                            onSave={saveContent}
-                            onUnsave={unsaveContent}
-                            onDelete={handleDeleteContent}
-                            onUndelete={handleUndeleteContent}
-                            canDelete={canManageCreators}
-                          />
-                        ))}
-                    </div>
-                  )}
-                </div>
-                {/* Infinite scroll sentinel and loading skeletons */}
-                <InfiniteScrollSentinel
-                  onLoadMore={loadMore}
+              // Content feed with ultra-smooth virtualization
+              <div className="h-[calc(100vh-theme(spacing.16)-theme(spacing.6)*2-theme(spacing.6)-60px)]">
+                <IntersectionObserverGrid
+                  items={filteredContent}
+                  creators={creators}
+                  view={view}
+                  columns={columns}
                   hasMore={hasMore}
-                  loading={isLoadingContent}
+                  isFetchingNextPage={isFetchingNextPage}
+                  fetchNextPage={fetchNextPage}
+                  saveContent={saveContent}
+                  unsaveContent={unsaveContent}
+                  deleteContent={handleDeleteContent}
+                  undeleteContent={handleUndeleteContent}
+                  canManageCreators={canManageCreators}
                 />
-                {/* Show skeletons while loading more content */}
-                {isLoadingContent && content.length > 0 && (
-                  <div className="lg:hidden">
-                    <div className="grid grid-cols-1 gap-6">
-                      {[...Array(3)].map((_, i) => (
-                        <ContentSkeleton key={`mobile-skeleton-${i}`} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {isLoadingContent && content.length > 0 && (
-                  <div className="hidden lg:block">
-                    {view === 'grid' ? (
-                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
-                        {[...Array(6)].map((_, i) => (
-                          <ContentSkeleton key={`desktop-skeleton-${i}`} />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="space-y-4 w-full">
-                        {[...Array(4)].map((_, i) => (
-                          <ContentSkeletonList key={`list-skeleton-${i}`} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
+              </div>
             )}
           </main>
           <BackToTop />
