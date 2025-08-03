@@ -350,9 +350,47 @@ function AppSidebar({
                             }`}
                           />
                           <span className="truncate">{lounge.name}Lounge</span>
-                          <SidebarMenuBadge className="group-hover/topic-item:opacity-0 transition-opacity duration-200">
+                          <SidebarMenuBadge className="md:group-hover/topic-item:opacity-0 md:transition-opacity md:duration-200">
                             {lounge.creator_count || 0}
                           </SidebarMenuBadge>
+                          {canManageCreators && (
+                            <div className="md:hidden ml-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent side="right" align="start">
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      onTopicEdit({
+                                        id: parseInt(lounge.id),
+                                        name: lounge.name,
+                                      })
+                                    }
+                                  >
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() =>
+                                      onTopicDelete({
+                                        id: parseInt(lounge.id),
+                                        name: lounge.name,
+                                      })
+                                    }
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
                         </SidebarMenuButton>
                         {canManageCreators && (
                           <DropdownMenu>
@@ -360,7 +398,7 @@ function AppSidebar({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-100 md:opacity-0 md:group-hover/topic-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
+                                className="hidden md:block absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/topic-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
@@ -542,6 +580,34 @@ function AppSidebar({
                                 {creator.name}
                               </span>
                             </div>
+                            {canManageCreators && (
+                              <div className="md:hidden ml-2">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent side="right" align="start">
+                                    <DropdownMenuItem
+                                      onClick={() => onCreatorEdit(creator)}
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() => onCreatorDelete(creator)}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
                           </SidebarMenuButton>
                           {canManageCreators && (
                             <DropdownMenu>
@@ -549,7 +615,7 @@ function AppSidebar({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-100 md:opacity-0 md:group-hover/creator-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
+                                  className="hidden md:block absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/creator-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
