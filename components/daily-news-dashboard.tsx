@@ -300,7 +300,7 @@ function AppSidebar({
                     lounges.map((lounge) => (
                       <SidebarMenuItem
                         key={lounge.id}
-                        className="group/topic-item"
+                        className="group/topic-item relative"
                       >
                         <SidebarMenuButton
                           tooltip={lounge.name}
@@ -331,44 +331,6 @@ function AppSidebar({
                           <SidebarMenuBadge className="md:group-hover/topic-item:opacity-0 md:transition-opacity md:duration-200">
                             {lounge.creator_count || 0}
                           </SidebarMenuBadge>
-                          {canManageCreators && (
-                            <div className="md:hidden ml-2 flex items-center">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 flex items-center justify-center"
-                                  >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent side="right" align="start">
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      onTopicEdit({
-                                        id: parseInt(lounge.id),
-                                        name: lounge.name,
-                                      })
-                                    }
-                                  >
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-red-600"
-                                    onClick={() =>
-                                      onTopicDelete({
-                                        id: parseInt(lounge.id),
-                                        name: lounge.name,
-                                      })
-                                    }
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          )}
                         </SidebarMenuButton>
                         {canManageCreators && (
                           <DropdownMenu>
@@ -376,7 +338,7 @@ function AppSidebar({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="hidden md:flex md:items-center md:justify-center absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/topic-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover/topic-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
