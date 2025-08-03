@@ -1,5 +1,26 @@
 /* Safari iOS Virtual Scroll Optimizations */
 
+/* iOS Touch Event Optimizations */
+button,
+[role="button"],
+.sidebar-menu-button,
+[data-sidebar="menu-button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  cursor: pointer;
+}
+
+/* Prevent double-tap zoom on interactive elements */
+@supports (-webkit-touch-callout: none) {
+  button,
+  [role="button"],
+  .sidebar-menu-button,
+  [data-sidebar="menu-button"] {
+    touch-action: manipulation;
+  }
+}
+
 /* Prevent scroll chaining and elastic bounce */
 .virtual-scroller-container {
   overscroll-behavior: contain;
