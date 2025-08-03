@@ -180,24 +180,6 @@ interface AppSidebarProps {
   onTopicEdit: (topic: { id: number; name: string; color?: string }) => void;
   onTopicDelete: (topic: { id: number; name: string; color?: string }) => void;
   onCreatorCreate: () => void;
-  onCreatorEdit: (creator: {
-    id: string;
-    name: string;
-    platform: string;
-    handle: string;
-  }) => void;
-  onCreatorDelete: (creator: { id: string; name: string }) => void;
-  creators: Array<{
-    id: string;
-    name: string;
-    platform: string;
-    handle: string;
-    category?: string;
-    isActive?: boolean;
-    lastFetchedAt?: string;
-    avatar_url?: string;
-  }>;
-  isLoadingCreators: boolean;
   lounges: Lounge[];
   isLoadingLounges: boolean;
   selectedLoungeId: string | null;
@@ -219,10 +201,6 @@ function AppSidebar({
   onTopicEdit,
   onTopicDelete,
   onCreatorCreate,
-  onCreatorEdit,
-  onCreatorDelete,
-  creators,
-  isLoadingCreators,
   lounges,
   isLoadingLounges,
   selectedLoungeId,
@@ -354,13 +332,13 @@ function AppSidebar({
                             {lounge.creator_count || 0}
                           </SidebarMenuBadge>
                           {canManageCreators && (
-                            <div className="md:hidden ml-2">
+                            <div className="md:hidden ml-2 flex items-center">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6"
+                                    className="h-6 w-6 flex items-center justify-center"
                                   >
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
@@ -398,7 +376,7 @@ function AppSidebar({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="hidden md:block absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/topic-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
+                                className="hidden md:flex md:items-center md:justify-center absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/topic-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
@@ -489,152 +467,6 @@ function AppSidebar({
                               {platform.count}
                             </SidebarMenuBadge>
                           </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })
-                  )}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </SidebarGroup>
-
-        {/* Creators Section */}
-        <SidebarGroup>
-          <Collapsible defaultOpen>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="w-full flex items-center justify-between hover:bg-sidebar-accent rounded-md px-2 py-1 transition-colors duration-200 group">
-                <span>Creators</span>
-                <ChevronDown className="h-4 w-4 transition-transform duration-300 ease-in-out group-data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent className="transition-all duration-300 ease-in-out data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden">
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {isLoadingCreators ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                      Loading...
-                    </div>
-                  ) : creators.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                      No creators yet
-                    </div>
-                  ) : (
-                    creators.map((creator) => {
-                      const lastFetched = creator.lastFetchedAt
-                        ? new Date(creator.lastFetchedAt)
-                        : null;
-                      const now = new Date();
-                      const timeDiff = lastFetched
-                        ? now.getTime() - lastFetched.getTime()
-                        : null;
-                      const hoursAgo = timeDiff
-                        ? Math.floor(timeDiff / (1000 * 60 * 60))
-                        : null;
-                      const minutesAgo = timeDiff
-                        ? Math.floor(
-                            (timeDiff % (1000 * 60 * 60)) / (1000 * 60)
-                          )
-                        : null;
-
-                      let lastFetchedText = 'Never fetched';
-                      if (lastFetched && hoursAgo !== null) {
-                        if (hoursAgo === 0) {
-                          if (minutesAgo === 0) {
-                            lastFetchedText = 'Just now';
-                          } else {
-                            lastFetchedText = `${minutesAgo}m ago`;
-                          }
-                        } else if (hoursAgo < 24) {
-                          lastFetchedText = `${hoursAgo}h ago`;
-                        } else {
-                          const daysAgo = Math.floor(hoursAgo / 24);
-                          lastFetchedText = `${daysAgo}d ago`;
-                        }
-                      }
-
-                      return (
-                        <SidebarMenuItem
-                          key={creator.id}
-                          className="group/creator-item"
-                        >
-                          <SidebarMenuButton
-                            tooltip={`${creator.name} - Last updated: ${lastFetchedText}`}
-                          >
-                            <div className="relative">
-                              <Avatar className="w-5 h-5">
-                                <AvatarImage
-                                  src={creator.avatar_url || '/placeholder.svg'}
-                                  alt={creator.name}
-                                />
-                                <AvatarFallback className="text-xs">
-                                  {creator.name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div
-                                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${creator.isActive ? 'bg-green-500' : 'bg-gray-400'}`}
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className="truncate block">
-                                {creator.name}
-                              </span>
-                            </div>
-                            {canManageCreators && (
-                              <div className="md:hidden ml-2">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6"
-                                    >
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent side="right" align="start">
-                                    <DropdownMenuItem
-                                      onClick={() => onCreatorEdit(creator)}
-                                    >
-                                      <Edit className="mr-2 h-4 w-4" /> Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className="text-red-600"
-                                      onClick={() => onCreatorDelete(creator)}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            )}
-                          </SidebarMenuButton>
-                          {canManageCreators && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="hidden md:block absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/creator-item:opacity-100 transition-opacity duration-200 group-data-[collapsible=icon]:hidden"
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent side="right" align="start">
-                                <DropdownMenuItem
-                                  onClick={() => onCreatorEdit(creator)}
-                                >
-                                  <Edit className="mr-2 h-4 w-4" /> Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-red-600"
-                                  onClick={() => onCreatorDelete(creator)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
                         </SidebarMenuItem>
                       );
                     })
@@ -1557,19 +1389,6 @@ export function DailyNewsDashboard() {
           onTopicEdit={handleEditTopic}
           onTopicDelete={handleDeleteTopic}
           onCreatorCreate={handleCreateCreator}
-          onCreatorEdit={handleEditCreator}
-          onCreatorDelete={handleDeleteCreator}
-          creators={creators.map((c) => ({
-            id: c.id,
-            name: c.display_name,
-            platform: c.platform || 'website',
-            handle: c.platform_user_id || c.display_name,
-            category: c.lounges?.[0],
-            isActive: c.is_active,
-            lastFetchedAt: c.metadata?.last_fetched_at as string | undefined,
-            avatar_url: c.avatar_url,
-          }))}
-          isLoadingCreators={isLoadingCreators}
           lounges={lounges}
           isLoadingLounges={isLoadingLounges}
           selectedLoungeId={selectedLoungeId}
