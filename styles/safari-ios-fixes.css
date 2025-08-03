@@ -2,9 +2,9 @@
 
 /* iOS Touch Event Optimizations */
 button,
-[role="button"],
+[role='button'],
 .sidebar-menu-button,
-[data-sidebar="menu-button"] {
+[data-sidebar='menu-button'] {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
@@ -14,9 +14,9 @@ button,
 /* Prevent double-tap zoom on interactive elements */
 @supports (-webkit-touch-callout: none) {
   button,
-  [role="button"],
+  [role='button'],
   .sidebar-menu-button,
-  [data-sidebar="menu-button"] {
+  [data-sidebar='menu-button'] {
     touch-action: manipulation;
   }
 }
