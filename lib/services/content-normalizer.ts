@@ -62,21 +62,104 @@ export class ContentNormalizer {
     // Extract media URLs
     const mediaUrls: MediaUrl[] = [];
 
-    // Add enclosure if present (common for podcasts)
+    // Add enclosure if present (common for podcasts and media)
     if (item.enclosure) {
       mediaUrls.push(this.normalizeRSSEnclosure(item.enclosure));
     }
 
-    // Extract images from content (basic implementation)
+    // Extract media:thumbnail if present
+    if ((item as any)['media:thumbnail']) {
+      const thumbnail = (item as any)['media:thumbnail'];
+      const thumbUrl = Array.isArray(thumbnail) 
+        ? thumbnail[0]?.$?.url || thumbnail[0]?.url
+        : thumbnail.$?.url || thumbnail.url;
+      
+      if (thumbUrl && !mediaUrls.some(m => m.url === thumbUrl)) {
+        mediaUrls.push({
+          url: thumbUrl,
+          type: 'image',
+        });
+      }
+    }
+
+    // Extract media:content if present
+    if ((item as any)['media:content']) {
+      const mediaContent = (item as any)['media:content'];
+      const contents = Array.isArray(mediaContent) ? mediaContent : [mediaContent];
+      
+      contents.forEach((content: any) => {
+        const url = content.$?.url || content.url;
+        const type = content.$?.type || content.type;
+        const medium = content.$?.medium || content.medium;
+        
+        if (url && (medium === 'image' || type?.startsWith('image/'))) {
+          if (!mediaUrls.some(m => m.url === url)) {
+            mediaUrls.push({
+              url,
+              type: 'image',
+            });
+          }
+        }
+      });
+    }
+
+    // Extract from media:group if present
+    if ((item as any)['media:group']) {
+      const group = (item as any)['media:group'];
+      
+      // Check media:thumbnail in group
+      if (group['media:thumbnail']) {
+        const thumbnails = Array.isArray(group['media:thumbnail']) 
+          ? group['media:thumbnail'] 
+          : [group['media:thumbnail']];
+        
+        thumbnails.forEach((thumb: any) => {
+          const url = thumb.$?.url || thumb.url;
+          if (url && !mediaUrls.some(m => m.url === url)) {
+            mediaUrls.push({
+              url,
+              type: 'image',
+            });
+          }
+        });
+      }
+      
+      // Check media:content in group
+      if (group['media:content']) {
+        const contents = Array.isArray(group['media:content']) 
+          ? group['media:content'] 
+          : [group['media:content']];
+        
+        contents.forEach((content: any) => {
+          const url = content.$?.url || content.url;
+          const type = content.$?.type || content.type;
+          const medium = content.$?.medium || content.medium;
+          
+          if (url && (medium === 'image' || type?.startsWith('image/'))) {
+            if (!mediaUrls.some(m => m.url === url)) {
+              mediaUrls.push({
+                url,
+                type: 'image',
+              });
+            }
+          }
+        });
+      }
+    }
+
+    // Extract images from content HTML (as fallback)
     const imageMatches = contentBody.match(/<img[^>]+src="([^">]+)"/g);
     if (imageMatches) {
       imageMatches.forEach((imgTag) => {
         const srcMatch = imgTag.match(/src="([^">]+)"/);
         if (srcMatch && srcMatch[1]) {
-          mediaUrls.push({
-            url: srcMatch[1],
-            type: 'image',
-          });
+          // Only add if not already in the list
+          if (!mediaUrls.some(m => m.url === srcMatch[1])) {
+            mediaUrls.push({
+              url: srcMatch[1],
+              type: 'image',
+            });
+          }
         }
       });
     }

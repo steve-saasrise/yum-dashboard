@@ -65,6 +65,54 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'scontent-*.instagram.com',
       },
+      // Cloudinary images (commonly used in RSS feeds)
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      // Generic RSS/blog image sources
+      {
+        protocol: 'https',
+        hostname: '*.wordpress.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.wp.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.medium.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'miro.medium.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.substack.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'substackcdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.substackcdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.blogspot.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.githubusercontent.com',
+      },
+      // Allow all HTTPS domains for RSS feed images
+      // RSS feeds can pull images from any domain
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
     ],
   },
   // Use standalone output for Railway

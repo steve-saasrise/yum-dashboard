@@ -546,7 +546,9 @@ function Header({
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">Curator</p>
+                {state.profile?.role && state.profile.role !== 'viewer' && (
+                  <p className="text-sm font-medium">{state.profile.role.charAt(0).toUpperCase() + state.profile.role.slice(1)}</p>
+                )}
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
             </DropdownMenuLabel>
@@ -786,10 +788,10 @@ export const ContentCard = React.memo(function ContentCard({
             defaultMode="short"
           />
 
-          {/* Display images for Twitter, LinkedIn, and Threads posts */}
+          {/* Display images for Twitter, LinkedIn, Threads, and RSS posts */}
           {item.media_urls &&
             item.media_urls.length > 0 &&
-            ['twitter', 'linkedin', 'threads'].includes(item.platform) &&
+            ['twitter', 'linkedin', 'threads', 'rss'].includes(item.platform) &&
             (() => {
               // Filter out null/placeholder images
               const validImages = item.media_urls.filter(

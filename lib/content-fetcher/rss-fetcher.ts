@@ -214,8 +214,19 @@ export class RSSFetcher {
         contentSnippet?: string;
         categories?: string[];
         enclosure?: { url?: string; type?: string; length?: string | number };
-        enclosures?: Array<{ url?: string }>;
-        'media:content'?: { $?: { url?: string } };
+        enclosures?: Array<{ url?: string; type?: string }>;
+        'media:content'?:
+          | { $?: { url?: string; type?: string; medium?: string } }
+          | Array<{ $?: { url?: string; type?: string; medium?: string } }>;
+        'media:thumbnail'?:
+          | { $?: { url?: string } }
+          | Array<{ $?: { url?: string } }>;
+        'media:group'?: {
+          'media:content'?: Array<{
+            $?: { url?: string; type?: string; medium?: string };
+          }>;
+          'media:thumbnail'?: Array<{ $?: { url?: string } }>;
+        };
         guid?: unknown;
         id?: unknown;
         comments?: string;
@@ -335,7 +346,16 @@ export class RSSFetcher {
     item: {
       enclosure?: { url?: string };
       enclosures?: Array<{ url?: string }>;
-      'media:content'?: { $?: { url?: string } };
+      'media:content'?: 
+        | { $?: { url?: string; type?: string; medium?: string } }
+        | Array<{ $?: { url?: string; type?: string; medium?: string } }>;
+      'media:thumbnail'?: 
+        | { $?: { url?: string } }
+        | Array<{ $?: { url?: string } }>;
+      'media:group'?: {
+        'media:content'?: Array<{ $?: { url?: string; type?: string; medium?: string } }>;
+        'media:thumbnail'?: Array<{ $?: { url?: string } }>;
+      };
       [key: string]: unknown;
     },
     type: 'feed' | 'item'
