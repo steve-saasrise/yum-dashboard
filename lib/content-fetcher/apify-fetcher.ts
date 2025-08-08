@@ -304,62 +304,62 @@ export class ApifyFetcher {
       const mediaUrls: CreateContentInput['media_urls'] = [];
 
       // Check for image candidates in image_versions2
+      // Only take the first (highest quality) candidate as they're all the same image
       if (
         post.image_versions2?.candidates &&
-        Array.isArray(post.image_versions2.candidates)
+        Array.isArray(post.image_versions2.candidates) &&
+        post.image_versions2.candidates.length > 0
       ) {
-        post.image_versions2.candidates.forEach((c: any) => {
-          if (c.url) {
-            mediaUrls.push({
-              url: c.url,
-              type: 'image',
-              width: c.width,
-              height: c.height,
-            });
-          }
-        });
+        const bestCandidate = post.image_versions2.candidates[0];
+        if (bestCandidate.url) {
+          mediaUrls.push({
+            url: bestCandidate.url,
+            type: 'image',
+            width: bestCandidate.width,
+            height: bestCandidate.height,
+          });
+        }
       }
 
       // Check for video versions
-      if (post.video_versions && Array.isArray(post.video_versions)) {
-        post.video_versions.forEach((v: any) => {
-          if (v.url) {
-            mediaUrls.push({
-              url: v.url,
-              type: 'video',
-              width: v.width,
-              height: v.height,
-            });
-          }
-        });
+      // Only take the first (highest quality) version as they're all the same video
+      if (post.video_versions && Array.isArray(post.video_versions) && post.video_versions.length > 0) {
+        const bestVideo = post.video_versions[0];
+        if (bestVideo.url) {
+          mediaUrls.push({
+            url: bestVideo.url,
+            type: 'video',
+            width: bestVideo.width,
+            height: bestVideo.height,
+          });
+        }
       }
 
-      // Check for carousel media
+      // Check for carousel media (these are actually different images/videos)
       if (post.carousel_media && Array.isArray(post.carousel_media)) {
         post.carousel_media.forEach((media: any) => {
-          if (media.image_versions2?.candidates) {
-            media.image_versions2.candidates.forEach((c: any) => {
-              if (c.url) {
-                mediaUrls.push({
-                  url: c.url,
-                  type: 'image',
-                  width: c.width,
-                  height: c.height,
-                });
-              }
-            });
+          // For each carousel item, only take the best quality version
+          if (media.image_versions2?.candidates && media.image_versions2.candidates.length > 0) {
+            const bestCandidate = media.image_versions2.candidates[0];
+            if (bestCandidate.url) {
+              mediaUrls.push({
+                url: bestCandidate.url,
+                type: 'image',
+                width: bestCandidate.width,
+                height: bestCandidate.height,
+              });
+            }
           }
-          if (media.video_versions) {
-            media.video_versions.forEach((v: any) => {
-              if (v.url) {
-                mediaUrls.push({
-                  url: v.url,
-                  type: 'video',
-                  width: v.width,
-                  height: v.height,
-                });
-              }
-            });
+          if (media.video_versions && media.video_versions.length > 0) {
+            const bestVideo = media.video_versions[0];
+            if (bestVideo.url) {
+              mediaUrls.push({
+                url: bestVideo.url,
+                type: 'video',
+                width: bestVideo.width,
+                height: bestVideo.height,
+              });
+            }
           }
         });
       }
