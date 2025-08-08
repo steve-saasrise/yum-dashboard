@@ -17,6 +17,7 @@ interface IntersectionObserverGridProps {
   deleteContent: (id: string) => Promise<void>;
   undeleteContent: (id: string) => Promise<void>;
   canManageCreators: boolean;
+  showVideoEmbeds?: boolean;
 }
 
 // Maximum items to keep in DOM (Twitter uses ~200-300)
@@ -33,6 +34,7 @@ export function IntersectionObserverGrid({
   deleteContent,
   undeleteContent,
   canManageCreators,
+  showVideoEmbeds = true,
 }: IntersectionObserverGridProps) {
   const observerTarget = useRef<HTMLDivElement>(null);
   const earlyTriggerRef = useRef<HTMLDivElement>(null);
@@ -58,6 +60,8 @@ export function IntersectionObserverGrid({
       summary_error_message: item.summary_error_message,
       url: item.url,
       platform: item.platform,
+      platform_content_id: item.platform_content_id,
+      thumbnail_url: item.thumbnail_url,
       creator_id: item.creator_id,
       creator: item.creator,
       published_at: item.published_at || item.created_at,
@@ -172,6 +176,7 @@ export function IntersectionObserverGrid({
           onDelete={deleteContent}
           onUndelete={undeleteContent}
           canDelete={canManageCreators}
+          showVideoEmbeds={showVideoEmbeds}
         />
       ))}
 

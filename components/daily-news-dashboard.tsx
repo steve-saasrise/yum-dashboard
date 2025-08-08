@@ -105,6 +105,7 @@ import { BackToTop } from '@/components/back-to-top';
 import { AISummary } from '@/components/ui/ai-summary';
 import { YumLogo } from '@/components/yum-logo';
 import { IntersectionObserverGrid } from '@/components/intersection-observer-grid';
+import { YouTubeEmbed } from '@/components/ui/youtube-embed';
 
 // --- PLATFORM ICONS ---
 
@@ -145,6 +146,8 @@ interface FeedItem {
   summary_error_message?: string;
   url: string;
   platform: string;
+  platform_content_id?: string;
+  thumbnail_url?: string;
   creator_id: string;
   creator?: {
     id: string;
@@ -586,6 +589,7 @@ export const ContentCard = React.memo(function ContentCard({
   onDelete,
   onUndelete,
   canDelete,
+  showVideoEmbeds = true,
 }: {
   item: FeedItem;
   creators: Creator[];
@@ -594,6 +598,7 @@ export const ContentCard = React.memo(function ContentCard({
   onDelete?: (id: string) => Promise<void>;
   onUndelete?: (id: string) => Promise<void>;
   canDelete?: boolean;
+  showVideoEmbeds?: boolean;
 }) {
   const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -790,6 +795,17 @@ export const ContentCard = React.memo(function ContentCard({
             className="mb-4"
             defaultMode="short"
           />
+
+          {/* Display YouTube video embed */}
+          {item.platform === 'youtube' && item.platform_content_id && (
+            <YouTubeEmbed
+              videoId={item.platform_content_id}
+              title={item.title}
+              thumbnailUrl={item.thumbnail_url}
+              className="mb-4"
+              lazyLoad={true}
+            />
+          )}
 
           {/* Display images for Twitter, LinkedIn, Threads, and RSS posts */}
           {item.media_urls &&
@@ -1433,6 +1449,7 @@ export function DailyNewsDashboard() {
     }>
   >([]);
   const [isLoadingPlatforms, setIsLoadingPlatforms] = React.useState(true);
+  const [showVideoEmbeds, setShowVideoEmbeds] = React.useState(true);
 
   // Get viewport width for responsive columns
   // Single column feed layout
@@ -1891,6 +1908,7 @@ export function DailyNewsDashboard() {
                   deleteContent={handleDeleteContent}
                   undeleteContent={handleUndeleteContent}
                   canManageCreators={canManageCreators}
+                  showVideoEmbeds={showVideoEmbeds}
                 />
               </div>
             )}
