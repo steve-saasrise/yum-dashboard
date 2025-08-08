@@ -9,6 +9,63 @@ const nextConfig = {
   },
   images: {
     unoptimized: false,
+    remotePatterns: [
+      // Twitter/X images
+      {
+        protocol: 'https',
+        hostname: 'pbs.twimg.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'abs.twimg.com',
+      },
+      // LinkedIn images
+      {
+        protocol: 'https',
+        hostname: 'media.licdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'media-exp1.licdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'media-exp2.licdn.com',
+      },
+      // Threads/Instagram images
+      {
+        protocol: 'https',
+        hostname: '*.cdninstagram.com',
+      },
+      {
+        protocol: 'http',
+        hostname: '*.cdninstagram.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static.cdninstagram.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'static.cdninstagram.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'instagram.*.fna.fbcdn.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'scontent-*.cdninstagram.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'scontent.*.fna.fbcdn.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'scontent-*.instagram.com',
+      },
+    ],
   },
   // Use standalone output for Railway
   output: 'standalone',

@@ -2,7 +2,6 @@
 
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { ContentCard } from './daily-news-dashboard';
-import { ContentListItem } from './content-list-item';
 import { ContentSkeletonGrid } from './enhanced-content-skeleton';
 import type { ContentWithCreator } from '@/types/content';
 import type { Creator } from '@/types/creator';
@@ -10,8 +9,6 @@ import type { Creator } from '@/types/creator';
 interface IntersectionObserverGridProps {
   items: ContentWithCreator[];
   creators: Creator[];
-  view: 'grid' | 'list';
-  columns: number;
   hasMore: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => void;
@@ -28,8 +25,6 @@ const MAX_ITEMS_IN_DOM = 200;
 export function IntersectionObserverGrid({
   items,
   creators,
-  view,
-  columns,
   hasMore,
   isFetchingNextPage,
   fetchNextPage,
@@ -69,6 +64,7 @@ export function IntersectionObserverGrid({
       is_saved: item.is_saved,
       is_deleted: item.is_deleted,
       topics: item.topics,
+      media_urls: item.media_urls,
     }),
     []
   );
@@ -163,56 +159,11 @@ export function IntersectionObserverGrid({
     }
   }, [isFetchingNextPage, showSkeletons]);
 
-  if (view === 'grid') {
-    return (
-      <div className="space-y-6">
-        <div
-          className={`grid gap-6 ${
-            columns === 1
-              ? 'grid-cols-1'
-              : columns === 2
-                ? 'grid-cols-1 lg:grid-cols-2'
-                : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'
-          }`}
-        >
-          {displayItems.map((item) => (
-            <ContentCard
-              key={item.id}
-              item={renderItem(item)}
-              creators={creators}
-              onSave={saveContent}
-              onUnsave={unsaveContent}
-              onDelete={deleteContent}
-              onUndelete={undeleteContent}
-              canDelete={canManageCreators}
-            />
-          ))}
-        </div>
-
-        {/* Early loading trigger - invisible element placed before skeletons */}
-        {hasMore && displayItems.length >= 20 && (
-          <div ref={earlyTriggerRef} className="h-0 w-0" aria-hidden="true" />
-        )}
-
-        {/* Skeleton placeholders for smooth loading */}
-        {showSkeletons && <ContentSkeletonGrid count={6} view="grid" />}
-
-        {/* Loading trigger */}
-        {hasMore && (
-          <div
-            ref={observerTarget}
-            className="h-20" // Visible height for trigger
-          />
-        )}
-      </div>
-    );
-  }
-
-  // List view
+  // Single column feed layout with better width utilization
   return (
-    <div className="space-y-4">
+    <div className="max-w-3xl mx-auto space-y-4 px-4 sm:px-6 lg:px-8">
       {displayItems.map((item) => (
-        <ContentListItem
+        <ContentCard
           key={item.id}
           item={renderItem(item)}
           creators={creators}
@@ -224,13 +175,13 @@ export function IntersectionObserverGrid({
         />
       ))}
 
-      {/* Early loading trigger for list view */}
+      {/* Early loading trigger - invisible element placed before skeletons */}
       {hasMore && displayItems.length >= 20 && (
         <div ref={earlyTriggerRef} className="h-0 w-0" aria-hidden="true" />
       )}
 
       {/* Skeleton placeholders for smooth loading */}
-      {showSkeletons && <ContentSkeletonGrid count={4} view="list" />}
+      {showSkeletons && <ContentSkeletonGrid count={3} view="grid" />}
 
       {/* Loading trigger */}
       {hasMore && (

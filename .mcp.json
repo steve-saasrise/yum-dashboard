@@ -28,8 +28,8 @@
       ]
     },
     "semgrep": {
-      "command": "uvx",
-      "args": ["semgrep-mcp"],
+      "command": "/Library/Frameworks/Python.framework/Versions/3.13/bin/semgrep-mcp",
+      "args": [],
       "env": {
         "SEMGREP_APP_TOKEN": "f56088f5a47a877e0d4275f7dac71e25ecbaaf030cb5833df3d86094b8475aeb"
       }

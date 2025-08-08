@@ -419,19 +419,20 @@ export class ApifyFetcher {
 
         // Extract media URLs from various formats
         const mediaUrls: CreateContentInput['media_urls'] = [];
+        const addedUrls = new Set<string>(); // Track URLs to avoid duplicates
 
-        // Handle single media
+        // Handle single media and multiple images
         if (post.media) {
-          if (post.media.url) {
-            mediaUrls.push({
-              url: post.media.url,
-              type: post.media.type === 'video' ? 'video' : 'image',
-            });
-          }
-          // Handle multiple images
-          if (post.media.images && Array.isArray(post.media.images)) {
+          // First check if there are multiple images
+          if (
+            post.media.images &&
+            Array.isArray(post.media.images) &&
+            post.media.images.length > 0
+          ) {
+            // Use the images array for multi-image posts
             post.media.images.forEach((img: any) => {
-              if (img.url) {
+              if (img.url && !addedUrls.has(img.url)) {
+                addedUrls.add(img.url);
                 mediaUrls.push({
                   url: img.url,
                   type: 'image',
@@ -440,11 +441,19 @@ export class ApifyFetcher {
                 });
               }
             });
+          } else if (post.media.url && !addedUrls.has(post.media.url)) {
+            // Fall back to single media URL if no images array
+            addedUrls.add(post.media.url);
+            mediaUrls.push({
+              url: post.media.url,
+              type: post.media.type === 'video' ? 'video' : 'image',
+            });
           }
         }
 
         // Handle article attachments
-        if (post.article?.thumbnail) {
+        if (post.article?.thumbnail && !addedUrls.has(post.article.thumbnail)) {
+          addedUrls.add(post.article.thumbnail);
           mediaUrls.push({
             url: post.article.thumbnail,
             type: 'image',
@@ -452,7 +461,11 @@ export class ApifyFetcher {
         }
 
         // Handle document thumbnails
-        if (post.document?.thumbnail) {
+        if (
+          post.document?.thumbnail &&
+          !addedUrls.has(post.document.thumbnail)
+        ) {
+          addedUrls.add(post.document.thumbnail);
           mediaUrls.push({
             url: post.document.thumbnail,
             type: 'image',

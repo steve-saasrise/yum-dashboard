@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
       .select(
         `
         *,
-        creator:creators!inner(
+        creator:creators(
           id,
           display_name,
           avatar_url,

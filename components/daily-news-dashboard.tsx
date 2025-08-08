@@ -2,11 +2,13 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useInfiniteContent } from '@/hooks/use-infinite-content';
 import { useLounges } from '@/hooks/use-lounges';
 import type { Creator, Platform } from '@/types/creator';
 import type { Lounge } from '@/types/lounge';
+import type { MediaUrl } from '@/types/content';
 import { toast } from 'sonner';
 import {
   Sidebar,
@@ -88,8 +90,6 @@ import {
   Trash2,
   Edit,
   Rss,
-  LayoutGrid,
-  List,
   Bell,
   Filter,
   MoreHorizontal,
@@ -161,6 +161,7 @@ interface FeedItem {
     name: string;
     color?: string;
   }>;
+  media_urls?: MediaUrl[];
 }
 
 // Lounge interface for sidebar
@@ -591,6 +592,10 @@ export const ContentCard = React.memo(function ContentCard({
 }) {
   const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [expandedImage, setExpandedImage] = React.useState<string | null>(null);
+  const [imageIndices, setImageIndices] = React.useState<{
+    [key: string]: number;
+  }>({});
   const isDeleted = item.is_deleted || false;
   const creator =
     item.creator || creators.find((c) => c.id === item.creator_id);
@@ -780,6 +785,266 @@ export const ContentCard = React.memo(function ContentCard({
             className="mb-4"
             defaultMode="short"
           />
+
+          {/* Display images for Twitter, LinkedIn, and Threads posts */}
+          {item.media_urls &&
+            item.media_urls.length > 0 &&
+            ['twitter', 'linkedin', 'threads'].includes(item.platform) &&
+            (() => {
+              // Filter out null/placeholder images
+              const validImages = item.media_urls.filter(
+                (m) =>
+                  m.type === 'image' &&
+                  m.url &&
+                  !m.url.includes('null.jpg') &&
+                  !m.url.includes('null.png')
+              );
+
+              if (validImages.length === 0) return null;
+
+              // Use item.id as unique key for this post's image index
+              const imageKey = item.id;
+              const currentImageIndex = imageIndices[imageKey] || 0;
+              const currentImage =
+                validImages[
+                  Math.min(currentImageIndex, validImages.length - 1)
+                ];
+
+              const handlePrevImage = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                setImageIndices((prev) => ({
+                  ...prev,
+                  [imageKey]:
+                    currentImageIndex === 0
+                      ? validImages.length - 1
+                      : currentImageIndex - 1,
+                }));
+              };
+
+              const handleNextImage = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                setImageIndices((prev) => ({
+                  ...prev,
+                  [imageKey]:
+                    currentImageIndex === validImages.length - 1
+                      ? 0
+                      : currentImageIndex + 1,
+                }));
+              };
+
+              return (
+                <>
+                  <div
+                    className="relative w-full mb-4 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer group"
+                    style={{
+                      aspectRatio: '16/9',
+                      maxHeight: '400px',
+                    }}
+                    onClick={() => setExpandedImage(currentImage.url)}
+                  >
+                    <Image
+                      src={currentImage.url}
+                      alt={item.title || 'Post image'}
+                      fill
+                      className="object-contain group-hover:opacity-95 transition-opacity"
+                      sizes="(max-width: 768px) 100vw, 672px"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
+
+                    {/* Navigation arrows for multiple images */}
+                    {validImages.length > 1 && (
+                      <>
+                        <button
+                          onClick={handlePrevImage}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 19l-7-7 7-7"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={handleNextImage}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </button>
+
+                        {/* Image counter */}
+                        <div className="absolute top-2 right-2">
+                          <div className="bg-black/70 text-white px-2 py-1 rounded text-xs">
+                            {currentImageIndex + 1} of {validImages.length}
+                          </div>
+                        </div>
+
+                        {/* Dots indicator */}
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                          {validImages.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setImageIndices((prev) => ({
+                                  ...prev,
+                                  [imageKey]: idx,
+                                }));
+                              }}
+                              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                                idx === currentImageIndex
+                                  ? 'bg-white'
+                                  : 'bg-white/50'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Expand hint */}
+                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                        <svg
+                          className="w-3 h-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                          />
+                        </svg>
+                        Click to expand
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lightbox Modal with navigation */}
+                  {expandedImage && (
+                    <div
+                      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                      onClick={() => setExpandedImage(null)}
+                    >
+                      <div className="relative max-w-[90vw] max-h-[90vh] flex items-center">
+                        {validImages.length > 1 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const prevIndex = validImages.findIndex(
+                                (img) => img.url === expandedImage
+                              );
+                              const newIndex =
+                                prevIndex === 0
+                                  ? validImages.length - 1
+                                  : prevIndex - 1;
+                              setExpandedImage(validImages[newIndex].url);
+                              setImageIndices((prev) => ({
+                                ...prev,
+                                [imageKey]: newIndex,
+                              }));
+                            }}
+                            className="absolute left-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-3"
+                          >
+                            <svg
+                              className="w-6 h-6"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 19l-7-7 7-7"
+                              />
+                            </svg>
+                          </button>
+                        )}
+
+                        <Image
+                          src={expandedImage}
+                          alt={item.title || 'Post image'}
+                          width={1200}
+                          height={800}
+                          className="object-contain w-auto h-auto max-w-full max-h-[90vh]"
+                          priority
+                        />
+
+                        {validImages.length > 1 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const currentIdx = validImages.findIndex(
+                                (img) => img.url === expandedImage
+                              );
+                              const newIndex =
+                                currentIdx === validImages.length - 1
+                                  ? 0
+                                  : currentIdx + 1;
+                              setExpandedImage(validImages[newIndex].url);
+                              setImageIndices((prev) => ({
+                                ...prev,
+                                [imageKey]: newIndex,
+                              }));
+                            }}
+                            className="absolute right-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-3"
+                          >
+                            <svg
+                              className="w-6 h-6"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5l7 7-7 7"
+                              />
+                            </svg>
+                          </button>
+                        )}
+
+                        <button
+                          className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors z-10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedImage(null);
+                          }}
+                        >
+                          <XIcon className="w-6 h-6" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+
           <div className="flex flex-wrap gap-2 mb-4">
             {(item.topics || []).map((topic) => {
               return (
@@ -820,7 +1085,9 @@ function TopicManagementModal({
 }) {
   const isEditing = !!topic;
   const [name, setName] = React.useState(topic?.name || '');
-  const [description, setDescription] = React.useState(topic?.description || '');
+  const [description, setDescription] = React.useState(
+    topic?.description || ''
+  );
   const [isLoading, setIsLoading] = React.useState(false);
 
   React.useEffect(() => {
@@ -845,7 +1112,7 @@ function TopicManagementModal({
       const payload: any = {
         name: name.trim(),
       };
-      
+
       // Only add description if it has a value
       if (description.trim()) {
         payload.description = description.trim();
@@ -868,9 +1135,7 @@ function TopicManagementModal({
       }
 
       toast.success(
-        isEditing
-          ? `${name} has been updated`
-          : `${name} has been created`
+        isEditing ? `${name} has been updated` : `${name} has been created`
       );
 
       onOpenChange(false);
@@ -901,9 +1166,7 @@ function TopicManagementModal({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="name">
-              Name
-            </Label>
+            <Label htmlFor="name">Name</Label>
             <Input
               id="name"
               value={name}
@@ -914,7 +1177,8 @@ function TopicManagementModal({
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">
-              Description <span className="text-sm text-muted-foreground">(optional)</span>
+              Description{' '}
+              <span className="text-sm text-muted-foreground">(optional)</span>
             </Label>
             <Input
               id="description"
@@ -925,16 +1189,16 @@ function TopicManagementModal({
           </div>
         </div>
         <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)} 
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
             disabled={isLoading}
             className="w-full sm:w-auto"
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={isLoading}
             className="w-full sm:w-auto"
           >
@@ -1129,7 +1393,7 @@ export function DailyNewsDashboard() {
     await signOut();
     window.location.href = '/';
   };
-  const [view, setView] = React.useState<'grid' | 'list'>('grid');
+  // Single column feed - no view toggle needed
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [selectedTopic, setSelectedTopic] =
@@ -1166,24 +1430,7 @@ export function DailyNewsDashboard() {
   const [isLoadingPlatforms, setIsLoadingPlatforms] = React.useState(true);
 
   // Get viewport width for responsive columns
-  const [columns, setColumns] = React.useState(3);
-
-  React.useEffect(() => {
-    const updateColumns = () => {
-      const width = window.innerWidth;
-      if (width < 1024) {
-        setColumns(1); // Mobile
-      } else if (width < 1280) {
-        setColumns(2); // Desktop lg
-      } else {
-        setColumns(3); // Desktop xl
-      }
-    };
-
-    updateColumns();
-    window.addEventListener('resize', updateColumns);
-    return () => window.removeEventListener('resize', updateColumns);
-  }, []);
+  // Single column feed layout
 
   // Use the infinite content hook with React Query
   const {
@@ -1454,14 +1701,14 @@ export function DailyNewsDashboard() {
           onPlatformToggle={handlePlatformToggle}
           onClearPlatforms={handleClearPlatforms}
         />
-        <SidebarInset className="flex-1 flex flex-col w-full">
+        <SidebarInset className="flex-1 flex flex-col w-full min-h-screen bg-gray-50 dark:bg-gray-950">
           <Header
             onSignOut={handleSignOut}
             onRefresh={refreshContent}
             canManageCreators={canManageCreators}
           />
-          <main className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-950">
-            <div className="flex justify-between items-center mb-6">
+          <main className="flex-1 py-4 md:py-6 lg:py-8">
+            <div className="flex justify-between items-center mb-6 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {lounges.find((l) => l.id === selectedLoungeId)?.name
                   ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
@@ -1572,49 +1819,11 @@ export function DailyNewsDashboard() {
                     <DropdownMenuItem>Advanced Search</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                {/* View Toggle Buttons */}
-                <div className="hidden lg:flex items-center gap-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className={`h-9 w-9 ${view === 'list' ? 'bg-gray-100 dark:bg-gray-800' : 'bg-transparent'}`}
-                          onClick={() => setView('list')}
-                        >
-                          <List className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>List View</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className={`h-9 w-9 ${view === 'grid' ? 'bg-gray-100 dark:bg-gray-800' : 'bg-transparent'}`}
-                          onClick={() => setView('grid')}
-                        >
-                          <LayoutGrid className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Grid View</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
               </div>
             </div>
             {filteredContent.length === 0 && !isLoadingContent ? (
               // Empty state
-              <div className="flex flex-col items-center justify-center py-16 px-4">
+              <div className="flex flex-col items-center justify-center py-16 px-4 max-w-3xl mx-auto">
                 <div className="max-w-md text-center space-y-6">
                   <div className="w-20 h-20 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
                     <Rss className="w-10 h-10 text-gray-400" />
@@ -1657,7 +1866,7 @@ export function DailyNewsDashboard() {
               </div>
             ) : isLoadingContent && filteredContent.length === 0 ? (
               // Loading state
-              <div className="flex items-center justify-center py-16">
+              <div className="flex items-center justify-center py-16 max-w-3xl mx-auto">
                 <div className="relative w-12 h-12">
                   <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-gray-800"></div>
                   <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin"></div>
@@ -1665,12 +1874,10 @@ export function DailyNewsDashboard() {
               </div>
             ) : (
               // Content feed with ultra-smooth virtualization
-              <div className="h-[calc(100vh-theme(spacing.16)-theme(spacing.6)*2-theme(spacing.6)-60px)]">
+              <div>
                 <IntersectionObserverGrid
                   items={filteredContent}
                   creators={creators}
-                  view={view}
-                  columns={columns}
                   hasMore={hasMore}
                   isFetchingNextPage={isFetchingNextPage}
                   fetchNextPage={fetchNextPage}
@@ -1711,25 +1918,29 @@ export function DailyNewsDashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Lounge</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the "{selectedTopic?.name}" lounge? 
-              This will remove it from your sidebar, but any creators assigned to 
-              this lounge will remain in your system. This action cannot be undone.
+              Are you sure you want to delete the "{selectedTopic?.name}"
+              lounge? This will remove it from your sidebar, but any creators
+              assigned to this lounge will remain in your system. This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               onClick={async () => {
                 if (!selectedTopic) return;
-                
+
                 try {
-                  const response = await fetch(`/api/lounges/${selectedTopic.id}`, {
-                    method: 'DELETE',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                  });
+                  const response = await fetch(
+                    `/api/lounges/${selectedTopic.id}`,
+                    {
+                      method: 'DELETE',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                    }
+                  );
 
                   if (!response.ok) {
                     const error = await response.json();
@@ -1746,7 +1957,9 @@ export function DailyNewsDashboard() {
                   }
                 } catch (error) {
                   toast.error(
-                    error instanceof Error ? error.message : 'Failed to delete lounge'
+                    error instanceof Error
+                      ? error.message
+                      : 'Failed to delete lounge'
                   );
                 }
               }}
