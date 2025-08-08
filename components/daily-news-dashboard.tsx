@@ -809,25 +809,33 @@ export const ContentCard = React.memo(function ContentCard({
           )}
 
           {/* Display X/Twitter video embed */}
-          {item.platform === 'twitter' && item.media_urls && (() => {
-            // Find the first video in media_urls
-            const videoMedia = item.media_urls.find(m => m.type === 'video');
-            if (videoMedia && videoMedia.url && videoMedia.url.includes('video.twimg.com')) {
-              return (
-                <XVideoEmbed
-                  videoUrl={videoMedia.url}
-                  thumbnailUrl={videoMedia.thumbnail_url}
-                  title={item.title}
-                  className="mb-4"
-                  lazyLoad={true}
-                  width={videoMedia.width}
-                  height={videoMedia.height}
-                  duration={videoMedia.duration}
-                />
+          {item.platform === 'twitter' &&
+            item.media_urls &&
+            (() => {
+              // Find the first video in media_urls
+              const videoMedia = item.media_urls.find(
+                (m) => m.type === 'video'
               );
-            }
-            return null;
-          })()}
+              if (
+                videoMedia &&
+                videoMedia.url &&
+                videoMedia.url.includes('video.twimg.com')
+              ) {
+                return (
+                  <XVideoEmbed
+                    videoUrl={videoMedia.url}
+                    thumbnailUrl={videoMedia.thumbnail_url}
+                    title={item.title}
+                    className="mb-4"
+                    lazyLoad={true}
+                    width={videoMedia.width}
+                    height={videoMedia.height}
+                    duration={videoMedia.duration}
+                  />
+                );
+              }
+              return null;
+            })()}
 
           {/* Display images for Twitter, LinkedIn, Threads, and RSS posts */}
           {item.media_urls &&

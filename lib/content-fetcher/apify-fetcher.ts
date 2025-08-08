@@ -272,11 +272,16 @@ export class ApifyFetcher {
               const mp4Variants = media.video_info?.variants?.filter(
                 (v: any) => v.content_type === 'video/mp4'
               );
-              const bestVideo = mp4Variants?.reduce((best: any, current: any) => {
-                if (!best) return current;
-                return (current.bitrate || 0) > (best.bitrate || 0) ? current : best;
-              }, null);
-              
+              const bestVideo = mp4Variants?.reduce(
+                (best: any, current: any) => {
+                  if (!best) return current;
+                  return (current.bitrate || 0) > (best.bitrate || 0)
+                    ? current
+                    : best;
+                },
+                null
+              );
+
               return {
                 url: bestVideo?.url || media.media_url_https || media.url,
                 type: 'video' as const,
@@ -287,7 +292,7 @@ export class ApifyFetcher {
                 bitrate: bestVideo?.bitrate,
               };
             }
-            
+
             // For images, use the original logic
             return {
               url: media.media_url_https || media.url,
