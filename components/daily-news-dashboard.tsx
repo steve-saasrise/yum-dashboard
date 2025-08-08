@@ -547,7 +547,10 @@ function Header({
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 {state.profile?.role && state.profile.role !== 'viewer' && (
-                  <p className="text-sm font-medium">{state.profile.role.charAt(0).toUpperCase() + state.profile.role.slice(1)}</p>
+                  <p className="text-sm font-medium">
+                    {state.profile.role.charAt(0).toUpperCase() +
+                      state.profile.role.slice(1)}
+                  </p>
                 )}
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>

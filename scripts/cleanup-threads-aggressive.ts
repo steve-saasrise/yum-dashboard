@@ -12,11 +12,11 @@ function extractImageId(url: string): string | null {
   // Instagram/Threads URLs often have patterns like:
   // https://scontent.cdninstagram.com/v/t51.29350-15/{IMAGE_ID}.jpg?...
   // or contain the image ID in other parts of the URL
-  
+
   // Try to extract a stable identifier from the URL
   const patterns = [
-    /\/([A-Za-z0-9_-]{10,})\.jpg/,  // Direct image ID before .jpg
-    /\/([A-Za-z0-9_-]{10,})\.png/,  // Direct image ID before .png
+    /\/([A-Za-z0-9_-]{10,})\.jpg/, // Direct image ID before .jpg
+    /\/([A-Za-z0-9_-]{10,})\.png/, // Direct image ID before .png
     /\/([A-Za-z0-9_-]{10,})\.webp/, // Direct image ID before .webp
     /\/t51\.[\d-]+\/(\d+_\d+_\d+_\w+)/, // Threads/Instagram pattern
     /\/([A-Za-z0-9]{32,})/, // Long hash in path
@@ -42,10 +42,10 @@ function areImagesSimilar(img1: any, img2: any): boolean {
   // Check if these are the same image by comparing:
   // 1. URL patterns (might be same image, different CDN or params)
   // 2. Dimensions (cropped versions will have different aspect ratios but one dimension might match)
-  
+
   const id1 = extractImageId(img1.url);
   const id2 = extractImageId(img2.url);
-  
+
   // If we can extract IDs and they match, they're the same image
   if (id1 && id2 && id1 === id2) {
     return true;
@@ -56,7 +56,7 @@ function areImagesSimilar(img1: any, img2: any): boolean {
   if (img1.width && img1.height && img2.width && img2.height) {
     const sameWidth = Math.abs(img1.width - img2.width) < 10; // Allow small differences
     const sameHeight = Math.abs(img1.height - img2.height) < 10;
-    
+
     // If they share one dimension, they might be crops
     if (sameWidth || sameHeight) {
       return true;
@@ -66,7 +66,7 @@ function areImagesSimilar(img1: any, img2: any): boolean {
     const ratio1 = img1.width / img1.height;
     const ratio2 = img2.width / img2.height;
     const ratioDiff = Math.abs(ratio1 - ratio2);
-    
+
     // If aspect ratios are very close (within 0.01), consider them the same
     if (ratioDiff < 0.01) {
       return true;
@@ -92,11 +92,14 @@ async function cleanupThreadsAggressively() {
   }
 
   // Filter to posts with multiple images
-  const problematicPosts = posts.filter(p => 
-    p.media_urls && Array.isArray(p.media_urls) && p.media_urls.length > 4
+  const problematicPosts = posts.filter(
+    (p) =>
+      p.media_urls && Array.isArray(p.media_urls) && p.media_urls.length > 4
   );
 
-  console.log(`Found ${problematicPosts.length} Threads posts with 5+ images to clean`);
+  console.log(
+    `Found ${problematicPosts.length} Threads posts with 5+ images to clean`
+  );
 
   let fixedCount = 0;
   let totalImagesBefore = 0;
@@ -108,7 +111,7 @@ async function cleanupThreadsAggressively() {
 
     // Deduplicate images more aggressively
     const uniqueImages: any[] = [];
-    
+
     for (const media of post.media_urls) {
       if (!media.url) continue;
 
@@ -138,16 +141,18 @@ async function cleanupThreadsAggressively() {
     if (newCount < originalCount) {
       const { error: updateError } = await supabase
         .from('content')
-        .update({ 
+        .update({
           media_urls: uniqueImages,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', post.id);
 
       if (updateError) {
         console.error(`Error updating post ${post.id}:`, updateError);
       } else {
-        console.log(`✓ Fixed: ${post.title?.substring(0, 50)}... (${originalCount} → ${newCount} images)`);
+        console.log(
+          `✓ Fixed: ${post.title?.substring(0, 50)}... (${originalCount} → ${newCount} images)`
+        );
         fixedCount++;
       }
     }
@@ -174,8 +179,10 @@ async function cleanupThreadsAggressively() {
     for (const post of stillHighPosts) {
       const imageCount = post.media_urls?.length || 0;
       if (imageCount > 4) {
-        console.log(`- ${post.title?.substring(0, 50)}... : ${imageCount} images`);
-        
+        console.log(
+          `- ${post.title?.substring(0, 50)}... : ${imageCount} images`
+        );
+
         // Show first few URLs to understand the pattern
         if (imageCount > 10 && post.media_urls) {
           console.log('  Sample URLs:');

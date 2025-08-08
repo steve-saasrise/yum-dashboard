@@ -323,7 +323,11 @@ export class ApifyFetcher {
 
       // Check for video versions
       // Only take the first (highest quality) version as they're all the same video
-      if (post.video_versions && Array.isArray(post.video_versions) && post.video_versions.length > 0) {
+      if (
+        post.video_versions &&
+        Array.isArray(post.video_versions) &&
+        post.video_versions.length > 0
+      ) {
         const bestVideo = post.video_versions[0];
         if (bestVideo.url) {
           mediaUrls.push({
@@ -339,7 +343,10 @@ export class ApifyFetcher {
       if (post.carousel_media && Array.isArray(post.carousel_media)) {
         post.carousel_media.forEach((media: any) => {
           // For each carousel item, only take the best quality version
-          if (media.image_versions2?.candidates && media.image_versions2.candidates.length > 0) {
+          if (
+            media.image_versions2?.candidates &&
+            media.image_versions2.candidates.length > 0
+          ) {
             const bestCandidate = media.image_versions2.candidates[0];
             if (bestCandidate.url) {
               mediaUrls.push({

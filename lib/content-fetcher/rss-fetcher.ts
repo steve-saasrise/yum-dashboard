@@ -346,14 +346,16 @@ export class RSSFetcher {
     item: {
       enclosure?: { url?: string };
       enclosures?: Array<{ url?: string }>;
-      'media:content'?: 
+      'media:content'?:
         | { $?: { url?: string; type?: string; medium?: string } }
         | Array<{ $?: { url?: string; type?: string; medium?: string } }>;
-      'media:thumbnail'?: 
+      'media:thumbnail'?:
         | { $?: { url?: string } }
         | Array<{ $?: { url?: string } }>;
       'media:group'?: {
-        'media:content'?: Array<{ $?: { url?: string; type?: string; medium?: string } }>;
+        'media:content'?: Array<{
+          $?: { url?: string; type?: string; medium?: string };
+        }>;
         'media:thumbnail'?: Array<{ $?: { url?: string } }>;
       };
       [key: string]: unknown;

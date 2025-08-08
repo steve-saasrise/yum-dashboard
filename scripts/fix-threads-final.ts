@@ -12,7 +12,7 @@ function extractInstagramImageId(url: string): string | null {
   // Instagram/Threads image URLs contain a unique identifier like:
   // 519644274_17916530556112190_2138150983724420103
   // This appears before .webp, .jpg, .png etc
-  
+
   const patterns = [
     // Main pattern: long number sequence before file extension
     /\/(\d+_\d+_\d+)_n\./,
@@ -21,7 +21,7 @@ function extractInstagramImageId(url: string): string | null {
     // Video pattern
     /\/v\d+\.[\d-]+\/([A-Za-z0-9_-]+)\./,
     // Fallback to any long alphanumeric sequence
-    /\/([A-Za-z0-9_-]{20,})(?:\.|\/|$)/
+    /\/([A-Za-z0-9_-]{20,})(?:\.|\/|$)/,
   ];
 
   for (const pattern of patterns) {
@@ -35,7 +35,10 @@ function extractInstagramImageId(url: string): string | null {
   try {
     const urlObj = new URL(url);
     // Remove size parameters and return the path
-    const pathWithoutParams = urlObj.pathname.replace(/s\d+x\d+|c[\d.]+a?_dst-jpg/g, '');
+    const pathWithoutParams = urlObj.pathname.replace(
+      /s\d+x\d+|c[\d.]+a?_dst-jpg/g,
+      ''
+    );
     return pathWithoutParams;
   } catch {
     return null;
@@ -78,10 +81,10 @@ async function fixThreadsFinal() {
 
       // Extract the unique image ID from the URL
       const imageId = extractInstagramImageId(media.url);
-      
+
       if (imageId && seenImageIds.has(imageId)) {
         // This is a duplicate - check if we should replace with higher quality
-        const existingIndex = uniqueImages.findIndex(img => {
+        const existingIndex = uniqueImages.findIndex((img) => {
           const existingId = extractInstagramImageId(img.url);
           return existingId === imageId;
         });
@@ -109,16 +112,18 @@ async function fixThreadsFinal() {
     if (newCount < originalCount) {
       const { error: updateError } = await supabase
         .from('content')
-        .update({ 
+        .update({
           media_urls: uniqueImages,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', post.id);
 
       if (updateError) {
         console.error(`Error updating post ${post.id}:`, updateError);
       } else {
-        console.log(`✓ Fixed: ${post.title?.substring(0, 50)}... (${originalCount} → ${newCount} images)`);
+        console.log(
+          `✓ Fixed: ${post.title?.substring(0, 50)}... (${originalCount} → ${newCount} images)`
+        );
         fixedCount++;
       }
     }
@@ -147,7 +152,9 @@ async function fixThreadsFinal() {
       const imageCount = post.media_urls?.length || 0;
       if (imageCount > 3) {
         hasHighCount = true;
-        console.log(`- ${post.title?.substring(0, 50)}... : ${imageCount} images`);
+        console.log(
+          `- ${post.title?.substring(0, 50)}... : ${imageCount} images`
+        );
       }
     }
     if (!hasHighCount) {

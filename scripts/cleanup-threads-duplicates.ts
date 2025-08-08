@@ -45,9 +45,10 @@ async function cleanupThreadsDuplicates() {
 
       // Create a key based on dimensions if available
       // Images with the same content but different resolutions will have proportional dimensions
-      const dimensionKey = media.width && media.height 
-        ? `${media.type}_${Math.round((media.width / media.height) * 100)}` 
-        : media.url;
+      const dimensionKey =
+        media.width && media.height
+          ? `${media.type}_${Math.round((media.width / media.height) * 100)}`
+          : media.url;
 
       // For Threads, if we see the same aspect ratio, it's likely the same image
       // Keep only the first (highest quality) version
@@ -65,16 +66,18 @@ async function cleanupThreadsDuplicates() {
     if (newCount < originalCount) {
       const { error: updateError } = await supabase
         .from('content')
-        .update({ 
+        .update({
           media_urls: cleanedMediaUrls,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', post.id);
 
       if (updateError) {
         console.error(`Error updating post ${post.id}:`, updateError);
       } else {
-        console.log(`✓ Fixed: ${post.title?.substring(0, 50)}... (${originalCount} → ${newCount} images)`);
+        console.log(
+          `✓ Fixed: ${post.title?.substring(0, 50)}... (${originalCount} → ${newCount} images)`
+        );
         fixedCount++;
       }
     }
@@ -100,7 +103,9 @@ async function cleanupThreadsDuplicates() {
     console.log('\n=== Posts with most images after cleanup ===');
     for (const post of worstPosts) {
       const imageCount = post.media_urls?.length || 0;
-      console.log(`- ${post.title?.substring(0, 50)}... : ${imageCount} images`);
+      console.log(
+        `- ${post.title?.substring(0, 50)}... : ${imageCount} images`
+      );
     }
   }
 }
