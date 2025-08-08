@@ -124,7 +124,10 @@ export function YouTubeEmbed({
   return (
     <div
       ref={containerRef}
-      className={cn('relative w-full bg-black rounded-lg overflow-hidden', className)}
+      className={cn(
+        'relative w-full bg-black rounded-lg overflow-hidden',
+        className
+      )}
       style={{ aspectRatio: '16/9' }}
     >
       {hasError ? (
@@ -134,7 +137,12 @@ export function YouTubeEmbed({
           <Button
             variant="outline"
             className="text-white border-white hover:bg-white/10"
-            onClick={() => window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')}
+            onClick={() =>
+              window.open(
+                `https://www.youtube.com/watch?v=${videoId}`,
+                '_blank'
+              )
+            }
           >
             Watch on YouTube
           </Button>

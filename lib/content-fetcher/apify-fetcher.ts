@@ -265,15 +265,37 @@ export class ApifyFetcher {
         ? new Date(tweet.createdAt).toISOString()
         : new Date().toISOString(),
       media_urls: tweet.extendedEntities?.media
-        ? tweet.extendedEntities.media.map((media: any) => ({
-            url: media.media_url_https || media.url,
-            type:
-              media.type === 'video' || media.type === 'animated_gif'
-                ? ('video' as const)
-                : ('image' as const),
-            width: media.sizes?.large?.w,
-            height: media.sizes?.large?.h,
-          }))
+        ? tweet.extendedEntities.media.map((media: any) => {
+            // For videos and GIFs, extract the actual video URL from variants
+            if (media.type === 'video' || media.type === 'animated_gif') {
+              // Get the best quality MP4 variant
+              const mp4Variants = media.video_info?.variants?.filter(
+                (v: any) => v.content_type === 'video/mp4'
+              );
+              const bestVideo = mp4Variants?.reduce((best: any, current: any) => {
+                if (!best) return current;
+                return (current.bitrate || 0) > (best.bitrate || 0) ? current : best;
+              }, null);
+              
+              return {
+                url: bestVideo?.url || media.media_url_https || media.url,
+                type: 'video' as const,
+                thumbnail_url: media.media_url_https || media.url,
+                width: media.sizes?.large?.w,
+                height: media.sizes?.large?.h,
+                duration: media.video_info?.duration_millis,
+                bitrate: bestVideo?.bitrate,
+              };
+            }
+            
+            // For images, use the original logic
+            return {
+              url: media.media_url_https || media.url,
+              type: 'image' as const,
+              width: media.sizes?.large?.w,
+              height: media.sizes?.large?.h,
+            };
+          })
         : [],
       engagement_metrics: {
         likes: tweet.likeCount || 0,

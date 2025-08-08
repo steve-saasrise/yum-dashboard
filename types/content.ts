@@ -68,8 +68,10 @@ export interface MediaUrl {
   title?: string;
   width?: number;
   height?: number;
-  duration?: number; // For video/audio in seconds
+  duration?: number; // For video/audio in milliseconds
   size?: number; // File size in bytes
+  thumbnail_url?: string; // For video thumbnails
+  bitrate?: number; // For video/audio bitrate
 }
 
 // Platform-specific engagement metrics

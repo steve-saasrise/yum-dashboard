@@ -106,6 +106,7 @@ import { AISummary } from '@/components/ui/ai-summary';
 import { YumLogo } from '@/components/yum-logo';
 import { IntersectionObserverGrid } from '@/components/intersection-observer-grid';
 import { YouTubeEmbed } from '@/components/ui/youtube-embed';
+import { XVideoEmbed } from '@/components/ui/x-video-embed';
 
 // --- PLATFORM ICONS ---
 
@@ -807,12 +808,33 @@ export const ContentCard = React.memo(function ContentCard({
             />
           )}
 
+          {/* Display X/Twitter video embed */}
+          {item.platform === 'twitter' && item.media_urls && (() => {
+            // Find the first video in media_urls
+            const videoMedia = item.media_urls.find(m => m.type === 'video');
+            if (videoMedia && videoMedia.url && videoMedia.url.includes('video.twimg.com')) {
+              return (
+                <XVideoEmbed
+                  videoUrl={videoMedia.url}
+                  thumbnailUrl={videoMedia.thumbnail_url}
+                  title={item.title}
+                  className="mb-4"
+                  lazyLoad={true}
+                  width={videoMedia.width}
+                  height={videoMedia.height}
+                  duration={videoMedia.duration}
+                />
+              );
+            }
+            return null;
+          })()}
+
           {/* Display images for Twitter, LinkedIn, Threads, and RSS posts */}
           {item.media_urls &&
             item.media_urls.length > 0 &&
             ['twitter', 'linkedin', 'threads', 'rss'].includes(item.platform) &&
             (() => {
-              // Filter out null/placeholder images
+              // Filter out null/placeholder images and videos (videos are handled separately)
               const validImages = item.media_urls.filter(
                 (m) =>
                   m.type === 'image' &&
