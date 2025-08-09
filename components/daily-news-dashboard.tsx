@@ -108,6 +108,8 @@ import { IntersectionObserverGrid } from '@/components/intersection-observer-gri
 import { YouTubeEmbed } from '@/components/ui/youtube-embed';
 import { XVideoEmbed } from '@/components/ui/x-video-embed';
 import { ReferencedContentDisplay } from '@/components/referenced-content';
+import { LinkPreviewCard } from '@/components/link-preview-card';
+import { ContentLinkPreviews } from '@/components/content-link-previews';
 import type { ReferenceType, ReferencedContent } from '@/types/content';
 
 // --- PLATFORM ICONS ---
@@ -140,6 +142,7 @@ interface FeedItem {
   id: string;
   title: string;
   description?: string;
+  content_body?: string; // Full content text
   ai_summary?: string; // Deprecated
   ai_summary_short?: string;
   ai_summary_long?: string;
@@ -1101,6 +1104,85 @@ export const ContentCard = React.memo(function ContentCard({
                 </>
               );
             })()}
+
+          {/* Display native X/Twitter link previews from media_urls */}
+          {/* Following X.com behavior: Don't show link previews when there's a video */}
+          {item.media_urls &&
+            item.platform === 'twitter' &&
+            (() => {
+              // Check if there's a video in the tweet
+              const hasVideo = item.media_urls.some((m) => m.type === 'video');
+
+              // Skip link previews if there's a video (X.com behavior)
+              if (hasVideo) return null;
+
+              const linkPreviews = item.media_urls.filter(
+                (m) => m.type === 'link_preview'
+              );
+
+              if (linkPreviews.length === 0) return null;
+
+              // X best practice: Show only the first link preview
+              const previewToShow = linkPreviews[0];
+
+              // Only render if we have a valid link URL
+              if (!previewToShow.link_url) return null;
+
+              return (
+                <div className="mb-4">
+                  <LinkPreviewCard
+                    linkUrl={previewToShow.link_url}
+                    linkTitle={previewToShow.link_title}
+                    linkDescription={previewToShow.link_description}
+                    linkDomain={previewToShow.link_domain}
+                    imageUrl={previewToShow.url}
+                    imageWidth={previewToShow.width}
+                    imageHeight={previewToShow.height}
+                    displayUrl={previewToShow.link_display_url}
+                  />
+                </div>
+              );
+            })()}
+
+          {/* Display dynamic link previews for external URLs in content */}
+          {/* For X/Twitter: Only show if there's no native media or link preview */}
+          {/* For YouTube: Skip as the video embed is sufficient */}
+          {/* For LinkedIn/others: Show only first link for better UX */}
+          {(() => {
+            // Skip YouTube entirely - video embed is enough
+            if (item.platform === 'youtube') return null;
+
+            // For X/Twitter, be more selective about when to show ContentLinkPreviews
+            if (item.platform === 'twitter') {
+              // Check if we have any visual media content
+              const hasVisualMedia =
+                item.media_urls &&
+                item.media_urls.some(
+                  (m) =>
+                    m.type === 'image' ||
+                    m.type === 'video' ||
+                    m.type === 'link_preview'
+                );
+
+              // If we have any visual media, skip ContentLinkPreviews to avoid redundancy
+              // This prevents showing link previews for tweets that already have visual content
+              if (hasVisualMedia) return null;
+            }
+
+            // For all platforms (including X without any media), show link previews
+            // LinkedIn best practice: show only the first link
+            const maxPreviews = item.platform === 'linkedin' ? 1 : 3;
+
+            return (
+              <ContentLinkPreviews
+                description={item.description}
+                contentBody={item.content_body}
+                platform={item.platform}
+                className="mb-4"
+                maxPreviews={maxPreviews}
+              />
+            );
+          })()}
 
           {/* Display referenced content (quote tweets, etc.) - after media */}
           <ReferencedContentDisplay

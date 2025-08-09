@@ -71,7 +71,7 @@ export interface ContentWithCreator extends Content {
 // Media URL structure for images, videos, etc.
 export interface MediaUrl {
   url: string;
-  type: 'image' | 'video' | 'audio' | 'document';
+  type: 'image' | 'video' | 'audio' | 'document' | 'link_preview';
   title?: string;
   width?: number;
   height?: number;
@@ -79,6 +79,13 @@ export interface MediaUrl {
   size?: number; // File size in bytes
   thumbnail_url?: string; // For video thumbnails
   bitrate?: number; // For video/audio bitrate
+  // Link preview specific fields
+  link_url?: string;
+  link_title?: string;
+  link_description?: string;
+  link_domain?: string;
+  link_display_url?: string;
+  card_type?: string;
 }
 
 // Referenced content structure (for quotes, retweets, replies)
@@ -233,12 +240,21 @@ export const ReferenceTypeSchema = z.enum(['quote', 'retweet', 'reply']);
 
 export const MediaUrlSchema = z.object({
   url: z.string().url(),
-  type: z.enum(['image', 'video', 'audio', 'document']),
+  type: z.enum(['image', 'video', 'audio', 'document', 'link_preview']),
   title: z.string().optional(),
   width: z.number().positive().optional(),
   height: z.number().positive().optional(),
   duration: z.number().positive().optional(),
   size: z.number().positive().optional(),
+  thumbnail_url: z.string().optional(),
+  bitrate: z.number().positive().optional(),
+  // Link preview specific fields
+  link_url: z.string().optional(),
+  link_title: z.string().optional(),
+  link_description: z.string().optional(),
+  link_domain: z.string().optional(),
+  link_display_url: z.string().optional(),
+  card_type: z.string().optional(),
 });
 
 export const ReferencedContentSchema: z.ZodType<any> = z.lazy(() =>

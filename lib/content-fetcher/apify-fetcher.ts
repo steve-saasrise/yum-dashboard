@@ -329,6 +329,140 @@ export class ApifyFetcher {
       // Note: For pure retweets, the Apify API typically doesn't return them
       // as they're filtered at the Twitter API level
 
+      // Build media_urls array combining images/videos and link previews
+      const mediaUrls: any[] = [];
+
+      // First add regular media (images/videos)
+      if (tweet.extendedEntities?.media) {
+        tweet.extendedEntities.media.forEach((media: any) => {
+          // For videos and GIFs, extract the actual video URL from variants
+          if (media.type === 'video' || media.type === 'animated_gif') {
+            // Get the best quality MP4 variant
+            const mp4Variants = media.video_info?.variants?.filter(
+              (v: any) => v.content_type === 'video/mp4'
+            );
+            const bestVideo = mp4Variants?.reduce((best: any, current: any) => {
+              if (!best) return current;
+              return (current.bitrate || 0) > (best.bitrate || 0)
+                ? current
+                : best;
+            }, null);
+
+            mediaUrls.push({
+              url: bestVideo?.url || media.media_url_https || media.url,
+              type: 'video' as const,
+              thumbnail_url: media.media_url_https || media.url,
+              width: media.sizes?.large?.w,
+              height: media.sizes?.large?.h,
+              duration: media.video_info?.duration_millis,
+              bitrate: bestVideo?.bitrate,
+            });
+          } else {
+            // For images
+            mediaUrls.push({
+              url: media.media_url_https || media.url,
+              type: 'image' as const,
+              width: media.sizes?.large?.w,
+              height: media.sizes?.large?.h,
+            });
+          }
+        });
+      }
+
+      // Add link preview from card data if available
+      if (
+        tweet.card &&
+        tweet.card.name &&
+        tweet.card.name.includes('summary')
+      ) {
+        // Twitter cards can be summary, summary_large_image, player, etc.
+        const cardValues = tweet.card.binding_values || tweet.card.values || {};
+
+        // Extract link preview data from card
+        const linkPreview: any = {
+          type: 'link_preview' as const,
+          card_type: tweet.card.name,
+        };
+
+        // Get the URL
+        if (cardValues.url || cardValues.website_url) {
+          const urlValue = cardValues.url || cardValues.website_url;
+          linkPreview.link_url =
+            urlValue.string_value || urlValue.scribe_key || urlValue;
+        }
+
+        // Get the title
+        if (cardValues.title) {
+          linkPreview.link_title =
+            cardValues.title.string_value || cardValues.title;
+        }
+
+        // Get the description
+        if (cardValues.description) {
+          linkPreview.link_description =
+            cardValues.description.string_value || cardValues.description;
+        }
+
+        // Get the image (thumbnail)
+        if (
+          cardValues.thumbnail_image ||
+          cardValues.thumbnail_image_large ||
+          cardValues.photo_image_full_size
+        ) {
+          const imageValue =
+            cardValues.thumbnail_image_large ||
+            cardValues.photo_image_full_size ||
+            cardValues.thumbnail_image;
+          if (imageValue) {
+            linkPreview.url =
+              imageValue.image_value?.url ||
+              imageValue.string_value ||
+              imageValue;
+            if (imageValue.image_value) {
+              linkPreview.width = imageValue.image_value.width;
+              linkPreview.height = imageValue.image_value.height;
+            }
+          }
+        }
+
+        // Get the domain/site name
+        if (cardValues.domain || cardValues.vanity_url) {
+          const domainValue = cardValues.domain || cardValues.vanity_url;
+          linkPreview.link_domain = domainValue.string_value || domainValue;
+        }
+
+        // Only add the link preview if we have at least a URL and either title or image
+        if (
+          linkPreview.link_url &&
+          (linkPreview.link_title || linkPreview.url)
+        ) {
+          mediaUrls.push(linkPreview);
+        }
+      }
+
+      // Also check entities.urls for any URLs not captured by cards
+      if (tweet.entities?.urls && Array.isArray(tweet.entities.urls)) {
+        tweet.entities.urls.forEach((urlEntity: any) => {
+          // Check if this URL is already captured in a card
+          const alreadyCaptured = mediaUrls.some(
+            (m) =>
+              m.type === 'link_preview' && m.link_url === urlEntity.expanded_url
+          );
+
+          if (!alreadyCaptured && urlEntity.expanded_url) {
+            // Add basic URL info even without OpenGraph data
+            // The UI can attempt to fetch OpenGraph data client-side if needed
+            mediaUrls.push({
+              type: 'link_preview' as const,
+              link_url: urlEntity.expanded_url,
+              link_display_url: urlEntity.display_url,
+              link_title: urlEntity.title || urlEntity.display_url,
+              link_description: urlEntity.description,
+            });
+          }
+        });
+      }
+
       return {
         platform: 'twitter' as const,
         platform_content_id: tweet.id || tweet.url,
@@ -343,44 +477,7 @@ export class ApifyFetcher {
         published_at: tweet.createdAt
           ? new Date(tweet.createdAt).toISOString()
           : new Date().toISOString(),
-        media_urls: tweet.extendedEntities?.media
-          ? tweet.extendedEntities.media.map((media: any) => {
-              // For videos and GIFs, extract the actual video URL from variants
-              if (media.type === 'video' || media.type === 'animated_gif') {
-                // Get the best quality MP4 variant
-                const mp4Variants = media.video_info?.variants?.filter(
-                  (v: any) => v.content_type === 'video/mp4'
-                );
-                const bestVideo = mp4Variants?.reduce(
-                  (best: any, current: any) => {
-                    if (!best) return current;
-                    return (current.bitrate || 0) > (best.bitrate || 0)
-                      ? current
-                      : best;
-                  },
-                  null
-                );
-
-                return {
-                  url: bestVideo?.url || media.media_url_https || media.url,
-                  type: 'video' as const,
-                  thumbnail_url: media.media_url_https || media.url,
-                  width: media.sizes?.large?.w,
-                  height: media.sizes?.large?.h,
-                  duration: media.video_info?.duration_millis,
-                  bitrate: bestVideo?.bitrate,
-                };
-              }
-
-              // For images, use the original logic
-              return {
-                url: media.media_url_https || media.url,
-                type: 'image' as const,
-                width: media.sizes?.large?.w,
-                height: media.sizes?.large?.h,
-              };
-            })
-          : [],
+        media_urls: mediaUrls,
         engagement_metrics: {
           likes: tweet.likeCount || 0,
           comments: tweet.replyCount || 0,
