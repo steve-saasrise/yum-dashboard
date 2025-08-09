@@ -1105,6 +1105,35 @@ export const ContentCard = React.memo(function ContentCard({
               );
             })()}
 
+          {/* Display LinkedIn article shares as integrated cards */}
+          {item.media_urls &&
+            item.platform === 'linkedin' &&
+            (() => {
+              const articlePreviews = item.media_urls.filter(
+                (m) => m.type === 'link_preview'
+              );
+
+              if (articlePreviews.length === 0) return null;
+
+              // LinkedIn best practice: Show only the first article
+              const articleToShow = articlePreviews[0];
+
+              // Only render if we have a valid article URL
+              if (!articleToShow.link_url) return null;
+
+              return (
+                <div className="mb-4">
+                  <LinkPreviewCard
+                    linkUrl={articleToShow.link_url}
+                    linkTitle={articleToShow.link_title}
+                    linkDescription={articleToShow.link_description}
+                    linkDomain={articleToShow.link_domain}
+                    imageUrl={articleToShow.url}
+                  />
+                </div>
+              );
+            })()}
+
           {/* Display native X/Twitter link previews from media_urls */}
           {/* Following X.com behavior: Don't show link previews when there's a video */}
           {item.media_urls &&
@@ -1169,7 +1198,17 @@ export const ContentCard = React.memo(function ContentCard({
               if (hasVisualMedia) return null;
             }
 
-            // For all platforms (including X without any media), show link previews
+            // For LinkedIn, check if we already have article previews
+            if (item.platform === 'linkedin') {
+              const hasArticlePreview =
+                item.media_urls &&
+                item.media_urls.some((m) => m.type === 'link_preview');
+              
+              // Skip ContentLinkPreviews if we already showed an article preview
+              if (hasArticlePreview) return null;
+            }
+
+            // For all platforms, show link previews
             // LinkedIn best practice: show only the first link
             const maxPreviews = item.platform === 'linkedin' ? 1 : 3;
 

@@ -664,13 +664,22 @@ export class ApifyFetcher {
           }
         }
 
-        // Handle article attachments
-        if (post.article?.thumbnail && !addedUrls.has(post.article.thumbnail)) {
-          addedUrls.add(post.article.thumbnail);
-          mediaUrls.push({
-            url: post.article.thumbnail,
-            type: 'image',
-          });
+        // Handle article attachments - store as link_preview type with article data
+        if (post.article) {
+          // Don't add article thumbnails as regular images
+          // Instead, store them as link previews with full article data
+          if (post.article.thumbnail && !addedUrls.has(post.article.thumbnail)) {
+            addedUrls.add(post.article.thumbnail);
+            mediaUrls.push({
+              url: post.article.thumbnail,
+              type: 'link_preview',
+              // Store the actual article URL and metadata
+              link_url: post.article.url || post.article.link || '',
+              link_title: post.article.title || '',
+              link_description: post.article.subtitle || post.article.description || '',
+              link_domain: post.article.source || '',
+            });
+          }
         }
 
         // Handle document thumbnails

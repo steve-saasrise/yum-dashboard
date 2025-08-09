@@ -47,7 +47,8 @@ async function testApifyCards() {
         console.log('  URL:', (tweet as any).card.url);
 
         if ((tweet as any).card.binding_values || (tweet as any).card.values) {
-          const values = (tweet as any).card.binding_values || (tweet as any).card.values;
+          const values =
+            (tweet as any).card.binding_values || (tweet as any).card.values;
           console.log('\n  Card Values:');
 
           for (const [key, value] of Object.entries(values)) {
