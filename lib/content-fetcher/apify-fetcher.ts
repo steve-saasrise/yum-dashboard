@@ -1,5 +1,5 @@
 import { ApifyClient } from 'apify-client';
-import type { CreateContentInput } from '@/types/content';
+import type { CreateContentInput, ReferencedContent } from '@/types/content';
 
 export interface ApifyConfig {
   apiKey: string;
@@ -77,7 +77,7 @@ export class ApifyFetcher {
       `[ApifyFetcher] Fetching Twitter content for ${urls.length} URLs`
     );
 
-    // Convert URLs to search terms to exclude replies and retweets
+    // Convert URLs to search terms - filter out replies and pure retweets, but keep quote tweets
     const searchTerms = urls.map((url) => {
       // If it's already a search term, add filters if not present
       if (url.includes('from:')) {
@@ -95,6 +95,7 @@ export class ApifyFetcher {
       const usernameMatch = url.match(/(?:x\.com|twitter\.com)\/(@?\w+)/);
       if (usernameMatch) {
         const username = usernameMatch[1].replace('@', '');
+        // Filter out replies and pure retweets (quote tweets will still come through)
         return `from:${username} -filter:replies -filter:retweets`;
       }
 
@@ -250,65 +251,146 @@ export class ApifyFetcher {
   }
 
   private transformTwitterData(items: any[]): CreateContentInput[] {
-    return items.map((tweet) => ({
-      platform: 'twitter' as const,
-      platform_content_id: tweet.id || tweet.url,
-      creator_id: '', // Will be set by the content service
-      url:
-        tweet.url ||
-        tweet.twitterUrl ||
-        `https://twitter.com/i/status/${tweet.id}`,
-      title: `Tweet by @${tweet.author?.userName || 'unknown'}`,
-      description: tweet.text || '',
-      content_body: tweet.text || '', // Add content_body for AI summaries
-      published_at: tweet.createdAt
-        ? new Date(tweet.createdAt).toISOString()
-        : new Date().toISOString(),
-      media_urls: tweet.extendedEntities?.media
-        ? tweet.extendedEntities.media.map((media: any) => {
-            // For videos and GIFs, extract the actual video URL from variants
-            if (media.type === 'video' || media.type === 'animated_gif') {
-              // Get the best quality MP4 variant
-              const mp4Variants = media.video_info?.variants?.filter(
-                (v: any) => v.content_type === 'video/mp4'
-              );
-              const bestVideo = mp4Variants?.reduce(
-                (best: any, current: any) => {
-                  if (!best) return current;
-                  return (current.bitrate || 0) > (best.bitrate || 0)
-                    ? current
-                    : best;
-                },
-                null
-              );
+    return items.map((tweet) => {
+      // Prepare referenced content if this is a quote, retweet, or reply
+      let referenceType: 'quote' | 'retweet' | 'reply' | undefined;
+      let referencedContent: CreateContentInput['referenced_content'];
 
+      if (tweet.isQuote && tweet.quote) {
+        referenceType = 'quote';
+        referencedContent = {
+          id: tweet.quoteId || tweet.quote.id,
+          platform_content_id: tweet.quote.id,
+          url: tweet.quote.url || tweet.quote.twitterUrl,
+          text: tweet.quote.text || tweet.quote.fullText,
+          author: tweet.quote.author
+            ? {
+                id: tweet.quote.author.id,
+                username: tweet.quote.author.userName,
+                name: tweet.quote.author.name,
+                avatar_url: tweet.quote.author.profilePicture,
+                is_verified: tweet.quote.author.isBlueVerified,
+              }
+            : undefined,
+          created_at: tweet.quote.createdAt,
+          media_urls: tweet.quote.extendedEntities?.media
+            ? tweet.quote.extendedEntities.media.map((media: any) => {
+                if (media.type === 'video' || media.type === 'animated_gif') {
+                  const mp4Variants = media.video_info?.variants?.filter(
+                    (v: any) => v.content_type === 'video/mp4'
+                  );
+                  const bestVideo = mp4Variants?.reduce(
+                    (best: any, current: any) => {
+                      if (!best) return current;
+                      return (current.bitrate || 0) > (best.bitrate || 0)
+                        ? current
+                        : best;
+                    },
+                    null
+                  );
+                  return {
+                    url: bestVideo?.url || media.media_url_https || media.url,
+                    type: 'video' as const,
+                    thumbnail_url: media.media_url_https || media.url,
+                    width: media.sizes?.large?.w,
+                    height: media.sizes?.large?.h,
+                    duration: media.video_info?.duration_millis,
+                    bitrate: bestVideo?.bitrate,
+                  };
+                }
+                return {
+                  url: media.media_url_https || media.url,
+                  type: 'image' as const,
+                  width: media.sizes?.large?.w,
+                  height: media.sizes?.large?.h,
+                };
+              })
+            : [],
+          engagement_metrics: {
+            likes: tweet.quote.likeCount || 0,
+            comments: tweet.quote.replyCount || 0,
+            shares: tweet.quote.retweetCount || 0,
+            views: tweet.quote.viewCount || 0,
+          },
+        };
+      } else if (tweet.isReply && tweet.inReplyToId) {
+        referenceType = 'reply';
+        // For replies, we only have the ID, not full content
+        referencedContent = {
+          id: tweet.inReplyToId,
+          platform_content_id: tweet.inReplyToId,
+          author: tweet.inReplyToUsername
+            ? {
+                username: tweet.inReplyToUsername,
+              }
+            : undefined,
+        };
+      }
+      // Note: For pure retweets, the Apify API typically doesn't return them
+      // as they're filtered at the Twitter API level
+
+      return {
+        platform: 'twitter' as const,
+        platform_content_id: tweet.id || tweet.url,
+        creator_id: '', // Will be set by the content service
+        url:
+          tweet.url ||
+          tweet.twitterUrl ||
+          `https://twitter.com/i/status/${tweet.id}`,
+        title: `Tweet by @${tweet.author?.userName || 'unknown'}`,
+        description: tweet.text || '',
+        content_body: tweet.text || '', // Add content_body for AI summaries
+        published_at: tweet.createdAt
+          ? new Date(tweet.createdAt).toISOString()
+          : new Date().toISOString(),
+        media_urls: tweet.extendedEntities?.media
+          ? tweet.extendedEntities.media.map((media: any) => {
+              // For videos and GIFs, extract the actual video URL from variants
+              if (media.type === 'video' || media.type === 'animated_gif') {
+                // Get the best quality MP4 variant
+                const mp4Variants = media.video_info?.variants?.filter(
+                  (v: any) => v.content_type === 'video/mp4'
+                );
+                const bestVideo = mp4Variants?.reduce(
+                  (best: any, current: any) => {
+                    if (!best) return current;
+                    return (current.bitrate || 0) > (best.bitrate || 0)
+                      ? current
+                      : best;
+                  },
+                  null
+                );
+
+                return {
+                  url: bestVideo?.url || media.media_url_https || media.url,
+                  type: 'video' as const,
+                  thumbnail_url: media.media_url_https || media.url,
+                  width: media.sizes?.large?.w,
+                  height: media.sizes?.large?.h,
+                  duration: media.video_info?.duration_millis,
+                  bitrate: bestVideo?.bitrate,
+                };
+              }
+
+              // For images, use the original logic
               return {
-                url: bestVideo?.url || media.media_url_https || media.url,
-                type: 'video' as const,
-                thumbnail_url: media.media_url_https || media.url,
+                url: media.media_url_https || media.url,
+                type: 'image' as const,
                 width: media.sizes?.large?.w,
                 height: media.sizes?.large?.h,
-                duration: media.video_info?.duration_millis,
-                bitrate: bestVideo?.bitrate,
               };
-            }
-
-            // For images, use the original logic
-            return {
-              url: media.media_url_https || media.url,
-              type: 'image' as const,
-              width: media.sizes?.large?.w,
-              height: media.sizes?.large?.h,
-            };
-          })
-        : [],
-      engagement_metrics: {
-        likes: tweet.likeCount || 0,
-        comments: tweet.replyCount || 0,
-        shares: tweet.retweetCount || 0,
-        views: tweet.viewCount || 0,
-      },
-    }));
+            })
+          : [],
+        engagement_metrics: {
+          likes: tweet.likeCount || 0,
+          comments: tweet.replyCount || 0,
+          shares: tweet.retweetCount || 0,
+          views: tweet.viewCount || 0,
+        },
+        reference_type: referenceType,
+        referenced_content: referencedContent,
+      };
+    });
   }
 
   private transformThreadsData(items: any[]): CreateContentInput[] {

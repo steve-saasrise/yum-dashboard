@@ -1,0 +1,467 @@
+[
+  {
+    "platform": "twitter",
+    "platform_content_id": "1953840790498885828",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1953840790498885828",
+    "title": "Tweet by @vercel",
+    "description": "The web runs on open source and we’re backing the people who build it.\n\nAnnouncing the Vercel OSS Program, summer cohort. https://t.co/ldpq1vbnee",
+    "content_body": "The web runs on open source and we’re backing the people who build it.\n\nAnnouncing the Vercel OSS Program, summer cohort. https://t.co/ldpq1vbnee",
+    "published_at": "2025-08-08T15:28:39.000Z",
+    "media_urls": [
+      {
+        "url": "https://pbs.twimg.com/media/Gx1v1_8akAAjYBA.png",
+        "type": "image",
+        "width": 2048,
+        "height": 1072
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 462,
+      "comments": 42,
+      "shares": 29,
+      "views": 82281
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1953532259639996555",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1953532259639996555",
+    "title": "Tweet by @vercel",
+    "description": "GPT-5 is live across the Vercel AI Cloud, and it's available:\n\n• on AI Gateway\n• as a model in https://t.co/YT68YjeyfG\n• in our new open-source vibe coding platform https://t.co/Qti2nMWqTU",
+    "content_body": "GPT-5 is live across the Vercel AI Cloud, and it's available:\n\n• on AI Gateway\n• as a model in https://t.co/YT68YjeyfG\n• in our new open-source vibe coding platform https://t.co/Qti2nMWqTU",
+    "published_at": "2025-08-07T19:02:40.000Z",
+    "media_urls": [
+      {
+        "url": "https://video.twimg.com/amplify_video/1953532181714022401/vid/avc1/1280x720/g4bh143UmWoe2_1L.mp4?tag=14",
+        "type": "video",
+        "thumbnail_url": "https://pbs.twimg.com/amplify_video_thumb/1953532181714022401/img/VuSIz0bJZQ5mqXUv.jpg",
+        "width": 1920,
+        "height": 1080,
+        "duration": 84670,
+        "bitrate": 2176000
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 102,
+      "comments": 4,
+      "shares": 11,
+      "views": 9705
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1953484762410262885",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1953484762410262885",
+    "title": "Tweet by @vercel",
+    "description": "Vercel has been recognized as a Visionary in the 2025 Gartner® Magic Quadrant™ for Cloud-Native Application Platforms. https://t.co/TqEAQ1sOuE",
+    "content_body": "Vercel has been recognized as a Visionary in the 2025 Gartner® Magic Quadrant™ for Cloud-Native Application Platforms. https://t.co/TqEAQ1sOuE",
+    "published_at": "2025-08-07T15:53:56.000Z",
+    "media_urls": [
+      {
+        "url": "https://video.twimg.com/amplify_video/1953484710551977984/vid/avc1/720x720/QoxvD_AbTxwx5kSv.mp4?tag=14",
+        "type": "video",
+        "thumbnail_url": "https://pbs.twimg.com/amplify_video_thumb/1953484710551977984/img/Bf4TNqjyDUkHlCNS.jpg",
+        "width": 1200,
+        "height": 1200,
+        "duration": 8500,
+        "bitrate": 1280000
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 53,
+      "comments": 6,
+      "shares": 5,
+      "views": 8429
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1953123798053732513",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1953123798053732513",
+    "title": "Tweet by @vercel",
+    "description": "Our official Vercel MCP server is now live.\n\nAI clients like Claude and VS Code with Copilot can now read Vercel docs and securely access your projects, deployment logs, and more using OAuth with read-only permissions.\n\nhttps://t.co/RkIT99WnVS",
+    "content_body": "Our official Vercel MCP server is now live.\n\nAI clients like Claude and VS Code with Copilot can now read Vercel docs and securely access your projects, deployment logs, and more using OAuth with read-only permissions.\n\nhttps://t.co/RkIT99WnVS",
+    "published_at": "2025-08-06T15:59:35.000Z",
+    "media_urls": [],
+    "engagement_metrics": {
+      "likes": 1120,
+      "comments": 51,
+      "shares": 124,
+      "views": 100915
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1952783283508658458",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1952783283508658458",
+    "title": "Tweet by @vercel",
+    "description": "We're excited to partner with @openai to bring day-1 support for their open models to @aisdk and AI Gateway.",
+    "content_body": "We're excited to partner with @openai to bring day-1 support for their open models to @aisdk and AI Gateway.",
+    "published_at": "2025-08-05T17:26:30.000Z",
+    "media_urls": [],
+    "engagement_metrics": {
+      "likes": 314,
+      "comments": 4,
+      "shares": 17,
+      "views": 76116
+    },
+    "reference_type": "quote",
+    "referenced_content": {
+      "id": "1952782752585269740",
+      "platform_content_id": "1952782752585269740",
+      "text": "You can now access @openai's new open models through Vercel AI Gateway.\n\nSet the AI SDK v5 𝚖𝚘𝚍𝚎𝚕 to either 'openai/gpt-oss-20b' or 'openai/gpt-oss-120b' to start building.\n\nMultiple redundant inference providers. No accounts required.\nhttps://t.co/XTv69O6vS5",
+      "author": {
+        "id": "1333485844053839878",
+        "username": "vercel_changes",
+        "name": "Vercel Changelog",
+        "avatar_url": "https://pbs.twimg.com/profile_images/1758609491220697088/5QE0VypX_normal.png",
+        "is_verified": true
+      },
+      "created_at": "Tue Aug 05 17:24:23 +0000 2025",
+      "media_urls": [],
+      "engagement_metrics": {
+        "likes": 183,
+        "comments": 3,
+        "shares": 16,
+        "views": 32661
+      }
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1951313156401230333",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1951313156401230333",
+    "title": "Tweet by @vercel",
+    "description": "Shipped on Vercel is a new showcase of real products built with Vercel.\n\nSubmissions are now open.\n\nhttps://t.co/YGTBJsi701 https://t.co/ufsWexIeta",
+    "content_body": "Shipped on Vercel is a new showcase of real products built with Vercel.\n\nSubmissions are now open.\n\nhttps://t.co/YGTBJsi701 https://t.co/ufsWexIeta",
+    "published_at": "2025-08-01T16:04:44.000Z",
+    "media_urls": [
+      {
+        "url": "https://video.twimg.com/amplify_video/1951312882727264256/vid/avc1/1920x1080/tklBN9jNZ2tOE89i.mp4?tag=21",
+        "type": "video",
+        "thumbnail_url": "https://pbs.twimg.com/amplify_video_thumb/1951312882727264256/img/hhsM5K7hf-2cR_wq.jpg",
+        "width": 1920,
+        "height": 1080,
+        "duration": 22533,
+        "bitrate": 10368000
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 225,
+      "comments": 23,
+      "shares": 21,
+      "views": 31095
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1949972223428587528",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1949972223428587528",
+    "title": "Tweet by @vercel",
+    "description": "Fluid makes it possible to ship AI and backend workloads without the gotchas of serverless.\n\nIt prevents cold starts, it adds streaming and post-response compute support, and massively improves cost-efficiency.\n\nHere's how we engineered it\nhttps://t.co/6yNSE5tyKb",
+    "content_body": "Fluid makes it possible to ship AI and backend workloads without the gotchas of serverless.\n\nIt prevents cold starts, it adds streaming and post-response compute support, and massively improves cost-efficiency.\n\nHere's how we engineered it\nhttps://t.co/6yNSE5tyKb",
+    "published_at": "2025-07-28T23:16:21.000Z",
+    "media_urls": [],
+    "engagement_metrics": {
+      "likes": 205,
+      "comments": 16,
+      "shares": 16,
+      "views": 94370
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1949856201174667531",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1949856201174667531",
+    "title": "Tweet by @vercel",
+    "description": "The @aisdk just hit over 2 million weekly downloads, up 10x from last year.\n\nWith support for 50+ providers like @xai, @openai, and @anthropicai, we're excited to build the open platform for AI apps and agents with you. https://t.co/ozfEE7CFAB",
+    "content_body": "The @aisdk just hit over 2 million weekly downloads, up 10x from last year.\n\nWith support for 50+ providers like @xai, @openai, and @anthropicai, we're excited to build the open platform for AI apps and agents with you. https://t.co/ozfEE7CFAB",
+    "published_at": "2025-07-28T15:35:19.000Z",
+    "media_urls": [
+      {
+        "url": "https://video.twimg.com/amplify_video/1949856147747573761/vid/avc1/1280x720/PfZudEn6sI97Bqed.mp4?tag=14",
+        "type": "video",
+        "thumbnail_url": "https://pbs.twimg.com/media/Gw9NGJAWoAALrh7.jpg",
+        "width": 1280,
+        "height": 720,
+        "duration": 6800,
+        "bitrate": 2176000
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 384,
+      "comments": 32,
+      "shares": 48,
+      "views": 106036
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1948818463944048924",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1948818463944048924",
+    "title": "Tweet by @vercel",
+    "description": "MCP gives AI superpowers. And it's simpler than you think.\n\nHere's all you need to know.\n\nhttps://t.co/rjGxEOCQYR",
+    "content_body": "MCP gives AI superpowers. And it's simpler than you think.\n\nHere's all you need to know.\n\nhttps://t.co/rjGxEOCQYR",
+    "published_at": "2025-07-25T18:51:43.000Z",
+    "media_urls": [],
+    "engagement_metrics": {
+      "likes": 515,
+      "comments": 22,
+      "shares": 71,
+      "views": 120901
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1946331486690627697",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1946331486690627697",
+    "title": "Tweet by @vercel",
+    "description": "Watch @LubaKravche's Ship 2025 session to learn how Vercel's framework-defined infrastructure simplifies caching and content delivery.\n\nSee how it works, the difference between CDN and runtime caches, and a deep dive into revalidation with Incremental Static Regeneration (ISR). https://t.co/CsvhNlPDdm",
+    "content_body": "Watch @LubaKravche's Ship 2025 session to learn how Vercel's framework-defined infrastructure simplifies caching and content delivery.\n\nSee how it works, the difference between CDN and runtime caches, and a deep dive into revalidation with Incremental Static Regeneration (ISR). https://t.co/CsvhNlPDdm",
+    "published_at": "2025-07-18T22:09:22.000Z",
+    "media_urls": [
+      {
+        "url": "https://video.twimg.com/amplify_video/1946330307478839296/vid/avc1/1280x720/KhAZPXEmD0vmG9yg.mp4?tag=21",
+        "type": "video",
+        "thumbnail_url": "https://pbs.twimg.com/media/GwLBYmsW8AAFFXB.png",
+        "width": 2048,
+        "height": 1152,
+        "duration": 1279117,
+        "bitrate": 2176000
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 100,
+      "comments": 6,
+      "shares": 10,
+      "views": 27817
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1945913440297758994",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1945913440297758994",
+    "title": "Tweet by @vercel",
+    "description": "Search 1M+ GitHub repositories from your AI agent using Grep's MCP server.\n\nYour agent can now reference coding patterns and solutions used in open source projects to solve problems and answer questions.\n\nhttps://t.co/XPrys2Iyk2",
+    "content_body": "Search 1M+ GitHub repositories from your AI agent using Grep's MCP server.\n\nYour agent can now reference coding patterns and solutions used in open source projects to solve problems and answer questions.\n\nhttps://t.co/XPrys2Iyk2",
+    "published_at": "2025-07-17T18:28:12.000Z",
+    "media_urls": [],
+    "engagement_metrics": {
+      "likes": 674,
+      "comments": 16,
+      "shares": 65,
+      "views": 72739
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1945171836507222330",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1945171836507222330",
+    "title": "Tweet by @vercel",
+    "description": "We've added nearly $30,000 in credits to Vercel's Open Source Program.\n\nThanks to generous partner companies, the new OSS Starter Pack adds access to tools that help you build, maintain, and grow your project.\n\nLet's create a more sustainable web, together. https://t.co/Y0J1Nd82k1",
+    "content_body": "We've added nearly $30,000 in credits to Vercel's Open Source Program.\n\nThanks to generous partner companies, the new OSS Starter Pack adds access to tools that help you build, maintain, and grow your project.\n\nLet's create a more sustainable web, together. https://t.co/Y0J1Nd82k1",
+    "published_at": "2025-07-15T17:21:20.000Z",
+    "media_urls": [
+      {
+        "url": "https://pbs.twimg.com/media/Gv6jeh_a4AEwppV.png",
+        "type": "image",
+        "width": 2048,
+        "height": 1072
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 394,
+      "comments": 21,
+      "shares": 29,
+      "views": 58519
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1944890506913439884",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1944890506913439884",
+    "title": "Tweet by @vercel",
+    "description": "Build a coding agent like Claude Code in 40 minutes with @aisdk, AI Gateway, Sandbox, and Vercel Functions.\n\nSee how in @nicoalbanese10's Vercel Ship workshop. https://t.co/8ygj16IsZ5",
+    "content_body": "Build a coding agent like Claude Code in 40 minutes with @aisdk, AI Gateway, Sandbox, and Vercel Functions.\n\nSee how in @nicoalbanese10's Vercel Ship workshop. https://t.co/8ygj16IsZ5",
+    "published_at": "2025-07-14T22:43:25.000Z",
+    "media_urls": [
+      {
+        "url": "https://video.twimg.com/amplify_video/1944872650645626880/vid/avc1/1280x720/6UGkldRnkKzrMM2u.mp4?tag=14",
+        "type": "video",
+        "thumbnail_url": "https://pbs.twimg.com/media/Gv2TuRZboAAryyw.png",
+        "width": 2048,
+        "height": 1152,
+        "duration": 2507476,
+        "bitrate": 2176000
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 683,
+      "comments": 7,
+      "shares": 48,
+      "views": 54118
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1943697417230234014",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1943697417230234014",
+    "title": "Tweet by @vercel",
+    "description": "Meetup SDK: A brand new toolkit for community-hosted events.\n\nOrganize your own Vercel, Next.js, v0, or AI SDK-focused meetups and hackathons with support from us.\n\nFind out more about the program, what's offered, and submit your event.\n\nhttps://t.co/juM37MZCND",
+    "content_body": "Meetup SDK: A brand new toolkit for community-hosted events.\n\nOrganize your own Vercel, Next.js, v0, or AI SDK-focused meetups and hackathons with support from us.\n\nFind out more about the program, what's offered, and submit your event.\n\nhttps://t.co/juM37MZCND",
+    "published_at": "2025-07-11T15:42:31.000Z",
+    "media_urls": [],
+    "engagement_metrics": {
+      "likes": 323,
+      "comments": 22,
+      "shares": 22,
+      "views": 44847
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1943436465062699235",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1943436465062699235",
+    "title": "Tweet by @vercel",
+    "description": "AI is changing how and what we build.\n\nThe AI Cloud lets you build AI features, apps, tools, agents, and more. All without managing infrastructure.\n\nEverything you need to ship agentic workloads, powered by Vercel.\n\nhttps://t.co/ctUTY9kFtm",
+    "content_body": "AI is changing how and what we build.\n\nThe AI Cloud lets you build AI features, apps, tools, agents, and more. All without managing infrastructure.\n\nEverything you need to ship agentic workloads, powered by Vercel.\n\nhttps://t.co/ctUTY9kFtm",
+    "published_at": "2025-07-10T22:25:35.000Z",
+    "media_urls": [],
+    "engagement_metrics": {
+      "likes": 113,
+      "comments": 5,
+      "shares": 12,
+      "views": 17702
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1942701558833041683",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1942701558833041683",
+    "title": "Tweet by @vercel",
+    "description": "At Vercel Ship 2025, @cramforce shared a no-nonsense approach to building AI agents.\n\nLearn how to build and secure AI agents that automate complex workflows, and understand the product and business impact behind them. https://t.co/kfUNKDvc3E",
+    "content_body": "At Vercel Ship 2025, @cramforce shared a no-nonsense approach to building AI agents.\n\nLearn how to build and secure AI agents that automate complex workflows, and understand the product and business impact behind them. https://t.co/kfUNKDvc3E",
+    "published_at": "2025-07-08T21:45:19.000Z",
+    "media_urls": [
+      {
+        "url": "https://video.twimg.com/amplify_video/1942700217427714052/vid/avc1/1280x720/ibATHdiNVQk8L49B.mp4?tag=21",
+        "type": "video",
+        "thumbnail_url": "https://pbs.twimg.com/media/GvXb0QQaYAE6fK4.png",
+        "width": 2048,
+        "height": 1152,
+        "duration": 1825065,
+        "bitrate": 2176000
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 93,
+      "comments": 1,
+      "shares": 7,
+      "views": 17230
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1942575687761813910",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1942575687761813910",
+    "title": "Tweet by @vercel",
+    "description": "NuxtLabs, creators of Nuxt and Nitro, are joining Vercel.\n\nSame license, roadmap, and open governance, but now in a joint mission to build the best web. https://t.co/UGtrS1H963",
+    "content_body": "NuxtLabs, creators of Nuxt and Nitro, are joining Vercel.\n\nSame license, roadmap, and open governance, but now in a joint mission to build the best web. https://t.co/UGtrS1H963",
+    "published_at": "2025-07-08T13:25:09.000Z",
+    "media_urls": [
+      {
+        "url": "https://video.twimg.com/amplify_video/1942575546577059840/vid/avc1/3840x2160/oP4xw-Hv9mOw_709.mp4?tag=21",
+        "type": "video",
+        "thumbnail_url": "https://pbs.twimg.com/amplify_video_thumb/1942575546577059840/img/3NfGz1gL__D7AwG4.jpg",
+        "width": 2048,
+        "height": 1152,
+        "duration": 7741,
+        "bitrate": 25128000
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 1783,
+      "comments": 114,
+      "shares": 259,
+      "views": 687072
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1941554208546967686",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1941554208546967686",
+    "title": "Tweet by @vercel",
+    "description": "Applications are now open for our Open Source Program summer cohort.\n\nLearn about the program and apply.\n\nhttps://t.co/6E4CZ3CtQB",
+    "content_body": "Applications are now open for our Open Source Program summer cohort.\n\nLearn about the program and apply.\n\nhttps://t.co/6E4CZ3CtQB",
+    "published_at": "2025-07-05T17:46:10.000Z",
+    "media_urls": [],
+    "engagement_metrics": {
+      "likes": 107,
+      "comments": 4,
+      "shares": 14,
+      "views": 24547
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1940915983562215474",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1940915983562215474",
+    "title": "Tweet by @vercel",
+    "description": "All Vercel Ship 2025 keynotes, customer panels, sessions, and workshops are now available to watch on demand.\n\nhttps://t.co/QLkcAa0gZF",
+    "content_body": "All Vercel Ship 2025 keynotes, customer panels, sessions, and workshops are now available to watch on demand.\n\nhttps://t.co/QLkcAa0gZF",
+    "published_at": "2025-07-03T23:30:05.000Z",
+    "media_urls": [],
+    "engagement_metrics": {
+      "likes": 63,
+      "comments": 0,
+      "shares": 11,
+      "views": 16567
+    }
+  },
+  {
+    "platform": "twitter",
+    "platform_content_id": "1939813541306937539",
+    "creator_id": "",
+    "url": "https://x.com/vercel/status/1939813541306937539",
+    "title": "Tweet by @vercel",
+    "description": "Watch the Vercel Ship 2025 opening keynote. https://t.co/94KSAaC6Qv",
+    "content_body": "Watch the Vercel Ship 2025 opening keynote. https://t.co/94KSAaC6Qv",
+    "published_at": "2025-06-30T22:29:22.000Z",
+    "media_urls": [
+      {
+        "url": "https://video.twimg.com/amplify_video/1939798882092797952/vid/avc1/1920x1080/1SH3IJMgWd49gcn-.mp4?tag=21",
+        "type": "video",
+        "thumbnail_url": "https://pbs.twimg.com/media/GuuOOzOXMAM1sAa.jpg",
+        "width": 1280,
+        "height": 720,
+        "duration": 2671702,
+        "bitrate": 10368000
+      }
+    ],
+    "engagement_metrics": {
+      "likes": 213,
+      "comments": 9,
+      "shares": 25,
+      "views": 86029
+    }
+  }
+]

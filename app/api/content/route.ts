@@ -295,19 +295,39 @@ export async function GET(request: NextRequest) {
 
     // Transform the data to match ContentWithCreator type
     const transformedContent: ContentWithCreator[] = filteredContent.map(
-      (item) => ({
-        ...item,
-        topics: [], // No topics for now since content_topics table doesn't exist
-        creator: item.creator
-          ? {
-              ...item.creator,
-              name: item.creator.display_name, // Map display_name to name
-              platform: item.platform, // Get platform from content since creators don't have it
-            }
-          : undefined,
-        // Add deletion status for privileged users
-        ...(isPrivilegedUser && { is_deleted: deletedContentMap.has(item.id) }),
-      })
+      (item) => {
+        // Log reference fields for debugging
+        if (item.reference_type || item.referenced_content) {
+          console.log('Content with reference:', {
+            id: item.id,
+            title: item.title,
+            reference_type: item.reference_type,
+            has_referenced_content: !!item.referenced_content,
+            referenced_content_sample: item.referenced_content
+              ? {
+                  text: item.referenced_content.text?.substring(0, 50),
+                  author: item.referenced_content.author?.username,
+                }
+              : null,
+          });
+        }
+
+        return {
+          ...item,
+          topics: [], // No topics for now since content_topics table doesn't exist
+          creator: item.creator
+            ? {
+                ...item.creator,
+                name: item.creator.display_name, // Map display_name to name
+                platform: item.platform, // Get platform from content since creators don't have it
+              }
+            : undefined,
+          // Add deletion status for privileged users
+          ...(isPrivilegedUser && {
+            is_deleted: deletedContentMap.has(item.id),
+          }),
+        };
+      }
     );
 
     // Check if user has saved any of this content

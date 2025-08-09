@@ -69,6 +69,10 @@ export function IntersectionObserverGrid({
       is_deleted: item.is_deleted,
       topics: item.topics,
       media_urls: item.media_urls,
+      // Include reference fields for quote tweets, retweets, etc.
+      reference_type: item.reference_type,
+      referenced_content_id: item.referenced_content_id,
+      referenced_content: item.referenced_content,
     }),
     []
   );

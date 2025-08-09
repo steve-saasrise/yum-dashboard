@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Icons } from '@/components/icons';
 import { AISummaryCompact } from '@/components/ui/ai-summary';
+import { ReferencedContentDisplay } from '@/components/referenced-content';
 import {
   Bookmark,
   ExternalLink,
@@ -22,6 +23,7 @@ import {
   Rss,
 } from 'lucide-react';
 import type { Creator } from '@/types/creator';
+import type { ReferenceType, ReferencedContent } from '@/types/content';
 
 interface FeedItem {
   id: string;
@@ -52,6 +54,10 @@ interface FeedItem {
     name: string;
     color?: string;
   }>;
+  // Reference fields for quoted/retweeted/replied content
+  reference_type?: ReferenceType;
+  referenced_content_id?: string;
+  referenced_content?: ReferencedContent;
 }
 
 interface ContentListItemProps {
@@ -151,6 +157,11 @@ export const ContentListItem = React.memo(function ContentListItem({
               shortSummary={item.ai_summary_short}
               originalDescription={item.description}
               className="mb-3"
+            />
+
+            <ReferencedContentDisplay
+              referenceType={item.reference_type}
+              referencedContent={item.referenced_content}
             />
 
             <div className="flex flex-wrap gap-2">

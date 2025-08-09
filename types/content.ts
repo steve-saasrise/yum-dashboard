@@ -10,6 +10,9 @@ export type ContentProcessingStatus = 'pending' | 'processed' | 'failed';
 // Summary generation status enum
 export type SummaryStatus = 'pending' | 'processing' | 'completed' | 'error';
 
+// Reference type for tweets that reference other content
+export type ReferenceType = 'quote' | 'retweet' | 'reply';
+
 // Base content interface matching the database schema
 export interface Content {
   id: string;
@@ -39,6 +42,10 @@ export interface Content {
   reading_time_minutes?: number;
   media_urls?: MediaUrl[];
   engagement_metrics?: EngagementMetrics;
+  // Reference fields for quoted/retweeted/replied content
+  reference_type?: ReferenceType;
+  referenced_content_id?: string;
+  referenced_content?: ReferencedContent;
 }
 
 // Content with creator information
@@ -74,6 +81,24 @@ export interface MediaUrl {
   bitrate?: number; // For video/audio bitrate
 }
 
+// Referenced content structure (for quotes, retweets, replies)
+export interface ReferencedContent {
+  id: string;
+  platform_content_id: string;
+  url?: string;
+  text?: string;
+  author?: {
+    id?: string;
+    username?: string;
+    name?: string;
+    avatar_url?: string;
+    is_verified?: boolean;
+  };
+  created_at?: string;
+  media_urls?: MediaUrl[];
+  engagement_metrics?: EngagementMetrics;
+}
+
 // Platform-specific engagement metrics
 export interface EngagementMetrics {
   views?: number;
@@ -101,6 +126,10 @@ export interface CreateContentInput {
   reading_time_minutes?: number;
   media_urls?: MediaUrl[];
   engagement_metrics?: EngagementMetrics;
+  // Reference fields for quoted/retweeted/replied content
+  reference_type?: ReferenceType;
+  referenced_content_id?: string;
+  referenced_content?: ReferencedContent;
 }
 
 // Content update input
@@ -122,6 +151,10 @@ export interface UpdateContentInput {
   reading_time_minutes?: number;
   media_urls?: MediaUrl[];
   engagement_metrics?: EngagementMetrics;
+  // Reference fields for quoted/retweeted/replied content
+  reference_type?: ReferenceType;
+  referenced_content_id?: string;
+  referenced_content?: ReferencedContent;
 }
 
 // Content query filters
@@ -196,6 +229,8 @@ export const SummaryStatusSchema = z.enum([
   'error',
 ]);
 
+export const ReferenceTypeSchema = z.enum(['quote', 'retweet', 'reply']);
+
 export const MediaUrlSchema = z.object({
   url: z.string().url(),
   type: z.enum(['image', 'video', 'audio', 'document']),
@@ -205,6 +240,27 @@ export const MediaUrlSchema = z.object({
   duration: z.number().positive().optional(),
   size: z.number().positive().optional(),
 });
+
+export const ReferencedContentSchema: z.ZodType<any> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    platform_content_id: z.string(),
+    url: z.string().optional(),
+    text: z.string().optional(),
+    author: z
+      .object({
+        id: z.string().optional(),
+        username: z.string().optional(),
+        name: z.string().optional(),
+        avatar_url: z.string().optional(),
+        is_verified: z.boolean().optional(),
+      })
+      .optional(),
+    created_at: z.string().optional(),
+    media_urls: z.array(MediaUrlSchema).optional(),
+    engagement_metrics: EngagementMetricsSchema.optional(),
+  })
+);
 
 export const EngagementMetricsSchema = z.object({
   views: z.number().nonnegative().optional(),
@@ -231,6 +287,9 @@ export const CreateContentInputSchema = z.object({
   reading_time_minutes: z.number().nonnegative().optional(),
   media_urls: z.array(MediaUrlSchema).optional(),
   engagement_metrics: EngagementMetricsSchema.optional(),
+  reference_type: ReferenceTypeSchema.optional(),
+  referenced_content_id: z.string().uuid().optional(),
+  referenced_content: ReferencedContentSchema.optional(),
 });
 
 export const UpdateContentInputSchema = z.object({
@@ -251,6 +310,9 @@ export const UpdateContentInputSchema = z.object({
   reading_time_minutes: z.number().nonnegative().optional(),
   media_urls: z.array(MediaUrlSchema).optional(),
   engagement_metrics: EngagementMetricsSchema.optional(),
+  reference_type: ReferenceTypeSchema.optional(),
+  referenced_content_id: z.string().uuid().optional(),
+  referenced_content: ReferencedContentSchema.optional(),
 });
 
 export const ContentFiltersSchema = z.object({

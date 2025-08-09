@@ -107,6 +107,8 @@ import { YumLogo } from '@/components/yum-logo';
 import { IntersectionObserverGrid } from '@/components/intersection-observer-grid';
 import { YouTubeEmbed } from '@/components/ui/youtube-embed';
 import { XVideoEmbed } from '@/components/ui/x-video-embed';
+import { ReferencedContentDisplay } from '@/components/referenced-content';
+import type { ReferenceType, ReferencedContent } from '@/types/content';
 
 // --- PLATFORM ICONS ---
 
@@ -166,6 +168,10 @@ interface FeedItem {
     color?: string;
   }>;
   media_urls?: MediaUrl[];
+  // Reference fields for quoted/retweeted/replied content
+  reference_type?: ReferenceType;
+  referenced_content_id?: string;
+  referenced_content?: ReferencedContent;
 }
 
 // Lounge interface for sidebar
@@ -1095,6 +1101,12 @@ export const ContentCard = React.memo(function ContentCard({
                 </>
               );
             })()}
+
+          {/* Display referenced content (quote tweets, etc.) - after media */}
+          <ReferencedContentDisplay
+            referenceType={item.reference_type}
+            referencedContent={item.referenced_content}
+          />
 
           <div className="flex flex-wrap gap-2 mb-4">
             {(item.topics || []).map((topic) => {
