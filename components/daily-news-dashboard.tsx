@@ -113,6 +113,8 @@ import { LinkPreviewCard } from '@/components/link-preview-card';
 import { VideoThumbnail } from '@/components/video-thumbnail';
 import { ContentLinkPreviews } from '@/components/content-link-previews';
 import type { ReferenceType, ReferencedContent } from '@/types/content';
+import { useSearchSuggestions } from '@/hooks/use-search-suggestions';
+import { SearchSuggestions } from '@/components/search-suggestions';
 
 // --- PLATFORM ICONS ---
 
@@ -483,9 +485,13 @@ function Header({
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const [localSearchQuery, setLocalSearchQuery] = React.useState(searchQuery);
   const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = React.useState(-1);
   // Use unified auth with user profile
   const { state } = useAuth();
   const { user } = state;
+  
+  // Use search suggestions hook
+  const suggestions = useSearchSuggestions(localSearchQuery, showSuggestions);
 
   // Load recent searches from localStorage
   React.useEffect(() => {
@@ -537,6 +543,84 @@ function Header({
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
 
+  // Reset selected index when suggestions change
+  React.useEffect(() => {
+    setSelectedSuggestionIndex(-1);
+  }, [suggestions.creators, suggestions.content, localSearchQuery]);
+
+  // Calculate total suggestions count for keyboard navigation
+  const getTotalSuggestions = () => {
+    const searchItem = localSearchQuery ? 1 : 0;
+    const recentCount = !localSearchQuery ? recentSearches.length : 0;
+    const creatorsCount = suggestions.creators.length;
+    const contentCount = suggestions.content.length;
+    return searchItem + recentCount + creatorsCount + contentCount;
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const totalSuggestions = getTotalSuggestions();
+    
+    if (!showSuggestions || totalSuggestions === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedSuggestionIndex((prev) => 
+        prev < totalSuggestions - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedSuggestionIndex((prev) => 
+        prev > 0 ? prev - 1 : totalSuggestions - 1
+      );
+    } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+      e.preventDefault();
+      
+      // Determine which item is selected
+      let currentIndex = 0;
+      
+      // Search query item
+      if (localSearchQuery) {
+        if (currentIndex === selectedSuggestionIndex) {
+          handleSuggestionClick(localSearchQuery);
+          return;
+        }
+        currentIndex++;
+      }
+      
+      // Recent searches
+      if (!localSearchQuery) {
+        for (const search of recentSearches) {
+          if (currentIndex === selectedSuggestionIndex) {
+            handleSuggestionClick(search);
+            return;
+          }
+          currentIndex++;
+        }
+      }
+      
+      // Creators
+      for (const creator of suggestions.creators) {
+        if (currentIndex === selectedSuggestionIndex) {
+          handleSuggestionClick(creator.display_name);
+          return;
+        }
+        currentIndex++;
+      }
+      
+      // Content
+      for (const content of suggestions.content) {
+        if (currentIndex === selectedSuggestionIndex) {
+          handleSuggestionClick(content.title);
+          return;
+        }
+        currentIndex++;
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
+    }
+  };
+
   const getInitials = (email?: string) => {
     if (!email) return 'U';
     return email[0].toUpperCase();
@@ -564,6 +648,7 @@ function Header({
               onChange={(e) => setLocalSearchQuery(e.target.value)}
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              onKeyDown={handleKeyDown}
             />
             {localSearchQuery && (
               <button
@@ -575,39 +660,21 @@ function Header({
               </button>
             )}
           </div>
-          {showSuggestions &&
-            recentSearches.length > 0 &&
-            !localSearchQuery && (
-              <Card className="absolute top-full mt-2 w-full z-50 shadow-lg">
-                <CardContent className="p-2">
-                  <div className="flex items-center justify-between px-2 py-1">
-                    <p className="text-xs text-gray-500">Recent searches</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRecentSearches([]);
-                        localStorage.removeItem('recentSearches');
-                      }}
-                      className="text-xs text-gray-400 hover:text-gray-600"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                  {recentSearches.map((search, idx) => (
-                    <Button
-                      key={idx}
-                      type="button"
-                      variant="ghost"
-                      className="w-full justify-start text-sm"
-                      onClick={() => handleSuggestionClick(search)}
-                    >
-                      <Icons.clock className="h-3 w-3 mr-2 text-gray-400" />
-                      {search}
-                    </Button>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
+          {showSuggestions && (
+            <SearchSuggestions
+              creators={suggestions.creators}
+              content={suggestions.content}
+              isLoading={suggestions.isLoading}
+              searchQuery={localSearchQuery}
+              recentSearches={recentSearches}
+              onSuggestionClick={handleSuggestionClick}
+              onClearRecentSearches={() => {
+                setRecentSearches([]);
+                localStorage.removeItem('recentSearches');
+              }}
+              selectedIndex={selectedSuggestionIndex}
+            />
+          )}
         </form>
       </div>
       <div className="flex items-center gap-2 ml-2">
