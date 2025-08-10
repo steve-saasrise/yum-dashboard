@@ -115,6 +115,7 @@ import { ContentLinkPreviews } from '@/components/content-link-previews';
 import type { ReferenceType, ReferencedContent } from '@/types/content';
 import { useSearchSuggestions } from '@/hooks/use-search-suggestions';
 import { SearchSuggestions } from '@/components/search-suggestions';
+import { LinkedInContentDisplay } from '@/components/ui/linkedin-content-display';
 
 // --- PLATFORM ICONS ---
 
@@ -485,11 +486,12 @@ function Header({
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const [localSearchQuery, setLocalSearchQuery] = React.useState(searchQuery);
   const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = React.useState(-1);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] =
+    React.useState(-1);
   // Use unified auth with user profile
   const { state } = useAuth();
   const { user } = state;
-  
+
   // Use search suggestions hook
   const suggestions = useSearchSuggestions(localSearchQuery, showSuggestions);
 
@@ -559,25 +561,25 @@ function Header({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const totalSuggestions = getTotalSuggestions();
-    
+
     if (!showSuggestions || totalSuggestions === 0) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedSuggestionIndex((prev) => 
+      setSelectedSuggestionIndex((prev) =>
         prev < totalSuggestions - 1 ? prev + 1 : 0
       );
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedSuggestionIndex((prev) => 
+      setSelectedSuggestionIndex((prev) =>
         prev > 0 ? prev - 1 : totalSuggestions - 1
       );
     } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
       e.preventDefault();
-      
+
       // Determine which item is selected
       let currentIndex = 0;
-      
+
       // Search query item
       if (localSearchQuery) {
         if (currentIndex === selectedSuggestionIndex) {
@@ -586,7 +588,7 @@ function Header({
         }
         currentIndex++;
       }
-      
+
       // Recent searches
       if (!localSearchQuery) {
         for (const search of recentSearches) {
@@ -597,7 +599,7 @@ function Header({
           currentIndex++;
         }
       }
-      
+
       // Creators
       for (const creator of suggestions.creators) {
         if (currentIndex === selectedSuggestionIndex) {
@@ -606,7 +608,7 @@ function Header({
         }
         currentIndex++;
       }
-      
+
       // Content
       for (const content of suggestions.content) {
         if (currentIndex === selectedSuggestionIndex) {
@@ -744,7 +746,7 @@ function Header({
                 <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuItem onClick={onSignOut}>
+            <DropdownMenuItem onClick={onSignOut} className="cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
@@ -959,16 +961,26 @@ export const ContentCard = React.memo(function ContentCard({
           <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-white">
             {item.title}
           </h3>
-          <AISummary
-            shortSummary={item.ai_summary_short}
-            longSummary={item.ai_summary_long}
-            originalDescription={item.description}
-            summaryStatus={item.summary_status}
-            summaryModel={item.summary_model}
-            generatedAt={item.summary_generated_at}
-            className="mb-4"
-            defaultMode="short"
-          />
+          {/* Use LinkedIn content display for LinkedIn, AI summaries for others */}
+          {item.platform === 'linkedin' ? (
+            <LinkedInContentDisplay
+              content={item.content_body}
+              description={item.description}
+              className="mb-4"
+              truncateAt={280}
+            />
+          ) : (
+            <AISummary
+              shortSummary={item.ai_summary_short}
+              longSummary={item.ai_summary_long}
+              originalDescription={item.description}
+              summaryStatus={item.summary_status}
+              summaryModel={item.summary_model}
+              generatedAt={item.summary_generated_at}
+              className="mb-4"
+              defaultMode="short"
+            />
+          )}
 
           {/* Display YouTube video embed */}
           {item.platform === 'youtube' && item.platform_content_id && (
@@ -2117,9 +2129,7 @@ export function DailyNewsDashboard() {
                       ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
                       : 'Your Lounge'}
                 </h1>
-                {(searchQuery ||
-                  selectedLoungeId ||
-                  selectedPlatforms.length > 0) && (
+                {(searchQuery || selectedPlatforms.length > 0) && (
                   <div className="flex items-center gap-2 mt-2">
                     <p className="text-sm text-gray-500">Active filters:</p>
                     {searchQuery && (
@@ -2129,17 +2139,6 @@ export function DailyNewsDashboard() {
                         onClick={() => setSearchQuery('')}
                       >
                         Search: {searchQuery}
-                        <XIcon className="h-3 w-3 ml-1" />
-                      </Badge>
-                    )}
-                    {selectedLoungeId && (
-                      <Badge
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
-                        onClick={() => setSelectedLoungeId(null)}
-                      >
-                        {lounges.find((l) => l.id === selectedLoungeId)?.name}{' '}
-                        Lounge
                         <XIcon className="h-3 w-3 ml-1" />
                       </Badge>
                     )}

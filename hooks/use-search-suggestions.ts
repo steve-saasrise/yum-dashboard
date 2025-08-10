@@ -45,8 +45,12 @@ export function useSearchSuggestions(query: string, enabled: boolean = true) {
     try {
       // Fetch both creators and content in parallel
       const [creatorsRes, contentRes] = await Promise.all([
-        fetch(`/api/creators?search=${encodeURIComponent(searchQuery)}&limit=5`),
-        fetch(`/api/content?search=${encodeURIComponent(searchQuery)}&limit=5&sort_by=published_at&sort_order=desc`)
+        fetch(
+          `/api/creators?search=${encodeURIComponent(searchQuery)}&limit=5`
+        ),
+        fetch(
+          `/api/content?search=${encodeURIComponent(searchQuery)}&limit=5&sort_by=published_at&sort_order=desc`
+        ),
       ]);
 
       let creators: CreatorSuggestion[] = [];
@@ -68,7 +72,8 @@ export function useSearchSuggestions(query: string, enabled: boolean = true) {
         content = (contentData.data || []).map((item: any) => ({
           id: item.id,
           title: item.title,
-          creator_name: item.creator?.display_name || item.creator?.name || 'Unknown',
+          creator_name:
+            item.creator?.display_name || item.creator?.name || 'Unknown',
           platform: item.platform,
           published_at: item.published_at,
         }));

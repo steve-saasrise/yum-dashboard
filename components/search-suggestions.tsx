@@ -6,8 +6,20 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Youtube, Linkedin, Rss, User, FileText, Clock, Search } from 'lucide-react';
-import type { CreatorSuggestion, ContentSuggestion } from '@/hooks/use-search-suggestions';
+import {
+  Loader2,
+  Youtube,
+  Linkedin,
+  Rss,
+  User,
+  FileText,
+  Clock,
+  Search,
+} from 'lucide-react';
+import type {
+  CreatorSuggestion,
+  ContentSuggestion,
+} from '@/hooks/use-search-suggestions';
 
 interface SearchSuggestionsProps {
   creators: CreatorSuggestion[];
@@ -43,13 +55,14 @@ const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-  
+
   if (diffInHours < 1) {
     const diffInMinutes = Math.floor(diffInHours * 60);
     return `${diffInMinutes}m ago`;
   } else if (diffInHours < 24) {
     return `${Math.floor(diffInHours)}h ago`;
-  } else if (diffInHours < 168) { // 7 days
+  } else if (diffInHours < 168) {
+    // 7 days
     return `${Math.floor(diffInHours / 24)}d ago`;
   } else {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -70,8 +83,8 @@ export function SearchSuggestions({
 }: SearchSuggestionsProps) {
   const hasResults = creators.length > 0 || content.length > 0;
   const showRecentSearches = !searchQuery && recentSearches.length > 0;
-  
-  let currentIndex = 0;
+
+  const currentIndex = 0;
   const isSelected = (index: number) => index === selectedIndex;
 
   if (!hasResults && !isLoading && !showRecentSearches) {
@@ -165,9 +178,13 @@ export function SearchSuggestions({
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 text-left">
-                              <div className="font-medium">{creator.display_name}</div>
+                              <div className="font-medium">
+                                {creator.display_name}
+                              </div>
                               {creator.handle && (
-                                <div className="text-xs text-gray-500">@{creator.handle}</div>
+                                <div className="text-xs text-gray-500">
+                                  @{creator.handle}
+                                </div>
                               )}
                             </div>
                             <PlatformIcon className="h-4 w-4 text-gray-400" />
@@ -207,7 +224,9 @@ export function SearchSuggestions({
                           <div className="flex items-start gap-3 w-full">
                             <FileText className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
                             <div className="flex-1 text-left">
-                              <div className="font-medium line-clamp-1">{item.title}</div>
+                              <div className="font-medium line-clamp-1">
+                                {item.title}
+                              </div>
                               <div className="flex items-center gap-2 text-xs text-gray-500">
                                 <span>{item.creator_name}</span>
                                 <span>•</span>
