@@ -269,16 +269,18 @@ export class ApifyFetcher {
     return items.map((tweet) => {
       // Extract author info for avatar updates
       if (tweet.author && tweet.author.userName) {
-        const authorAvatar = tweet.author.profilePicture || 
-                            tweet.author.profileImageUrl || 
-                            tweet.author.profile_image_url_https;
-        
+        const authorAvatar =
+          tweet.author.profilePicture ||
+          tweet.author.profileImageUrl ||
+          tweet.author.profile_image_url_https;
+
         if (authorAvatar) {
           // Check if we already have this author
           const existingAuthor = this.extractedAuthors.find(
-            a => a.platform === 'twitter' && a.username === tweet.author.userName
+            (a) =>
+              a.platform === 'twitter' && a.username === tweet.author.userName
           );
-          
+
           if (!existingAuthor) {
             this.extractedAuthors.push({
               username: tweet.author.userName,
@@ -541,16 +543,17 @@ export class ApifyFetcher {
     return items.map((post) => {
       // Extract author info for avatar updates
       if (post.user && post.user.username) {
-        const authorAvatar = post.user.profile_pic_url || 
-                            post.user.profile_picture ||
-                            post.user.avatar_url;
-        
+        const authorAvatar =
+          post.user.profile_pic_url ||
+          post.user.profile_picture ||
+          post.user.avatar_url;
+
         if (authorAvatar) {
           // Check if we already have this author
           const existingAuthor = this.extractedAuthors.find(
-            a => a.platform === 'threads' && a.username === post.user.username
+            (a) => a.platform === 'threads' && a.username === post.user.username
           );
-          
+
           if (!existingAuthor) {
             this.extractedAuthors.push({
               username: post.user.username,
@@ -683,16 +686,18 @@ export class ApifyFetcher {
       for (const post of posts) {
         // Extract author info for avatar updates
         if (post.author) {
-          const authorAvatar = post.author.profile_picture || 
-                              post.author.avatar_url ||
-                              post.author.image;
-          
+          const authorAvatar =
+            post.author.profile_picture ||
+            post.author.avatar_url ||
+            post.author.image;
+
           if (authorAvatar && post.author.username) {
             // Check if we already have this author
             const existingAuthor = this.extractedAuthors.find(
-              a => a.platform === 'linkedin' && a.username === post.author.username
+              (a) =>
+                a.platform === 'linkedin' && a.username === post.author.username
             );
-            
+
             if (!existingAuthor) {
               this.extractedAuthors.push({
                 username: post.author.username,

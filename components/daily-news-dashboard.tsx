@@ -502,7 +502,10 @@ function Header({
   // Save search to recent searches
   const saveRecentSearch = (query: string) => {
     if (!query.trim()) return;
-    const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+    const updated = [query, ...recentSearches.filter((s) => s !== query)].slice(
+      0,
+      5
+    );
     setRecentSearches(updated);
     localStorage.setItem('recentSearches', JSON.stringify(updated));
   };
@@ -544,7 +547,10 @@ function Header({
         <SidebarTrigger className="h-9 w-9" />
       </div>
       <div className="flex-1 flex items-center gap-4">
-        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-xl">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="relative w-full max-w-xl"
+        >
           <div className="relative flex items-center">
             <Search className="absolute left-3 h-4 w-4 text-gray-500 pointer-events-none" />
             {isSearching && (
@@ -569,37 +575,39 @@ function Header({
               </button>
             )}
           </div>
-          {showSuggestions && recentSearches.length > 0 && !localSearchQuery && (
-            <Card className="absolute top-full mt-2 w-full z-50 shadow-lg">
-              <CardContent className="p-2">
-                <div className="flex items-center justify-between px-2 py-1">
-                  <p className="text-xs text-gray-500">Recent searches</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRecentSearches([]);
-                      localStorage.removeItem('recentSearches');
-                    }}
-                    className="text-xs text-gray-400 hover:text-gray-600"
-                  >
-                    Clear
-                  </button>
-                </div>
-                {recentSearches.map((search, idx) => (
-                  <Button
-                    key={idx}
-                    type="button"
-                    variant="ghost"
-                    className="w-full justify-start text-sm"
-                    onClick={() => handleSuggestionClick(search)}
-                  >
-                    <Icons.clock className="h-3 w-3 mr-2 text-gray-400" />
-                    {search}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          {showSuggestions &&
+            recentSearches.length > 0 &&
+            !localSearchQuery && (
+              <Card className="absolute top-full mt-2 w-full z-50 shadow-lg">
+                <CardContent className="p-2">
+                  <div className="flex items-center justify-between px-2 py-1">
+                    <p className="text-xs text-gray-500">Recent searches</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecentSearches([]);
+                        localStorage.removeItem('recentSearches');
+                      }}
+                      className="text-xs text-gray-400 hover:text-gray-600"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  {recentSearches.map((search, idx) => (
+                    <Button
+                      key={idx}
+                      type="button"
+                      variant="ghost"
+                      className="w-full justify-start text-sm"
+                      onClick={() => handleSuggestionClick(search)}
+                    >
+                      <Icons.clock className="h-3 w-3 mr-2 text-gray-400" />
+                      {search}
+                    </Button>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
         </form>
       </div>
       <div className="flex items-center gap-2 ml-2">
@@ -1735,7 +1743,7 @@ export function DailyNewsDashboard() {
   const [isLoadingPlatforms, setIsLoadingPlatforms] = React.useState(true);
   const [showVideoEmbeds, setShowVideoEmbeds] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState('');
-  
+
   // Debounce the search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -2039,10 +2047,12 @@ export function DailyNewsDashboard() {
                   {searchQuery
                     ? `Search results for "${searchQuery}"`
                     : lounges.find((l) => l.id === selectedLoungeId)?.name
-                    ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
-                    : 'Your Lounge'}
+                      ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
+                      : 'Your Lounge'}
                 </h1>
-                {(searchQuery || selectedLoungeId || selectedPlatforms.length > 0) && (
+                {(searchQuery ||
+                  selectedLoungeId ||
+                  selectedPlatforms.length > 0) && (
                   <div className="flex items-center gap-2 mt-2">
                     <p className="text-sm text-gray-500">Active filters:</p>
                     {searchQuery && (
@@ -2061,7 +2071,8 @@ export function DailyNewsDashboard() {
                         className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
                         onClick={() => setSelectedLoungeId(null)}
                       >
-                        {lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge
+                        {lounges.find((l) => l.id === selectedLoungeId)?.name}{' '}
+                        Lounge
                         <XIcon className="h-3 w-3 ml-1" />
                       </Badge>
                     )}
@@ -2209,17 +2220,21 @@ export function DailyNewsDashboard() {
                       {searchQuery
                         ? `Try adjusting your search query or clearing filters`
                         : creators.length === 0
-                        ? 'Start by adding creators to follow their content'
-                        : "Content from your creators will appear here once it's fetched"}
+                          ? 'Start by adding creators to follow their content'
+                          : "Content from your creators will appear here once it's fetched"}
                     </p>
                   </div>
                   {searchQuery ? (
-                    <Button onClick={() => setSearchQuery('')} variant="outline">
+                    <Button
+                      onClick={() => setSearchQuery('')}
+                      variant="outline"
+                    >
                       <XIcon className="w-4 h-4 mr-2" />
                       Clear search
                     </Button>
                   ) : (
-                    creators.length === 0 && canManageCreators && (
+                    creators.length === 0 &&
+                    canManageCreators && (
                       <Button onClick={handleCreateCreator} size="lg">
                         <PlusCircle className="w-5 h-5 mr-2" />
                         Add Your First Creator

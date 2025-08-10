@@ -134,24 +134,30 @@ export async function GET(request: NextRequest) {
         .from('creators')
         .select('id, display_name')
         .ilike('display_name', `%${query.search}%`);
-      
+
       console.log('Creator search query:', {
         searchTerm: query.search,
         matchingCreatorsFound: matchingCreators?.length || 0,
         error: searchError,
-        sampleCreators: matchingCreators?.slice(0, 3).map(c => c.display_name)
+        sampleCreators: matchingCreators
+          ?.slice(0, 3)
+          .map((c) => c.display_name),
       });
-      
+
       if (matchingCreators && matchingCreators.length > 0) {
         // Filter to only include creators that are in the original set (respecting lounge filter)
-        const filteredMatchingCreators = matchingCreators.filter(c => creatorIds.includes(c.id));
-        searchCreatorIds = filteredMatchingCreators.map(c => c.id);
-        
+        const filteredMatchingCreators = matchingCreators.filter((c) =>
+          creatorIds.includes(c.id)
+        );
+        searchCreatorIds = filteredMatchingCreators.map((c) => c.id);
+
         console.log('Filtered creators matching search:', {
           searchTerm: query.search,
           totalMatchingCreators: matchingCreators.length,
           filteredMatchingCreatorCount: searchCreatorIds.length,
-          matchingCreatorNames: filteredMatchingCreators.map(c => c.display_name)
+          matchingCreatorNames: filteredMatchingCreators.map(
+            (c) => c.display_name
+          ),
         });
       }
     }
