@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Creator, CreatorFilters } from '@/types/creator';
@@ -10,7 +10,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
   const {
     state: { user, session, loading: authLoading },
   } = useAuth();
-  const [creators, setCreators] = useState<Creator[]>([]);
+  const [allCreatorsData, setAllCreatorsData] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<CreatorFilters>({
@@ -27,7 +27,9 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
 
   // Use a ref to track if we're currently fetching to prevent duplicate calls
   const isFetchingRef = useRef(false);
+  const previousFiltersRef = useRef<CreatorFilters>(filters);
 
+  // Fetch all creators data once (or when refresh is triggered)
   useEffect(() => {
     // Skip if auth is still loading
     if (authLoading) {
@@ -38,7 +40,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
     if (!user || !session) {
       setLoading(false);
       setError('Please sign in to view your creators');
-      setCreators([]);
+      setAllCreatorsData([]);
       return;
     }
 
@@ -47,7 +49,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
       return;
     }
 
-    const fetchCreators = async () => {
+    const fetchAllCreators = async () => {
       isFetchingRef.current = true;
       setLoading(true);
       setError(null);
@@ -55,94 +57,40 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
       try {
         const supabase = createBrowserSupabaseClient();
 
-        // Build base query - fetch creators only first
-        let baseQuery = supabase
+        // Fetch ALL creators without any filters (we'll filter client-side)
+        const { data: allCreators, error: fetchError } = await supabase
           .from('creators')
-          .select('*', { count: 'exact' });
-
-        // Apply search filter
-        if (filters.search) {
-          baseQuery = baseQuery.or(
-            `display_name.ilike.%${filters.search}%,bio.ilike.%${filters.search}%`
-          );
-        }
-
-        // Apply status filter
-        if (filters.status && filters.status !== 'all') {
-          baseQuery = baseQuery.eq('status', filters.status);
-        }
-
-        // Apply sorting
-        const orderColumn = filters.sort || 'created_at';
-        const orderAscending = filters.order === 'asc';
-        baseQuery = baseQuery.order(orderColumn, { ascending: orderAscending });
-
-        // Get all creators first (without pagination) to properly filter
-        const { data: allCreators, error: fetchError, count } = await baseQuery;
+          .select('*')
+          .order('created_at', { ascending: false });
 
         if (fetchError) {
           throw new Error(fetchError.message);
         }
 
-        let filteredCreators = allCreators || [];
+        const creatorsData = allCreators || [];
 
-        // If we have creators, fetch related data separately
-        if (filteredCreators.length > 0) {
-          const creatorIds = filteredCreators.map((c) => c.id);
+        // If we have creators, fetch all related data at once
+        if (creatorsData.length > 0) {
+          const creatorIds = creatorsData.map((c) => c.id);
 
-          // Fetch URLs with optional platform filter
-          let urlQuery = supabase
+          // Fetch all URLs
+          const { data: urls } = await supabase
             .from('creator_urls')
             .select('id, creator_id, platform, url, validation_status')
             .in('creator_id', creatorIds);
 
-          if (filters.platform) {
-            urlQuery = urlQuery.eq('platform', filters.platform);
-          }
-
-          const { data: urls } = await urlQuery;
           const creatorUrls = urls || [];
 
-          // If platform filtering is applied, filter creators that have URLs for that platform
-          if (filters.platform && creatorUrls.length >= 0) {
-            const creatorsWithPlatform = new Set(
-              creatorUrls.map((url) => url.creator_id)
-            );
-            filteredCreators = filteredCreators.filter((creator) =>
-              creatorsWithPlatform.has(creator.id)
-            );
-          }
-
-          // Fetch lounges separately
+          // Fetch all lounges
           const { data: loungesData } = await supabase
             .from('creator_lounges')
             .select('creator_id, lounge_id, lounges(id, name)')
-            .in(
-              'creator_id',
-              filteredCreators.map((c) => c.id)
-            );
+            .in('creator_id', creatorIds);
 
           const creatorLounges = loungesData || [];
 
-          // If lounge filtering is applied, filter creators that have the selected lounge
-          if (filters.lounge) {
-            const creatorsWithLounge = new Set(
-              creatorLounges
-                .filter((cl: any) => cl.lounges?.id === filters.lounge)
-                .map((cl) => cl.creator_id)
-            );
-            filteredCreators = filteredCreators.filter((creator) =>
-              creatorsWithLounge.has(creator.id)
-            );
-          }
-
-          // Apply pagination after all filtering
-          const from = ((filters.page || 1) - 1) * (filters.limit || 10);
-          const to = from + (filters.limit || 10);
-          const paginatedCreators = filteredCreators.slice(from, to);
-
-          // Transform creators to include related data
-          const transformedCreators = paginatedCreators.map((creator) => {
+          // Transform creators to include all related data
+          const transformedCreators = creatorsData.map((creator) => {
             // Get URLs for this creator
             const creatorUrlsList = creatorUrls.filter(
               (url) => url.creator_id === creator.id
@@ -174,25 +122,9 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
             };
           });
 
-          setCreators(transformedCreators);
-
-          const totalPages = Math.ceil(
-            filteredCreators.length / (filters.limit || 10)
-          );
-          setPagination({
-            page: filters.page || 1,
-            limit: filters.limit || 10,
-            total: filteredCreators.length,
-            totalPages,
-          });
+          setAllCreatorsData(transformedCreators);
         } else {
-          setCreators([]);
-          setPagination({
-            page: 1,
-            limit: filters.limit || 10,
-            total: 0,
-            totalPages: 0,
-          });
+          setAllCreatorsData([]);
         }
       } catch (err) {
         setError(
@@ -204,8 +136,85 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
       }
     };
 
-    fetchCreators();
-  }, [authLoading, user, session, filters, refreshTrigger]);
+    fetchAllCreators();
+  }, [authLoading, user, session, refreshTrigger]); // Remove filters from dependencies
+
+  // Filter and paginate creators on the client side
+  const { creators, totalCount } = useMemo(() => {
+    let filtered = [...allCreatorsData];
+
+    // Search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(
+        (creator) =>
+          creator.display_name?.toLowerCase().includes(searchLower) ||
+          creator.bio?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Platform filter
+    if (filters.platform) {
+      filtered = filtered.filter(
+        (creator) => creator.platform === filters.platform
+      );
+    }
+
+    // Lounge filter
+    if (filters.lounge) {
+      filtered = filtered.filter((creator) =>
+        creator.lounge_ids?.includes(filters.lounge!)
+      );
+    }
+
+    // Status filter
+    if (filters.status && filters.status !== 'all') {
+      if (filters.status === 'active') {
+        filtered = filtered.filter((creator) => creator.is_active);
+      } else if (filters.status === 'inactive') {
+        filtered = filtered.filter((creator) => !creator.is_active);
+      }
+    }
+
+    // Sorting
+    const sortField = filters.sort || 'created_at';
+    const sortOrder = filters.order || 'desc';
+
+    filtered.sort((a, b) => {
+      let aVal = a[sortField as keyof Creator];
+      let bVal = b[sortField as keyof Creator];
+
+      // Handle null/undefined values
+      if (aVal == null) return sortOrder === 'asc' ? 1 : -1;
+      if (bVal == null) return sortOrder === 'asc' ? -1 : 1;
+
+      // Compare values
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    const total = filtered.length;
+
+    // Pagination
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const from = (page - 1) * limit;
+    const to = from + limit;
+    const paginated = filtered.slice(from, to);
+
+    return { creators: paginated, totalCount: total };
+  }, [allCreatorsData, filters]);
+
+  // Update pagination when filtered results change
+  useEffect(() => {
+    setPagination({
+      page: filters.page || 1,
+      limit: filters.limit || 10,
+      total: totalCount,
+      totalPages: Math.ceil(totalCount / (filters.limit || 10)),
+    });
+  }, [totalCount, filters.page, filters.limit]);
 
   const updateFilters = useCallback((newFilters: Partial<CreatorFilters>) => {
     setFilters((prev) => ({

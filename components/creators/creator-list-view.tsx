@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useLounges } from '@/hooks/use-lounges';
 import { useCreators } from '@/hooks/use-creators';
 import { useAuth } from '@/hooks/use-auth';
@@ -76,8 +76,8 @@ const getPlatformDisplayName = (platform: string) => {
   return platform?.charAt(0).toUpperCase() + platform?.slice(1) || 'Website';
 };
 
-// Search component with debouncing
-function CreatorSearch({
+// Search component with debouncing - Memoized to prevent re-renders
+const CreatorSearch = memo(function CreatorSearch({
   value,
   onChange,
   placeholder = 'Search creators...',
@@ -88,38 +88,57 @@ function CreatorSearch({
   placeholder?: string;
   isLoading?: boolean;
 }) {
-  const [searchValue, setSearchValue] = useState(value);
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  const [localValue, setLocalValue] = useState(value);
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // Debounce search
+  // Update local value when prop changes (for external updates like clear)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchValue !== value) {
-        onChangeRef.current(searchValue);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchValue, value]);
-
-  useEffect(() => {
-    setSearchValue(value);
+    setLocalValue(value);
   }, [value]);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      setLocalValue(newValue);
+
+      // Clear existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // Set new timeout for debounced update
+      timeoutRef.current = setTimeout(() => {
+        onChange(newValue);
+      }, 600);
+    },
+    [onChange]
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="relative">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         placeholder={placeholder}
-        value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
-        className="pl-9"
+        value={localValue}
+        onChange={handleChange}
+        className="pl-9 pr-9"
         disabled={isLoading}
       />
+      {isLoading && localValue && (
+        <RefreshCw className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+      )}
     </div>
   );
-}
+});
 
 // Filter component
 function CreatorFilters({
@@ -657,6 +676,14 @@ export function CreatorListView() {
     [refreshCreators, toast]
   );
 
+  // Stable callback for search to prevent input focus loss
+  const handleSearchChange = useCallback(
+    (search: string) => {
+      updateFilters({ search });
+    },
+    [updateFilters]
+  );
+
   const handleBulkDelete = useCallback(async () => {
     if (selectedCreators.size === 0) return;
 
@@ -741,8 +768,8 @@ export function CreatorListView() {
         <div className="flex items-center gap-3">
           <CreatorSearch
             value={filters.search || ''}
-            onChange={(search) => updateFilters({ search })}
-            isLoading={loading}
+            onChange={handleSearchChange}
+            isLoading={false} // Never disable the search input
           />
           {canManageCreators && (
             <Button onClick={handleAddCreator}>
