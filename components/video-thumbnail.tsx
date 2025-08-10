@@ -77,9 +77,7 @@ export function VideoThumbnail({
           <div className="text-center">
             {getPlatformIcon() && (
               <div className="text-gray-400 dark:text-gray-500 mb-2">
-                <div className="h-12 w-12 mx-auto">
-                  {getPlatformIcon()}
-                </div>
+                <div className="h-12 w-12 mx-auto">{getPlatformIcon()}</div>
               </div>
             )}
             <p className="text-sm text-gray-500 dark:text-gray-400">Video</p>

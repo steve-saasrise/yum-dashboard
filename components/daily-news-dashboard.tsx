@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useInfiniteContent } from '@/hooks/use-infinite-content';
 import { useLounges } from '@/hooks/use-lounges';
+import { useDebounce } from '@/hooks/use-debounce';
 import type { Creator, Platform } from '@/types/creator';
 import type { Lounge } from '@/types/lounge';
 import type { MediaUrl } from '@/types/content';
@@ -109,6 +110,7 @@ import { YouTubeEmbed } from '@/components/ui/youtube-embed';
 import { XVideoEmbed } from '@/components/ui/x-video-embed';
 import { ReferencedContentDisplay } from '@/components/referenced-content';
 import { LinkPreviewCard } from '@/components/link-preview-card';
+import { VideoThumbnail } from '@/components/video-thumbnail';
 import { ContentLinkPreviews } from '@/components/content-link-previews';
 import type { ReferenceType, ReferencedContent } from '@/types/content';
 
@@ -467,15 +469,70 @@ function Header({
   onSignOut,
   onRefresh,
   canManageCreators,
+  searchQuery,
+  onSearchChange,
+  isSearching,
 }: {
   onSignOut: () => void;
   onRefresh?: () => void;
   canManageCreators: boolean;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  isSearching: boolean;
 }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
+  const [localSearchQuery, setLocalSearchQuery] = React.useState(searchQuery);
+  const [recentSearches, setRecentSearches] = React.useState<string[]>([]);
   // Use unified auth with user profile
   const { state } = useAuth();
   const { user } = state;
+
+  // Load recent searches from localStorage
+  React.useEffect(() => {
+    const stored = localStorage.getItem('recentSearches');
+    if (stored) {
+      try {
+        setRecentSearches(JSON.parse(stored));
+      } catch (e) {
+        // Invalid JSON, ignore
+      }
+    }
+  }, []);
+
+  // Save search to recent searches
+  const saveRecentSearch = (query: string) => {
+    if (!query.trim()) return;
+    const updated = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem('recentSearches', JSON.stringify(updated));
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = localSearchQuery.trim();
+    if (query) {
+      saveRecentSearch(query);
+    }
+    onSearchChange(query);
+    setShowSuggestions(false);
+  };
+
+  const handleSearchClear = () => {
+    setLocalSearchQuery('');
+    onSearchChange('');
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setLocalSearchQuery(suggestion);
+    onSearchChange(suggestion);
+    saveRecentSearch(suggestion);
+    setShowSuggestions(false);
+  };
+
+  // Sync local search with parent when parent changes (e.g., clear filters)
+  React.useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+  }, [searchQuery]);
 
   const getInitials = (email?: string) => {
     if (!email) return 'U';
@@ -487,31 +544,63 @@ function Header({
         <SidebarTrigger className="h-9 w-9" />
       </div>
       <div className="flex-1 flex items-center gap-4">
-        <div className="relative w-full max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-          <Input
-            placeholder="Search content, creators, topics..."
-            className="pl-9 bg-gray-100 dark:bg-gray-800 border-transparent focus:bg-white dark:focus:bg-gray-900 focus:border-primary"
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          />
-          {showSuggestions && (
-            <Card className="absolute top-full mt-2 w-full z-50">
+        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-xl">
+          <div className="relative flex items-center">
+            <Search className="absolute left-3 h-4 w-4 text-gray-500 pointer-events-none" />
+            {isSearching && (
+              <Loader2 className="absolute right-10 h-4 w-4 text-gray-500 animate-spin pointer-events-none" />
+            )}
+            <Input
+              type="text"
+              placeholder="Search content or creators..."
+              className="pl-9 pr-10 bg-gray-100 dark:bg-gray-800 border-transparent focus:bg-white dark:focus:bg-gray-900 focus:border-primary transition-all"
+              value={localSearchQuery}
+              onChange={(e) => setLocalSearchQuery(e.target.value)}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            />
+            {localSearchQuery && (
+              <button
+                type="button"
+                onClick={handleSearchClear}
+                className="absolute right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {showSuggestions && recentSearches.length > 0 && !localSearchQuery && (
+            <Card className="absolute top-full mt-2 w-full z-50 shadow-lg">
               <CardContent className="p-2">
-                <p className="text-xs text-gray-500 p-2">Suggestions</p>
-                <Button variant="ghost" className="w-full justify-start">
-                  AI Startups
-                </Button>
-                <Button variant="ghost" className="w-full justify-start">
-                  Naval Ravikant
-                </Button>
-                <Button variant="ghost" className="w-full justify-start">
-                  Future of Work
-                </Button>
+                <div className="flex items-center justify-between px-2 py-1">
+                  <p className="text-xs text-gray-500">Recent searches</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecentSearches([]);
+                      localStorage.removeItem('recentSearches');
+                    }}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    Clear
+                  </button>
+                </div>
+                {recentSearches.map((search, idx) => (
+                  <Button
+                    key={idx}
+                    type="button"
+                    variant="ghost"
+                    className="w-full justify-start text-sm"
+                    onClick={() => handleSuggestionClick(search)}
+                  >
+                    <Icons.clock className="h-3 w-3 mr-2 text-gray-400" />
+                    {search}
+                  </Button>
+                ))}
               </CardContent>
             </Card>
           )}
-        </div>
+        </form>
       </div>
       <div className="flex items-center gap-2 ml-2">
         <div className="flex items-center">
@@ -846,11 +935,43 @@ export const ContentCard = React.memo(function ContentCard({
               return null;
             })()}
 
+          {/* Display LinkedIn videos with thumbnail and play button */}
+          {item.platform === 'linkedin' &&
+            item.media_urls &&
+            (() => {
+              // Find the first video in media_urls
+              const videoMedia = item.media_urls.find(
+                (m) => m.type === 'video'
+              );
+              if (videoMedia && videoMedia.url) {
+                return (
+                  <VideoThumbnail
+                    thumbnailUrl={videoMedia.thumbnail_url}
+                    videoUrl={item.url} // Link to the LinkedIn post
+                    platform="linkedin"
+                    title={item.title}
+                    width={videoMedia.width}
+                    height={videoMedia.height}
+                    className="mb-4"
+                  />
+                );
+              }
+              return null;
+            })()}
+
           {/* Display images for Twitter, LinkedIn, Threads, and RSS posts */}
           {item.media_urls &&
             item.media_urls.length > 0 &&
             ['twitter', 'linkedin', 'threads', 'rss'].includes(item.platform) &&
             (() => {
+              // For LinkedIn, skip this section if there's a video (handled above)
+              if (
+                item.platform === 'linkedin' &&
+                item.media_urls.some((m) => m.type === 'video')
+              ) {
+                return null;
+              }
+
               // Filter out null/placeholder images and videos (videos are handled separately)
               const validImages = item.media_urls.filter(
                 (m) =>
@@ -1203,7 +1324,7 @@ export const ContentCard = React.memo(function ContentCard({
               const hasArticlePreview =
                 item.media_urls &&
                 item.media_urls.some((m) => m.type === 'link_preview');
-              
+
               // Skip ContentLinkPreviews if we already showed an article preview
               if (hasArticlePreview) return null;
             }
@@ -1613,6 +1734,10 @@ export function DailyNewsDashboard() {
   >([]);
   const [isLoadingPlatforms, setIsLoadingPlatforms] = React.useState(true);
   const [showVideoEmbeds, setShowVideoEmbeds] = React.useState(true);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  
+  // Debounce the search query for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   // Get viewport width for responsive columns
   // Single column feed layout
@@ -1629,10 +1754,12 @@ export function DailyNewsDashboard() {
     refreshContent,
     isFetchingNextPage,
     fetchNextPage,
+    isFetching,
   } = useInfiniteContent({
     lounge_id: selectedLoungeId || undefined,
     platforms:
       selectedPlatforms.length > 0 ? (selectedPlatforms as any) : undefined,
+    search: debouncedSearchQuery || undefined,
     sort_by: 'published_at',
     sort_order: 'desc',
   });
@@ -1867,6 +1994,16 @@ export function DailyNewsDashboard() {
     setSelectedPlatforms([]);
   };
 
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleClearAllFilters = () => {
+    setSearchQuery('');
+    setSelectedLoungeId(null);
+    setSelectedPlatforms([]);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -1891,14 +2028,65 @@ export function DailyNewsDashboard() {
             onSignOut={handleSignOut}
             onRefresh={refreshContent}
             canManageCreators={canManageCreators}
+            searchQuery={searchQuery}
+            onSearchChange={handleSearchChange}
+            isSearching={isFetching && !isFetchingNextPage}
           />
           <main className="flex-1 py-4 md:py-6 lg:py-8">
             <div className="flex justify-between items-center mb-6 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {lounges.find((l) => l.id === selectedLoungeId)?.name
-                  ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
-                  : 'Your Lounge'}
-              </h1>
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {searchQuery
+                    ? `Search results for "${searchQuery}"`
+                    : lounges.find((l) => l.id === selectedLoungeId)?.name
+                    ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
+                    : 'Your Lounge'}
+                </h1>
+                {(searchQuery || selectedLoungeId || selectedPlatforms.length > 0) && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-sm text-gray-500">Active filters:</p>
+                    {searchQuery && (
+                      <Badge
+                        variant="secondary"
+                        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                        onClick={() => setSearchQuery('')}
+                      >
+                        Search: {searchQuery}
+                        <XIcon className="h-3 w-3 ml-1" />
+                      </Badge>
+                    )}
+                    {selectedLoungeId && (
+                      <Badge
+                        variant="secondary"
+                        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                        onClick={() => setSelectedLoungeId(null)}
+                      >
+                        {lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge
+                        <XIcon className="h-3 w-3 ml-1" />
+                      </Badge>
+                    )}
+                    {selectedPlatforms.map((platform) => (
+                      <Badge
+                        key={platform}
+                        variant="secondary"
+                        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                        onClick={() => handlePlatformToggle(platform)}
+                      >
+                        {platform}
+                        <XIcon className="h-3 w-3 ml-1" />
+                      </Badge>
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearAllFilters}
+                      className="text-xs"
+                    >
+                      Clear all
+                    </Button>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 {/* Mobile Filter Button */}
                 <Button
@@ -2015,19 +2203,28 @@ export function DailyNewsDashboard() {
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      No content yet
+                      {searchQuery ? 'No results found' : 'No content yet'}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400">
-                      {creators.length === 0
+                      {searchQuery
+                        ? `Try adjusting your search query or clearing filters`
+                        : creators.length === 0
                         ? 'Start by adding creators to follow their content'
                         : "Content from your creators will appear here once it's fetched"}
                     </p>
                   </div>
-                  {creators.length === 0 && canManageCreators && (
-                    <Button onClick={handleCreateCreator} size="lg">
-                      <PlusCircle className="w-5 h-5 mr-2" />
-                      Add Your First Creator
+                  {searchQuery ? (
+                    <Button onClick={() => setSearchQuery('')} variant="outline">
+                      <XIcon className="w-4 h-4 mr-2" />
+                      Clear search
                     </Button>
+                  ) : (
+                    creators.length === 0 && canManageCreators && (
+                      <Button onClick={handleCreateCreator} size="lg">
+                        <PlusCircle className="w-5 h-5 mr-2" />
+                        Add Your First Creator
+                      </Button>
+                    )
                   )}
                   {creators.length > 0 && (
                     <div className="space-y-3">

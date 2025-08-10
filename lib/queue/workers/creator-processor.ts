@@ -130,6 +130,27 @@ async function processCreator(job: Job) {
                 maxTweets: 20,
               });
               items = items.map((item) => ({ ...item, creator_id: creatorId }));
+              
+              // Extract and update creator avatar if missing
+              const authorInfo = apifyFetcher.getExtractedAuthors();
+              if (authorInfo.length > 0) {
+                const { data: creator } = await supabase
+                  .from('creators')
+                  .select('avatar_url')
+                  .eq('id', creatorId)
+                  .single();
+                
+                if (creator && !creator.avatar_url && authorInfo[0].avatar_url) {
+                  await supabase
+                    .from('creators')
+                    .update({ 
+                      avatar_url: authorInfo[0].avatar_url,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('id', creatorId);
+                  console.log(`[Creator ${creatorName}] Updated avatar from Twitter`);
+                }
+              }
             }
             break;
 

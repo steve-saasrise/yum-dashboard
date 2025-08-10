@@ -49,8 +49,16 @@ export interface LinkedInActorInput {
   total_posts_to_scrape?: number;
 }
 
+export interface AuthorInfo {
+  username: string;
+  name?: string;
+  avatar_url?: string;
+  platform: 'twitter' | 'threads' | 'linkedin';
+}
+
 export class ApifyFetcher {
   private client: ApifyClient;
+  private extractedAuthors: AuthorInfo[] = [];
 
   // Actor IDs for the official Apify scrapers
   private static readonly ACTORS = {
@@ -67,6 +75,13 @@ export class ApifyFetcher {
     this.client = new ApifyClient({
       token: config.apiKey,
     });
+  }
+
+  // Get extracted author info and clear the list
+  getExtractedAuthors(): AuthorInfo[] {
+    const authors = [...this.extractedAuthors];
+    this.extractedAuthors = [];
+    return authors;
   }
 
   async fetchTwitterContent(
@@ -252,6 +267,29 @@ export class ApifyFetcher {
 
   private transformTwitterData(items: any[]): CreateContentInput[] {
     return items.map((tweet) => {
+      // Extract author info for avatar updates
+      if (tweet.author && tweet.author.userName) {
+        const authorAvatar = tweet.author.profilePicture || 
+                            tweet.author.profileImageUrl || 
+                            tweet.author.profile_image_url_https;
+        
+        if (authorAvatar) {
+          // Check if we already have this author
+          const existingAuthor = this.extractedAuthors.find(
+            a => a.platform === 'twitter' && a.username === tweet.author.userName
+          );
+          
+          if (!existingAuthor) {
+            this.extractedAuthors.push({
+              username: tweet.author.userName,
+              name: tweet.author.name,
+              avatar_url: authorAvatar,
+              platform: 'twitter',
+            });
+          }
+        }
+      }
+
       // Prepare referenced content if this is a quote, retweet, or reply
       let referenceType: 'quote' | 'retweet' | 'reply' | undefined;
       let referencedContent: CreateContentInput['referenced_content'];
@@ -501,6 +539,28 @@ export class ApifyFetcher {
     }
 
     return items.map((post) => {
+      // Extract author info for avatar updates
+      if (post.user && post.user.username) {
+        const authorAvatar = post.user.profile_pic_url || 
+                            post.user.profile_picture ||
+                            post.user.avatar_url;
+        
+        if (authorAvatar) {
+          // Check if we already have this author
+          const existingAuthor = this.extractedAuthors.find(
+            a => a.platform === 'threads' && a.username === post.user.username
+          );
+          
+          if (!existingAuthor) {
+            this.extractedAuthors.push({
+              username: post.user.username,
+              name: post.user.full_name || post.user.name,
+              avatar_url: authorAvatar,
+              platform: 'threads',
+            });
+          }
+        }
+      }
       // Generate URL from the code field (Instagram-style URL structure)
       const postUrl = post.code
         ? `https://www.threads.net/@${post.user?.username}/post/${post.code}`
@@ -621,6 +681,29 @@ export class ApifyFetcher {
       const posts = response.posts || [response];
 
       for (const post of posts) {
+        // Extract author info for avatar updates
+        if (post.author) {
+          const authorAvatar = post.author.profile_picture || 
+                              post.author.avatar_url ||
+                              post.author.image;
+          
+          if (authorAvatar && post.author.username) {
+            // Check if we already have this author
+            const existingAuthor = this.extractedAuthors.find(
+              a => a.platform === 'linkedin' && a.username === post.author.username
+            );
+            
+            if (!existingAuthor) {
+              this.extractedAuthors.push({
+                username: post.author.username,
+                name: `${post.author.first_name || ''} ${post.author.last_name || ''}`.trim(),
+                avatar_url: authorAvatar,
+                platform: 'linkedin',
+              });
+            }
+          }
+        }
+
         // Skip if post is older than publishedAfter date
         if (publishedAfter && post.posted_at?.timestamp) {
           const postDate = new Date(post.posted_at.timestamp);

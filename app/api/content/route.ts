@@ -127,6 +127,35 @@ export async function GET(request: NextRequest) {
       creatorIds = creators?.map((c) => c.id) || [];
     }
 
+    // If there's a search query, also find creators whose names match
+    let searchCreatorIds: string[] = [];
+    if (query.search) {
+      const { data: matchingCreators, error: searchError } = await supabase
+        .from('creators')
+        .select('id, display_name')
+        .ilike('display_name', `%${query.search}%`);
+      
+      console.log('Creator search query:', {
+        searchTerm: query.search,
+        matchingCreatorsFound: matchingCreators?.length || 0,
+        error: searchError,
+        sampleCreators: matchingCreators?.slice(0, 3).map(c => c.display_name)
+      });
+      
+      if (matchingCreators && matchingCreators.length > 0) {
+        // Filter to only include creators that are in the original set (respecting lounge filter)
+        const filteredMatchingCreators = matchingCreators.filter(c => creatorIds.includes(c.id));
+        searchCreatorIds = filteredMatchingCreators.map(c => c.id);
+        
+        console.log('Filtered creators matching search:', {
+          searchTerm: query.search,
+          totalMatchingCreators: matchingCreators.length,
+          filteredMatchingCreatorCount: searchCreatorIds.length,
+          matchingCreatorNames: filteredMatchingCreators.map(c => c.display_name)
+        });
+      }
+    }
+
     console.log('Creator IDs for query:', {
       loungeId: query.lounge_id,
       creatorCount: creatorIds.length,
@@ -199,9 +228,22 @@ export async function GET(request: NextRequest) {
     // Note: Lounge filtering removed as content_topics table doesn't exist yet
 
     if (query.search) {
-      contentQuery = contentQuery.or(
-        `title.ilike.%${query.search}%,description.ilike.%${query.search}%`
-      );
+      // Build a complex OR query that includes:
+      // 1. Content with matching title or description
+      // 2. Content from creators with matching names
+      if (searchCreatorIds.length > 0) {
+        // If we found creators matching the search, include their content
+        // Use proper PostgREST syntax for IN clause
+        const creatorIdList = searchCreatorIds.join(',');
+        contentQuery = contentQuery.or(
+          `title.ilike.%${query.search}%,description.ilike.%${query.search}%,creator_id.in.(${creatorIdList})`
+        );
+      } else {
+        // No matching creators, just search content
+        contentQuery = contentQuery.or(
+          `title.ilike.%${query.search}%,description.ilike.%${query.search}%`
+        );
+      }
     }
 
     // Apply sorting

@@ -14,6 +14,7 @@ import {
 import { Icons } from '@/components/icons';
 import { AISummaryCompact } from '@/components/ui/ai-summary';
 import { ReferencedContentDisplay } from '@/components/referenced-content';
+import { VideoThumbnail } from '@/components/video-thumbnail';
 import {
   Bookmark,
   ExternalLink,
@@ -49,6 +50,14 @@ interface FeedItem {
   published_at: string;
   is_saved?: boolean;
   is_deleted?: boolean;
+  media_urls?: Array<{
+    url: string;
+    type: 'image' | 'video' | 'audio' | 'document' | 'link_preview';
+    thumbnail_url?: string;
+    width?: number;
+    height?: number;
+    duration?: number;
+  }>;
   topics?: Array<{
     id: string;
     name: string;
@@ -163,6 +172,45 @@ export const ContentListItem = React.memo(function ContentListItem({
               referenceType={item.reference_type}
               referencedContent={item.referenced_content}
             />
+
+            {/* Display media content */}
+            {item.media_urls && item.media_urls.length > 0 && (
+              <div className="mt-3">
+                {item.media_urls.map((media, index) => {
+                  if (media.type === 'video') {
+                    return (
+                      <VideoThumbnail
+                        key={index}
+                        thumbnailUrl={media.thumbnail_url}
+                        videoUrl={media.url}
+                        platform={item.platform}
+                        title={item.title}
+                        width={media.width}
+                        height={media.height}
+                        className="mt-2"
+                      />
+                    );
+                  } else if (
+                    media.type === 'image' &&
+                    item.platform === 'linkedin'
+                  ) {
+                    // Display LinkedIn images
+                    return (
+                      <img
+                        key={index}
+                        src={media.url}
+                        alt={item.title || 'Content image'}
+                        className="mt-2 rounded-lg w-full object-cover"
+                        style={{
+                          maxHeight: '400px',
+                        }}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-2">
               {(item.topics || []).map((topic) => {
