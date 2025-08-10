@@ -636,8 +636,41 @@ export class ApifyFetcher {
 
         // Handle single media and multiple images
         if (post.media) {
-          // First check if there are multiple images
-          if (
+          // Check if it's a video post
+          if (post.media.type === 'video' && post.media.url) {
+            // Add the actual video URL (not just thumbnail)
+            const videoItem: any = {
+              url: post.media.url, // This is the actual video URL per docs
+              type: 'video',
+            };
+
+            // Try to get thumbnail from API or generate one
+            if (post.media.thumbnail) {
+              console.log(
+                '[ApifyFetcher] LinkedIn video has thumbnail:',
+                post.media.thumbnail
+              );
+              videoItem.thumbnail_url = post.media.thumbnail;
+            } else {
+              // Attempt to extract thumbnail from video URL pattern
+              // LinkedIn video URLs can sometimes be converted to thumbnail URLs
+              const videoUrl = post.media.url;
+              if (videoUrl.includes('dms.licdn.com')) {
+                // Try common pattern: replace video path with image path
+                const possibleThumbnail = videoUrl
+                  .replace('/playlist/vid/', '/image/')
+                  .replace('/mp4-720p-30fp-crf28/', '/image-shrink_800_800/')
+                  .replace(/\.(mp4|m3u8)(\?|$)/, '.jpg$2');
+
+                if (possibleThumbnail !== videoUrl) {
+                  videoItem.thumbnail_url = possibleThumbnail;
+                }
+              }
+            }
+
+            mediaUrls.push(videoItem);
+            addedUrls.add(post.media.url);
+          } else if (
             post.media.images &&
             Array.isArray(post.media.images) &&
             post.media.images.length > 0
@@ -655,43 +688,131 @@ export class ApifyFetcher {
               }
             });
           } else if (post.media.url && !addedUrls.has(post.media.url)) {
-            // Fall back to single media URL if no images array
+            // Fall back to single media URL for single images
             addedUrls.add(post.media.url);
             mediaUrls.push({
               url: post.media.url,
-              type: post.media.type === 'video' ? 'video' : 'image',
+              type: 'image',
             });
           }
         }
 
         // Handle article attachments - store as link_preview type with article data
         if (post.article) {
-          // Don't add article thumbnails as regular images
-          // Instead, store them as link previews with full article data
-          if (post.article.thumbnail && !addedUrls.has(post.article.thumbnail)) {
-            addedUrls.add(post.article.thumbnail);
-            mediaUrls.push({
-              url: post.article.thumbnail,
-              type: 'link_preview',
-              // Store the actual article URL and metadata
-              link_url: post.article.url || post.article.link || '',
-              link_title: post.article.title || '',
-              link_description: post.article.subtitle || post.article.description || '',
-              link_domain: post.article.source || '',
-            });
+          // Extract domain from URL if available
+          let domain = '';
+          if (post.article.url) {
+            try {
+              const urlObj = new URL(post.article.url);
+              domain = urlObj.hostname.replace('www.', '');
+            } catch (e) {
+              // If URL parsing fails, use source field or leave empty
+              domain = post.article.source || '';
+            }
           }
+
+          // Store article as a proper link preview with all metadata
+          mediaUrls.push({
+            type: 'link_preview',
+            url: post.article.thumbnail || '', // Preview image
+            link_url: post.article.url || '', // Actual article URL
+            link_title: post.article.title || '',
+            link_description: post.article.subtitle || '',
+            link_domain: domain,
+          });
         }
 
-        // Handle document thumbnails
-        if (
-          post.document?.thumbnail &&
-          !addedUrls.has(post.document.thumbnail)
-        ) {
-          addedUrls.add(post.document.thumbnail);
+        // Handle document attachments
+        if (post.document) {
+          // Extract domain from document URL
+          let docDomain = '';
+          if (post.document.url) {
+            try {
+              const urlObj = new URL(post.document.url);
+              docDomain = urlObj.hostname.replace('www.', '');
+            } catch (e) {
+              docDomain = 'linkedin.com'; // Documents are usually hosted on LinkedIn
+            }
+          }
+
           mediaUrls.push({
-            url: post.document.thumbnail,
-            type: 'image',
+            type: 'link_preview',
+            url: post.document.thumbnail || '', // Document thumbnail
+            link_url: post.document.url || '', // Document URL
+            link_title: post.document.title || 'Document',
+            link_description: post.document.page_count
+              ? `${post.document.page_count} pages`
+              : '',
+            link_domain: docDomain,
           });
+        }
+
+        // Handle reposts/reshares
+        let referenceType: 'retweet' | undefined;
+        let referencedContent: CreateContentInput['referenced_content'];
+
+        if (post.reshared_post) {
+          referenceType = 'retweet';
+
+          // Process media for the reshared post
+          const resharedMediaUrls: any[] = [];
+          if (post.reshared_post.media) {
+            if (
+              post.reshared_post.media.type === 'video' &&
+              post.reshared_post.media.url
+            ) {
+              resharedMediaUrls.push({
+                url: post.reshared_post.media.url,
+                type: 'video',
+                thumbnail_url: post.reshared_post.media.thumbnail,
+              });
+            } else if (
+              post.reshared_post.media.images &&
+              Array.isArray(post.reshared_post.media.images)
+            ) {
+              post.reshared_post.media.images.forEach((img: any) => {
+                if (img.url) {
+                  resharedMediaUrls.push({
+                    url: img.url,
+                    type: 'image',
+                    width: img.width,
+                    height: img.height,
+                  });
+                }
+              });
+            } else if (post.reshared_post.media.url) {
+              resharedMediaUrls.push({
+                url: post.reshared_post.media.url,
+                type: 'image',
+              });
+            }
+          }
+
+          referencedContent = {
+            id: post.reshared_post.urn || '',
+            platform_content_id: post.reshared_post.urn || '',
+            url: post.reshared_post.url || '',
+            text: post.reshared_post.text || '',
+            author: post.reshared_post.author
+              ? {
+                  id: post.reshared_post.author.username || '',
+                  username: post.reshared_post.author.username || '',
+                  name: `${post.reshared_post.author.first_name || ''} ${post.reshared_post.author.last_name || ''}`.trim(),
+                  avatar_url: post.reshared_post.author.profile_picture,
+                  is_verified: false, // LinkedIn doesn't have verification badges like Twitter
+                }
+              : undefined,
+            created_at: post.reshared_post.posted_at?.timestamp
+              ? new Date(post.reshared_post.posted_at.timestamp).toISOString()
+              : post.reshared_post.posted_at?.date || '',
+            media_urls: resharedMediaUrls,
+            engagement_metrics: {
+              likes: post.reshared_post.stats?.like || 0,
+              comments: post.reshared_post.stats?.comments || 0,
+              shares: post.reshared_post.stats?.reposts || 0,
+              views: 0,
+            },
+          };
         }
 
         results.push({
@@ -714,6 +835,8 @@ export class ApifyFetcher {
             shares: post.stats?.reposts || 0,
             views: 0, // Not available
           },
+          reference_type: referenceType,
+          referenced_content: referencedContent,
         });
       }
     }
