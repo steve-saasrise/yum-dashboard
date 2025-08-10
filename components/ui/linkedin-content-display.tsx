@@ -19,26 +19,26 @@ export function LinkedInContentDisplay({
   truncateAt = 280, // LinkedIn typically shows about 280 characters before truncating
 }: LinkedInContentDisplayProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  
+
   // Use content body if available, otherwise fall back to description
   const displayText = content || description || '';
-  
+
   // Check if text needs truncation
   const needsTruncation = displayText.length > truncateAt;
-  
+
   // Get the text to display based on expansion state
   const getDisplayText = () => {
     if (!needsTruncation || isExpanded) {
       return displayText;
     }
-    
+
     // Find the last space before truncation point to avoid cutting words
     const truncatePoint = displayText.lastIndexOf(' ', truncateAt);
     const cutoffPoint = truncatePoint > 0 ? truncatePoint : truncateAt;
-    
+
     return displayText.slice(0, cutoffPoint) + '...';
   };
-  
+
   if (!displayText) {
     return (
       <p className={cn('text-sm text-muted-foreground', className)}>
@@ -46,13 +46,13 @@ export function LinkedInContentDisplay({
       </p>
     );
   }
-  
+
   return (
     <div className={cn('space-y-2', className)}>
       <div className="text-sm text-muted-foreground whitespace-pre-wrap">
         {getDisplayText()}
       </div>
-      
+
       {needsTruncation && (
         <Button
           variant="ghost"
