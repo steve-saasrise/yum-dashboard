@@ -208,13 +208,13 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
       let creatorIds: string[] = [];
 
       if (filtersRef.current?.lounge_id) {
-        // Get creators for specific lounge
-        const { data: creators } = await supabase
-          .from('creators')
-          .select('id')
+        // Get creators for specific lounge from junction table
+        const { data: creatorLounges } = await supabase
+          .from('creator_lounges')
+          .select('creator_id')
           .eq('lounge_id', filtersRef.current.lounge_id);
 
-        creatorIds = creators?.map((c) => c.id) || [];
+        creatorIds = creatorLounges?.map((cl) => cl.creator_id) || [];
       } else {
         // Get all creators from user's lounges
         const { data: userLounges } = await supabase
@@ -225,12 +225,12 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
         const loungeIds = userLounges?.map((ul) => ul.lounge_id) || [];
 
         if (loungeIds.length > 0) {
-          const { data: creators } = await supabase
-            .from('creators')
-            .select('id')
+          const { data: creatorLounges } = await supabase
+            .from('creator_lounges')
+            .select('creator_id')
             .in('lounge_id', loungeIds);
 
-          creatorIds = creators?.map((c) => c.id) || [];
+          creatorIds = creatorLounges?.map((cl) => cl.creator_id) || [];
         }
       }
 

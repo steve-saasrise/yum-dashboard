@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { RSSFetcher } from '@/lib/content-fetcher/rss-fetcher';
 import { YouTubeFetcher } from '@/lib/content-fetcher/youtube-fetcher';
 import { ApifyFetcher } from '@/lib/content-fetcher/apify-fetcher';
+import { BrightDataFetcher } from '@/lib/content-fetcher/brightdata-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
 import { getAISummaryService } from '@/lib/services/ai-summary-service';
@@ -56,6 +57,14 @@ export async function GET(request: NextRequest) {
     if (process.env.APIFY_API_KEY) {
       apifyFetcher = new ApifyFetcher({
         apiKey: process.env.APIFY_API_KEY,
+      });
+    }
+
+    // Initialize Bright Data fetcher for LinkedIn
+    let brightDataFetcher = null;
+    if (process.env.BRIGHTDATA_API_KEY) {
+      brightDataFetcher = new BrightDataFetcher({
+        apiKey: process.env.BRIGHTDATA_API_KEY,
       });
     }
     const stats: {
@@ -400,13 +409,15 @@ export async function GET(request: NextRequest) {
               });
             }
           } else if (creatorUrl.platform === 'linkedin') {
-            // Check if Apify fetcher is initialized
-            if (!apifyFetcher) {
+            // Use Bright Data for LinkedIn if available, fallback to Apify
+            const linkedInFetcher = brightDataFetcher || apifyFetcher;
+
+            if (!linkedInFetcher) {
               creatorStats.urls.push({
                 url: creatorUrl.url,
                 status: 'error',
                 error:
-                  'Apify API not configured. Please add APIFY_API_KEY to environment variables.',
+                  'LinkedIn API not configured. Please add BRIGHTDATA_API_KEY or APIFY_API_KEY to environment variables.',
               });
               stats.errors++;
               continue;
@@ -414,12 +425,40 @@ export async function GET(request: NextRequest) {
 
             // Fetching LinkedIn content
             try {
-              const items = await apifyFetcher.fetchLinkedInContent(
-                [creatorUrl.url],
-                {
-                  maxResults: 5, // Limit to 5 most recent posts
-                }
-              );
+              let items: CreateContentInput[] = [];
+
+              if (brightDataFetcher) {
+                // Use Bright Data
+                console.log(
+                  '[Cron] Using Bright Data for LinkedIn:',
+                  creatorUrl.url
+                );
+                items = await brightDataFetcher.fetchLinkedInContent(
+                  [creatorUrl.url],
+                  {
+                    maxResults: 10, // Get 10 most recent posts to ensure we get variety
+                    // Get posts from the last day (profile_url endpoint supports date filtering)
+                    startDate: new Date(Date.now() - 24 * 60 * 60 * 1000)
+                      .toISOString()
+                      .split('T')[0],
+                  }
+                );
+                console.log(
+                  `[Cron] Bright Data returned ${items.length} items for ${creatorUrl.url}`
+                );
+              } else if (apifyFetcher) {
+                // Fallback to Apify
+                console.log(
+                  '[Cron] Using Apify for LinkedIn (fallback):',
+                  creatorUrl.url
+                );
+                items = await apifyFetcher.fetchLinkedInContent(
+                  [creatorUrl.url],
+                  {
+                    maxResults: 5, // Limit to 5 most recent posts
+                  }
+                );
+              }
 
               if (!items || items.length === 0) {
                 creatorStats.urls.push({
