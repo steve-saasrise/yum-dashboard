@@ -380,11 +380,15 @@ export class BrightDataFetcher {
       // Process videos - check both videos array and video_thumbnail
       if (post.videos && Array.isArray(post.videos)) {
         post.videos.forEach((video) => {
-          if (video && video.url) {
+          // Videos can be either strings (direct URLs) or objects with url property
+          const videoUrl = typeof video === 'string' ? video : video?.url;
+          if (videoUrl) {
             mediaUrls.push({
-              url: video.url,
+              url: videoUrl,
               type: 'video',
-              thumbnail_url: video.thumbnail,
+              thumbnail_url:
+                post.video_thumbnail ||
+                (typeof video === 'object' ? video.thumbnail : undefined),
               duration: post.video_duration, // Add video duration if available
             } as any);
           }
