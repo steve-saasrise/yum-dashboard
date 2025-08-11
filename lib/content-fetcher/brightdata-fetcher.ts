@@ -385,7 +385,8 @@ export class BrightDataFetcher {
               url: video.url,
               type: 'video',
               thumbnail_url: video.thumbnail,
-            });
+              duration: post.video_duration, // Add video duration if available
+            } as any);
           }
         });
       } else if (post.video_thumbnail) {
@@ -394,7 +395,8 @@ export class BrightDataFetcher {
           url: '', // No URL available, just thumbnail
           type: 'video',
           thumbnail_url: post.video_thumbnail,
-        });
+          duration: post.video_duration, // Add video duration if available
+        } as any);
       }
 
       // Process embedded links as link previews
@@ -456,7 +458,7 @@ export class BrightDataFetcher {
         url: post.url || '',
         title: post.title || post.headline || 'LinkedIn post',
         description: post.post_text || '',
-        content_body: post.post_text || '', // For AI summaries
+        content_body: post.post_text_html || post.post_text || '', // Prefer HTML for richer content
         published_at: post.date_posted
           ? new Date(post.date_posted).toISOString()
           : new Date().toISOString(),
@@ -466,25 +468,19 @@ export class BrightDataFetcher {
           comments: post.num_comments || 0,
           shares: 0, // Not directly available, would need to count reposts
           views: 0, // Not available in this response
-        },
+          // Store additional rich data here since metadata field doesn't exist in DB
+          hashtags: post.hashtags || [],
+          post_type: post.post_type || '',
+          account_type: post.account_type || '',
+          author_followers: post.user_followers || 0,
+          author_avatar: post.author_profile_pic || '',
+          author_title: post.user_title || '',
+          tagged_companies: post.tagged_companies || [],
+          tagged_people: post.tagged_people || [],
+          top_comments: post.top_visible_comments || [],
+        } as any,
         reference_type: referenceType,
         referenced_content: referencedContent,
-        metadata: {
-          hashtags: post.hashtags || undefined,
-          post_type: post.post_type,
-          account_type: post.account_type,
-          author: {
-            id: post.user_id,
-            title: post.user_title,
-            url: post.use_url, // Note: API has typo "use_url" instead of "user_url"
-            followers: post.user_followers,
-            posts_count: post.user_posts,
-            articles_count: post.user_articles,
-            avatar_url: post.author_profile_pic,
-          },
-          tagged_companies: post.tagged_companies,
-          tagged_people: post.tagged_people,
-        },
       };
     });
   }
