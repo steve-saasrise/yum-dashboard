@@ -409,56 +409,37 @@ export async function GET(request: NextRequest) {
               });
             }
           } else if (creatorUrl.platform === 'linkedin') {
-            // Use Bright Data for LinkedIn if available, fallback to Apify
-            const linkedInFetcher = brightDataFetcher || apifyFetcher;
-
-            if (!linkedInFetcher) {
+            // Use Bright Data for LinkedIn ONLY (no Apify fallback)
+            if (!brightDataFetcher) {
               creatorStats.urls.push({
                 url: creatorUrl.url,
                 status: 'error',
                 error:
-                  'LinkedIn API not configured. Please add BRIGHTDATA_API_KEY or APIFY_API_KEY to environment variables.',
+                  'LinkedIn API not configured. Please add BRIGHTDATA_API_KEY to environment variables.',
               });
               stats.errors++;
               continue;
             }
 
-            // Fetching LinkedIn content
+            // Fetching LinkedIn content with Bright Data
             try {
-              let items: CreateContentInput[] = [];
-
-              if (brightDataFetcher) {
-                // Use Bright Data
-                console.log(
-                  '[Cron] Using Bright Data for LinkedIn:',
-                  creatorUrl.url
-                );
-                items = await brightDataFetcher.fetchLinkedInContent(
-                  [creatorUrl.url],
-                  {
-                    maxResults: 10, // Get 10 most recent posts to ensure we get variety
-                    // Get posts from the last day (profile_url endpoint supports date filtering)
-                    startDate: new Date(Date.now() - 24 * 60 * 60 * 1000)
-                      .toISOString()
-                      .split('T')[0],
-                  }
-                );
-                console.log(
-                  `[Cron] Bright Data returned ${items.length} items for ${creatorUrl.url}`
-                );
-              } else if (apifyFetcher) {
-                // Fallback to Apify
-                console.log(
-                  '[Cron] Using Apify for LinkedIn (fallback):',
-                  creatorUrl.url
-                );
-                items = await apifyFetcher.fetchLinkedInContent(
-                  [creatorUrl.url],
-                  {
-                    maxResults: 5, // Limit to 5 most recent posts
-                  }
-                );
-              }
+              console.log(
+                '[Cron] Using Bright Data for LinkedIn:',
+                creatorUrl.url
+              );
+              const items = await brightDataFetcher.fetchLinkedInContent(
+                [creatorUrl.url],
+                {
+                  maxResults: 10, // Get 10 most recent posts to ensure we get variety
+                  // Get posts from the last day (profile_url endpoint supports date filtering)
+                  startDate: new Date(Date.now() - 24 * 60 * 60 * 1000)
+                    .toISOString()
+                    .split('T')[0],
+                }
+              );
+              console.log(
+                `[Cron] Bright Data returned ${items.length} items for ${creatorUrl.url}`
+              );
 
               if (!items || items.length === 0) {
                 creatorStats.urls.push({
