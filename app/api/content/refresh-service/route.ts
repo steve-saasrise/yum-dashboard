@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { RSSFetcher } from '@/lib/content-fetcher/rss-fetcher';
 import { YouTubeFetcher } from '@/lib/content-fetcher/youtube-fetcher';
 import { ApifyFetcher } from '@/lib/content-fetcher/apify-fetcher';
+import { BrightDataFetcher } from '@/lib/content-fetcher/brightdata-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
 import { getAISummaryService } from '@/lib/services/ai-summary-service';
@@ -64,6 +65,14 @@ export async function POST() {
     if (process.env.APIFY_API_KEY) {
       apifyFetcher = new ApifyFetcher({
         apiKey: process.env.APIFY_API_KEY,
+      });
+    }
+
+    // Initialize BrightData fetcher only if we have API key
+    let brightDataFetcher = null;
+    if (process.env.BRIGHTDATA_API_KEY) {
+      brightDataFetcher = new BrightDataFetcher({
+        apiKey: process.env.BRIGHTDATA_API_KEY,
       });
     }
     const stats: {
@@ -467,7 +476,18 @@ export async function POST() {
                 );
               }
 
-              const items = await apifyFetcher.fetchLinkedInContent(
+              // Use BrightData for LinkedIn instead of Apify
+              if (!brightDataFetcher) {
+                creatorStats.urls.push({
+                  url: creatorUrl.url,
+                  status: 'error',
+                  error: 'BrightData API not configured for LinkedIn fetching',
+                });
+                stats.errors++;
+                continue;
+              }
+
+              const items = await brightDataFetcher.fetchLinkedInContent(
                 [creatorUrl.url],
                 fetchOptions
               );

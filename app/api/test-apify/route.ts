@@ -160,21 +160,15 @@ export async function GET(request: NextRequest) {
         sampleItem: items[0],
       };
     } else if (platform === 'linkedin') {
-      const linkedinUrl =
-        testUrl || 'https://www.linkedin.com/in/satyanadella/';
-      console.log(`Testing LinkedIn fetch for: ${linkedinUrl}`);
-
-      const items = await apifyFetcher.fetchLinkedInContent([linkedinUrl], {
-        maxResults: 5,
-      });
-
-      results = {
-        platform: 'linkedin',
-        url: linkedinUrl,
-        itemCount: items.length,
-        items: items.slice(0, 3),
-        sampleItem: items[0],
-      };
+      // LinkedIn testing has been moved to test-brightdata route
+      return NextResponse.json(
+        {
+          error: 'LinkedIn testing has been moved',
+          message:
+            'Please use /api/test-brightdata endpoint for LinkedIn testing with BrightData',
+        },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json({

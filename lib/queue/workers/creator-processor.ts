@@ -10,6 +10,7 @@ import { queueContentForSummaries } from '../queue-service';
 import { RSSFetcher } from '@/lib/content-fetcher/rss-fetcher';
 import { YouTubeFetcher } from '@/lib/content-fetcher/youtube-fetcher';
 import { ApifyFetcher } from '@/lib/content-fetcher/apify-fetcher';
+import { BrightDataFetcher } from '@/lib/content-fetcher/brightdata-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
 import type { CreateContentInput } from '@/types/content';
@@ -19,6 +20,7 @@ let supabase: any;
 let rssFetcher: RSSFetcher;
 let youtubeFetcher: YouTubeFetcher | null;
 let apifyFetcher: ApifyFetcher | null;
+let brightDataFetcher: BrightDataFetcher | null;
 
 function initializeServices() {
   if (!supabase) {
@@ -33,6 +35,9 @@ function initializeServices() {
       : null;
     apifyFetcher = process.env.APIFY_API_KEY
       ? new ApifyFetcher({ apiKey: process.env.APIFY_API_KEY })
+      : null;
+    brightDataFetcher = process.env.BRIGHTDATA_API_KEY
+      ? new BrightDataFetcher({ apiKey: process.env.BRIGHTDATA_API_KEY })
       : null;
   }
 }
@@ -177,8 +182,9 @@ async function processCreator(job: Job) {
             break;
 
           case 'linkedin':
-            if (apifyFetcher) {
-              items = await apifyFetcher.fetchLinkedInContent(
+            // Use BrightData for LinkedIn instead of Apify
+            if (brightDataFetcher) {
+              items = await brightDataFetcher.fetchLinkedInContent(
                 [creatorUrl.url],
                 { maxResults: 20 }
               );
