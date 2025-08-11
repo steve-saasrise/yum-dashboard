@@ -445,13 +445,13 @@ export async function POST() {
               });
             }
           } else if (creatorUrl.platform === 'linkedin') {
-            // Check if Apify fetcher is initialized
-            if (!apifyFetcher) {
+            // Check if BrightData fetcher is initialized
+            if (!brightDataFetcher) {
               creatorStats.urls.push({
                 url: creatorUrl.url,
                 status: 'error',
                 error:
-                  'Apify API not configured. Please add APIFY_API_KEY to environment variables.',
+                  'BrightData API not configured. Please add BRIGHTDATA_API_KEY to environment variables.',
               });
               stats.errors++;
               continue;
@@ -459,32 +459,22 @@ export async function POST() {
 
             // Fetching LinkedIn content with date filtering
             try {
-              // LinkedIn actor supports published_after parameter
               const fetchOptions: {
                 maxResults?: number;
-                published_after?: string;
+                startDate?: string;
               } = {
                 maxResults: 20, // Increased since we're filtering
               };
 
               // Add date filter if we have last fetch time
               if (lastFetchedAt) {
-                // apimaestro actor will filter posts client-side in transformLinkedInData
-                fetchOptions.published_after = lastFetchedAt;
+                // BrightData supports date filtering via start_date parameter
+                fetchOptions.startDate = new Date(lastFetchedAt)
+                  .toISOString()
+                  .split('T')[0];
                 console.log(
-                  `[Refresh] LinkedIn filtering posts after: ${lastFetchedAt}`
+                  `[Refresh] LinkedIn filtering posts after: ${fetchOptions.startDate}`
                 );
-              }
-
-              // Use BrightData for LinkedIn instead of Apify
-              if (!brightDataFetcher) {
-                creatorStats.urls.push({
-                  url: creatorUrl.url,
-                  status: 'error',
-                  error: 'BrightData API not configured for LinkedIn fetching',
-                });
-                stats.errors++;
-                continue;
               }
 
               const items = await brightDataFetcher.fetchLinkedInContent(

@@ -431,8 +431,8 @@ export async function GET(request: NextRequest) {
                 [creatorUrl.url],
                 {
                   maxResults: 10, // Get 10 most recent posts to ensure we get variety
-                  // Get posts from the last day (profile_url endpoint supports date filtering)
-                  startDate: new Date(Date.now() - 24 * 60 * 60 * 1000)
+                  // Get posts from the last 7 days (profile_url endpoint supports date filtering)
+                  startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
                     .toISOString()
                     .split('T')[0],
                 }
