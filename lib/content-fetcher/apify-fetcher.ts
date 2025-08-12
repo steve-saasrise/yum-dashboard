@@ -564,6 +564,141 @@ export class ApifyFetcher {
           }
         }
       }
+
+      // Prepare referenced content if this is a quote or repost
+      let referenceType: 'quote' | 'retweet' | 'reply' | undefined;
+      let referencedContent: CreateContentInput['referenced_content'];
+
+      // Check for quoted post
+      if (post.text_post_app_info?.share_info?.quoted_post) {
+        const quotedPost = post.text_post_app_info.share_info.quoted_post;
+        referenceType = 'quote';
+        
+        // Extract media from quoted post
+        const quotedMediaUrls: any[] = [];
+        if (quotedPost.image_versions2?.candidates?.length > 0) {
+          const bestCandidate = quotedPost.image_versions2.candidates[0];
+          if (bestCandidate.url) {
+            quotedMediaUrls.push({
+              url: bestCandidate.url,
+              type: 'image',
+              width: bestCandidate.width,
+              height: bestCandidate.height,
+            });
+          }
+        }
+        if (quotedPost.video_versions?.length > 0) {
+          const bestVideo = quotedPost.video_versions[0];
+          if (bestVideo.url) {
+            quotedMediaUrls.push({
+              url: bestVideo.url,
+              type: 'video',
+              width: bestVideo.width,
+              height: bestVideo.height,
+            });
+          }
+        }
+
+        referencedContent = {
+          id: quotedPost.id || quotedPost.pk,
+          platform_content_id: quotedPost.id || quotedPost.pk,
+          url: quotedPost.code
+            ? `https://www.threads.net/@${quotedPost.user?.username}/post/${quotedPost.code}`
+            : undefined,
+          text: quotedPost.caption?.text || quotedPost.text,
+          author: quotedPost.user
+            ? {
+                id: quotedPost.user.pk || quotedPost.user.id,
+                username: quotedPost.user.username,
+                name: quotedPost.user.full_name || quotedPost.user.name,
+                avatar_url: quotedPost.user.profile_pic_url,
+                is_verified: quotedPost.user.is_verified,
+              }
+            : undefined,
+          created_at: quotedPost.taken_at
+            ? new Date(quotedPost.taken_at * 1000).toISOString()
+            : undefined,
+          media_urls: quotedMediaUrls,
+          engagement_metrics: {
+            likes: quotedPost.like_count || 0,
+            comments: parseInt(quotedPost.reply_count) || 0,
+            shares: 0, // Not available
+            views: 0, // Not available
+          },
+        };
+      }
+      // Check for reposted post
+      else if (post.text_post_app_info?.share_info?.reposted_post) {
+        const repostedPost = post.text_post_app_info.share_info.reposted_post;
+        referenceType = 'retweet';
+        
+        // Extract media from reposted post
+        const repostedMediaUrls: any[] = [];
+        if (repostedPost.image_versions2?.candidates?.length > 0) {
+          const bestCandidate = repostedPost.image_versions2.candidates[0];
+          if (bestCandidate.url) {
+            repostedMediaUrls.push({
+              url: bestCandidate.url,
+              type: 'image',
+              width: bestCandidate.width,
+              height: bestCandidate.height,
+            });
+          }
+        }
+        if (repostedPost.video_versions?.length > 0) {
+          const bestVideo = repostedPost.video_versions[0];
+          if (bestVideo.url) {
+            repostedMediaUrls.push({
+              url: bestVideo.url,
+              type: 'video',
+              width: bestVideo.width,
+              height: bestVideo.height,
+            });
+          }
+        }
+
+        referencedContent = {
+          id: repostedPost.id || repostedPost.pk,
+          platform_content_id: repostedPost.id || repostedPost.pk,
+          url: repostedPost.code
+            ? `https://www.threads.net/@${repostedPost.user?.username}/post/${repostedPost.code}`
+            : undefined,
+          text: repostedPost.caption?.text || repostedPost.text,
+          author: repostedPost.user
+            ? {
+                id: repostedPost.user.pk || repostedPost.user.id,
+                username: repostedPost.user.username,
+                name: repostedPost.user.full_name || repostedPost.user.name,
+                avatar_url: repostedPost.user.profile_pic_url,
+                is_verified: repostedPost.user.is_verified,
+              }
+            : undefined,
+          created_at: repostedPost.taken_at
+            ? new Date(repostedPost.taken_at * 1000).toISOString()
+            : undefined,
+          media_urls: repostedMediaUrls,
+          engagement_metrics: {
+            likes: repostedPost.like_count || 0,
+            comments: parseInt(repostedPost.reply_count) || 0,
+            shares: 0, // Not available
+            views: 0, // Not available
+          },
+        };
+      }
+      // Check for reply
+      else if (post.text_post_app_info?.reply_to_author) {
+        referenceType = 'reply';
+        // For replies, we might only have author info
+        referencedContent = {
+          id: '', // Not available for replies
+          platform_content_id: '', // Not available for replies
+          author: {
+            username: post.text_post_app_info.reply_to_author.username,
+            name: post.text_post_app_info.reply_to_author.full_name,
+          },
+        };
+      }
+
       // Generate URL from the code field (Instagram-style URL structure)
       const postUrl = post.code
         ? `https://www.threads.net/@${post.user?.username}/post/${post.code}`
@@ -659,6 +794,8 @@ export class ApifyFetcher {
           shares: 0, // Not available in the API response
           views: 0, // Not available in Threads API
         },
+        reference_type: referenceType,
+        referenced_content: referencedContent,
       };
     });
   }

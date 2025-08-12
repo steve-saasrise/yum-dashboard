@@ -18,11 +18,13 @@ import type { ReferencedContent } from '@/types/content';
 interface ReferencedContentProps {
   referenceType?: 'quote' | 'retweet' | 'reply';
   referencedContent?: ReferencedContent;
+  platform?: string;
 }
 
 export const ReferencedContentDisplay: React.FC<ReferencedContentProps> = ({
   referenceType,
   referencedContent,
+  platform,
 }) => {
   if (!referenceType || !referencedContent) {
     return null;
@@ -46,7 +48,8 @@ export const ReferencedContentDisplay: React.FC<ReferencedContentProps> = ({
       case 'quote':
         return 'Quoted';
       case 'retweet':
-        return 'Retweeted';
+        // LinkedIn uses "Reposted" instead of "Retweeted"
+        return platform === 'linkedin' ? 'Reposted' : 'Retweeted';
       case 'reply':
         return 'Replying to';
       default:

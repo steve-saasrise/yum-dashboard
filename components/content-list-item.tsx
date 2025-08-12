@@ -168,12 +168,7 @@ export const ContentListItem = React.memo(function ContentListItem({
               className="mb-3"
             />
 
-            <ReferencedContentDisplay
-              referenceType={item.reference_type}
-              referencedContent={item.referenced_content}
-            />
-
-            {/* Display media content */}
+            {/* Display media content first */}
             {item.media_urls && item.media_urls.length > 0 && (
               <div className="mt-3">
                 {item.media_urls.map((media, index) => {
@@ -190,10 +185,7 @@ export const ContentListItem = React.memo(function ContentListItem({
                         className="mt-2"
                       />
                     );
-                  } else if (
-                    media.type === 'image' &&
-                    item.platform === 'linkedin'
-                  ) {
+                  } else if (media.type === 'image' && item.platform === 'linkedin') {
                     // Display LinkedIn images
                     return (
                       <img
@@ -209,6 +201,17 @@ export const ContentListItem = React.memo(function ContentListItem({
                   }
                   return null;
                 })}
+              </div>
+            )}
+
+            {/* Display referenced content with proper spacing */}
+            {(item.reference_type && item.referenced_content) && (
+              <div className={item.media_urls && item.media_urls.length > 0 ? "mt-4" : "mt-3"}>
+                <ReferencedContentDisplay
+                  referenceType={item.reference_type}
+                  referencedContent={item.referenced_content}
+                  platform={item.platform}
+                />
               </div>
             )}
 

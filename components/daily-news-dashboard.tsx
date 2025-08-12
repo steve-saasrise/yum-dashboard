@@ -104,7 +104,6 @@ import {
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
 import { BackToTop } from '@/components/back-to-top';
 import { AISummary } from '@/components/ui/ai-summary';
-import { YumLogo } from '@/components/yum-logo';
 import { IntersectionObserverGrid } from '@/components/intersection-observer-grid';
 import { YouTubeEmbed } from '@/components/ui/youtube-embed';
 import { XVideoEmbed } from '@/components/ui/x-video-embed';
@@ -233,19 +232,29 @@ function AppSidebar({
 }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" side="left">
-      <SidebarHeader className="h-16 px-4 flex items-center justify-center border-b border-gray-200 dark:border-gray-800">
+      <SidebarHeader className="h-16 px-2 py-2 flex items-center justify-center border-b border-gray-200 dark:border-gray-800">
         <button
           onClick={() => {
             onLoungeSelect(null);
             onClearPlatforms();
           }}
-          className="flex items-center cursor-pointer focus:outline-none"
+          className="flex items-center cursor-pointer focus:outline-none w-full h-full"
         >
-          <YumLogo className="h-6 w-auto text-gray-900 dark:text-white" />
+          <Image 
+            src="/lounge_logo.svg" 
+            alt="Lounge Logo" 
+            width={160} 
+            height={56} 
+            className="h-12 w-auto object-contain mx-auto"
+            priority
+          />
         </button>
       </SidebarHeader>
 
-      <SidebarContent className="p-2 stable-scrollbar sidebar-scrollbar">
+      <SidebarContent 
+        className="px-2 py-2 pr-1 stable-scrollbar sidebar-scrollbar"
+        style={{ backgroundColor: '#FCE4DC' }}
+      >
         {/* Curator Management Options - Moved to top for curator users */}
         {canManageCreators && (
           <>
@@ -1022,6 +1031,15 @@ export const ContentCard = React.memo(function ContentCard({
               return null;
             })()}
 
+          {/* For LinkedIn reposts, show referenced content first */}
+          {item.platform === 'linkedin' && item.reference_type === 'retweet' && (
+            <ReferencedContentDisplay
+              referenceType={item.reference_type}
+              referencedContent={item.referenced_content}
+              platform={item.platform}
+            />
+          )}
+
           {/* Display LinkedIn videos with thumbnail and play button */}
           {item.platform === 'linkedin' &&
             item.media_urls &&
@@ -1432,10 +1450,14 @@ export const ContentCard = React.memo(function ContentCard({
           })()}
 
           {/* Display referenced content (quote tweets, etc.) - after media */}
-          <ReferencedContentDisplay
-            referenceType={item.reference_type}
-            referencedContent={item.referenced_content}
-          />
+          {/* Skip for LinkedIn reposts as we show them before media */}
+          {!(item.platform === 'linkedin' && item.reference_type === 'retweet') && (
+            <ReferencedContentDisplay
+              referenceType={item.reference_type}
+              referencedContent={item.referenced_content}
+              platform={item.platform}
+            />
+          )}
 
           <div className="flex flex-wrap gap-2 mb-4">
             {(item.topics || []).map((topic) => {
