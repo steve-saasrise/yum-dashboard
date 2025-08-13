@@ -158,7 +158,12 @@ export function useInfiniteContent(filters?: ContentFilters) {
   const deleteContent = useCallback(
     async (contentId: string) => {
       try {
-        const response = await fetch(`/api/content/${contentId}`, {
+        const params = new URLSearchParams({
+          content_id: contentId,
+          action: 'delete',
+        });
+        
+        const response = await fetch(`/api/content?${params.toString()}`, {
           method: 'DELETE',
         });
 
@@ -180,8 +185,13 @@ export function useInfiniteContent(filters?: ContentFilters) {
   const undeleteContent = useCallback(
     async (contentId: string) => {
       try {
-        const response = await fetch(`/api/content/${contentId}/undelete`, {
-          method: 'POST',
+        const params = new URLSearchParams({
+          content_id: contentId,
+          action: 'undelete',
+        });
+        
+        const response = await fetch(`/api/content?${params.toString()}`, {
+          method: 'DELETE',
         });
 
         if (!response.ok) {
