@@ -1839,9 +1839,13 @@ export function DailyNewsDashboard() {
   const [selectedPlatforms, setSelectedPlatforms] = React.useState<string[]>(
     []
   );
-  
+
   // Digest subscription state
-  const { subscribed, loading: digestLoading, toggleSubscription } = useDigestSubscription(selectedLoungeId);
+  const {
+    subscribed,
+    loading: digestLoading,
+    toggleSubscription,
+  } = useDigestSubscription(selectedLoungeId);
   const [platformData, setPlatformData] = React.useState<
     Array<{
       name: string;
@@ -2198,7 +2202,7 @@ export function DailyNewsDashboard() {
                 {/* Email Digest Toggle - only show when a lounge is selected */}
                 {selectedLoungeId && (
                   <Button
-                    variant={subscribed ? "default" : "outline"}
+                    variant={subscribed ? 'default' : 'outline'}
                     size="sm"
                     onClick={toggleSubscription}
                     disabled={digestLoading}
@@ -2210,7 +2214,7 @@ export function DailyNewsDashboard() {
                     </span>
                   </Button>
                 )}
-                
+
                 {/* Mobile Filter Button */}
                 <Button
                   variant="outline"

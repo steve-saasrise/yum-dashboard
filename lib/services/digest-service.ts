@@ -4,7 +4,7 @@ import { DailyDigestEmail } from '@/emails/daily-digest';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL =
-  process.env.EMAIL_FROM || 'Daily News <noreply@dailynews.app>';
+  process.env.DIGEST_EMAIL_FROM || process.env.EMAIL_FROM || 'Daily News <noreply@dailynews.app>';
 
 // Create Supabase client with service role for server-side operations
 function getSupabaseClient() {
@@ -287,7 +287,7 @@ export class DigestService {
    */
   static async sendDailyDigests(recipientEmail: string): Promise<void> {
     const supabase = getSupabaseClient();
-    
+
     // Get user ID from email
     const { data: userData, error: userError } = await supabase
       .from('users')
@@ -318,7 +318,7 @@ export class DigestService {
     }
 
     // Get lounge details for subscribed lounges
-    const loungeIds = subscriptions.map(s => s.lounge_id);
+    const loungeIds = subscriptions.map((s) => s.lounge_id);
     const { data: lounges, error: loungeError } = await supabase
       .from('lounges')
       .select('id, name, description')
@@ -406,8 +406,10 @@ export class DigestService {
     }
 
     // Deduplicate emails (in case a user is subscribed to multiple lounges)
-    const uniqueEmails = [...new Set(data?.map((d: any) => d.users.email) || [])];
-    
+    const uniqueEmails = [
+      ...new Set(data?.map((d: any) => d.users.email) || []),
+    ];
+
     console.log(`Found ${uniqueEmails.length} users with lounge subscriptions`);
     return uniqueEmails;
   }

@@ -117,14 +117,20 @@ export const DailyDigestEmail = ({
                       {(() => {
                         // If description exists and is 30 words or less, show full text
                         const description = item.description || '';
-                        const wordCount = description.trim().split(/\s+/).length;
-                        
+                        const wordCount = description
+                          .trim()
+                          .split(/\s+/).length;
+
                         if (wordCount > 0 && wordCount <= 30) {
                           return description;
                         }
-                        
+
                         // Otherwise use AI summary if available, or truncated description
-                        return item.ai_summary_short || description.substring(0, 150) || '';
+                        return (
+                          item.ai_summary_short ||
+                          description.substring(0, 150) ||
+                          ''
+                        );
                       })()}
                     </Text>
 
