@@ -1,5 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import {
+  getOriginUrl,
+  getCookieOptions,
+  isProxiedRequest,
+} from '@/lib/proxy-config';
 
 // Session configuration
 const SESSION_CONFIG = {
@@ -32,7 +37,14 @@ const SECURITY_HEADERS = {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+  // Use proxy-aware origin detection
+  const origin = getOriginUrl(request);
+
+  // Log proxy detection in development
+  if (process.env.NODE_ENV === 'development' && isProxiedRequest(request)) {
+    console.log('Proxied request detected, origin:', origin);
+  }
 
   // Create response first
   let response = NextResponse.next({
@@ -79,6 +91,17 @@ export async function middleware(request: NextRequest) {
               if (isAuthCookie && options) {
                 // Set 1-year expiry for auth cookies in persistent sessions (Facebook-style)
                 options.maxAge = 365 * 24 * 60 * 60; // 365 days in seconds
+
+                // Ensure cookies work with Cloudflare proxy
+                // Don't set domain to allow browser to handle it
+                delete options.domain;
+
+                // Always set secure in production or when proxied
+                const isProduction = process.env.NODE_ENV === 'production';
+                if (isProduction || isProxiedRequest(request)) {
+                  options.secure = true;
+                }
+                options.sameSite = 'lax';
               }
 
               // Set cookies on both request and response
@@ -93,8 +116,9 @@ export async function middleware(request: NextRequest) {
     // IMPORTANT: Always use getUser() in middleware, never getSession()
     // getUser() sends a request to the Supabase Auth server to validate the token
     // First refresh the session to ensure it's valid
-    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-    
+    const { data: refreshData, error: refreshError } =
+      await supabase.auth.refreshSession();
+
     const {
       data: { user },
       error,

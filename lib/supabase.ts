@@ -374,17 +374,12 @@ export function createBrowserSupabaseClient() {
           cookieString += `; expires=${date.toUTCString()}`;
           cookieString += '; path=/';
 
-          // Set domain for production to ensure cookies work across subdomains
-          if (isProduction && hostname.includes('.')) {
-            // Use the base domain for production (e.g., .lounge.ai)
-            const parts = hostname.split('.');
-            if (parts.length >= 2) {
-              cookieString += `; domain=.${parts.slice(-2).join('.')}`;
-            }
-          }
+          // Don't set domain - let browser handle it for better compatibility with proxies
+          // This ensures cookies work correctly with Cloudflare proxy
 
           cookieString += '; SameSite=Lax';
-          if (window.location.protocol === 'https:') {
+          // Always set Secure in production, even if behind proxy showing HTTP
+          if (isProduction || window.location.protocol === 'https:') {
             cookieString += '; Secure';
           }
         } else if (options) {
@@ -400,20 +395,16 @@ export function createBrowserSupabaseClient() {
             cookieString += '; path=/'; // Default to root path
           }
 
-          // Handle domain for production if not provided
+          // Don't set domain unless explicitly provided - better for proxy compatibility
           if (options.domain) {
             cookieString += `; domain=${options.domain}`;
-          } else if (isProduction && isAuthCookie && hostname.includes('.')) {
-            // For auth cookies in production, use base domain
-            const parts = hostname.split('.');
-            if (parts.length >= 2) {
-              cookieString += `; domain=.${parts.slice(-2).join('.')}`;
-            }
           }
 
+          // Always set Secure in production or when explicitly requested
           if (
             options.secure ||
-            (isProduction && window.location.protocol === 'https:')
+            isProduction ||
+            window.location.protocol === 'https:'
           ) {
             cookieString += '; Secure';
           }
@@ -425,14 +416,10 @@ export function createBrowserSupabaseClient() {
         } else {
           // Default options for cookies without specific options
           cookieString += '; path=/';
-          if (isProduction && isAuthCookie && hostname.includes('.')) {
-            const parts = hostname.split('.');
-            if (parts.length >= 2) {
-              cookieString += `; domain=.${parts.slice(-2).join('.')}`;
-            }
-          }
+          // Don't set domain - let browser handle it for proxy compatibility
           cookieString += '; SameSite=Lax';
-          if (window.location.protocol === 'https:') {
+          // Always set Secure in production
+          if (isProduction || window.location.protocol === 'https:') {
             cookieString += '; Secure';
           }
         }
@@ -442,32 +429,27 @@ export function createBrowserSupabaseClient() {
       remove(name: string, options?: any) {
         if (typeof window === 'undefined') return;
 
-        const hostname = window.location.hostname;
         const isProduction =
-          hostname !== 'localhost' && !hostname.includes('127.0.0.1');
-        const isAuthCookie = name.startsWith('sb-');
+          window.location.hostname !== 'localhost' &&
+          !window.location.hostname.includes('127.0.0.1');
 
-        // Try to remove with multiple domain variations to ensure cleanup
-        const domains = [''];
+        // Simple removal without domain specification works better with proxies
+        let cookieString = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
+        cookieString += `; path=${options?.path || '/'}`;
 
-        if (isProduction && hostname.includes('.')) {
-          const parts = hostname.split('.');
-          if (parts.length >= 2) {
-            domains.push(`.${parts.slice(-2).join('.')}`);
-            domains.push(hostname);
-          }
+        // Always use secure in production
+        if (isProduction || window.location.protocol === 'https:') {
+          cookieString += '; Secure';
         }
+        cookieString += '; SameSite=Lax';
 
-        domains.forEach((domain) => {
-          let cookieString = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
-          cookieString += `; path=${options?.path || '/'}`;
-          if (domain) cookieString += `; domain=${domain}`;
-          if (window.location.protocol === 'https:') {
-            cookieString += '; Secure';
-          }
-          cookieString += '; SameSite=Lax';
-          document.cookie = cookieString;
-        });
+        document.cookie = cookieString;
+
+        // Also try removal with current hostname for completeness
+        if (window.location.hostname.includes('.')) {
+          const withDomain = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}; SameSite=Lax`;
+          document.cookie = withDomain;
+        }
       },
     },
   });

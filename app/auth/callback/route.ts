@@ -4,8 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  // Use the configured app URL instead of extracting origin from request
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+  // Use the actual host from request headers for better proxy compatibility
+  const host = request.headers.get('host') || 'localhost:3000';
+  const protocol = request.headers.get('x-forwarded-proto') || 'http';
+  const origin = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
   const code = searchParams.get('code');
   const type = searchParams.get('type');
 
@@ -49,6 +52,18 @@ export async function GET(request: NextRequest) {
                   if (isAuthCookie && options) {
                     // Set 1-year expiry for auth cookies (Facebook-style)
                     options.maxAge = 365 * 24 * 60 * 60; // 365 days in seconds
+
+                    // Ensure cookies work with Cloudflare proxy
+                    delete options.domain; // Let browser handle domain
+
+                    // Always set secure in production or with HTTPS
+                    const isProduction = process.env.NODE_ENV === 'production';
+                    const isHttps =
+                      request.headers.get('x-forwarded-proto') === 'https';
+                    if (isProduction || isHttps) {
+                      options.secure = true;
+                    }
+                    options.sameSite = 'lax';
                   }
                   cookieStore.set(name, value, options);
                 });
