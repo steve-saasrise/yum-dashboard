@@ -253,7 +253,9 @@ export class SecurityService {
 
       if (recentSessions && recentSessions.length > 1) {
         const uniqueLocations = new Set(
-          recentSessions.map((s) => (s.location as any)?.country).filter(Boolean)
+          recentSessions
+            .map((s) => (s.location as any)?.country)
+            .filter(Boolean)
         );
 
         if (uniqueLocations.size > 1) {
@@ -319,7 +321,8 @@ export class SecurityService {
         return;
       }
 
-      const newFailedAttempts = ((user.failed_login_attempts as number) || 0) + 1;
+      const newFailedAttempts =
+        ((user.failed_login_attempts as number) || 0) + 1;
 
       if (newFailedAttempts >= this.MAX_FAILED_ATTEMPTS) {
         // Lock the account

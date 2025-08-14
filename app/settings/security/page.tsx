@@ -154,7 +154,7 @@ export default function SecuritySettingsPage() {
       case 'critical':
         return 'destructive';
       case 'warning':
-        return 'default';  // Changed from 'warning' to 'default'
+        return 'default'; // Changed from 'warning' to 'default'
       default:
         return 'secondary';
     }
