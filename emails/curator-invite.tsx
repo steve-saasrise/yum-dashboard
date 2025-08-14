@@ -5,6 +5,8 @@ import {
   Head,
   Hr,
   Html,
+  Img,
+  Link,
   Preview,
   Section,
   Text,
@@ -21,14 +23,29 @@ export const CuratorInviteEmail = ({
   inviterName,
 }: CuratorInviteEmailProps) => (
   <Html>
-    <Head />
-    <Preview>You've been invited to join Daily News as a curator</Preview>
+    <Head>
+      <style>{`
+        .button-hover:hover {
+          background-color: #1A8BC4 !important;
+        }
+      `}</style>
+    </Head>
+    <Preview>You've been invited to join Lounge as a curator</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={title}>Daily News</Text>
+        <Section style={header}>
+          <Link href="https://lounge.ai">
+            <Img
+              src="https://lounge.ai/official_lounge_logo.png"
+              width="180"
+              alt="Lounge"
+              style={logo}
+            />
+          </Link>
+        </Section>
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
-          {inviterName} has invited you to join Daily News as a content curator.
+          {inviterName} has invited you to join Lounge as a content curator.
           As a curator, you'll be able to:
         </Text>
         <Section style={listContainer}>
@@ -42,7 +59,11 @@ export const CuratorInviteEmail = ({
           curator account:
         </Text>
         <Section style={btnContainer}>
-          <Button style={button} href={inviteUrl}>
+          <Button 
+            style={button} 
+            href={inviteUrl}
+            className="button-hover"
+          >
             Accept Invitation
           </Button>
         </Section>
@@ -52,7 +73,7 @@ export const CuratorInviteEmail = ({
         </Text>
         <Hr style={hr} />
         <Text style={footer}>
-          Daily News - Your personalized content dashboard
+          Lounge - Your personalized content dashboard
         </Text>
       </Container>
     </Body>
@@ -60,7 +81,7 @@ export const CuratorInviteEmail = ({
 );
 
 CuratorInviteEmail.PreviewProps = {
-  inviteUrl: 'https://dailynews.app/curator/accept-invite?token=example-token',
+  inviteUrl: 'https://lounge.ai/curator/accept-invite?token=example-token',
   inviterName: 'Sarah Admin',
 } as CuratorInviteEmailProps;
 
@@ -75,6 +96,15 @@ const main = {
 const container = {
   margin: '0 auto',
   padding: '20px 0 48px',
+};
+
+const header = {
+  padding: '20px 0',
+  textAlign: 'center' as const,
+};
+
+const logo = {
+  margin: '0 auto',
 };
 
 const title = {
@@ -104,7 +134,7 @@ const btnContainer = {
 };
 
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#22ADEC',
   borderRadius: '3px',
   color: '#fff',
   fontSize: '16px',

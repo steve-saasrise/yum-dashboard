@@ -5,6 +5,7 @@ import {
   Head,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -18,18 +19,37 @@ interface PasswordResetEmailProps {
 
 export const PasswordResetEmail = ({ resetUrl }: PasswordResetEmailProps) => (
   <Html>
-    <Head />
-    <Preview>Reset your Daily News password</Preview>
+    <Head>
+      <style>{`
+        .button-hover:hover {
+          background-color: #1A8BC4 !important;
+        }
+      `}</style>
+    </Head>
+    <Preview>Reset your Lounge password</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={title}>Daily News</Text>
+        <Section style={header}>
+          <Link href="https://lounge.ai">
+            <Img
+              src="https://lounge.ai/official_lounge_logo.png"
+              width="180"
+              alt="Lounge"
+              style={logo}
+            />
+          </Link>
+        </Section>
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
-          Someone recently requested a password change for your Daily News
+          Someone recently requested a password change for your Lounge
           account. If this was you, you can set a new password here:
         </Text>
         <Section style={btnContainer}>
-          <Button style={button} href={resetUrl}>
+          <Button 
+            style={button} 
+            href={resetUrl}
+            className="button-hover"
+          >
             Reset password
           </Button>
         </Section>
@@ -40,14 +60,14 @@ export const PasswordResetEmail = ({ resetUrl }: PasswordResetEmailProps) => (
         <Text style={paragraph}>
           To keep your account secure, please don&apos;t forward this email to
           anyone. See our Help Center for{' '}
-          <Link style={link} href="https://dailynews.app/help">
+          <Link style={link} href="https://lounge.ai/help">
             more security tips.
           </Link>
         </Text>
         <Text style={paragraph}>Happy reading!</Text>
         <Hr style={hr} />
         <Text style={footer}>
-          Daily News - Your personalized content dashboard
+          Lounge - Your personalized content dashboard
         </Text>
       </Container>
     </Body>
@@ -55,7 +75,7 @@ export const PasswordResetEmail = ({ resetUrl }: PasswordResetEmailProps) => (
 );
 
 PasswordResetEmail.PreviewProps = {
-  resetUrl: 'https://dailynews.app/curator/reset-password?token=example-token',
+  resetUrl: 'https://lounge.ai/curator/reset-password?token=example-token',
 } as PasswordResetEmailProps;
 
 export default PasswordResetEmail;
@@ -69,6 +89,15 @@ const main = {
 const container = {
   margin: '0 auto',
   padding: '20px 0 48px',
+};
+
+const header = {
+  padding: '20px 0',
+  textAlign: 'center' as const,
+};
+
+const logo = {
+  margin: '0 auto',
 };
 
 const title = {
@@ -88,7 +117,7 @@ const btnContainer = {
 };
 
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#22ADEC',
   borderRadius: '3px',
   color: '#fff',
   fontSize: '16px',

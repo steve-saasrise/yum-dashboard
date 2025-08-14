@@ -89,8 +89,17 @@ export function XVideoEmbed({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Calculate aspect ratio
-  const aspectRatio = width && height ? `${width}/${height}` : '16/9';
+  // Calculate aspect ratio - constrain tall videos to 16:9 max
+  let aspectRatio = '16/9';
+  if (width && height) {
+    // If video is taller than 16:9 (portrait), cap it at 16:9
+    const videoAspectRatio = width / height;
+    if (videoAspectRatio < 16/9) {
+      aspectRatio = '16/9';
+    } else {
+      aspectRatio = `${width}/${height}`;
+    }
+  }
 
   // If lazy loading and not yet triggered, show thumbnail with play button
   if (lazyLoad && !showVideo) {
@@ -108,7 +117,10 @@ export function XVideoEmbed({
           <img
             src={thumbnailUrl}
             alt={title}
-            className="w-full h-full object-cover"
+            className={cn(
+              "w-full h-full",
+              width && height && width < height ? "object-contain" : "object-cover"
+            )}
             loading="lazy"
           />
         ) : (
@@ -173,7 +185,10 @@ export function XVideoEmbed({
             ref={videoRef}
             src={videoUrl}
             poster={thumbnailUrl}
-            className="w-full h-full"
+            className={cn(
+              "w-full h-full",
+              width && height && width < height ? "object-contain" : "object-cover"
+            )}
             controls
             playsInline
             preload="metadata"

@@ -58,18 +58,26 @@ export const DailyDigestEmail = ({
 
   return (
     <Html>
-      <Head />
+      <Head>
+        <style>{`
+          .button-hover:hover {
+            background-color: #1A8BC4 !important;
+          }
+        `}</style>
+      </Head>
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
           <Section style={header}>
-            <Img
-              src="https://lounge.ai/official_lounge_logo.png"
-              width="180"
-              alt="Lounge"
-              style={logo}
-            />
+            <Link href="https://lounge.ai">
+              <Img
+                src="https://lounge.ai/official_lounge_logo.png"
+                width="180"
+                alt="Lounge"
+                style={logo}
+              />
+            </Link>
             <Text style={dateText}>{date}</Text>
           </Section>
 
@@ -87,59 +95,62 @@ export const DailyDigestEmail = ({
           <Section style={contentSection}>
             {content.map((item, index) => (
               <div key={item.id}>
-                <Row style={contentItem}>
-                  {/* Thumbnail */}
+                <div style={contentItem}>
+                  {/* Platform and Creator */}
+                  <div style={platformBadge}>
+                    <span style={platformIcon}>
+                      {platformIcons[item.platform]}
+                    </span>
+                    <Text style={creatorName}>{item.creator_name}</Text>
+                  </div>
+
+                  {/* Title */}
+                  <Heading as="h3" style={contentTitle}>
+                    {item.title}
+                  </Heading>
+
+                  {/* Thumbnail if exists */}
                   {item.thumbnail_url && (
-                    <Column style={thumbnailColumn}>
-                      <Img
-                        src={item.thumbnail_url}
-                        width="120"
-                        height="90"
-                        alt={item.title}
-                        style={thumbnail}
-                      />
-                    </Column>
+                    <Img
+                      src={item.thumbnail_url}
+                      width="120"
+                      height="90"
+                      alt={item.title}
+                      style={thumbnail}
+                    />
                   )}
 
-                  {/* Content Details */}
-                  <Column style={contentColumn}>
-                    <div style={platformBadge}>
-                      <span style={platformIcon}>
-                        {platformIcons[item.platform]}
-                      </span>
-                      <Text style={creatorName}>{item.creator_name}</Text>
-                    </div>
+                  {/* Description */}
+                  <Text style={contentDescription}>
+                    {(() => {
+                      // If description exists and is 30 words or less, show full text
+                      const description = item.description || '';
+                      const wordCount = description
+                        .trim()
+                        .split(/\s+/).length;
 
-                    <Heading as="h3" style={contentTitle}>
-                      {item.title}
-                    </Heading>
+                      if (wordCount > 0 && wordCount <= 30) {
+                        return description;
+                      }
 
-                    <Text style={contentDescription}>
-                      {(() => {
-                        // If description exists and is 30 words or less, show full text
-                        const description = item.description || '';
-                        const wordCount = description
-                          .trim()
-                          .split(/\s+/).length;
+                      // Otherwise use AI summary if available, or truncated description
+                      return (
+                        item.ai_summary_short ||
+                        description.substring(0, 150) ||
+                        ''
+                      );
+                    })()}
+                  </Text>
 
-                        if (wordCount > 0 && wordCount <= 30) {
-                          return description;
-                        }
-
-                        // Otherwise use AI summary if available, or truncated description
-                        return (
-                          item.ai_summary_short ||
-                          description.substring(0, 150) ||
-                          ''
-                        );
-                      })()}
-                    </Text>
-
-                    <Button style={viewButton} href={item.url}>
-                      View Original
-                    </Button>
-                  </Column>
-                </Row>
+                  {/* Button */}
+                  <Button 
+                    style={viewButton} 
+                    href={item.url}
+                    className="button-hover"
+                  >
+                    View Original
+                  </Button>
+                </div>
 
                 {index < content.length - 1 && <Hr style={contentDivider} />}
               </div>
@@ -296,6 +307,8 @@ const thumbnailColumn = {
 const thumbnail = {
   borderRadius: '4px',
   objectFit: 'cover' as const,
+  marginBottom: '12px',
+  display: 'block',
 };
 
 const contentColumn = {
@@ -337,7 +350,7 @@ const contentDescription = {
 };
 
 const viewButton = {
-  backgroundColor: '#000000',
+  backgroundColor: '#22ADEC',
   borderRadius: '3px',
   color: '#fff',
   fontSize: '14px',
@@ -346,6 +359,7 @@ const viewButton = {
   textAlign: 'center' as const,
   padding: '8px 16px',
   display: 'inline-block',
+  marginLeft: '0',
 };
 
 const contentDivider = {
