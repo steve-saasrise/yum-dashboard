@@ -79,6 +79,14 @@ export default function AdminDashboard() {
         return;
       }
 
+      // First check if role is in user metadata (faster)
+      if (user.user_metadata?.role === 'admin') {
+        setIsAdmin(true);
+        fetchUsers();
+        return;
+      }
+
+      // If not in metadata, fetch from database as fallback
       const supabase = createBrowserSupabaseClient();
       const { data: userData } = await supabase
         .from('users')
@@ -89,6 +97,15 @@ export default function AdminDashboard() {
       if (userData?.role === 'admin') {
         setIsAdmin(true);
         fetchUsers();
+        
+        // Update user metadata for future checks
+        try {
+          await supabase.auth.updateUser({
+            data: { role: userData.role }
+          });
+        } catch {
+          // Ignore metadata update errors
+        }
       } else {
         toast({
           title: 'Access Denied',

@@ -87,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return null;
 
     // Create basic profile from user metadata
+    // Check if role is already in user metadata (set during auth callback)
     const basicProfile: UserProfile = {
       id: user.id,
       email: user.email || '',
@@ -96,7 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       created_at: user.created_at,
       updated_at: new Date().toISOString(),
       last_sign_in_at: user.last_sign_in_at,
+      role: user.user_metadata?.role || 'viewer', // Get role from metadata if available
     };
+
+    // If we already have the role in metadata, we can skip the database fetch
+    if (user.user_metadata?.role) {
+      return basicProfile;
+    }
 
     // Skip database fetch if requested, in non-browser environment, or disabled via env
     if (
@@ -509,6 +516,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!error && data.session && data.user) {
+        // Fetch and store the user's role in metadata for immediate access
+        try {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+
+          if (userData?.role) {
+            // Update the user's metadata to include the role
+            await supabase.auth.updateUser({
+              data: { role: userData.role }
+            });
+          }
+        } catch (roleError) {
+          console.error('Failed to update user role in metadata:', roleError);
+        }
+
         // Track the session for security monitoring
         try {
           await fetch('/api/auth/session-tracking', {

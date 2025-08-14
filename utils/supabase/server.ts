@@ -15,20 +15,18 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              // Ensure cookies work with Cloudflare proxy
               const modifiedOptions = { ...options };
-
-              // Don't set domain to let browser handle it
-              delete modifiedOptions.domain;
-
-              // Always set secure in production
-              if (process.env.NODE_ENV === 'production') {
-                modifiedOptions.secure = true;
+              
+              // For auth cookies, preserve Supabase's cookie settings
+              // but ensure secure flag in production
+              if (name.startsWith('sb-')) {
+                if (process.env.NODE_ENV === 'production') {
+                  modifiedOptions.secure = true;
+                }
+                modifiedOptions.sameSite = modifiedOptions.sameSite || 'lax';
+                modifiedOptions.path = modifiedOptions.path || '/';
               }
-
-              // Ensure SameSite is set for compatibility
-              modifiedOptions.sameSite = modifiedOptions.sameSite || 'lax';
-
+              
               cookieStore.set(name, value, modifiedOptions);
             });
           } catch {

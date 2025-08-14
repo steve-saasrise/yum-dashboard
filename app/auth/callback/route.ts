@@ -52,10 +52,8 @@ export async function GET(request: NextRequest) {
                   if (isAuthCookie && options) {
                     // Set 1-year expiry for auth cookies (Facebook-style)
                     options.maxAge = 365 * 24 * 60 * 60; // 365 days in seconds
-
-                    // Ensure cookies work with Cloudflare proxy
-                    delete options.domain; // Let browser handle domain
-
+                    
+                    // Preserve domain if set by Supabase for cookie chunking
                     // Always set secure in production or with HTTPS
                     const isProduction = process.env.NODE_ENV === 'production';
                     const isHttps =
@@ -63,7 +61,8 @@ export async function GET(request: NextRequest) {
                     if (isProduction || isHttps) {
                       options.secure = true;
                     }
-                    options.sameSite = 'lax';
+                    options.sameSite = options.sameSite || 'lax';
+                    options.path = options.path || '/';
                   }
                   cookieStore.set(name, value, options);
                 });
@@ -111,7 +110,25 @@ export async function GET(request: NextRequest) {
 
       if (data.user && data.session) {
         // The user will be automatically created in the users table by the trigger
-        // No need to manually create profile data anymore
+        // Let's fetch the user's role and update their metadata for immediate access
+        try {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+
+          if (userData?.role) {
+            // Update the user's metadata to include the role
+            // This makes the role immediately available without database queries
+            await supabase.auth.updateUser({
+              data: { role: userData.role }
+            });
+          }
+        } catch (roleError) {
+          // If we can't fetch the role, continue anyway
+          console.error('Failed to fetch user role:', roleError);
+        }
 
         // Session tracking will be handled by the useSessionTracking hook on the client side
         // after the redirect completes

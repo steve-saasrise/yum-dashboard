@@ -158,85 +158,20 @@ export const SessionUtils = {
       // Trigger cross-tab logout
       SessionUtils.triggerCrossTabLogout();
 
-      // Sign out from Supabase
-      console.log('Attempting Supabase signOut...');
+      // Sign out from Supabase - let Supabase handle cookie cleanup
       const { error } = await supabaseClient.auth.signOut();
 
       if (error) {
         console.error('Supabase signOut error:', error);
-      } else {
-        console.log('Supabase signOut successful');
       }
 
-      // Clear any remaining cookies/storage
+      // Clear any remaining session storage
       if (typeof window !== 'undefined') {
-        // Clear any auth-related items from sessionStorage
         sessionStorage.clear();
-
-        // Clear specific cookies if accessible
-        try {
-          // Get the current hostname to determine the domain
-          const hostname = window.location.hostname;
-          const isProduction =
-            hostname !== 'localhost' && !hostname.includes('127.0.0.1');
-
-          console.log(
-            'Clearing cookies for hostname:',
-            hostname,
-            'isProduction:',
-            isProduction
-          );
-
-          // Determine possible cookie domains
-          const cookieDomains = ['']; // Empty string for same-origin
-
-          if (isProduction) {
-            // For production, try clearing with various domain patterns
-            cookieDomains.push(`.${hostname}`); // e.g., .lounge.ai
-            cookieDomains.push(hostname); // e.g., lounge.ai
-
-            // Also try the base domain if it's a subdomain
-            const parts = hostname.split('.');
-            if (parts.length > 2) {
-              cookieDomains.push(`.${parts.slice(-2).join('.')}`); // e.g., .lounge.ai from www.lounge.ai
-            }
-          }
-
-          console.log('Cookie domains to clear:', cookieDomains);
-
-          // Clear cookies with all possible domain combinations
-          document.cookie.split(';').forEach((c) => {
-            const eqPos = c.indexOf('=');
-            const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-
-            // Clear Supabase auth cookies
-            if (name.startsWith('sb-') || name.includes('auth')) {
-              console.log('Clearing cookie:', name);
-              cookieDomains.forEach((domain) => {
-                // Clear with various path and domain combinations
-                const clearOptions = [
-                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`,
-                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`,
-                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain};secure`,
-                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain};secure;samesite=lax`,
-                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain};secure;samesite=strict`,
-                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain};secure;samesite=none`,
-                ];
-
-                clearOptions.forEach((option) => {
-                  document.cookie = option;
-                });
-              });
-            }
-          });
-        } catch {
-          // Cookie clearing may fail in some browsers, but that's okay
-        }
       }
 
       return { error };
     } catch (error) {
-      // Enhanced logout error - handled by return
       return { error };
     }
   },
@@ -343,116 +278,9 @@ export function isRateLimitError(
   );
 }
 
-// Create browser client with persistent session support
+// Create browser client - let Supabase handle cookies automatically
 export function createBrowserSupabaseClient() {
-  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        if (typeof window === 'undefined') return undefined;
-        const cookies = document.cookie.split('; ');
-        const cookie = cookies.find((c) => c.startsWith(`${name}=`));
-        return cookie ? decodeURIComponent(cookie.split('=')[1]) : undefined;
-      },
-      set(name: string, value: string, options?: any) {
-        if (typeof window === 'undefined') return;
-
-        // Use extended expiry for auth cookies if Remember Me is enabled
-        const isAuthCookie = name.startsWith('sb-');
-        const rememberMe = SessionUtils.isRememberMeEnabled();
-
-        let cookieString = `${name}=${encodeURIComponent(value)}`;
-
-        // Determine the domain for production environments
-        const hostname = window.location.hostname;
-        const isProduction =
-          hostname !== 'localhost' && !hostname.includes('127.0.0.1');
-
-        if (isAuthCookie && rememberMe) {
-          // Set 1-year expiry for auth cookies when Remember Me is enabled (Facebook-style)
-          const date = new Date();
-          date.setTime(date.getTime() + 365 * 24 * 60 * 60 * 1000);
-          cookieString += `; expires=${date.toUTCString()}`;
-          cookieString += '; path=/';
-
-          // Don't set domain - let browser handle it for better compatibility with proxies
-          // This ensures cookies work correctly with Cloudflare proxy
-
-          cookieString += '; SameSite=Lax';
-          // Always set Secure in production, even if behind proxy showing HTTP
-          if (isProduction || window.location.protocol === 'https:') {
-            cookieString += '; Secure';
-          }
-        } else if (options) {
-          // Use provided options for other cookies
-          if (options.maxAge) {
-            const date = new Date();
-            date.setTime(date.getTime() + options.maxAge * 1000);
-            cookieString += `; expires=${date.toUTCString()}`;
-          }
-          if (options.path) {
-            cookieString += `; path=${options.path}`;
-          } else {
-            cookieString += '; path=/'; // Default to root path
-          }
-
-          // Don't set domain unless explicitly provided - better for proxy compatibility
-          if (options.domain) {
-            cookieString += `; domain=${options.domain}`;
-          }
-
-          // Always set Secure in production or when explicitly requested
-          if (
-            options.secure ||
-            isProduction ||
-            window.location.protocol === 'https:'
-          ) {
-            cookieString += '; Secure';
-          }
-          if (options.sameSite) {
-            cookieString += `; SameSite=${options.sameSite}`;
-          } else {
-            cookieString += '; SameSite=Lax'; // Default to Lax for better compatibility
-          }
-        } else {
-          // Default options for cookies without specific options
-          cookieString += '; path=/';
-          // Don't set domain - let browser handle it for proxy compatibility
-          cookieString += '; SameSite=Lax';
-          // Always set Secure in production
-          if (isProduction || window.location.protocol === 'https:') {
-            cookieString += '; Secure';
-          }
-        }
-
-        document.cookie = cookieString;
-      },
-      remove(name: string, options?: any) {
-        if (typeof window === 'undefined') return;
-
-        const isProduction =
-          window.location.hostname !== 'localhost' &&
-          !window.location.hostname.includes('127.0.0.1');
-
-        // Simple removal without domain specification works better with proxies
-        let cookieString = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
-        cookieString += `; path=${options?.path || '/'}`;
-
-        // Always use secure in production
-        if (isProduction || window.location.protocol === 'https:') {
-          cookieString += '; Secure';
-        }
-        cookieString += '; SameSite=Lax';
-
-        document.cookie = cookieString;
-
-        // Also try removal with current hostname for completeness
-        if (window.location.hostname.includes('.')) {
-          const withDomain = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}; SameSite=Lax`;
-          document.cookie = withDomain;
-        }
-      },
-    },
-  });
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
 
 // OAuth provider configuration
