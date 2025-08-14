@@ -110,11 +110,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Get user data from the consolidated users table
       console.log('Fetching user profile for:', user.id);
-      const { data: userData, error: fetchError } = await supabase
+      
+      // Debug: Check if we have a valid session token
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('Session exists:', !!sessionData?.session);
+      console.log('Access token length:', sessionData?.session?.access_token?.length || 0);
+      
+      const { data: userData, error: fetchError, status, statusText } = await supabase
         .from('users')
         .select('role, full_name, avatar_url, username, updated_at')
         .eq('id', user.id)
         .single();
+
+      console.log('Fetch response status:', status, statusText);
+      console.log('Fetch response data:', userData);
+      console.log('Fetch response error:', fetchError);
 
       if (fetchError) {
         console.error('Error fetching user profile:', fetchError);

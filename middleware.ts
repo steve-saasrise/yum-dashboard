@@ -92,6 +92,9 @@ export async function middleware(request: NextRequest) {
 
     // IMPORTANT: Always use getUser() in middleware, never getSession()
     // getUser() sends a request to the Supabase Auth server to validate the token
+    // First refresh the session to ensure it's valid
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+    
     const {
       data: { user },
       error,

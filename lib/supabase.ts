@@ -364,15 +364,16 @@ export function createBrowserSupabaseClient() {
 
         // Determine the domain for production environments
         const hostname = window.location.hostname;
-        const isProduction = hostname !== 'localhost' && !hostname.includes('127.0.0.1');
-        
+        const isProduction =
+          hostname !== 'localhost' && !hostname.includes('127.0.0.1');
+
         if (isAuthCookie && rememberMe) {
           // Set 1-year expiry for auth cookies when Remember Me is enabled (Facebook-style)
           const date = new Date();
           date.setTime(date.getTime() + 365 * 24 * 60 * 60 * 1000);
           cookieString += `; expires=${date.toUTCString()}`;
           cookieString += '; path=/';
-          
+
           // Set domain for production to ensure cookies work across subdomains
           if (isProduction && hostname.includes('.')) {
             // Use the base domain for production (e.g., .lounge.ai)
@@ -381,7 +382,7 @@ export function createBrowserSupabaseClient() {
               cookieString += `; domain=.${parts.slice(-2).join('.')}`;
             }
           }
-          
+
           cookieString += '; SameSite=Lax';
           if (window.location.protocol === 'https:') {
             cookieString += '; Secure';
@@ -398,7 +399,7 @@ export function createBrowserSupabaseClient() {
           } else {
             cookieString += '; path=/'; // Default to root path
           }
-          
+
           // Handle domain for production if not provided
           if (options.domain) {
             cookieString += `; domain=${options.domain}`;
@@ -409,8 +410,11 @@ export function createBrowserSupabaseClient() {
               cookieString += `; domain=.${parts.slice(-2).join('.')}`;
             }
           }
-          
-          if (options.secure || (isProduction && window.location.protocol === 'https:')) {
+
+          if (
+            options.secure ||
+            (isProduction && window.location.protocol === 'https:')
+          ) {
             cookieString += '; Secure';
           }
           if (options.sameSite) {
@@ -437,14 +441,15 @@ export function createBrowserSupabaseClient() {
       },
       remove(name: string, options?: any) {
         if (typeof window === 'undefined') return;
-        
+
         const hostname = window.location.hostname;
-        const isProduction = hostname !== 'localhost' && !hostname.includes('127.0.0.1');
+        const isProduction =
+          hostname !== 'localhost' && !hostname.includes('127.0.0.1');
         const isAuthCookie = name.startsWith('sb-');
-        
+
         // Try to remove with multiple domain variations to ensure cleanup
         const domains = [''];
-        
+
         if (isProduction && hostname.includes('.')) {
           const parts = hostname.split('.');
           if (parts.length >= 2) {
@@ -452,8 +457,8 @@ export function createBrowserSupabaseClient() {
             domains.push(hostname);
           }
         }
-        
-        domains.forEach(domain => {
+
+        domains.forEach((domain) => {
           let cookieString = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
           cookieString += `; path=${options?.path || '/'}`;
           if (domain) cookieString += `; domain=${domain}`;
