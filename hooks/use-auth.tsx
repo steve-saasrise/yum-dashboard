@@ -139,7 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // For production, retry once if the fetch fails
-      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      if (
+        typeof window !== 'undefined' &&
+        window.location.hostname !== 'localhost'
+      ) {
         try {
           console.log('Retrying user profile fetch for production...');
           const { data: userData } = await supabase
@@ -147,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .select('role, full_name, avatar_url, username, updated_at')
             .eq('id', user.id)
             .single();
-          
+
           if (userData) {
             return {
               ...basicProfile,
