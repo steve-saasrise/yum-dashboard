@@ -362,12 +362,26 @@ export function createBrowserSupabaseClient() {
 
         let cookieString = `${name}=${encodeURIComponent(value)}`;
 
+        // Determine the domain for production environments
+        const hostname = window.location.hostname;
+        const isProduction = hostname !== 'localhost' && !hostname.includes('127.0.0.1');
+        
         if (isAuthCookie && rememberMe) {
           // Set 1-year expiry for auth cookies when Remember Me is enabled (Facebook-style)
           const date = new Date();
           date.setTime(date.getTime() + 365 * 24 * 60 * 60 * 1000);
           cookieString += `; expires=${date.toUTCString()}`;
           cookieString += '; path=/';
+          
+          // Set domain for production to ensure cookies work across subdomains
+          if (isProduction && hostname.includes('.')) {
+            // Use the base domain for production (e.g., .lounge.ai)
+            const parts = hostname.split('.');
+            if (parts.length >= 2) {
+              cookieString += `; domain=.${parts.slice(-2).join('.')}`;
+            }
+          }
+          
           cookieString += '; SameSite=Lax';
           if (window.location.protocol === 'https:') {
             cookieString += '; Secure';
@@ -379,21 +393,76 @@ export function createBrowserSupabaseClient() {
             date.setTime(date.getTime() + options.maxAge * 1000);
             cookieString += `; expires=${date.toUTCString()}`;
           }
-          if (options.path) cookieString += `; path=${options.path}`;
-          if (options.domain) cookieString += `; domain=${options.domain}`;
-          if (options.secure) cookieString += '; Secure';
-          if (options.sameSite)
+          if (options.path) {
+            cookieString += `; path=${options.path}`;
+          } else {
+            cookieString += '; path=/'; // Default to root path
+          }
+          
+          // Handle domain for production if not provided
+          if (options.domain) {
+            cookieString += `; domain=${options.domain}`;
+          } else if (isProduction && isAuthCookie && hostname.includes('.')) {
+            // For auth cookies in production, use base domain
+            const parts = hostname.split('.');
+            if (parts.length >= 2) {
+              cookieString += `; domain=.${parts.slice(-2).join('.')}`;
+            }
+          }
+          
+          if (options.secure || (isProduction && window.location.protocol === 'https:')) {
+            cookieString += '; Secure';
+          }
+          if (options.sameSite) {
             cookieString += `; SameSite=${options.sameSite}`;
+          } else {
+            cookieString += '; SameSite=Lax'; // Default to Lax for better compatibility
+          }
+        } else {
+          // Default options for cookies without specific options
+          cookieString += '; path=/';
+          if (isProduction && isAuthCookie && hostname.includes('.')) {
+            const parts = hostname.split('.');
+            if (parts.length >= 2) {
+              cookieString += `; domain=.${parts.slice(-2).join('.')}`;
+            }
+          }
+          cookieString += '; SameSite=Lax';
+          if (window.location.protocol === 'https:') {
+            cookieString += '; Secure';
+          }
         }
 
         document.cookie = cookieString;
       },
       remove(name: string, options?: any) {
         if (typeof window === 'undefined') return;
-        let cookieString = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
-        if (options?.path) cookieString += `; path=${options.path}`;
-        if (options?.domain) cookieString += `; domain=${options.domain}`;
-        document.cookie = cookieString;
+        
+        const hostname = window.location.hostname;
+        const isProduction = hostname !== 'localhost' && !hostname.includes('127.0.0.1');
+        const isAuthCookie = name.startsWith('sb-');
+        
+        // Try to remove with multiple domain variations to ensure cleanup
+        const domains = [''];
+        
+        if (isProduction && hostname.includes('.')) {
+          const parts = hostname.split('.');
+          if (parts.length >= 2) {
+            domains.push(`.${parts.slice(-2).join('.')}`);
+            domains.push(hostname);
+          }
+        }
+        
+        domains.forEach(domain => {
+          let cookieString = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
+          cookieString += `; path=${options?.path || '/'}`;
+          if (domain) cookieString += `; domain=${domain}`;
+          if (window.location.protocol === 'https:') {
+            cookieString += '; Secure';
+          }
+          cookieString += '; SameSite=Lax';
+          document.cookie = cookieString;
+        });
       },
     },
   });
