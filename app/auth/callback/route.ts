@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
                   if (isAuthCookie && options) {
                     // Set 1-year expiry for auth cookies (Facebook-style)
                     options.maxAge = 365 * 24 * 60 * 60; // 365 days in seconds
-                    
+
                     // Preserve domain if set by Supabase for cookie chunking
                     // Always set secure in production or with HTTPS
                     const isProduction = process.env.NODE_ENV === 'production';
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
             // Update the user's metadata to include the role
             // This makes the role immediately available without database queries
             await supabase.auth.updateUser({
-              data: { role: userData.role }
+              data: { role: userData.role },
             });
           }
         } catch (roleError) {

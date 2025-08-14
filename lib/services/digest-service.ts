@@ -62,6 +62,7 @@ export class DigestService {
   /**
    * Get content for a specific lounge
    * Implements the logic: 9 most recent posts + at least 1 YouTube video
+   * Prioritizes content from last 24 hours, falls back to older if needed
    */
   static async getContentForLounge(
     loungeId: string,
@@ -86,8 +87,12 @@ export class DigestService {
 
     const creatorIdList = creatorIds.map((c: any) => c.creator_id);
 
-    // Fetch recent content from these creators
-    const { data: allContent, error: contentError } = await supabase
+    // Calculate 24 hours ago
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    // First try to get content from last 24 hours
+    let { data: allContent } = await supabase
       .from('content')
       .select(
         `
@@ -106,8 +111,42 @@ export class DigestService {
       )
       .in('creator_id', creatorIdList)
       .eq('processing_status', 'processed')
+      .gte('published_at', twentyFourHoursAgo.toISOString())
       .order('published_at', { ascending: false })
-      .limit(limit * 2); // Fetch more to ensure we have enough after filtering
+      .limit(limit * 2);
+
+    // If not enough content from last 24 hours, get older content
+    if (!allContent || allContent.length < limit) {
+      const { data: olderContent, error: olderError } = await supabase
+        .from('content')
+        .select(
+          `
+          id,
+          title,
+          description,
+          url,
+          platform,
+          thumbnail_url,
+          published_at,
+          ai_summary_short,
+          creators!inner(
+            display_name
+          )
+        `
+        )
+        .in('creator_id', creatorIdList)
+        .eq('processing_status', 'processed')
+        .order('published_at', { ascending: false })
+        .limit(limit * 2);
+
+      if (olderError) {
+        console.error('Error fetching older content:', olderError);
+      } else {
+        allContent = olderContent;
+      }
+    }
+
+    const contentError = null; // Add this for compatibility with error handling below
 
     if (contentError) {
       console.error('Error fetching content:', contentError);
@@ -244,16 +283,57 @@ export class DigestService {
   }
 
   /**
-   * Send daily digests for all lounges to a user
+   * Send daily digests for subscribed lounges to a user
    */
   static async sendDailyDigests(recipientEmail: string): Promise<void> {
-    const lounges = await this.getLounges();
+    const supabase = getSupabaseClient();
+    
+    // Get user ID from email
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', recipientEmail)
+      .single();
+
+    if (userError || !userData) {
+      console.error('Error fetching user:', userError);
+      return;
+    }
+
+    // Get lounges this user is subscribed to
+    const { data: subscriptions, error: subError } = await supabase
+      .from('lounge_digest_subscriptions')
+      .select('lounge_id')
+      .eq('user_id', userData.id)
+      .eq('subscribed', true);
+
+    if (subError) {
+      console.error('Error fetching subscriptions:', subError);
+      return;
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log(`No lounge subscriptions found for ${recipientEmail}`);
+      return;
+    }
+
+    // Get lounge details for subscribed lounges
+    const loungeIds = subscriptions.map(s => s.lounge_id);
+    const { data: lounges, error: loungeError } = await supabase
+      .from('lounges')
+      .select('id, name, description')
+      .in('id', loungeIds);
+
+    if (loungeError || !lounges) {
+      console.error('Error fetching lounges:', loungeError);
+      return;
+    }
 
     console.log(
       `Sending ${lounges.length} lounge digests to ${recipientEmail}`
     );
 
-    // Send digest for each lounge
+    // Send digest for each subscribed lounge
     for (const lounge of lounges) {
       try {
         await this.sendLoungeDigest(lounge, recipientEmail);
@@ -309,24 +389,35 @@ export class DigestService {
   }
 
   /**
-   * Get users who should receive daily digests
+   * Get users who have subscribed to at least one lounge
    */
-  static async getUsersForDailyDigest(): Promise<string[]> {
+  static async getUsersWithLoungeSubscriptions(): Promise<string[]> {
     const supabase = getSupabaseClient();
 
-    // For now, return a hardcoded list or fetch from email_digests table
-    // In production, this would query the email_digests table for active daily subscribers
+    // Get all unique users who have at least one lounge subscription
     const { data, error } = await supabase
-      .from('email_digests')
+      .from('lounge_digest_subscriptions')
       .select('users!inner(email)')
-      .eq('frequency', 'daily')
-      .eq('active', true);
+      .eq('subscribed', true);
 
     if (error) {
-      console.error('Error fetching digest subscribers:', error);
+      console.error('Error fetching users with subscriptions:', error);
       return [];
     }
 
-    return data?.map((d: any) => d.users.email) || [];
+    // Deduplicate emails (in case a user is subscribed to multiple lounges)
+    const uniqueEmails = [...new Set(data?.map((d: any) => d.users.email) || [])];
+    
+    console.log(`Found ${uniqueEmails.length} users with lounge subscriptions`);
+    return uniqueEmails;
+  }
+
+  /**
+   * Get users who should receive daily digests (legacy method)
+   */
+  static async getUsersForDailyDigest(): Promise<string[]> {
+    // This method is kept for backward compatibility
+    // Now it just calls the new method
+    return this.getUsersWithLoungeSubscriptions();
   }
 }

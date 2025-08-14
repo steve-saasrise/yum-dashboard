@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useInfiniteContent } from '@/hooks/use-infinite-content';
 import { useLounges } from '@/hooks/use-lounges';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useDigestSubscription } from '@/hooks/use-digest-subscription';
 import type { Creator, Platform } from '@/types/creator';
 import type { Lounge } from '@/types/lounge';
 import type { MediaUrl } from '@/types/content';
@@ -100,6 +101,7 @@ import {
   Loader2,
   UserCog,
   X as XIcon,
+  Mail,
 } from 'lucide-react';
 import { AddCreatorModal } from '@/components/creators/add-creator-modal';
 import { BackToTop } from '@/components/back-to-top';
@@ -1837,6 +1839,9 @@ export function DailyNewsDashboard() {
   const [selectedPlatforms, setSelectedPlatforms] = React.useState<string[]>(
     []
   );
+  
+  // Digest subscription state
+  const { subscribed, loading: digestLoading, toggleSubscription } = useDigestSubscription(selectedLoungeId);
   const [platformData, setPlatformData] = React.useState<
     Array<{
       name: string;
@@ -2190,6 +2195,22 @@ export function DailyNewsDashboard() {
                 )}
               </div>
               <div className="flex items-center gap-2">
+                {/* Email Digest Toggle - only show when a lounge is selected */}
+                {selectedLoungeId && (
+                  <Button
+                    variant={subscribed ? "default" : "outline"}
+                    size="sm"
+                    onClick={toggleSubscription}
+                    disabled={digestLoading}
+                    className="gap-2"
+                  >
+                    <Mail className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      {subscribed ? 'Subscribed' : 'Get Daily Digest'}
+                    </span>
+                  </Button>
+                )}
+                
                 {/* Mobile Filter Button */}
                 <Button
                   variant="outline"

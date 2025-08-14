@@ -12,23 +12,15 @@ export async function GET(request: NextRequest) {
 
     console.log('Starting daily digest send process...');
 
-    // Get all users who should receive daily digests
-    const users = await DigestService.getUsersForDailyDigest();
+    // Get all users who have subscribed to at least one lounge
+    const users = await DigestService.getUsersWithLoungeSubscriptions();
 
     if (users.length === 0) {
-      // For now, send to the admin/test account
-      // In production, this would use the email_digests table
-      const testEmail = process.env.DIGEST_TEST_EMAIL || 'steve@saasrise.com';
-      console.log(
-        `No digest subscribers found, sending test digest to ${testEmail}`
-      );
-
-      await DigestService.sendDailyDigests(testEmail);
-
+      console.log('No users with lounge subscriptions found');
       return NextResponse.json({
         success: true,
-        message: `Test digest sent to ${testEmail}`,
-        count: 1,
+        message: 'No users with lounge subscriptions',
+        count: 0,
       });
     }
 

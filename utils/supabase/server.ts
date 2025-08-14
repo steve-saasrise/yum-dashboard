@@ -16,7 +16,7 @@ export async function createClient() {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               const modifiedOptions = { ...options };
-              
+
               // For auth cookies, preserve Supabase's cookie settings
               // but ensure secure flag in production
               if (name.startsWith('sb-')) {
@@ -26,7 +26,7 @@ export async function createClient() {
                 modifiedOptions.sameSite = modifiedOptions.sameSite || 'lax';
                 modifiedOptions.path = modifiedOptions.path || '/';
               }
-              
+
               cookieStore.set(name, value, modifiedOptions);
             });
           } catch {

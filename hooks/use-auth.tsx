@@ -527,7 +527,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (userData?.role) {
             // Update the user's metadata to include the role
             await supabase.auth.updateUser({
-              data: { role: userData.role }
+              data: { role: userData.role },
             });
           }
         } catch (roleError) {
