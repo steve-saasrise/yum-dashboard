@@ -4,7 +4,9 @@ import { DailyDigestEmail } from '@/emails/daily-digest';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL =
-  process.env.DIGEST_EMAIL_FROM || process.env.EMAIL_FROM || 'Daily News <noreply@dailynews.app>';
+  process.env.DIGEST_EMAIL_FROM ||
+  process.env.EMAIL_FROM ||
+  'Daily News <noreply@dailynews.app>';
 
 // Create Supabase client with service role for server-side operations
 function getSupabaseClient() {
@@ -229,10 +231,8 @@ export class DigestService {
         day: 'numeric',
       });
 
-      // Generate unsubscribe URL
-      const unsubscribeUrl = unsubscribeToken
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/unsubscribe?token=${unsubscribeToken}`
-        : `${process.env.NEXT_PUBLIC_APP_URL}/settings/email`;
+      // Generate unsubscribe URL - always point to settings/account since unsubscribe tokens aren't implemented
+      const unsubscribeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/settings/account`;
 
       // Format content for email
       const emailContent = content.map((item) => ({

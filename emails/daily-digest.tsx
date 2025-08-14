@@ -65,9 +65,8 @@ export const DailyDigestEmail = ({
           {/* Header */}
           <Section style={header}>
             <Img
-              src="https://lounge.ai/lounge_logo.svg"
-              width="150"
-              height="50"
+              src="https://lounge.ai/official_lounge_logo.webp"
+              width="180"
               alt="Lounge"
               style={logo}
             />
@@ -80,7 +79,9 @@ export const DailyDigestEmail = ({
             <Text style={loungeDesc}>{loungeDescription}</Text>
           </Section>
 
-          <Hr style={divider} />
+          <Section style={{ padding: '0 10px' }}>
+            <Hr style={divider} />
+          </Section>
 
           {/* Content Items */}
           <Section style={contentSection}>
@@ -145,7 +146,9 @@ export const DailyDigestEmail = ({
             ))}
           </Section>
 
-          <Hr style={divider} />
+          <Section style={{ padding: '0 10px' }}>
+            <Hr style={divider} />
+          </Section>
 
           {/* Footer */}
           <Section style={footer}>
@@ -159,18 +162,18 @@ export const DailyDigestEmail = ({
               </Link>
               {' • '}
               <Link
-                href="https://dailynews.app/settings/email"
+                href="https://lounge.ai/settings/account"
                 style={footerLink}
               >
                 Email Preferences
               </Link>
               {' • '}
-              <Link href="https://dailynews.app" style={footerLink}>
+              <Link href="https://lounge.ai/dashboard" style={footerLink}>
                 Visit Dashboard
               </Link>
             </Text>
             <Text style={copyright}>
-              © {new Date().getFullYear()} Daily News. All rights reserved.
+              © {new Date().getFullYear()} Lounge. All rights reserved.
             </Text>
           </Section>
         </Container>
@@ -189,7 +192,7 @@ DailyDigestEmail.PreviewProps = {
     day: 'numeric',
   }),
   recipientEmail: 'user@example.com',
-  unsubscribeUrl: 'https://dailynews.app/unsubscribe?token=example',
+  unsubscribeUrl: 'https://lounge.ai/settings/account',
   content: [
     {
       id: '1',
@@ -231,14 +234,14 @@ const main = {
 const container = {
   backgroundColor: '#ffffff',
   margin: '0 auto',
-  padding: '20px 0',
+  padding: '20px',
   marginBottom: '64px',
   borderRadius: '5px',
   maxWidth: '600px',
 };
 
 const header = {
-  padding: '20px 30px',
+  padding: '20px 10px',
   textAlign: 'center' as const,
 };
 
@@ -253,7 +256,7 @@ const dateText = {
 };
 
 const loungeHeader = {
-  padding: '0 30px 20px',
+  padding: '0 10px 20px',
   textAlign: 'center' as const,
 };
 
@@ -272,16 +275,16 @@ const loungeDesc = {
 
 const divider = {
   borderColor: '#e6ebf1',
-  margin: '20px 30px',
+  margin: '15px 0',
 };
 
 const contentSection = {
-  padding: '0 30px',
+  padding: '0 10px',
 };
 
 const contentItem = {
   marginBottom: '0',
-  padding: '20px 0',
+  padding: '10px 0',
 };
 
 const thumbnailColumn = {
@@ -347,11 +350,11 @@ const viewButton = {
 
 const contentDivider = {
   borderColor: '#f0f0f0',
-  margin: '0',
+  margin: '15px 0',
 };
 
 const footer = {
-  padding: '20px 30px',
+  padding: '20px 10px',
   textAlign: 'center' as const,
 };
 

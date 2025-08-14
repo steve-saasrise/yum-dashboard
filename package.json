@@ -102,6 +102,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@react-email/preview-server": "^4.2.4",
     "@tanstack/react-query-devtools": "^5.84.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
