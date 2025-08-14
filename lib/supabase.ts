@@ -159,7 +159,14 @@ export const SessionUtils = {
       SessionUtils.triggerCrossTabLogout();
 
       // Sign out from Supabase
+      console.log('Attempting Supabase signOut...');
       const { error } = await supabaseClient.auth.signOut();
+
+      if (error) {
+        console.error('Supabase signOut error:', error);
+      } else {
+        console.log('Supabase signOut successful');
+      }
 
       // Clear any remaining cookies/storage
       if (typeof window !== 'undefined') {
@@ -168,15 +175,61 @@ export const SessionUtils = {
 
         // Clear specific cookies if accessible
         try {
+          // Get the current hostname to determine the domain
+          const hostname = window.location.hostname;
+          const isProduction =
+            hostname !== 'localhost' && !hostname.includes('127.0.0.1');
+
+          console.log(
+            'Clearing cookies for hostname:',
+            hostname,
+            'isProduction:',
+            isProduction
+          );
+
+          // Determine possible cookie domains
+          const cookieDomains = ['']; // Empty string for same-origin
+
+          if (isProduction) {
+            // For production, try clearing with various domain patterns
+            cookieDomains.push(`.${hostname}`); // e.g., .lounge.ai
+            cookieDomains.push(hostname); // e.g., lounge.ai
+
+            // Also try the base domain if it's a subdomain
+            const parts = hostname.split('.');
+            if (parts.length > 2) {
+              cookieDomains.push(`.${parts.slice(-2).join('.')}`); // e.g., .lounge.ai from www.lounge.ai
+            }
+          }
+
+          console.log('Cookie domains to clear:', cookieDomains);
+
+          // Clear cookies with all possible domain combinations
           document.cookie.split(';').forEach((c) => {
             const eqPos = c.indexOf('=');
-            const name = eqPos > -1 ? c.substr(0, eqPos) : c;
-            if (name.trim().startsWith('sb-')) {
-              document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+            const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+
+            // Clear Supabase auth cookies
+            if (name.startsWith('sb-') || name.includes('auth')) {
+              console.log('Clearing cookie:', name);
+              cookieDomains.forEach((domain) => {
+                // Clear with various path and domain combinations
+                const clearOptions = [
+                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`,
+                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain}`,
+                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain};secure`,
+                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain};secure;samesite=lax`,
+                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain};secure;samesite=strict`,
+                  `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${domain};secure;samesite=none`,
+                ];
+
+                clearOptions.forEach((option) => {
+                  document.cookie = option;
+                });
+              });
             }
           });
         } catch {
-          // Cookie clearing may fail in some browsers, but that's okay
           // Cookie clearing may fail in some browsers, but that's okay
         }
       }

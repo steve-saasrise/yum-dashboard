@@ -109,13 +109,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       // Get user data from the consolidated users table
-      const { data: userData } = await supabase
+      console.log('Fetching user profile for:', user.id);
+      const { data: userData, error: fetchError } = await supabase
         .from('users')
         .select('role, full_name, avatar_url, username, updated_at')
         .eq('id', user.id)
         .single();
 
+      if (fetchError) {
+        console.error('Error fetching user profile:', fetchError);
+        throw fetchError;
+      }
+
       if (userData) {
+        console.log('User profile fetched successfully, role:', userData.role);
         return {
           ...basicProfile,
           full_name: userData.full_name || basicProfile.full_name,
@@ -126,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
+      console.log('No user data found, returning default viewer role');
       return {
         ...basicProfile,
         role: 'viewer',
@@ -145,13 +153,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ) {
         try {
           console.log('Retrying user profile fetch for production...');
-          const { data: userData } = await supabase
+          const { data: userData, error: retryFetchError } = await supabase
             .from('users')
             .select('role, full_name, avatar_url, username, updated_at')
             .eq('id', user.id)
             .single();
 
+          if (retryFetchError) {
+            console.error('Retry fetch error:', retryFetchError);
+          }
+
           if (userData) {
+            console.log('Retry successful, role:', userData.role);
             return {
               ...basicProfile,
               full_name: userData.full_name || basicProfile.full_name,
