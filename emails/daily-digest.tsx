@@ -65,7 +65,7 @@ export const DailyDigestEmail = ({
           {/* Header */}
           <Section style={header}>
             <Img
-              src="https://lounge.ai/official_lounge_logo.webp"
+              src="https://lounge.ai/official_lounge_logo.png"
               width="180"
               alt="Lounge"
               style={logo}
