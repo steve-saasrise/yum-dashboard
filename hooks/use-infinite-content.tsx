@@ -162,7 +162,7 @@ export function useInfiniteContent(filters?: ContentFilters) {
           content_id: contentId,
           action: 'delete',
         });
-        
+
         const response = await fetch(`/api/content?${params.toString()}`, {
           method: 'DELETE',
         });
@@ -189,7 +189,7 @@ export function useInfiniteContent(filters?: ContentFilters) {
           content_id: contentId,
           action: 'undelete',
         });
-        
+
         const response = await fetch(`/api/content?${params.toString()}`, {
           method: 'DELETE',
         });

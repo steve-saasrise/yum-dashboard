@@ -573,10 +573,25 @@ export class ApifyFetcher {
       if (post.text_post_app_info?.share_info?.quoted_post) {
         const quotedPost = post.text_post_app_info.share_info.quoted_post;
         referenceType = 'quote';
-        
+
         // Extract media from quoted post
         const quotedMediaUrls: any[] = [];
-        if (quotedPost.image_versions2?.candidates?.length > 0) {
+        // Check if this is a video post (has video_versions)
+        if (quotedPost.video_versions?.length > 0) {
+          const bestVideo = quotedPost.video_versions[0];
+          if (bestVideo.url) {
+            // Use image_versions2 as the thumbnail for the video
+            const thumbnail = quotedPost.image_versions2?.candidates?.[0]?.url;
+            quotedMediaUrls.push({
+              url: bestVideo.url,
+              type: 'video',
+              width: bestVideo.width,
+              height: bestVideo.height,
+              thumbnail_url: thumbnail, // Add thumbnail if available
+            });
+          }
+        } else if (quotedPost.image_versions2?.candidates?.length > 0) {
+          // Only add as image if there's no video (to avoid duplicates)
           const bestCandidate = quotedPost.image_versions2.candidates[0];
           if (bestCandidate.url) {
             quotedMediaUrls.push({
@@ -584,17 +599,6 @@ export class ApifyFetcher {
               type: 'image',
               width: bestCandidate.width,
               height: bestCandidate.height,
-            });
-          }
-        }
-        if (quotedPost.video_versions?.length > 0) {
-          const bestVideo = quotedPost.video_versions[0];
-          if (bestVideo.url) {
-            quotedMediaUrls.push({
-              url: bestVideo.url,
-              type: 'video',
-              width: bestVideo.width,
-              height: bestVideo.height,
             });
           }
         }
@@ -631,10 +635,26 @@ export class ApifyFetcher {
       else if (post.text_post_app_info?.share_info?.reposted_post) {
         const repostedPost = post.text_post_app_info.share_info.reposted_post;
         referenceType = 'retweet';
-        
+
         // Extract media from reposted post
         const repostedMediaUrls: any[] = [];
-        if (repostedPost.image_versions2?.candidates?.length > 0) {
+        // Check if this is a video post (has video_versions)
+        if (repostedPost.video_versions?.length > 0) {
+          const bestVideo = repostedPost.video_versions[0];
+          if (bestVideo.url) {
+            // Use image_versions2 as the thumbnail for the video
+            const thumbnail =
+              repostedPost.image_versions2?.candidates?.[0]?.url;
+            repostedMediaUrls.push({
+              url: bestVideo.url,
+              type: 'video',
+              width: bestVideo.width,
+              height: bestVideo.height,
+              thumbnail_url: thumbnail, // Add thumbnail if available
+            });
+          }
+        } else if (repostedPost.image_versions2?.candidates?.length > 0) {
+          // Only add as image if there's no video (to avoid duplicates)
           const bestCandidate = repostedPost.image_versions2.candidates[0];
           if (bestCandidate.url) {
             repostedMediaUrls.push({
@@ -642,17 +662,6 @@ export class ApifyFetcher {
               type: 'image',
               width: bestCandidate.width,
               height: bestCandidate.height,
-            });
-          }
-        }
-        if (repostedPost.video_versions?.length > 0) {
-          const bestVideo = repostedPost.video_versions[0];
-          if (bestVideo.url) {
-            repostedMediaUrls.push({
-              url: bestVideo.url,
-              type: 'video',
-              width: bestVideo.width,
-              height: bestVideo.height,
             });
           }
         }
@@ -707,9 +716,26 @@ export class ApifyFetcher {
       // Extract media URLs from different possible structures
       const mediaUrls: CreateContentInput['media_urls'] = [];
 
-      // Check for image candidates in image_versions2
-      // Only take the first (highest quality) candidate as they're all the same image
+      // Check if this is a video post (has video_versions)
       if (
+        post.video_versions &&
+        Array.isArray(post.video_versions) &&
+        post.video_versions.length > 0
+      ) {
+        const bestVideo = post.video_versions[0];
+        if (bestVideo.url) {
+          // Use image_versions2 as the thumbnail for the video
+          const thumbnail = post.image_versions2?.candidates?.[0]?.url;
+          mediaUrls.push({
+            url: bestVideo.url,
+            type: 'video',
+            width: bestVideo.width,
+            height: bestVideo.height,
+            thumbnail_url: thumbnail, // Add thumbnail if available
+          });
+        }
+      } else if (
+        // Only add as image if there's no video (to avoid duplicates)
         post.image_versions2?.candidates &&
         Array.isArray(post.image_versions2.candidates) &&
         post.image_versions2.candidates.length > 0
@@ -721,24 +747,6 @@ export class ApifyFetcher {
             type: 'image',
             width: bestCandidate.width,
             height: bestCandidate.height,
-          });
-        }
-      }
-
-      // Check for video versions
-      // Only take the first (highest quality) version as they're all the same video
-      if (
-        post.video_versions &&
-        Array.isArray(post.video_versions) &&
-        post.video_versions.length > 0
-      ) {
-        const bestVideo = post.video_versions[0];
-        if (bestVideo.url) {
-          mediaUrls.push({
-            url: bestVideo.url,
-            type: 'video',
-            width: bestVideo.width,
-            height: bestVideo.height,
           });
         }
       }
@@ -764,11 +772,14 @@ export class ApifyFetcher {
           if (media.video_versions && media.video_versions.length > 0) {
             const bestVideo = media.video_versions[0];
             if (bestVideo.url) {
+              // Check if there's a thumbnail for carousel video
+              const thumbnail = media.image_versions2?.candidates?.[0]?.url;
               mediaUrls.push({
                 url: bestVideo.url,
                 type: 'video',
                 width: bestVideo.width,
                 height: bestVideo.height,
+                thumbnail_url: thumbnail, // Add thumbnail if available
               });
             }
           }

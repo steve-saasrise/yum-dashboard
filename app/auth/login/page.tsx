@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useUser, useAuthLoading } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
@@ -18,6 +19,7 @@ import { Mail, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { SessionUtils } from '@/lib/supabase';
 
 export default function LoginPage() {
   const { signIn, signInWithOAuth, signInWithMagicLink } = useAuth();
@@ -34,6 +36,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -66,6 +69,9 @@ export default function LoginPage() {
     }
 
     try {
+      // Set Remember Me preference before signing in
+      SessionUtils.setRememberMe(rememberMe);
+
       const { error } = await signIn(formData.email, formData.password);
 
       if (error) {
@@ -81,6 +87,8 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
+      // Set Remember Me preference before signing in
+      SessionUtils.setRememberMe(rememberMe);
       await signInWithOAuth('google');
     } catch {
       setError('Failed to sign in with Google. Please try again.');
@@ -97,6 +105,8 @@ export default function LoginPage() {
 
     try {
       setIsLoading(true);
+      // Set Remember Me preference before signing in
+      SessionUtils.setRememberMe(rememberMe);
       const { error } = await signInWithMagicLink(formData.email);
 
       if (error) {
@@ -191,6 +201,22 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) =>
+                    setRememberMe(checked as boolean)
+                  }
+                  disabled={isLoading}
+                />
+                <Label
+                  htmlFor="remember"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Keep me logged in
+                </Label>
+              </div>
               <Link
                 href="/auth/forgot-password"
                 className="text-sm text-primary hover:underline"

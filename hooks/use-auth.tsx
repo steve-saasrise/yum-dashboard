@@ -153,7 +153,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } = await supabase.auth.getSession();
 
         // Check if session has timed out due to inactivity
-        if (session && SessionUtils.hasSessionTimedOut()) {
+        // Skip timeout check if Remember Me is enabled
+        if (
+          session &&
+          !SessionUtils.isRememberMeEnabled() &&
+          SessionUtils.hasSessionTimedOut()
+        ) {
           await SessionUtils.enhancedLogout(supabase);
           setState((prev) => ({
             ...prev,
@@ -226,8 +231,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const currentSession = state.session;
         if (!currentSession) return;
 
-        // Check for inactivity timeout
-        if (SessionUtils.hasSessionTimedOut()) {
+        // Check for inactivity timeout (skip if Remember Me is enabled)
+        if (
+          !SessionUtils.isRememberMeEnabled() &&
+          SessionUtils.hasSessionTimedOut()
+        ) {
           await handleSessionTimeout();
           return;
         }
@@ -436,10 +444,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      if (!error && data.session && data.user) {
+        // Track the session for security monitoring
+        try {
+          await fetch('/api/auth/session-tracking', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // Ensure cookies are sent
+          });
+        } catch (trackingError) {
+          // Don't block login if tracking fails
+          console.error('Failed to track session:', trackingError);
+        }
+      }
 
       setState((prev) => ({ ...prev, loading: false, error: error || null }));
       return { error: error || undefined };

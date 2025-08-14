@@ -1,8 +1,8 @@
 # Daily News - Development Status
 
-## 🚀 Current Phase: Phase 2 - Core Features Development
+## 🚀 Current Phase: Phase 3 - Advanced Features Development
 
-**Progress**: Foundation Complete (100%) | Core Features (33%)
+**Progress**: Foundation Complete (100%) | Core Features Complete (100%) | Advanced Features (25%)
 
 ### ✅ Phase 1 - Foundation Complete (100%)
 
@@ -284,10 +284,33 @@
 
 ### Email Digest System
 
-- [ ] Daily/weekly digest preferences
-- [ ] Personalized content selection
-- [ ] Email template design
-- [ ] Unsubscribe management
+**Client Requirements (2025-08-13)**:
+
+- [ ] Generate daily email digest for each of the 7 Lounges (AI, B2B Growth, Biohacking, Crypto, Personal Growth, SaaS, Venture)
+- [ ] Send automatically at 6am PT each day, 7 days per week
+- [ ] Include 10 most recent posts per Lounge email
+- [ ] Ensure at least 1 YouTube video in each email (9 posts + 1 YouTube video logic)
+- [ ] Add "View Original" button for each post linking to original content
+- [ ] Will eventually move to 5 days per week (Mon-Fri)
+
+**Technical Implementation**:
+
+- [ ] Create daily digest email template with Resend/React Email
+- [ ] Build digest generation service to compile content per Lounge
+- [ ] Implement YouTube video prioritization logic
+- [ ] Set up cron job for 6am PT daily execution
+- [ ] Create digest history tracking in email_digests table
+- [ ] Add user subscription preferences (frequency, lounges, time)
+- [ ] Implement unsubscribe management
+- [ ] Add digest preview/test endpoint for verification
+
+**Existing Infrastructure**:
+
+- ✅ `email_digests` table exists with frequency, time_of_day, lounges_included fields
+- ✅ 7 system lounges configured (AI, B2B Growth, Biohacking, Crypto, Personal Growth, SaaS, Venture)
+- ✅ Resend email service already integrated
+- ✅ Email templates using React Email pattern established
+- ✅ Lounges updated (2025-08-13): Renamed "Growth" to "B2B Growth", added "Biohacking" and "Personal Growth"
 
 ### Analytics Dashboard
 
@@ -344,6 +367,22 @@
 ---
 
 ## 📝 Recent Progress Log
+
+### 2025-08-13
+
+- ✅ **Lounges Updated per Client Request**: Added new lounges and renamed existing one
+  - Renamed "Growth" lounge to "B2B Growth" to be more specific
+  - Added "Biohacking" lounge for health optimization and longevity content
+  - Added "Personal Growth" lounge for personal development and self-improvement
+  - Now have 7 system lounges total: AI, B2B Growth, Biohacking, Crypto, Personal Growth, SaaS, Venture
+  - Updated email digest requirements to send 7 daily emails (one per lounge)
+
+- 📋 **Email Digest Requirements Documented**: Client specifications added to STATUS.md
+  - Daily digest for each lounge at 6am PT
+  - 10 posts per email with at least 1 YouTube video
+  - "View Original" button for each post
+  - Existing infrastructure identified: email_digests table, Resend integration
+  - Set as Priority 1 for next development session
 
 ### 2025-07-26
 
@@ -670,7 +709,15 @@
 
 ## 💡 Next Session Should
 
-1. **Priority 1**: Add YouTube Transcript Support for Better Summaries
+1. **Priority 1**: Implement Email Digest System (Client Request 2025-08-13)
+   - [ ] Create daily digest email template with React Email
+   - [ ] Build content selection logic (9 recent posts + 1 YouTube video)
+   - [ ] Implement digest generation service for 7 lounges (AI, B2B Growth, Biohacking, Crypto, Personal Growth, SaaS, Venture)
+   - [ ] Set up cron job for 6am PT daily execution (7 emails daily)
+   - [ ] Create test endpoint to preview digests
+   - [ ] Deploy and test with client's email
+
+2. **Priority 2**: Add YouTube Transcript Support for Better Summaries
    - [ ] Install youtube-transcript npm package
    - [ ] Create transcript fetcher service
    - [ ] Update YouTube fetcher to include transcript fetching
@@ -679,21 +726,13 @@
    - [ ] Test transcript-based summaries vs description-based
    - [ ] Consider adding transcript_text field to database (optional)
 
-2. **Priority 2**: Deploy and Test AI Summary Generation
+3. **Priority 3**: Deploy and Test AI Summary Generation
    - [ ] Add OPENAI_API_KEY to Railway environment variables
    - [ ] Test summary generation with real content
    - [ ] Monitor API usage and costs
    - [ ] Verify summaries display correctly in dashboard
    - [ ] Test toggle between short/long/original views
    - [ ] Create background job for automated summary generation
-
-3. **Priority 3**: Implement Email Digest System
-   - [ ] Design digest preferences schema
-   - [ ] Create email templates with summaries
-   - [ ] Build digest generation service
-   - [ ] Implement scheduling system
-   - [ ] Add unsubscribe management
-   - [ ] Test email delivery
 
 4. **Priority 4**: Analytics Dashboard
    - [ ] Track content consumption metrics
@@ -712,6 +751,7 @@
 
 ---
 
-_Last Updated: 2025-07-26_
+_Last Updated: 2025-08-13_
 _Active Branch: main_
 _Apify Integration: Complete - Deployed and Tested_
+_Email Digest: Requirements documented - Implementation pending_

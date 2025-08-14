@@ -240,18 +240,18 @@ function AppSidebar({
           }}
           className="flex items-center cursor-pointer focus:outline-none w-full h-full"
         >
-          <Image 
-            src="/lounge_logo.svg" 
-            alt="Lounge Logo" 
-            width={160} 
-            height={56} 
+          <Image
+            src="/lounge_logo.svg"
+            alt="Lounge Logo"
+            width={160}
+            height={56}
             className="h-12 w-auto object-contain mx-auto"
             priority
           />
         </button>
       </SidebarHeader>
 
-      <SidebarContent 
+      <SidebarContent
         className="px-2 py-2 pr-1 stable-scrollbar sidebar-scrollbar"
         style={{ backgroundColor: '#FCE4DC' }}
       >
@@ -1032,13 +1032,14 @@ export const ContentCard = React.memo(function ContentCard({
             })()}
 
           {/* For LinkedIn reposts, show referenced content first */}
-          {item.platform === 'linkedin' && item.reference_type === 'retweet' && (
-            <ReferencedContentDisplay
-              referenceType={item.reference_type}
-              referencedContent={item.referenced_content}
-              platform={item.platform}
-            />
-          )}
+          {item.platform === 'linkedin' &&
+            item.reference_type === 'retweet' && (
+              <ReferencedContentDisplay
+                referenceType={item.reference_type}
+                referencedContent={item.referenced_content}
+                platform={item.platform}
+              />
+            )}
 
           {/* Display LinkedIn videos with thumbnail and play button */}
           {item.platform === 'linkedin' &&
@@ -1451,7 +1452,9 @@ export const ContentCard = React.memo(function ContentCard({
 
           {/* Display referenced content (quote tweets, etc.) - after media */}
           {/* Skip for LinkedIn reposts as we show them before media */}
-          {!(item.platform === 'linkedin' && item.reference_type === 'retweet') && (
+          {!(
+            item.platform === 'linkedin' && item.reference_type === 'retweet'
+          ) && (
             <ReferencedContentDisplay
               referenceType={item.reference_type}
               referencedContent={item.referenced_content}

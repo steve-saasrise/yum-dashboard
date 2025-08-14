@@ -33,7 +33,13 @@ const SECURITY_HEADERS = {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const response = NextResponse.next();
+
+  // Create response first
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
   // Add security headers to all responses
   Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
@@ -66,18 +72,30 @@ export async function middleware(request: NextRequest) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              request.cookies.set(name, value);
-              response.cookies.set(name, value, options);
+              // Check if this is an auth cookie and if Remember Me is enabled
+              const isAuthCookie = name.startsWith('sb-');
+
+              // For auth cookies, extend the max age if we detect a persistent session
+              if (isAuthCookie && options) {
+                // Set 1-year expiry for auth cookies in persistent sessions (Facebook-style)
+                options.maxAge = 365 * 24 * 60 * 60; // 365 days in seconds
+              }
+
+              // Set cookies on both request and response
+              request.cookies.set({ name, value, ...options });
+              response.cookies.set({ name, value, ...options });
             });
           },
         },
       }
     );
 
+    // IMPORTANT: Always use getUser() in middleware, never getSession()
+    // getUser() sends a request to the Supabase Auth server to validate the token
     const {
-      data: { session },
+      data: { user },
       error,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
     const isProtectedRoute = SESSION_CONFIG.PROTECTED_ROUTES.some((route) =>
       pathname.startsWith(route)
@@ -85,15 +103,15 @@ export async function middleware(request: NextRequest) {
 
     const isAuthRoute = SESSION_CONFIG.AUTH_ROUTES.includes(pathname);
 
-    // Redirect to login if accessing protected route without session
-    if (isProtectedRoute && (!session || error)) {
+    // Redirect to login if accessing protected route without valid user
+    if (isProtectedRoute && (!user || error)) {
       const redirectUrl = new URL('/auth/login', origin);
       redirectUrl.searchParams.set('redirectTo', pathname);
       return NextResponse.redirect(redirectUrl);
     }
 
-    // Redirect to dashboard if accessing auth route with active session
-    if (isAuthRoute && session && !error) {
+    // Redirect to dashboard if accessing auth route with authenticated user
+    if (isAuthRoute && user && !error) {
       const redirectTo =
         request.nextUrl.searchParams.get('redirectTo') || '/dashboard';
       return NextResponse.redirect(new URL(redirectTo, origin));

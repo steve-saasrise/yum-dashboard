@@ -6,9 +6,10 @@ export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Session configuration constants
 export const SESSION_CONFIG = {
-  // Session timeout: 30 minutes default, 24 hours maximum
+  // Session timeout: 30 minutes for temporary, 1 year for persistent (Facebook-style)
   DEFAULT_TIMEOUT: 30 * 60 * 1000, // 30 minutes in milliseconds
-  MAX_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+  PERSISTENT_TIMEOUT: 365 * 24 * 60 * 60 * 1000, // 365 days (1 year) in milliseconds
+  MAX_TIMEOUT: 2 * 365 * 24 * 60 * 60 * 1000, // 2 years maximum (like Facebook's datr cookie)
 
   // Auto-refresh when session expires in less than 5 minutes
   REFRESH_THRESHOLD: 5 * 60 * 1000, // 5 minutes in milliseconds
@@ -21,6 +22,18 @@ export const SESSION_CONFIG = {
     SESSION_STATE: 'supabase_session_state',
     LAST_ACTIVITY: 'supabase_last_activity',
     LOGOUT_EVENT: 'supabase_logout_event',
+    REMEMBER_ME: 'supabase_remember_me',
+  },
+
+  // Cookie configuration (Facebook-style)
+  COOKIE_OPTIONS: {
+    name: 'sb-auth-token',
+    // 1 year for persistent sessions, matching Facebook's approach
+    maxAge: 365 * 24 * 60 * 60, // 365 days in seconds
+    path: '/',
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: false, // Must be false for client-side access
   },
 };
 
@@ -79,10 +92,36 @@ export const SessionUtils = {
 
   // Check if session has timed out due to inactivity
   hasSessionTimedOut: (): boolean => {
+    // Check if this is a persistent session
+    if (SessionUtils.isRememberMeEnabled()) {
+      const lastActivity = SessionUtils.getLastActivity();
+      const timeSinceActivity = Date.now() - lastActivity;
+      // Use persistent timeout for "Remember Me" sessions
+      return timeSinceActivity > SESSION_CONFIG.PERSISTENT_TIMEOUT;
+    }
+
     const lastActivity = SessionUtils.getLastActivity();
     const timeSinceActivity = Date.now() - lastActivity;
 
     return timeSinceActivity > SESSION_CONFIG.DEFAULT_TIMEOUT;
+  },
+
+  // Set Remember Me preference
+  setRememberMe: (enabled: boolean): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(
+        SESSION_CONFIG.STORAGE_KEYS.REMEMBER_ME,
+        enabled ? 'true' : 'false'
+      );
+    }
+  },
+
+  // Get Remember Me preference
+  isRememberMeEnabled: (): boolean => {
+    if (typeof window === 'undefined') return false;
+    return (
+      localStorage.getItem(SESSION_CONFIG.STORAGE_KEYS.REMEMBER_ME) === 'true'
+    );
   },
 
   // Trigger cross-tab logout event
@@ -251,9 +290,60 @@ export function isRateLimitError(
   );
 }
 
-// Create browser client
+// Create browser client with persistent session support
 export function createBrowserSupabaseClient() {
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        if (typeof window === 'undefined') return undefined;
+        const cookies = document.cookie.split('; ');
+        const cookie = cookies.find((c) => c.startsWith(`${name}=`));
+        return cookie ? decodeURIComponent(cookie.split('=')[1]) : undefined;
+      },
+      set(name: string, value: string, options?: any) {
+        if (typeof window === 'undefined') return;
+
+        // Use extended expiry for auth cookies if Remember Me is enabled
+        const isAuthCookie = name.startsWith('sb-');
+        const rememberMe = SessionUtils.isRememberMeEnabled();
+
+        let cookieString = `${name}=${encodeURIComponent(value)}`;
+
+        if (isAuthCookie && rememberMe) {
+          // Set 1-year expiry for auth cookies when Remember Me is enabled (Facebook-style)
+          const date = new Date();
+          date.setTime(date.getTime() + 365 * 24 * 60 * 60 * 1000);
+          cookieString += `; expires=${date.toUTCString()}`;
+          cookieString += '; path=/';
+          cookieString += '; SameSite=Lax';
+          if (window.location.protocol === 'https:') {
+            cookieString += '; Secure';
+          }
+        } else if (options) {
+          // Use provided options for other cookies
+          if (options.maxAge) {
+            const date = new Date();
+            date.setTime(date.getTime() + options.maxAge * 1000);
+            cookieString += `; expires=${date.toUTCString()}`;
+          }
+          if (options.path) cookieString += `; path=${options.path}`;
+          if (options.domain) cookieString += `; domain=${options.domain}`;
+          if (options.secure) cookieString += '; Secure';
+          if (options.sameSite)
+            cookieString += `; SameSite=${options.sameSite}`;
+        }
+
+        document.cookie = cookieString;
+      },
+      remove(name: string, options?: any) {
+        if (typeof window === 'undefined') return;
+        let cookieString = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
+        if (options?.path) cookieString += `; path=${options.path}`;
+        if (options?.domain) cookieString += `; domain=${options.domain}`;
+        document.cookie = cookieString;
+      },
+    },
+  });
 }
 
 // OAuth provider configuration

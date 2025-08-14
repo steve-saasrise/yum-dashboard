@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/hooks/use-auth';
 import { Toaster } from '@/components/ui/sonner';
 import { QueryProvider } from '@/providers/query-provider';
+import { SessionTrackingProvider } from '@/providers/session-tracking-provider';
 
 export const metadata: Metadata = {
   title: 'Lounge',
@@ -28,7 +29,7 @@ export default function RootLayout({
       <body>
         <QueryProvider>
           <AuthProvider>
-            {children}
+            <SessionTrackingProvider>{children}</SessionTrackingProvider>
             <Toaster />
           </AuthProvider>
         </QueryProvider>

@@ -134,24 +134,73 @@ export const ReferencedContentDisplay: React.FC<ReferencedContentProps> = ({
                   .map((media, index) => (
                     <div
                       key={index}
-                      className="relative w-16 h-16 bg-muted rounded overflow-hidden"
+                      className="relative w-20 h-20 bg-muted rounded overflow-hidden flex-shrink-0"
                     >
                       {media.type === 'image' && (
                         <img
                           src={media.url}
                           alt=""
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            // Hide the container for broken images
+                            const container = (
+                              e.target as HTMLImageElement
+                            ).closest('.relative');
+                            if (container) {
+                              (container as HTMLElement).style.display = 'none';
+                            }
+                          }}
                         />
                       )}
                       {media.type === 'video' && (
-                        <div className="w-full h-full flex items-center justify-center bg-black/10">
-                          <Video className="h-6 w-6 text-white/80" />
-                        </div>
+                        <>
+                          {media.thumbnail_url ? (
+                            <img
+                              src={media.thumbnail_url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                // Hide broken thumbnails - hide the container
+                                const container = (
+                                  e.target as HTMLImageElement
+                                ).closest('.relative');
+                                if (container) {
+                                  (container as HTMLElement).style.display =
+                                    'none';
+                                }
+                              }}
+                            />
+                          ) : (
+                            <video
+                              src={media.url}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                              onError={(e) => {
+                                // If video fails to load, hide the container
+                                const container = (
+                                  e.target as HTMLVideoElement
+                                ).closest('.relative');
+                                if (container) {
+                                  (container as HTMLElement).style.display =
+                                    'none';
+                                }
+                              }}
+                            />
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="bg-black/50 rounded-full p-1">
+                              <Video className="h-4 w-4 text-white" />
+                            </div>
+                          </div>
+                        </>
                       )}
                     </div>
                   ))}
                 {referencedContent.media_urls.length > 2 && (
-                  <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
+                  <div className="w-20 h-20 bg-muted rounded flex items-center justify-center flex-shrink-0">
                     <span className="text-xs font-medium text-muted-foreground">
                       +{referencedContent.media_urls.length - 2}
                     </span>

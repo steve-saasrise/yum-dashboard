@@ -44,6 +44,12 @@ export async function GET(request: NextRequest) {
             setAll(cookiesToSet) {
               try {
                 cookiesToSet.forEach(({ name, value, options }) => {
+                  // For auth cookies, extend the max age for persistent sessions
+                  const isAuthCookie = name.startsWith('sb-');
+                  if (isAuthCookie && options) {
+                    // Set 1-year expiry for auth cookies (Facebook-style)
+                    options.maxAge = 365 * 24 * 60 * 60; // 365 days in seconds
+                  }
                   cookieStore.set(name, value, options);
                 });
               } catch {
@@ -91,6 +97,9 @@ export async function GET(request: NextRequest) {
       if (data.user && data.session) {
         // The user will be automatically created in the users table by the trigger
         // No need to manually create profile data anymore
+
+        // Session tracking will be handled by the useSessionTracking hook on the client side
+        // after the redirect completes
 
         // Successful authentication - redirect to the intended page
         return NextResponse.redirect(`${origin}${redirectTo}`);
