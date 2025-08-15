@@ -155,8 +155,8 @@ export const SessionUtils = {
       // Clear local storage first
       SessionUtils.clearSessionStorage();
 
-      // Trigger cross-tab logout
-      SessionUtils.triggerCrossTabLogout();
+      // Don't trigger cross-tab logout - Supabase handles this via SIGNED_OUT event
+      // SessionUtils.triggerCrossTabLogout();
 
       // Sign out from Supabase - let Supabase handle cookie cleanup
       const { error } = await supabaseClient.auth.signOut();
@@ -165,10 +165,10 @@ export const SessionUtils = {
         console.error('Supabase signOut error:', error);
       }
 
-      // Clear any remaining session storage
-      if (typeof window !== 'undefined') {
-        sessionStorage.clear();
-      }
+      // Don't clear sessionStorage here - we need to preserve the initiatedLogout flag
+      // if (typeof window !== 'undefined') {
+      //   sessionStorage.clear();
+      // }
 
       return { error };
     } catch (error) {

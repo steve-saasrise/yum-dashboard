@@ -16,7 +16,9 @@ async function testDigestPreview() {
     });
 
     if (!loginResponse.ok) {
-      console.log('Note: This test requires admin access. Please use the admin account.');
+      console.log(
+        'Note: This test requires admin access. Please use the admin account.'
+      );
       console.log('Alternatively, you can test the digest preview manually.');
       return;
     }
@@ -53,6 +55,10 @@ async function testDigestPreview() {
 // Note: This is a test script to demonstrate the issue
 console.log('To test the digest preview, you can:');
 console.log('1. Login as admin (steve@saasrise.com)');
-console.log('2. Navigate to: http://localhost:3000/api/test-digest?loungeId=5a33821a-4dc9-4951-a081-096a891744ae&email=llm-test@dailynews.com&preview=true');
+console.log(
+  '2. Navigate to: http://localhost:3000/api/test-digest?loungeId=5a33821a-4dc9-4951-a081-096a891744ae&email=llm-test@dailynews.com&preview=true'
+);
 console.log('\nOr use curl:');
-console.log("curl 'http://localhost:3000/api/test-digest?loungeId=5a33821a-4dc9-4951-a081-096a891744ae&email=llm-test@dailynews.com&preview=true' -H 'Authorization: Bearer YOUR_TOKEN'");
+console.log(
+  "curl 'http://localhost:3000/api/test-digest?loungeId=5a33821a-4dc9-4951-a081-096a891744ae&email=llm-test@dailynews.com&preview=true' -H 'Authorization: Bearer YOUR_TOKEN'"
+);

@@ -347,17 +347,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Listen for cross-tab logout events
+    // NOTE: Disabled because Supabase's SIGNED_OUT event already handles cross-tab logout
+    // Keeping the function for potential future use
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === SESSION_CONFIG.STORAGE_KEYS.LOGOUT_EVENT && e.newValue) {
-        setState((prev) => ({
-          ...prev,
-          session: null,
-          user: null,
-          profile: null,
-          error: null,
-        }));
-        router.push('/');
-      }
+      // Disabled to avoid conflicts with Supabase's built-in cross-tab logout
+      return;
+      
+      // Original code kept for reference:
+      // if (e.key === SESSION_CONFIG.STORAGE_KEYS.LOGOUT_EVENT && e.newValue) {
+      //   // Clear intervals when logged out from another tab
+      //   if (sessionCheckInterval.current) {
+      //     clearInterval(sessionCheckInterval.current);
+      //     sessionCheckInterval.current = null;
+      //   }
+      //   if (activityUpdateInterval.current) {
+      //     clearInterval(activityUpdateInterval.current);
+      //     activityUpdateInterval.current = null;
+      //   }
+      //   
+      //   setState((prev) => ({
+      //     ...prev,
+      //     session: null,
+      //     user: null,
+      //     profile: null,
+      //     error: null,
+      //     loading: false,
+      //   }));
+      //   
+      //   // Force reload to clear any stale state
+      //   window.location.href = '/';
+      // }
     };
 
     // Listen for user activity to update last activity timestamp
@@ -389,6 +408,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, 'Has session:', !!session);
+      
+      // Handle SIGNED_OUT event specifically
+      if (event === 'SIGNED_OUT') {
+        console.log('SIGNED_OUT event received');
+        
+        // Clear intervals immediately
+        if (sessionCheckInterval.current) {
+          clearInterval(sessionCheckInterval.current);
+          sessionCheckInterval.current = null;
+        }
+        if (activityUpdateInterval.current) {
+          clearInterval(activityUpdateInterval.current);
+          activityUpdateInterval.current = null;
+        }
+        
+        // Clear state
+        setState((prev) => ({
+          ...prev,
+          session: null,
+          user: null,
+          profile: null,
+          loading: false,
+          error: null,
+        }));
+        
+        // Small delay to ensure state is cleared before redirect
+        setTimeout(() => {
+          // Check if this tab initiated the logout
+          const initiatedLogout = sessionStorage.getItem('initiatedLogout');
+          if (initiatedLogout === 'true') {
+            // Clear the flag
+            sessionStorage.removeItem('initiatedLogout');
+          }
+          // Always redirect to home on logout
+          window.location.href = '/';
+        }, 100);
+        
+        return;
+      }
+      
       // First, set the session immediately with a basic profile
       const basicProfile = await transformUser(session?.user || null, {
         skipDatabaseFetch: true,
@@ -599,28 +659,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         activityUpdateInterval.current = null;
       }
 
+      // Mark this tab as the one initiating logout
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('initiatedLogout', 'true');
+      }
+
       // Use enhanced logout with proper cleanup
       const { error } = await SessionUtils.enhancedLogout(supabase);
 
-      // Clear local auth state regardless of logout result
+      if (error) {
+        console.error('Logout error from Supabase:', error);
+        // Don't clear state if logout failed
+        setState((prev) => ({
+          ...prev,
+          loading: false,
+          error: error as AuthError,
+        }));
+        return { error: error as AuthError };
+      }
+
+      // Clear local auth state only on successful logout
       setState((prev) => ({
         ...prev,
         user: null,
         session: null,
         profile: null,
         loading: false,
-        error: (error as AuthError) || null,
+        error: null,
       }));
 
-      return { error: (error as AuthError) || undefined };
+      // The initiating tab will redirect via onAuthStateChange
+      
+      return { error: undefined };
     } catch (error) {
       const authError = error as AuthError;
-      // Still clear the local state even if logout failed
+      console.error('Unexpected error during logout:', authError);
+      // Don't clear state on error
       setState((prev) => ({
         ...prev,
-        user: null,
-        session: null,
-        profile: null,
         loading: false,
         error: authError,
       }));

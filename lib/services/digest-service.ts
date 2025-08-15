@@ -192,7 +192,7 @@ export class DigestService {
     for (const content of recentContent) {
       if (selectedContent.length >= limit) break;
       if (usedIds.has(content.id)) continue;
-      
+
       selectedContent.push({
         ...content,
         creator: (content as any).creators,
@@ -201,8 +201,16 @@ export class DigestService {
     }
 
     // If we still need more content and have more YouTube videos, prioritize them
-    if (selectedContent.length < limit && youtubeVideos && youtubeVideos.length > 1) {
-      for (let i = 1; i < youtubeVideos.length && selectedContent.length < limit; i++) {
+    if (
+      selectedContent.length < limit &&
+      youtubeVideos &&
+      youtubeVideos.length > 1
+    ) {
+      for (
+        let i = 1;
+        i < youtubeVideos.length && selectedContent.length < limit;
+        i++
+      ) {
         const video: any = youtubeVideos[i];
         if (!usedIds.has(video.id)) {
           selectedContent.push({

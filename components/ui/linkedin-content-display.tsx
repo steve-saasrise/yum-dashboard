@@ -29,7 +29,7 @@ export function LinkedInContentDisplay({
 
   // Use content body if available, otherwise fall back to description
   const rawText = content || description || '';
-  
+
   // Clean up HTML entities and tags for proper display
   const displayText = rawText
     .replace(/<br\s*\/?>/gi, '\n')

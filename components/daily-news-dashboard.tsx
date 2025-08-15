@@ -982,7 +982,9 @@ export const ContentCard = React.memo(function ContentCard({
             </div>
           </div>
           <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-white">
-            {item.platform === 'linkedin' ? getLinkedInTitle(item, creator) : item.title}
+            {item.platform === 'linkedin'
+              ? getLinkedInTitle(item, creator)
+              : item.title}
           </h3>
           {/* Use LinkedIn content display for LinkedIn, AI summaries for others */}
           {item.platform === 'linkedin' ? (
@@ -1828,12 +1830,12 @@ export function DailyNewsDashboard() {
       const { error } = await signOut();
       if (error) {
         console.error('Logout error:', error);
+        toast.error('Failed to sign out. Please try again.');
       }
+      // Don't redirect here - let the auth state change handle it
     } catch (error) {
       console.error('Unexpected logout error:', error);
-    } finally {
-      // Add logout flag to prevent redirect loop
-      window.location.href = '/?logout=true';
+      toast.error('An unexpected error occurred during sign out.');
     }
   };
   // Single column feed - no view toggle needed

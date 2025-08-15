@@ -44,9 +44,10 @@ export function useSessionTracking() {
         await trackSession();
       }
 
-      if (event === 'SIGNED_OUT') {
-        router.push('/auth/login');
-      }
+      // Logout handling is managed in use-auth.tsx to avoid conflicts
+      // if (event === 'SIGNED_OUT') {
+      //   router.push('/auth/login');
+      // }
     });
 
     return () => {
