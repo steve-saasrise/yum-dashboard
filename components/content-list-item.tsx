@@ -30,6 +30,7 @@ interface FeedItem {
   id: string;
   title: string;
   description?: string;
+  content_body?: string;
   ai_summary?: string;
   ai_summary_short?: string;
   ai_summary_long?: string;
@@ -63,6 +64,12 @@ interface FeedItem {
     name: string;
     color?: string;
   }>;
+  engagement_metrics?: {
+    likes?: number;
+    views?: number;
+    shares?: number;
+    comments?: number;
+  };
   // Reference fields for quoted/retweeted/replied content
   reference_type?: ReferenceType;
   referenced_content_id?: string;
@@ -92,6 +99,37 @@ export const ContentListItem = React.memo(function ContentListItem({
   const isDeleted = item.is_deleted || false;
   const creator =
     item.creator || creators.find((c) => c.id === item.creator_id);
+
+  // Generate a better title for LinkedIn posts
+  const getDisplayTitle = () => {
+    if (item.platform === 'linkedin') {
+      // For LinkedIn, create a concise title from the content
+      const content = item.content_body || item.description || '';
+      // Remove HTML tags and decode entities
+      const cleanContent = content
+        .replace(/<[^>]*>/g, '')
+        .replace(/&#x[0-9A-F]+;/gi, (match) => {
+          const code = parseInt(match.slice(3, -1), 16);
+          return String.fromCharCode(code);
+        })
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .trim();
+
+      // Get first sentence or first 80 characters
+      const firstSentence =
+        cleanContent.match(/^[^.!?]+[.!?]/)?.[0] || cleanContent;
+      if (firstSentence.length > 80) {
+        return firstSentence.substring(0, 80).trim() + '...';
+      }
+      return firstSentence;
+    }
+    return item.title;
+  };
 
   const getPlatformIcon = (platformName: string) => {
     switch (platformName?.toLowerCase()) {
@@ -159,14 +197,48 @@ export const ContentListItem = React.memo(function ContentListItem({
             </div>
 
             <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white line-clamp-2 leading-tight">
-              {item.title}
+              {getDisplayTitle()}
             </h3>
 
-            <AISummaryCompact
-              shortSummary={item.ai_summary_short}
-              originalDescription={item.description}
-              className="mb-3"
-            />
+            {/* For LinkedIn, show the full content with proper formatting */}
+            {item.platform === 'linkedin' && item.content_body ? (
+              <div className="mb-3">
+                <div
+                  className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{
+                    __html: item.content_body
+                      .replace(/<br\s*\/?>/gi, '\n')
+                      .replace(/&#x2019;/g, "'")
+                      .replace(/&#x201C;/g, '"')
+                      .replace(/&#x201D;/g, '"')
+                      .replace(/&#x2014;/g, '—')
+                      .replace(/<[^>]*>/g, ''),
+                  }}
+                />
+                {item.engagement_metrics && (
+                  <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    {item.engagement_metrics.likes &&
+                      item.engagement_metrics.likes > 0 && (
+                        <span>{item.engagement_metrics.likes} likes</span>
+                      )}
+                    {item.engagement_metrics.comments &&
+                      item.engagement_metrics.comments > 0 && (
+                        <span>{item.engagement_metrics.comments} comments</span>
+                      )}
+                    {item.engagement_metrics.shares &&
+                      item.engagement_metrics.shares > 0 && (
+                        <span>{item.engagement_metrics.shares} shares</span>
+                      )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <AISummaryCompact
+                shortSummary={item.ai_summary_short}
+                originalDescription={item.description}
+                className="mb-3"
+              />
+            )}
 
             {/* Display media content first */}
             {item.media_urls && item.media_urls.length > 0 && (

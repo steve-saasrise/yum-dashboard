@@ -177,6 +177,12 @@ interface FeedItem {
     color?: string;
   }>;
   media_urls?: MediaUrl[];
+  engagement_metrics?: {
+    likes?: number;
+    views?: number;
+    shares?: number;
+    comments?: number;
+  };
   // Reference fields for quoted/retweeted/replied content
   reference_type?: ReferenceType;
   referenced_content_id?: string;
@@ -768,6 +774,12 @@ function Header({
   );
 }
 
+// Helper function to generate better LinkedIn post titles
+function getLinkedInTitle(item: FeedItem, creator: any): string {
+  const creatorName = creator?.display_name || creator?.name || 'Unknown';
+  return `LinkedIn post by ${creatorName}`;
+}
+
 export const ContentCard = React.memo(function ContentCard({
   item,
   creators,
@@ -970,7 +982,7 @@ export const ContentCard = React.memo(function ContentCard({
             </div>
           </div>
           <h3 className="font-bold text-lg mb-1 text-gray-900 dark:text-white">
-            {item.title}
+            {item.platform === 'linkedin' ? getLinkedInTitle(item, creator) : item.title}
           </h3>
           {/* Use LinkedIn content display for LinkedIn, AI summaries for others */}
           {item.platform === 'linkedin' ? (
@@ -979,6 +991,7 @@ export const ContentCard = React.memo(function ContentCard({
               description={item.description}
               className="mb-4"
               truncateAt={280}
+              engagementMetrics={item.engagement_metrics}
             />
           ) : (
             <AISummary
@@ -1036,11 +1049,13 @@ export const ContentCard = React.memo(function ContentCard({
           {/* For LinkedIn reposts, show referenced content first */}
           {item.platform === 'linkedin' &&
             item.reference_type === 'retweet' && (
-              <ReferencedContentDisplay
-                referenceType={item.reference_type}
-                referencedContent={item.referenced_content}
-                platform={item.platform}
-              />
+              <div className="mb-4">
+                <ReferencedContentDisplay
+                  referenceType={item.reference_type}
+                  referencedContent={item.referenced_content}
+                  platform={item.platform}
+                />
+              </div>
             )}
 
           {/* Display LinkedIn videos with thumbnail and play button */}
