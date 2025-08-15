@@ -147,24 +147,27 @@ export const SessionUtils = {
     }
   },
 
-  // Enhanced logout with proper cleanup
-  enhancedLogout: async (supabaseClient: {
-    auth: { signOut: () => Promise<{ error?: unknown }> };
-  }): Promise<{ error?: unknown }> => {
+  // Simple logout - Supabase handles cross-tab sync automatically
+  simpleLogout: async (supabaseClient: any): Promise<{ error?: unknown }> => {
     try {
-      // Clear local storage first
+      // Clear local session storage
       SessionUtils.clearSessionStorage();
-
-      // Just use standard signOut without scope
-      // Let Supabase handle the cross-tab synchronization
+      
+      // Sign out with global scope (default) - this signs out all tabs
       const { error } = await supabaseClient.auth.signOut();
-
+      
       if (error) {
-        console.error('Supabase signOut error:', error);
+        // Ignore refresh token errors - they happen when already logged out
+        const errorMessage = (error as any)?.message || '';
+        if (errorMessage.includes('Refresh Token Not Found') || 
+            errorMessage.includes('Invalid Refresh Token')) {
+          return { error: null };
+        }
       }
-
+      
       return { error };
     } catch (error) {
+      console.error('Logout error:', error);
       return { error };
     }
   },
@@ -271,7 +274,7 @@ export function isRateLimitError(
   );
 }
 
-// Create browser client - let Supabase handle cookies automatically
+// Create browser client - let Supabase handle storage automatically
 export function createBrowserSupabaseClient() {
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }

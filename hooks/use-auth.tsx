@@ -8,6 +8,7 @@ import React, {
   ReactNode,
   useCallback,
   useRef,
+  useMemo,
 } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -67,7 +68,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // AuthProvider component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const supabase = createBrowserSupabaseClient();
+  // Use useMemo to ensure we only create one Supabase client per AuthProvider instance
+  const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const sessionCheckInterval = useRef<NodeJS.Timeout | null>(null);
   const activityUpdateInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -214,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // There's a known bug that causes deadlock when async calls are made
     // See: https://github.com/supabase/gotrue-js/issues/762
 
+
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -229,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           !SessionUtils.isRememberMeEnabled() &&
           SessionUtils.hasSessionTimedOut()
         ) {
-          await SessionUtils.enhancedLogout(supabase);
+          await SessionUtils.simpleLogout(supabase);
           setState((prev) => ({
             ...prev,
             session: null,
@@ -340,7 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Handle session timeout
     const handleSessionTimeout = async () => {
-      await SessionUtils.enhancedLogout(supabase);
+      await SessionUtils.simpleLogout(supabase);
       setState((prev) => ({
         ...prev,
         session: null,
@@ -430,11 +433,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state change:', event, 'Has session:', !!session);
 
-      // Handle SIGNED_OUT event specifically
+      // Handle SIGNED_OUT event
       if (event === 'SIGNED_OUT') {
-        console.log('SIGNED_OUT event received in tab:', window.location.href);
-
-        // Clear intervals immediately
+        // Clear intervals
         if (sessionCheckInterval.current) {
           clearInterval(sessionCheckInterval.current);
           sessionCheckInterval.current = null;
@@ -456,27 +457,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Clear session storage
         SessionUtils.clearSessionStorage();
-
-        // Force clear Supabase auth storage keys
-        if (typeof window !== 'undefined') {
-          // Get all localStorage keys
-          const keysToRemove: string[] = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && (key.includes('supabase') || key.includes('sb-'))) {
-              keysToRemove.push(key);
-            }
-          }
-          // Remove them all
-          keysToRemove.forEach((key) => localStorage.removeItem(key));
-        }
-
-        // Always redirect to home on logout
-        // Small delay to ensure storage is cleared
-        setTimeout(() => {
-          window.location.replace('/');
-        }, 100);
-
+        
+        // Redirect to home
+        router.push('/');
         return;
       }
 
@@ -706,17 +689,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         activityUpdateInterval.current = null;
       }
 
-      // Mark this tab as the one initiating logout
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('initiatedLogout', 'true');
-      }
-
-      // Use enhanced logout with proper cleanup
-      const { error } = await SessionUtils.enhancedLogout(supabase);
-
+      // Simple logout - Supabase handles everything
+      const { error } = await SessionUtils.simpleLogout(supabase);
+      
       if (error) {
-        console.error('Logout error from Supabase:', error);
-        // Don't clear state if logout failed
         setState((prev) => ({
           ...prev,
           loading: false,
@@ -725,7 +701,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error as AuthError };
       }
 
-      // Clear local auth state only on successful logout
+      // Clear local state
       setState((prev) => ({
         ...prev,
         user: null,
@@ -735,13 +711,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: null,
       }));
 
-      // The initiating tab will redirect via onAuthStateChange
-
+      // Redirect to home
+      router.push('/');
       return { error: undefined };
     } catch (error) {
       const authError = error as AuthError;
-      console.error('Unexpected error during logout:', authError);
-      // Don't clear state on error
       setState((prev) => ({
         ...prev,
         loading: false,
