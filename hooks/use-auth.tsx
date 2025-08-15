@@ -352,7 +352,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleStorageChange = (e: StorageEvent) => {
       // Disabled to avoid conflicts with Supabase's built-in cross-tab logout
       return;
-      
+
       // Original code kept for reference:
       // if (e.key === SESSION_CONFIG.STORAGE_KEYS.LOGOUT_EVENT && e.newValue) {
       //   // Clear intervals when logged out from another tab
@@ -364,7 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       //     clearInterval(activityUpdateInterval.current);
       //     activityUpdateInterval.current = null;
       //   }
-      //   
+      //
       //   setState((prev) => ({
       //     ...prev,
       //     session: null,
@@ -373,7 +373,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       //     error: null,
       //     loading: false,
       //   }));
-      //   
+      //
       //   // Force reload to clear any stale state
       //   window.location.href = '/';
       // }
@@ -409,11 +409,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, 'Has session:', !!session);
-      
+
       // Handle SIGNED_OUT event specifically
       if (event === 'SIGNED_OUT') {
-        console.log('SIGNED_OUT event received');
-        
+        console.log('SIGNED_OUT event received in tab:', window.location.href);
+
         // Clear intervals immediately
         if (sessionCheckInterval.current) {
           clearInterval(sessionCheckInterval.current);
@@ -423,7 +423,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           clearInterval(activityUpdateInterval.current);
           activityUpdateInterval.current = null;
         }
-        
+
         // Clear state
         setState((prev) => ({
           ...prev,
@@ -433,22 +433,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           loading: false,
           error: null,
         }));
+
+        // Clear session storage
+        SessionUtils.clearSessionStorage();
         
-        // Small delay to ensure state is cleared before redirect
-        setTimeout(() => {
-          // Check if this tab initiated the logout
-          const initiatedLogout = sessionStorage.getItem('initiatedLogout');
-          if (initiatedLogout === 'true') {
-            // Clear the flag
-            sessionStorage.removeItem('initiatedLogout');
+        // Force clear Supabase auth storage keys
+        if (typeof window !== 'undefined') {
+          // Get all localStorage keys
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('supabase') || key.includes('sb-'))) {
+              keysToRemove.push(key);
+            }
           }
-          // Always redirect to home on logout
-          window.location.href = '/';
+          // Remove them all
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+        }
+
+        // Always redirect to home on logout
+        // Small delay to ensure storage is cleared
+        setTimeout(() => {
+          window.location.replace('/');
         }, 100);
-        
+
         return;
       }
-      
+
       // First, set the session immediately with a basic profile
       const basicProfile = await transformUser(session?.user || null, {
         skipDatabaseFetch: true,
@@ -689,7 +700,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }));
 
       // The initiating tab will redirect via onAuthStateChange
-      
+
       return { error: undefined };
     } catch (error) {
       const authError = error as AuthError;
