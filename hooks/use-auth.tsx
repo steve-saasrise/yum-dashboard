@@ -210,6 +210,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize auth state and listen for changes
   useEffect(() => {
+    // IMPORTANT: Avoid async Supabase calls in onAuthStateChange handler
+    // There's a known bug that causes deadlock when async calls are made
+    // See: https://github.com/supabase/gotrue-js/issues/762
+    
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -237,34 +241,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // First, set the session immediately with a basic profile
-        const basicProfile = await transformUser(session?.user || null, {
-          skipDatabaseFetch: true,
-        });
-
+        // Set session state immediately with basic profile (synchronously)
         setState((prev) => ({
           ...prev,
           session,
           user: session?.user || null,
-          profile: basicProfile,
+          profile: session?.user ? {
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+            avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+            username: session.user.user_metadata?.username || session.user.user_metadata?.user_name,
+            created_at: session.user.created_at,
+            updated_at: new Date().toISOString(),
+            last_sign_in_at: session.user.last_sign_in_at,
+            role: session.user.user_metadata?.role || 'viewer',
+          } : null,
           loading: false,
           error: error || null,
         }));
 
-        // Then fetch the full profile asynchronously without blocking
+        // Defer async profile fetch to avoid issues
         if (session?.user) {
-          transformUser(session.user)
-            .then((fullProfile) => {
-              if (fullProfile) {
-                setState((prev) => ({
-                  ...prev,
-                  profile: fullProfile,
-                }));
-              }
-            })
-            .catch((err) => {
-              console.warn('Failed to fetch full user profile:', err);
-            });
+          setTimeout(() => {
+            transformUser(session.user)
+              .then((fullProfile) => {
+                if (fullProfile) {
+                  setState((prev) => ({
+                    ...prev,
+                    profile: fullProfile,
+                  }));
+                }
+              })
+              .catch((err) => {
+                console.warn('Failed to fetch full user profile:', err);
+              });
+          }, 0);
         }
 
         // If we have a session, update last activity and start monitoring
@@ -407,7 +419,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state change:', event, 'Has session:', !!session);
 
       // Handle SIGNED_OUT event specifically
@@ -436,7 +448,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Clear session storage
         SessionUtils.clearSessionStorage();
-        
+
         // Force clear Supabase auth storage keys
         if (typeof window !== 'undefined') {
           // Get all localStorage keys
@@ -448,7 +460,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
           // Remove them all
-          keysToRemove.forEach(key => localStorage.removeItem(key));
+          keysToRemove.forEach((key) => localStorage.removeItem(key));
         }
 
         // Always redirect to home on logout
@@ -460,37 +472,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // First, set the session immediately with a basic profile
-      const basicProfile = await transformUser(session?.user || null, {
-        skipDatabaseFetch: true,
-      });
-
+      // Set basic session state immediately (synchronously)
       setState((prev) => ({
         ...prev,
         session,
         user: session?.user || null,
-        profile: basicProfile,
+        profile: session?.user ? {
+          id: session.user.id,
+          email: session.user.email || '',
+          full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+          avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+          username: session.user.user_metadata?.username || session.user.user_metadata?.user_name,
+          created_at: session.user.created_at,
+          updated_at: new Date().toISOString(),
+          last_sign_in_at: session.user.last_sign_in_at,
+          role: session.user.user_metadata?.role || 'viewer',
+        } : null,
         loading: false,
         error: null,
       }));
 
-      // Then fetch the full profile asynchronously without blocking
+      // Defer async profile fetch to avoid Supabase deadlock
       if (session?.user) {
-        transformUser(session.user)
-          .then((fullProfile) => {
-            if (fullProfile) {
-              setState((prev) => ({
-                ...prev,
-                profile: fullProfile,
-              }));
-            }
-          })
-          .catch((err) => {
-            console.warn(
-              'Failed to fetch full user profile during auth state change:',
-              err
-            );
-          });
+        setTimeout(() => {
+          transformUser(session.user)
+            .then((fullProfile) => {
+              if (fullProfile) {
+                setState((prev) => ({
+                  ...prev,
+                  profile: fullProfile,
+                }));
+              }
+            })
+            .catch((err) => {
+              console.warn(
+                'Failed to fetch full user profile during auth state change:',
+                err
+              );
+            });
+        }, 0);
       }
 
       // Update activity and start monitoring if we have a session
