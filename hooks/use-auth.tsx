@@ -216,7 +216,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // There's a known bug that causes deadlock when async calls are made
     // See: https://github.com/supabase/gotrue-js/issues/762
 
-
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -457,7 +456,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Clear session storage
         SessionUtils.clearSessionStorage();
-        
+
         // Redirect to home
         router.push('/');
         return;
@@ -691,7 +690,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Simple logout - Supabase handles everything
       const { error } = await SessionUtils.simpleLogout(supabase);
-      
+
       if (error) {
         setState((prev) => ({
           ...prev,

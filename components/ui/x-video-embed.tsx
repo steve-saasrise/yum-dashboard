@@ -31,8 +31,54 @@ export function XVideoEmbed({
   const [isLoading, setIsLoading] = React.useState(true);
   const [hasError, setHasError] = React.useState(false);
   const [showVideo, setShowVideo] = React.useState(!lazyLoad || autoplay);
+  const [showThumbnail, setShowThumbnail] = React.useState(
+    lazyLoad && !autoplay
+  );
   const containerRef = React.useRef<HTMLDivElement>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [isVideoReady, setIsVideoReady] = React.useState(false);
+
+  // Fix for iOS Safari suspended video issue
+  React.useEffect(() => {
+    if (!showVideo || !videoRef.current) return;
+
+    const video = videoRef.current;
+
+    // Check if iOS Safari
+    const isIOSSafari =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !(window as any).MSStream &&
+      /Safari/.test(navigator.userAgent);
+
+    if (isIOSSafari) {
+      // Use a small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        // Add event listener for when metadata is loaded
+        const handleLoadedMetadata = () => {
+          setIsVideoReady(true);
+          setIsLoading(false);
+        };
+
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+        // Force video to wake up from suspended state
+        if (video.readyState === 0) {
+          // Add a fragment to URL to force reload (Safari iOS trick)
+          const originalSrc = video.src;
+          video.src = originalSrc + '#t=0.001';
+          video.load();
+        }
+
+        return () => {
+          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        };
+      }, 100);
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsVideoReady(true);
+    }
+  }, [showVideo, videoUrl]);
 
   // Use Intersection Observer for lazy loading
   React.useEffect(() => {
@@ -43,6 +89,7 @@ export function XVideoEmbed({
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setShowVideo(true);
+            setShowThumbnail(false);
             observer.disconnect();
           }
         });
@@ -72,12 +119,9 @@ export function XVideoEmbed({
 
   const handlePlayClick = () => {
     setShowVideo(true);
-    // Auto-play when clicked
-    setTimeout(() => {
-      if (videoRef.current) {
-        videoRef.current.play().catch(console.error);
-      }
-    }, 100);
+    setShowThumbnail(false);
+    // For iOS Safari, we need to let the user interact with the native controls
+    // Auto-play often doesn't work due to Safari's strict policies
   };
 
   // Format duration for display
@@ -185,7 +229,7 @@ export function XVideoEmbed({
           )}
           <video
             ref={videoRef}
-            src={videoUrl}
+            src={`${videoUrl}#t=0.001`}
             poster={thumbnailUrl}
             className={cn(
               'w-full h-full',
@@ -196,9 +240,11 @@ export function XVideoEmbed({
             controls
             playsInline
             muted
-            preload="metadata"
+            preload="auto"
             autoPlay={autoplay}
+            onLoadedMetadata={handleLoad}
             onLoadedData={handleLoad}
+            onCanPlay={handleLoad}
             onError={handleError}
             title={title}
           >

@@ -97,7 +97,6 @@ import {
   MoreHorizontal,
   Youtube,
   Linkedin,
-  Brain,
   Loader2,
   UserCog,
   X as XIcon,
@@ -487,14 +486,12 @@ function AppSidebar({
 
 function Header({
   onSignOut,
-  onRefresh,
   canManageCreators,
   searchQuery,
   onSearchChange,
   isSearching,
 }: {
   onSignOut: () => void;
-  onRefresh?: () => void;
   canManageCreators: boolean;
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -698,28 +695,6 @@ function Header({
       </div>
       <div className="flex items-center gap-2 ml-2">
         <div className="flex items-center">
-          {onRefresh && canManageCreators && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                    onClick={onRefresh}
-                  >
-                    <Brain className="h-5 w-5" />
-                    <span className="sr-only">
-                      Refresh content with AI summaries
-                    </span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Refresh content & generate AI summaries</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
           <Button
             variant="ghost"
             size="icon"
@@ -2173,7 +2148,6 @@ export function DailyNewsDashboard() {
         <SidebarInset className="flex-1 flex flex-col w-full min-h-screen bg-gray-50 dark:bg-gray-950">
           <Header
             onSignOut={handleSignOut}
-            onRefresh={refreshContent}
             canManageCreators={canManageCreators}
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
@@ -2390,15 +2364,6 @@ export function DailyNewsDashboard() {
                         {creators.length !== 1 ? 's' : ''}. New content will be
                         fetched automatically.
                       </p>
-                      {canManageCreators && (
-                        <Button
-                          variant="outline"
-                          onClick={() => refreshContent()}
-                        >
-                          <Brain className="w-4 h-4 mr-2" />
-                          Refresh & Generate AI Summaries
-                        </Button>
-                      )}
                     </div>
                   )}
                 </div>

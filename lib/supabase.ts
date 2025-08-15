@@ -152,19 +152,21 @@ export const SessionUtils = {
     try {
       // Clear local session storage
       SessionUtils.clearSessionStorage();
-      
+
       // Sign out with global scope (default) - this signs out all tabs
       const { error } = await supabaseClient.auth.signOut();
-      
+
       if (error) {
         // Ignore refresh token errors - they happen when already logged out
         const errorMessage = (error as any)?.message || '';
-        if (errorMessage.includes('Refresh Token Not Found') || 
-            errorMessage.includes('Invalid Refresh Token')) {
+        if (
+          errorMessage.includes('Refresh Token Not Found') ||
+          errorMessage.includes('Invalid Refresh Token')
+        ) {
           return { error: null };
         }
       }
-      
+
       return { error };
     } catch (error) {
       console.error('Logout error:', error);
