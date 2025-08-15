@@ -213,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // IMPORTANT: Avoid async Supabase calls in onAuthStateChange handler
     // There's a known bug that causes deadlock when async calls are made
     // See: https://github.com/supabase/gotrue-js/issues/762
-    
+
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -246,17 +246,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...prev,
           session,
           user: session?.user || null,
-          profile: session?.user ? {
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
-            avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
-            username: session.user.user_metadata?.username || session.user.user_metadata?.user_name,
-            created_at: session.user.created_at,
-            updated_at: new Date().toISOString(),
-            last_sign_in_at: session.user.last_sign_in_at,
-            role: session.user.user_metadata?.role || 'viewer',
-          } : null,
+          profile: session?.user
+            ? {
+                id: session.user.id,
+                email: session.user.email || '',
+                full_name:
+                  session.user.user_metadata?.full_name ||
+                  session.user.user_metadata?.name,
+                avatar_url:
+                  session.user.user_metadata?.avatar_url ||
+                  session.user.user_metadata?.picture,
+                username:
+                  session.user.user_metadata?.username ||
+                  session.user.user_metadata?.user_name,
+                created_at: session.user.created_at,
+                updated_at: new Date().toISOString(),
+                last_sign_in_at: session.user.last_sign_in_at,
+                role: session.user.user_metadata?.role || 'viewer',
+              }
+            : null,
           loading: false,
           error: error || null,
         }));
@@ -477,17 +485,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...prev,
         session,
         user: session?.user || null,
-        profile: session?.user ? {
-          id: session.user.id,
-          email: session.user.email || '',
-          full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
-          avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
-          username: session.user.user_metadata?.username || session.user.user_metadata?.user_name,
-          created_at: session.user.created_at,
-          updated_at: new Date().toISOString(),
-          last_sign_in_at: session.user.last_sign_in_at,
-          role: session.user.user_metadata?.role || 'viewer',
-        } : null,
+        profile: session?.user
+          ? {
+              id: session.user.id,
+              email: session.user.email || '',
+              full_name:
+                session.user.user_metadata?.full_name ||
+                session.user.user_metadata?.name,
+              avatar_url:
+                session.user.user_metadata?.avatar_url ||
+                session.user.user_metadata?.picture,
+              username:
+                session.user.user_metadata?.username ||
+                session.user.user_metadata?.user_name,
+              created_at: session.user.created_at,
+              updated_at: new Date().toISOString(),
+              last_sign_in_at: session.user.last_sign_in_at,
+              role: session.user.user_metadata?.role || 'viewer',
+            }
+          : null,
         loading: false,
         error: null,
       }));
