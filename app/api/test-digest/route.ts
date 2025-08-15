@@ -75,6 +75,12 @@ export async function GET(request: NextRequest) {
 
       const content = await DigestService.getContentForLounge(lounge.id);
 
+      // Count content by platform for preview
+      const platformCounts: Record<string, number> = {};
+      content.forEach((c) => {
+        platformCounts[c.platform] = (platformCounts[c.platform] || 0) + 1;
+      });
+
       return NextResponse.json({
         success: true,
         preview: true,
@@ -84,8 +90,15 @@ export async function GET(request: NextRequest) {
           description: lounge.description,
         },
         contentCount: content.length,
-        youtubeCount: content.filter((c) => c.platform === 'youtube').length,
-        content: content.slice(0, 3), // Return first 3 items for preview
+        platformBreakdown: {
+          youtube: platformCounts['youtube'] || 0,
+          twitter: platformCounts['twitter'] || 0,
+          linkedin: platformCounts['linkedin'] || 0,
+          threads: platformCounts['threads'] || 0,
+          rss: platformCounts['rss'] || 0,
+          website: platformCounts['website'] || 0,
+        },
+        content: content, // Return all content for full preview
       });
     }
 

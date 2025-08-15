@@ -72,8 +72,14 @@ export class DigestService {
 
   /**
    * Get content for a specific lounge
-   * Implements the logic: 9 most recent posts + at least 1 YouTube video
-   * Prioritizes content from last 24 hours, falls back to older if needed
+   * Prioritizes content by platform in this order:
+   * 1. 2 most recent YouTube videos
+   * 2. 2 most recent blog posts (RSS/Website)
+   * 3. 2 most recent LinkedIn posts
+   * 4. 2 most recent X (Twitter) posts (LIMITED TO 2)
+   * 5. 2 most recent Threads posts
+   * If any category has fewer than 2 posts in the last 24 hours,
+   * increases content from other platforms to reach 10 total
    */
   static async getContentForLounge(
     loungeId: string,
@@ -102,57 +108,104 @@ export class DigestService {
     const twentyFourHoursAgo = new Date();
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
-    // First, specifically get at least one YouTube video (from any time period)
-    const { data: youtubeVideos } = await supabase
-      .from('content')
-      .select(
-        `
-        id,
-        title,
-        description,
-        url,
-        platform,
-        thumbnail_url,
-        published_at,
-        ai_summary_short,
-        creators!inner(
-          display_name
-        )
-      `
-      )
-      .in('creator_id', creatorIdList)
-      .eq('processing_status', 'processed')
-      .eq('platform', 'youtube')
-      .order('published_at', { ascending: false })
-      .limit(3); // Get a few recent YouTube videos
+    // Define the platform priority order and target counts
+    const platformConfig = [
+      { platforms: ['youtube'], targetCount: 2, maxCount: 2 },
+      { platforms: ['rss', 'website'], targetCount: 2, maxCount: 2 }, // Blog posts
+      { platforms: ['linkedin'], targetCount: 2, maxCount: 2 },
+      { platforms: ['twitter'], targetCount: 2, maxCount: 2 }, // LIMIT X TO 2
+      { platforms: ['threads'], targetCount: 2, maxCount: 2 },
+    ];
 
-    // Then get recent content from all platforms
-    let { data: recentContent } = await supabase
-      .from('content')
-      .select(
-        `
-        id,
-        title,
-        description,
-        url,
-        platform,
-        thumbnail_url,
-        published_at,
-        ai_summary_short,
-        creators!inner(
-          display_name
-        )
-      `
-      )
-      .in('creator_id', creatorIdList)
-      .eq('processing_status', 'processed')
-      .gte('published_at', twentyFourHoursAgo.toISOString())
-      .order('published_at', { ascending: false })
-      .limit(limit * 3); // Get more content to ensure variety
+    const selectedContent: ContentForDigest[] = [];
+    const usedIds = new Set<string>();
 
-    // If not enough recent content, get older content
-    if (!recentContent || recentContent.length < limit) {
-      const { data: olderContent } = await supabase
+    // Fetch content for each platform group
+    for (const config of platformConfig) {
+      // First try to get content from the last 24 hours
+      const { data: recentPlatformContent } = await supabase
+        .from('content')
+        .select(
+          `
+          id,
+          title,
+          description,
+          url,
+          platform,
+          thumbnail_url,
+          published_at,
+          ai_summary_short,
+          creators!inner(
+            display_name
+          )
+        `
+        )
+        .in('creator_id', creatorIdList)
+        .in('platform', config.platforms)
+        .eq('processing_status', 'processed')
+        .gte('published_at', twentyFourHoursAgo.toISOString())
+        .order('published_at', { ascending: false })
+        .limit(config.maxCount);
+
+      let platformContent = recentPlatformContent || [];
+
+      // If we didn't get enough from the last 24 hours, get older content
+      if (platformContent.length < config.targetCount) {
+        const { data: olderPlatformContent } = await supabase
+          .from('content')
+          .select(
+            `
+            id,
+            title,
+            description,
+            url,
+            platform,
+            thumbnail_url,
+            published_at,
+            ai_summary_short,
+            creators!inner(
+              display_name
+            )
+          `
+          )
+          .in('creator_id', creatorIdList)
+          .in('platform', config.platforms)
+          .eq('processing_status', 'processed')
+          .order('published_at', { ascending: false })
+          .limit(config.maxCount);
+
+        if (olderPlatformContent) {
+          // Merge and deduplicate, keeping the most recent
+          const mergedContent = [...platformContent];
+          for (const content of olderPlatformContent) {
+            if (!mergedContent.find((c) => c.id === content.id)) {
+              mergedContent.push(content);
+            }
+          }
+          platformContent = mergedContent.slice(0, config.maxCount);
+        }
+      }
+
+      // Add selected content, respecting the max count for each platform
+      let addedFromPlatform = 0;
+      for (const content of platformContent) {
+        if (addedFromPlatform >= config.maxCount) break;
+        if (usedIds.has(content.id)) continue;
+
+        selectedContent.push({
+          ...content,
+          creator: (content as any).creators,
+        });
+        usedIds.add(content.id);
+        addedFromPlatform++;
+      }
+    }
+
+    // If we have fewer than 10 items total, try to fill up with additional content
+    // but still respect the platform limits (especially X/Twitter limit of 2)
+    if (selectedContent.length < limit) {
+      // Get more content from platforms that haven't reached their max
+      const { data: additionalContent } = await supabase
         .from('content')
         .select(
           `
@@ -172,61 +225,31 @@ export class DigestService {
         .in('creator_id', creatorIdList)
         .eq('processing_status', 'processed')
         .order('published_at', { ascending: false })
-        .limit(limit * 2);
+        .limit(50); // Get more to have options
 
-      if (olderContent) {
-        recentContent = olderContent;
-      }
-    }
+      if (additionalContent) {
+        // Count how many we have from each platform
+        const platformCounts: Record<string, number> = {};
+        for (const content of selectedContent) {
+          platformCounts[content.platform] = (platformCounts[content.platform] || 0) + 1;
+        }
 
-    if (!recentContent || recentContent.length === 0) {
-      return [];
-    }
+        // Add more content, but respect platform limits
+        for (const content of additionalContent) {
+          if (selectedContent.length >= limit) break;
+          if (usedIds.has(content.id)) continue;
 
-    // Build the final content list
-    const selectedContent: ContentForDigest[] = [];
-    const usedIds = new Set<string>();
+          // Special check for X/Twitter - never exceed 2
+          if (content.platform === 'twitter' && platformCounts['twitter'] >= 2) {
+            continue;
+          }
 
-    // ALWAYS add at least one YouTube video first if available
-    if (youtubeVideos && youtubeVideos.length > 0) {
-      const video: any = youtubeVideos[0];
-      selectedContent.push({
-        ...video,
-        creator: video.creators,
-      });
-      usedIds.add(video.id);
-    }
-
-    // Then add the most recent content, avoiding duplicates
-    for (const content of recentContent) {
-      if (selectedContent.length >= limit) break;
-      if (usedIds.has(content.id)) continue;
-
-      selectedContent.push({
-        ...content,
-        creator: (content as any).creators,
-      });
-      usedIds.add(content.id);
-    }
-
-    // If we still need more content and have more YouTube videos, prioritize them
-    if (
-      selectedContent.length < limit &&
-      youtubeVideos &&
-      youtubeVideos.length > 1
-    ) {
-      for (
-        let i = 1;
-        i < youtubeVideos.length && selectedContent.length < limit;
-        i++
-      ) {
-        const video: any = youtubeVideos[i];
-        if (!usedIds.has(video.id)) {
           selectedContent.push({
-            ...video,
-            creator: video.creators,
+            ...content,
+            creator: (content as any).creators,
           });
-          usedIds.add(video.id);
+          usedIds.add(content.id);
+          platformCounts[content.platform] = (platformCounts[content.platform] || 0) + 1;
         }
       }
     }
