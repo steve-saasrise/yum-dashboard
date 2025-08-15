@@ -1,8 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr';
 
-// Supabase configuration
-export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Supabase configuration with build-time safety
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Session configuration constants
 export const SESSION_CONFIG = {
@@ -278,7 +278,13 @@ export function isRateLimitError(
 
 // Create browser client - let Supabase handle storage automatically
 export function createBrowserSupabaseClient() {
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  // During build time, environment variables might not be available
+  // Return a client with empty strings that will fail gracefully
+  // This is safe because during static generation, no actual API calls are made
+  return createBrowserClient(
+    supabaseUrl || 'https://placeholder.supabase.co',
+    supabaseAnonKey || 'placeholder-key'
+  );
 }
 
 // OAuth provider configuration
