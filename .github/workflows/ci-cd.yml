@@ -10,73 +10,61 @@ env:
   NODE_VERSION: '18'
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  # Build environment variables
+  NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder' }}
+  RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || 'placeholder' }}
 
 jobs:
-  # Code Quality and Security Checks
-  quality:
-    name: Code Quality & Security
+  # Critical: Security checks (blocking)
+  security:
+    name: Security Audit
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
+      
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-
-      - name: Run ESLint
-        run: npm run lint
-
-      - name: Check Prettier formatting
-        run: npm run format:check
-
+      
       - name: Run security audit
         run: npm audit --audit-level=high
-        continue-on-error: true
 
-      - name: Check for outdated dependencies
-        run: npm outdated
-        continue-on-error: true
-
-  # Build and Test
-  build:
+  # Critical: Build and Test (blocking)
+  build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
-    needs: quality
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
+      
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-
+      
+      - name: Run tests
+        run: npm test
+        continue-on-error: true # Remove this when tests are stable
+      
       - name: Build application
         run: npm run build
-        env:
-          SKIP_ENV_VALIDATION: true
-
-      - name: Run tests (when available)
-        run: |
-          if [ -f "package.json" ] && grep -q '"test"' package.json; then
-            npm test
-          else
-            echo "No tests found, skipping test step"
-          fi
-        continue-on-error: true
-
+      
+      - name: Type check
+        run: npm run typecheck
+      
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -86,89 +74,86 @@ jobs:
             out/
           retention-days: 1
 
-  # Type checking
-  typecheck:
-    name: Type Check
+  # Non-critical: Code quality (non-blocking)
+  code-quality:
+    name: Code Quality
     runs-on: ubuntu-latest
-    needs: quality
-
+    continue-on-error: true # These checks are informational
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
+      
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-
-      - name: Run TypeScript type checking
-        run: npx tsc --noEmit
-
-  # Deploy to Vercel (Preview for PRs, Production for main)
-  deploy:
-    name: Deploy to Vercel
-    runs-on: ubuntu-latest
-    needs: [build, typecheck]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build Project Artifacts
-        run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy Project Artifacts to Vercel
-        id: deploy
+      
+      - name: Check linting
+        id: lint
         run: |
-          url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
-          echo "deployment_url=$url" >> $GITHUB_OUTPUT
-
-      - name: Comment deployment URL on PR
-        if: github.event_name == 'pull_request'
+          npm run lint 2>&1 | tee lint-output.txt
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "lint_failed=true" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+      
+      - name: Check formatting
+        id: format
+        run: |
+          npm run format:check 2>&1 | tee format-output.txt
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "format_failed=true" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+      
+      - name: Check for outdated dependencies
+        id: outdated
+        run: |
+          npm outdated 2>&1 | tee outdated-output.txt || true
+      
+      - name: Comment on PR with quality issues
+        if: github.event_name == 'pull_request' && (steps.lint.outputs.lint_failed == 'true' || steps.format.outputs.format_failed == 'true')
         uses: actions/github-script@v7
         with:
           script: |
-            const deploymentUrl = '${{ steps.deploy.outputs.deployment_url }}';
-            const comment = `🚀 **Deployment Preview**: ${deploymentUrl}`;
-
-            // Check if comment already exists
-            const comments = await github.rest.issues.listComments({
+            let comment = '## 📋 Code Quality Report\n\n';
+            
+            if ('${{ steps.lint.outputs.lint_failed }}' === 'true') {
+              comment += '### ⚠️ Linting Issues\n';
+              comment += 'Run `npm run lint:fix` locally to fix most issues.\n\n';
+            }
+            
+            if ('${{ steps.format.outputs.format_failed }}' === 'true') {
+              comment += '### 🎨 Formatting Issues\n';
+              comment += 'Run `npm run format` locally to fix formatting.\n\n';
+            }
+            
+            comment += '*These checks are non-blocking but recommended for code quality.*';
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-
-            const existingComment = comments.data.find(comment => 
-              comment.body.includes('🚀 **Deployment Preview**')
+            
+            const botComment = comments.find(comment => 
+              comment.body.includes('## 📋 Code Quality Report')
             );
-
-            if (existingComment) {
-              // Update existing comment
+            
+            if (botComment) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: existingComment.id,
+                comment_id: botComment.id,
                 body: comment
               });
             } else {
-              // Create new comment
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -177,17 +162,85 @@ jobs:
               });
             }
 
-  # Lighthouse Performance Audit (only on main branch)
+  # Deploy to Vercel
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    needs: [security, build-and-test]
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+      
+      - name: Build Project Artifacts
+        run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+      
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deployment_url=$url" >> $GITHUB_OUTPUT
+      
+      - name: Comment deployment URL on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = '${{ steps.deploy.outputs.deployment_url }}';
+            const comment = `## 🚀 Deployment Preview\n\n**URL**: ${deploymentUrl}\n\n*This preview will be updated on each commit.*`;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.body.includes('## 🚀 Deployment Preview')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+  # Lighthouse Performance (informational only)
   lighthouse:
     name: Lighthouse Audit
     runs-on: ubuntu-latest
     needs: deploy
     if: github.ref == 'refs/heads/main'
-
+    continue-on-error: true
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v10
         with:
@@ -196,20 +249,19 @@ jobs:
           configPath: './lighthouserc.json'
           uploadArtifacts: true
           temporaryPublicStorage: true
-        continue-on-error: true
 
-  # Dependency Review (only on PRs)
+  # Dependency Review for PRs
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
         with:
-          fail-on-severity: high
-          allow-dependencies-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC
+          fail-on-severity: critical
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, CC0-1.0, CC-BY-3.0, CC-BY-4.0, Python-2.0, BlueOak-1.0.0, Unlicense

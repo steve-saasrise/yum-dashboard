@@ -1,0 +1,81 @@
+version: 2
+updates:
+  # Enable version updates for npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    # Group updates to reduce PR noise
+    groups:
+      # Group all production dependencies together
+      production-dependencies:
+        dependency-type: "production"
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@types/*"
+          - "eslint*"
+          - "prettier"
+          - "typescript"
+          - "jest*"
+          - "@testing-library/*"
+      # Group all development dependencies together
+      development-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "*"
+      # Group all Radix UI updates together
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+      # Group all Supabase updates together
+      supabase:
+        patterns:
+          - "@supabase/*"
+          - "supabase"
+      # Group all React-related updates
+      react-ecosystem:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+          - "react-hook-form"
+          - "@tanstack/react-query"
+          - "@tanstack/react-query-devtools"
+    # Customize commit messages
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # Add labels to PRs
+    labels:
+      - "dependencies"
+      - "automated"
+    # Ignore specific dependencies
+    ignore:
+      # Add any dependencies you want to manually manage
+      # Example:
+      # - dependency-name: "next"
+      #   versions: ["15.x"]
+    # Allow specific dependency updates
+    allow:
+      # Only allow non-major version updates by default
+      - dependency-type: "all"
+        update-types: ["minor", "patch"]
+      # Allow major updates for dev dependencies
+      - dependency-type: "development"
+        update-types: ["major"]
+
+  # Enable security updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "ci"
