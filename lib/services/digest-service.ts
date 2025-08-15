@@ -251,7 +251,7 @@ export class DigestService {
       const { error } = await resend.emails.send({
         from: FROM_EMAIL,
         to: recipientEmail,
-        subject: `${lounge.name} Daily Digest - ${content.length} updates`,
+        subject: `${lounge.name} Daily Digest - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
         react: DailyDigestEmail({
           loungeName: lounge.name,
           loungeDescription: lounge.description,

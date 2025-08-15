@@ -45,8 +45,8 @@ export const CuratorInviteEmail = ({
         </Section>
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
-          {inviterName} has invited you to join Lounge as a content curator.
-          As a curator, you'll be able to:
+          {inviterName} has invited you to join Lounge as a content curator. As
+          a curator, you'll be able to:
         </Text>
         <Section style={listContainer}>
           <Text style={listItem}>• Create and manage content lounges</Text>
@@ -59,11 +59,7 @@ export const CuratorInviteEmail = ({
           curator account:
         </Text>
         <Section style={btnContainer}>
-          <Button 
-            style={button} 
-            href={inviteUrl}
-            className="button-hover"
-          >
+          <Button style={button} href={inviteUrl} className="button-hover">
             Accept Invitation
           </Button>
         </Section>
@@ -72,9 +68,7 @@ export const CuratorInviteEmail = ({
           please contact {inviterName} or our support team.
         </Text>
         <Hr style={hr} />
-        <Text style={footer}>
-          Lounge - Your personalized content dashboard
-        </Text>
+        <Text style={footer}>Lounge - Your personalized content dashboard</Text>
       </Container>
     </Body>
   </Html>

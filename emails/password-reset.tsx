@@ -41,15 +41,11 @@ export const PasswordResetEmail = ({ resetUrl }: PasswordResetEmailProps) => (
         </Section>
         <Text style={paragraph}>Hi there,</Text>
         <Text style={paragraph}>
-          Someone recently requested a password change for your Lounge
-          account. If this was you, you can set a new password here:
+          Someone recently requested a password change for your Lounge account.
+          If this was you, you can set a new password here:
         </Text>
         <Section style={btnContainer}>
-          <Button 
-            style={button} 
-            href={resetUrl}
-            className="button-hover"
-          >
+          <Button style={button} href={resetUrl} className="button-hover">
             Reset password
           </Button>
         </Section>
@@ -66,9 +62,7 @@ export const PasswordResetEmail = ({ resetUrl }: PasswordResetEmailProps) => (
         </Text>
         <Text style={paragraph}>Happy reading!</Text>
         <Hr style={hr} />
-        <Text style={footer}>
-          Lounge - Your personalized content dashboard
-        </Text>
+        <Text style={footer}>Lounge - Your personalized content dashboard</Text>
       </Container>
     </Body>
   </Html>

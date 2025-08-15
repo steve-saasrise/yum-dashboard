@@ -94,7 +94,7 @@ export function XVideoEmbed({
   if (width && height) {
     // If video is taller than 16:9 (portrait), cap it at 16:9
     const videoAspectRatio = width / height;
-    if (videoAspectRatio < 16/9) {
+    if (videoAspectRatio < 16 / 9) {
       aspectRatio = '16/9';
     } else {
       aspectRatio = `${width}/${height}`;
@@ -118,8 +118,10 @@ export function XVideoEmbed({
             src={thumbnailUrl}
             alt={title}
             className={cn(
-              "w-full h-full",
-              width && height && width < height ? "object-contain" : "object-cover"
+              'w-full h-full',
+              width && height && width < height
+                ? 'object-contain'
+                : 'object-cover'
             )}
             loading="lazy"
           />
@@ -186,8 +188,10 @@ export function XVideoEmbed({
             src={videoUrl}
             poster={thumbnailUrl}
             className={cn(
-              "w-full h-full",
-              width && height && width < height ? "object-contain" : "object-cover"
+              'w-full h-full',
+              width && height && width < height
+                ? 'object-contain'
+                : 'object-cover'
             )}
             controls
             playsInline
