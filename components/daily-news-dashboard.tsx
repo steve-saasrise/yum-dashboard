@@ -259,8 +259,8 @@ function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent
-        className="px-2 py-2 pr-1 stable-scrollbar sidebar-scrollbar"
-        style={{ backgroundColor: '#FCE4DC' }}
+        className="px-2 py-2 sidebar-scrollbar"
+        style={{ backgroundColor: '#FFF5F2' }}
       >
         {/* Curator Management Options - Moved to top for curator users */}
         {canManageCreators && (
@@ -362,7 +362,9 @@ function AppSidebar({
                                 : 'bg-gray-400 dark:bg-gray-600'
                             }`}
                           />
-                          <span className="truncate">{lounge.name} Lounge</span>
+                          <span className="truncate">
+                            {lounge.name === 'Venture' ? 'Venture Capital' : lounge.name}
+                          </span>
                           <SidebarMenuBadge
                             className={
                               canManageCreators
@@ -1723,7 +1725,7 @@ function MobileFiltersSheet({
                       htmlFor={`mobile-lounge-${lounge.id}`}
                       className="text-sm font-medium leading-none"
                     >
-                      {lounge.name}
+                      {lounge.name === 'Venture' ? 'Venture Capital' : lounge.name}
                     </label>
                   </div>
                 ))}
@@ -2305,7 +2307,7 @@ export function DailyNewsDashboard() {
                                 setSelectedLoungeId(checked ? lounge.id : null)
                               }
                             >
-                              {lounge.name}
+                              {lounge.name === 'Venture' ? 'Venture Capital' : lounge.name}
                             </DropdownMenuCheckboxItem>
                           ))}
                         </DropdownMenuSubContent>

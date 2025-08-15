@@ -45,7 +45,7 @@ import { GdprConsentManagement } from '@/components/profile/gdpr-consent-managem
 
 // Mock topics data - in a real app, this would come from your data source
 const topics = [
-  { id: 1, name: 'AI & Machine Learning', color: 'bg-blue-100 text-blue-800' },
+  { id: 1, name: 'AI & Machine Learning', color: 'bg-cyan-100 text-cyan-700' },
   { id: 2, name: 'Web Development', color: 'bg-green-100 text-green-800' },
   { id: 3, name: 'Startup News', color: 'bg-purple-100 text-purple-800' },
   { id: 4, name: 'Design', color: 'bg-pink-100 text-pink-800' },

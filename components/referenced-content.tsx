@@ -48,8 +48,8 @@ export const ReferencedContentDisplay: React.FC<ReferencedContentProps> = ({
       case 'quote':
         return 'Quoted';
       case 'retweet':
-        // LinkedIn uses "Reposted" instead of "Retweeted"
-        return platform === 'linkedin' ? 'Reposted' : 'Retweeted';
+        // Most platforms now use "Reposted" instead of "Retweeted"
+        return platform === 'linkedin' || platform === 'threads' || platform === 'x' ? 'Reposted' : 'Retweeted';
       case 'reply':
         return 'Replying to';
       default:

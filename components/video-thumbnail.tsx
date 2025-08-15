@@ -38,7 +38,7 @@ export function VideoThumbnail({
   };
 
   const platformColors = {
-    linkedin: 'bg-blue-600 hover:bg-blue-700',
+    linkedin: 'bg-primary hover:bg-primary/90',
     youtube: 'bg-red-600 hover:bg-red-700',
     x: 'bg-black hover:bg-gray-900',
     twitter: 'bg-black hover:bg-gray-900',
@@ -68,7 +68,7 @@ export function VideoThumbnail({
         />
       ) : (
         <div
-          className="w-full bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center"
+          className="w-full bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center"
           style={{
             aspectRatio: width && height ? `${width}/${height}` : '16/9',
             minHeight: '200px',

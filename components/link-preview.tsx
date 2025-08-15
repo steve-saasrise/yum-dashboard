@@ -38,7 +38,7 @@ export function LinkPreview({
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
-          'inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline',
+          'inline-flex items-center gap-1 text-primary hover:text-primary/80 underline',
           className
         )}
       >
