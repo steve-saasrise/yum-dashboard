@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useAuthLoading } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import {
 import Link from 'next/link';
 import { ArrowRight, BookOpen, Brain, Coffee, Sparkles } from 'lucide-react';
 
-export default function Home() {
+function HomeContent() {
   const user = useUser();
   const loading = useAuthLoading();
   const router = useRouter();
@@ -140,5 +140,20 @@ export default function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
