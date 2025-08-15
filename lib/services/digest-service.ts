@@ -2,7 +2,16 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { DailyDigestEmail } from '@/emails/daily-digest';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialize Resend client to avoid build-time errors
+let resend: Resend | null = null;
+
+const getResendClient = () => {
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+};
+
 const FROM_EMAIL =
   process.env.DIGEST_EMAIL_FROM ||
   process.env.EMAIL_FROM ||
@@ -269,7 +278,7 @@ export class DigestService {
       }));
 
       // Send email
-      const { error } = await resend.emails.send({
+      const { error } = await getResendClient().emails.send({
         from: FROM_EMAIL,
         to: recipientEmail,
         subject: `${lounge.name} Daily Digest - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
