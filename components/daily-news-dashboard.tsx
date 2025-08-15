@@ -1809,8 +1809,17 @@ export function DailyNewsDashboard() {
   });
 
   const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/';
+    try {
+      const { error } = await signOut();
+      if (error) {
+        console.error('Logout error:', error);
+      }
+    } catch (error) {
+      console.error('Unexpected logout error:', error);
+    } finally {
+      // Add logout flag to prevent redirect loop
+      window.location.href = '/?logout=true';
+    }
   };
   // Single column feed - no view toggle needed
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);

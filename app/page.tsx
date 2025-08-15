@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useAuthLoading } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,13 +18,19 @@ export default function Home() {
   const user = useUser();
   const loading = useAuthLoading();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isLogout = searchParams.get('logout') === 'true';
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users to dashboard (unless it's a logout)
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && !isLogout) {
       router.push('/dashboard');
     }
-  }, [user, loading, router]);
+    // Clear the logout flag after checking
+    if (isLogout && !loading && !user) {
+      router.replace('/');
+    }
+  }, [user, loading, router, isLogout]);
 
   // Show loading state while checking auth
   if (loading) {
