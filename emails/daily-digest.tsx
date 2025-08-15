@@ -37,13 +37,36 @@ interface DailyDigestEmailProps {
   date: string;
 }
 
-const platformIcons: Record<string, string> = {
-  youtube: '🎥',
-  twitter: '𝕏',
-  linkedin: '💼',
-  threads: '🧵',
-  rss: '📰',
-  website: '🌐',
+// Platform icon images - using base64 encoded tiny PNGs for email compatibility
+const platformIcons: Record<string, { src: string; alt: string }> = {
+  youtube: {
+    src: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/youtube.svg',
+    alt: 'YouTube',
+  },
+  twitter: {
+    src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJjdXJyZW50Q29sb3IiPjxwYXRoIGQ9Ik0xOC45MDEgMS4xNTNoMy42OGwtOC4wNCA5LjE5TDI0IDIyLjg0NmgtNy40MDZsLTUuOC03LjU4NC02LjYzOCA3LjU4NEguNDc0bDguNi05LjgzTDAgMS4xNTRoNy41OTRsNS4yNDMgNi45MzJaTTE3LjYxIDIwLjY0NGgyLjAzOUw2LjQ4NiAzLjI0SDQuMjk4WiIvPjwvc3ZnPg==',
+    alt: 'X',
+  },
+  x: {
+    src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJjdXJyZW50Q29sb3IiPjxwYXRoIGQ9Ik0xOC45MDEgMS4xNTNoMy42OGwtOC4wNCA5LjE5TDI0IDIyLjg0NmgtNy40MDZsLTUuOC03LjU4NC02LjYzOCA3LjU4NEguNDc0bDguNi05LjgzTDAgMS4xNTRoNy41OTRsNS4yNDMgNi45MzJaTTE3LjYxIDIwLjY0NGgyLjAzOUw2LjQ4NiAzLjI0SDQuMjk4WiIvPjwvc3ZnPg==',
+    alt: 'X',
+  },
+  linkedin: {
+    src: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg',
+    alt: 'LinkedIn',
+  },
+  threads: {
+    src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9ImN1cnJlbnRDb2xvciI+PHBhdGggZD0iTTE0MS41MzcgODguOTg4M0MxNDAuNzEgODguNTkxOSAxMzkuODcgODguMjEwNCAxMzkuMDE5IDg3Ljg0NTFDMTM3LjUzNyA2MC41MzgyIDEyMi42MTYgNDQuOTA1IDk3LjU2MTkgNDQuNzQ1Qzk3LjQ0ODQgNDQuNzQ0MyA5Ny4zMzU1IDQ0Ljc0NDMgOTcuMjIyIDQ0Ljc0NDNDODIuMjM2NCA0NC43NDQzIDY5Ljc3MzEgNTEuMTQwOSA2Mi4xMDIgNjIuNzgwN0w3NS44ODEgNzIuMjMyOEM4MS42MTE2IDYzLjUzODMgOTAuNjA1MiA2MS42ODQ4IDk3LjIyODYgNjEuNjg0OEM5Ny4zMDUxIDYxLjY4NDggOTcuMzgxOSA2MS42ODQ4IDk3LjQ1NzYgNjEuNjg1NUMxMDUuNzA3IDYxLjczODEgMTExLjkzMiA2NC4xMzY2IDExNS45NjEgNjguODE0QzExOC44OTMgNzIuMjE5MyAxMjAuODU0IDc2LjkyNSAxMjEuODI1IDgyLjg2MzhDMTE0LjUxMSA4MS42MjA3IDEwNi42MDEgODEuMjM4NSA5OC4xNDUgODEuNzIzM0M3NC4zMjQ3IDgzLjA5NTQgNTkuMDExMSA5Ni45ODc5IDYwLjAzOTYgMTE2LjI5MkM2MC41NjE1IDEyNi4wODQgNjUuNDM5NyAxMzQuNTA4IDczLjc3NSAxNDAuMDExQzgwLjgyMjQgMTQ0LjY2MyA4OS44OTkgMTQ2LjkzOCA5OS4zMzIzIDE0Ni40MjNDMTExLjc5IDE0NS43NCAxMjEuNTYzIDE0MC45ODcgMTI4LjM4MSAxMzIuMjk2QzEzMy41NTkgMTI1LjY5NiAxMzYuODM0IDExNy4xNDMgMTM4LjI4IDEwNi4zNjZDMTQ0LjIxNyAxMDkuOTQ5IDE0OC42MTcgMTE0LjY2NCAxNTEuMDQ3IDEyMC4zMzJDMTU1LjE3OSAxMjkuOTY3IDE1NS40MiAxNDUuOCAxNDIuNTAxIDE1OC43MDhDMTMxLjE4MiAxNzAuMDE2IDExNy41NzYgMTc0LjkwOCA5Ny4wMTM1IDE3NS4wNTlDNzQuMjA0MiAxNzQuODkgNTYuOTUzOCAxNjcuNTc1IDQ1LjczODEgMTUzLjMxN0MzNS4yMzU1IDEzOS45NjYgMjkuODA3NyAxMjAuNjgyIDI5LjYwNTIgOTZDMjkuODA3NyA3MS4zMTc4IDM1LjIzNTUgNTIuMDMzNiA0NS43MzgxIDM4LjY4MjdDNTYuOTUzOCAyNC40MjQ5IDc0LjIwMzkgMTcuMTEgOTcuMDEzMiAxNi45NDA1QzExOS45ODggMTcuMTExMyAxMzcuNTM5IDI0LjQ2MTQgMTQ5LjE4NCAzOC43ODhDMTU0Ljg5NCA0NS44MTM2IDE1OS4xOTkgNTQuNjQ4OCAxNjIuMDM3IDY0Ljk1MDNMMTc4LjE4NCA2MC42NDIyQzE3NC43NDQgNDcuOTYyMiAxNjkuMzMxIDM3LjAzNTcgMTYxLjk2NSAyNy45NzRDMTQ3LjAzNiA5LjYwNjY4IDEyNS4yMDIgMC4xOTUxNDggOTcuMDY5NSAwSDk2Ljk1NjlDNjguODgxNiAwLjE5NDQ3IDQ3LjI5MjEgOS42NDE4IDMyLjc4ODMgMjguMDc5M0MxOS44ODE5IDQ0LjQ4NjQgMTMuMjI0NCA2Ny4zMTU3IDEzLjAwMDcgOTUuOTMyNUwxMyA5NkwxMy4wMDA3IDk2LjA2NzVDMTMuMjI0NCAxMjQuNjg0IDE5Ljg4MTkgMTQ3LjUxNCAzMi43ODgzIDE2My45MjFDNDcuMjkyMSAxODIuMzU4IDY4Ljg4MTYgMTkxLjgwNiA5Ni45NTY5IDE5Mkg5Ny4wNjk1QzEyMi4wMyAxOTEuODI3IDEzOS42MjQgMTg1LjI5MiAxNTQuMTE4IDE3MC44MTFDMTY5LjA4MSAxNTEuODY2IDE3Mi41MSAxMjguMTE5IDE2Ni4yNiAxMTMuNTQxQzE2MS43NzYgMTAzLjA4NyAxNTMuMjI3IDk0LjU5NjIgMTQxLjUzNyA4OC45ODgzWk05OC40NDA1IDEyOS41MDdDODguMDAwNSAxMzAuMDk1IDc3LjE1NDQgMTI1LjQwOSA3Ni42MTk2IDExNS4zNzJDNzYuMjIzMiAxMDcuOTMgODEuOTE1OCA5OS42MjYgOTkuMDgxMiA5OC42MzY4QzEwMS4wNDcgOTguNTIzNCAxMDIuOTc2IDk4LjQ2OCAxMDQuODcxIDk4LjQ2OEMxMTEuMTA2IDk4LjQ2OCAxMTYuOTM5IDk5LjA3MzcgMTIyLjI0MiAxMDAuMjMzQzEyMC4yNjQgMTI0LjkzNSAxMDguNjYyIDEyOC45NDYgOTguNDQwNSAxMjkuNTA3WiIvPjwvc3ZnPg==',
+    alt: 'Threads',
+  },
+  rss: {
+    src: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/rss.svg',
+    alt: 'RSS',
+  },
+  website: {
+    src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPjxsaW5lIHgxPSIyIiB5MT0iMTIiIHgyPSIyMiIgeTI9IjEyIi8+PHBhdGggZD0iTTEyIDJhMTUuMyAxNS4zIDAgMCAxIDQgMTAgMTUuMyAxNS4zIDAgMCAxLTQgMTAgMTUuMyAxNS4zIDAgMCAxLTQtMTAgMTUuMyAxNS4zIDAgMCAxIDQtMTB6Ii8+PC9zdmc+',
+    alt: 'Website',
+  },
 };
 
 export const DailyDigestEmail = ({
@@ -97,12 +120,28 @@ export const DailyDigestEmail = ({
               <div key={item.id}>
                 <div style={contentItem}>
                   {/* Platform and Creator */}
-                  <div style={platformBadge}>
-                    <span style={platformIcon}>
-                      {platformIcons[item.platform]}
-                    </span>
-                    <Text style={creatorName}>{item.creator_name}</Text>
-                  </div>
+                  <table style={platformBadge}>
+                    <tr>
+                      <td style={platformIconCell}>
+                        <Img
+                          src={
+                            platformIcons[item.platform]?.src ||
+                            platformIcons.website.src
+                          }
+                          alt={
+                            platformIcons[item.platform]?.alt ||
+                            platformIcons.website.alt
+                          }
+                          width="16"
+                          height="16"
+                          style={platformIconImg}
+                        />
+                      </td>
+                      <td>
+                        <Text style={creatorName}>{item.creator_name}</Text>
+                      </td>
+                    </tr>
+                  </table>
 
                   {/* Title */}
                   <Heading as="h3" style={contentTitle}>
@@ -314,14 +353,20 @@ const contentColumn = {
 };
 
 const platformBadge = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '6px',
   marginBottom: '8px',
+  borderSpacing: '0',
+  padding: '0',
 };
 
-const platformIcon = {
-  fontSize: '16px',
+const platformIconCell = {
+  padding: '0 8px 0 0',
+  verticalAlign: 'middle' as const,
+  width: 'auto',
+};
+
+const platformIconImg = {
+  display: 'block',
+  verticalAlign: 'middle' as const,
 };
 
 const creatorName = {
@@ -330,6 +375,7 @@ const creatorName = {
   fontWeight: '600',
   margin: '0',
   display: 'inline',
+  verticalAlign: 'middle' as const,
 };
 
 const contentTitle = {
