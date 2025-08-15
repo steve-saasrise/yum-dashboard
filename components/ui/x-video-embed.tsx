@@ -195,6 +195,7 @@ export function XVideoEmbed({
             )}
             controls
             playsInline
+            muted
             preload="metadata"
             autoPlay={autoplay}
             onLoadedData={handleLoad}
