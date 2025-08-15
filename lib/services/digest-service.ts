@@ -93,8 +93,32 @@ export class DigestService {
     const twentyFourHoursAgo = new Date();
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
-    // First try to get content from last 24 hours
-    let { data: allContent } = await supabase
+    // First, specifically get at least one YouTube video (from any time period)
+    const { data: youtubeVideos } = await supabase
+      .from('content')
+      .select(
+        `
+        id,
+        title,
+        description,
+        url,
+        platform,
+        thumbnail_url,
+        published_at,
+        ai_summary_short,
+        creators!inner(
+          display_name
+        )
+      `
+      )
+      .in('creator_id', creatorIdList)
+      .eq('processing_status', 'processed')
+      .eq('platform', 'youtube')
+      .order('published_at', { ascending: false })
+      .limit(3); // Get a few recent YouTube videos
+
+    // Then get recent content from all platforms
+    let { data: recentContent } = await supabase
       .from('content')
       .select(
         `
@@ -115,11 +139,11 @@ export class DigestService {
       .eq('processing_status', 'processed')
       .gte('published_at', twentyFourHoursAgo.toISOString())
       .order('published_at', { ascending: false })
-      .limit(limit * 2);
+      .limit(limit * 3); // Get more content to ensure variety
 
-    // If not enough content from last 24 hours, get older content
-    if (!allContent || allContent.length < limit) {
-      const { data: olderContent, error: olderError } = await supabase
+    // If not enough recent content, get older content
+    if (!recentContent || recentContent.length < limit) {
+      const { data: olderContent } = await supabase
         .from('content')
         .select(
           `
@@ -141,64 +165,53 @@ export class DigestService {
         .order('published_at', { ascending: false })
         .limit(limit * 2);
 
-      if (olderError) {
-        console.error('Error fetching older content:', olderError);
-      } else {
-        allContent = olderContent;
+      if (olderContent) {
+        recentContent = olderContent;
       }
     }
 
-    const contentError = null; // Add this for compatibility with error handling below
-
-    if (contentError) {
-      console.error('Error fetching content:', contentError);
-      throw contentError;
-    }
-
-    if (!allContent || allContent.length === 0) {
+    if (!recentContent || recentContent.length === 0) {
       return [];
     }
 
-    // Separate YouTube videos from other content
-    const youtubeVideos = allContent.filter(
-      (c: any) => c.platform === 'youtube'
-    );
-    const otherContent = allContent.filter(
-      (c: any) => c.platform !== 'youtube'
-    );
-
-    // Ensure at least 1 YouTube video if available
+    // Build the final content list
     const selectedContent: ContentForDigest[] = [];
+    const usedIds = new Set<string>();
 
-    // Add at least one YouTube video if available
-    if (youtubeVideos.length > 0) {
+    // ALWAYS add at least one YouTube video first if available
+    if (youtubeVideos && youtubeVideos.length > 0) {
       const video: any = youtubeVideos[0];
       selectedContent.push({
         ...video,
         creator: video.creators,
       });
+      usedIds.add(video.id);
     }
 
-    // Fill the rest with other content (up to 9 items if we have 1 YouTube video)
-    const remainingSlots = limit - selectedContent.length;
-    const additionalContent = otherContent.slice(0, remainingSlots);
+    // Then add the most recent content, avoiding duplicates
+    for (const content of recentContent) {
+      if (selectedContent.length >= limit) break;
+      if (usedIds.has(content.id)) continue;
+      
+      selectedContent.push({
+        ...content,
+        creator: (content as any).creators,
+      });
+      usedIds.add(content.id);
+    }
 
-    selectedContent.push(
-      ...additionalContent.map((c: any) => ({
-        ...c,
-        creator: c.creators,
-      }))
-    );
-
-    // If we still have slots and more YouTube videos, add them
-    if (selectedContent.length < limit && youtubeVideos.length > 1) {
-      const additionalYouTube = youtubeVideos
-        .slice(1, limit - selectedContent.length + 1)
-        .map((c: any) => ({
-          ...c,
-          creator: c.creators,
-        }));
-      selectedContent.push(...additionalYouTube);
+    // If we still need more content and have more YouTube videos, prioritize them
+    if (selectedContent.length < limit && youtubeVideos && youtubeVideos.length > 1) {
+      for (let i = 1; i < youtubeVideos.length && selectedContent.length < limit; i++) {
+        const video: any = youtubeVideos[i];
+        if (!usedIds.has(video.id)) {
+          selectedContent.push({
+            ...video,
+            creator: video.creators,
+          });
+          usedIds.add(video.id);
+        }
+      }
     }
 
     return selectedContent.slice(0, limit);
