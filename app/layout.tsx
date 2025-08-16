@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'Lounge',
   description: 'The Curated Internet for Smart Professionals',
   icons: {
-    icon: '/lounge_favicon.png',
+    icon: '/lounge_favicon_2.png',
   },
 };
 

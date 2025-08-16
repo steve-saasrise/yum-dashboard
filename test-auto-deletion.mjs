@@ -12,11 +12,12 @@ const supabase = createClient(
 
 async function testAutoDeletion() {
   console.log('Testing auto-deletion logic...\n');
-  
+
   // Get low-scoring content that should be deleted
   const { data: lowScoringContent } = await supabase
     .from('content')
-    .select(`
+    .select(
+      `
       id,
       title,
       relevancy_score,
@@ -24,7 +25,8 @@ async function testAutoDeletion() {
       platform,
       creator_id,
       url
-    `)
+    `
+    )
     .lt('relevancy_score', 60)
     .not('relevancy_score', 'is', null)
     .limit(5);
@@ -41,7 +43,8 @@ async function testAutoDeletion() {
     // Get all lounges this content belongs to
     const { data: lounges } = await supabase
       .from('creators')
-      .select(`
+      .select(
+        `
         creator_lounges!inner(
           lounges!inner(
             id,
@@ -49,17 +52,20 @@ async function testAutoDeletion() {
             relevancy_threshold
           )
         )
-      `)
+      `
+      )
       .eq('id', content.creator_id)
       .single();
 
-    const allLounges = lounges?.creator_lounges?.map(cl => cl.lounges) || [];
-    const failsAll = allLounges.every(lounge => 
-      content.relevancy_score < (lounge.relevancy_threshold || 60)
+    const allLounges = lounges?.creator_lounges?.map((cl) => cl.lounges) || [];
+    const failsAll = allLounges.every(
+      (lounge) => content.relevancy_score < (lounge.relevancy_threshold || 60)
     );
 
     console.log(`${content.title} (score: ${content.relevancy_score})`);
-    console.log(`  Lounges: ${allLounges.map(l => `${l.name}(${l.relevancy_threshold || 60})`).join(', ')}`);
+    console.log(
+      `  Lounges: ${allLounges.map((l) => `${l.name}(${l.relevancy_threshold || 60})`).join(', ')}`
+    );
     console.log(`  Should delete: ${failsAll ? 'YES' : 'NO'}`);
 
     if (failsAll) {
@@ -76,18 +82,16 @@ async function testAutoDeletion() {
         console.log('  Status: Already deleted\n');
       } else {
         // Try to insert
-        const { error } = await supabase
-          .from('deleted_content')
-          .insert({
-            platform_content_id: content.platform_content_id,
-            platform: String(content.platform),
-            creator_id: content.creator_id,
-            deleted_by: null,
-            deleted_at: new Date().toISOString(),
-            deletion_reason: 'low_relevancy',
-            title: content.title,
-            url: content.url,
-          });
+        const { error } = await supabase.from('deleted_content').insert({
+          platform_content_id: content.platform_content_id,
+          platform: String(content.platform),
+          creator_id: content.creator_id,
+          deleted_by: null,
+          deleted_at: new Date().toISOString(),
+          deletion_reason: 'low_relevancy',
+          title: content.title,
+          url: content.url,
+        });
 
         if (error) {
           console.log(`  Status: ERROR - ${error.message}\n`);
