@@ -315,7 +315,7 @@ export async function GET(request: NextRequest) {
               matchingContent.id,
               dc.deletion_reason || 'manual'
             );
-            
+
             // Debug log for auto-deleted items
             if (dc.deletion_reason === 'low_relevancy') {
               console.log('Successfully mapped low_relevancy item:', {
@@ -376,7 +376,7 @@ export async function GET(request: NextRequest) {
               deletion_reason: deletionReasonMap.get(item.id),
             }),
           };
-          
+
           console.log('Transforming Hiten Shah tweet:', {
             id: item.id,
             has_deletion: deletedContentMap.has(item.id),
@@ -386,7 +386,7 @@ export async function GET(request: NextRequest) {
             final_item: transformedItem,
           });
         }
-        
+
         // Log reference fields for debugging
         if (item.reference_type || item.referenced_content) {
           console.log('Content with reference:', {

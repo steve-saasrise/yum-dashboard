@@ -65,14 +65,35 @@ export class RelevancyService {
       // Lounge-specific but broader, more inclusive prompts
       let loungeContext = '';
 
-      if (
-        item.lounge_name === 'SaaS' ||
+      if (item.lounge_name === 'SaaS') {
+        // SaaS-specific - prefer software businesses but accept relevant business content
+        loungeContext = `
+KEEP (Score 60+):
+- Software as a Service businesses, SaaS metrics (MRR, ARR, churn, CAC, LTV)
+- B2B software sales, pricing, customer success
+- SaaS product development, features, integrations
+- Cloud software, subscription models, SaaS tools
+- Technical implementation for SaaS (APIs, infrastructure, security)
+
+BORDERLINE (Score 40-59):
+- General B2B business strategies that could apply to SaaS
+- Marketing/growth tactics without specific software context
+- Startup advice that's not software-specific
+- Brand building and audience strategies
+
+FILTER OUT (Score <40):
+- Pure celebrity/entertainment content
+- Consumer product reviews
+- Personal life updates
+- Motivational quotes without business context
+- Political content unrelated to tech`;
+      } else if (
         item.lounge_name === 'AI' ||
         item.lounge_name === 'Venture' ||
         item.lounge_name === 'B2B Growth' ||
         item.lounge_name === 'Crypto'
       ) {
-        // Business/Tech lounges - filter out personal content
+        // Other Business/Tech lounges - filter out personal content
         loungeContext = `
 KEEP (Score 60+):
 - ANY business, technology, or professional content
@@ -129,7 +150,7 @@ FILTER OUT (Score <50):
 - Entertainment without educational value`;
       }
 
-      const prompt = `You are a content curator. Be INCLUSIVE - when in doubt, keep the content.
+      const prompt = `You are a content curator. ${item.lounge_name === 'SaaS' ? 'For SaaS, prefer software content but accept relevant business strategies.' : 'Be INCLUSIVE - when in doubt, keep the content.'}
 
 LOUNGE: ${item.lounge_name}
 ${loungeContext}
@@ -138,7 +159,7 @@ CONTENT TO EVALUATE:
 Author: ${item.creator_name}
 Content: ${item.content_description || item.content_title}
 
-Score 0-100 based on relevance to the lounge. Be lenient - only filter obvious off-topic content.
+Score 0-100 based on relevance to the lounge. ${item.lounge_name === 'SaaS' ? 'SaaS prefers software context but can include transferable business insights.' : 'Be lenient - only filter obvious off-topic content.'}
 The threshold is ${item.lounge_name === 'Biohacking' || item.lounge_name === 'Personal Growth' ? '50' : '60'}, so aim higher unless clearly off-topic.
 
 Respond in JSON:

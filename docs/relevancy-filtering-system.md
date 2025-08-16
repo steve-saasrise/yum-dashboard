@@ -25,10 +25,11 @@ The relevancy filtering system automatically evaluates content against lounge th
 
 ### 3. Auto-Deletion
 
-- Content scoring below the lounge's threshold is automatically soft-deleted
-- Deleted content is marked with `deletion_reason: 'low_relevancy'`
+- Content scoring below 60 (across all lounges) is automatically soft-deleted
+- Deleted content is marked with `deletion_reason: 'low_relevancy'` in the `deleted_content` table
 - This hides it from regular users but preserves it in the database
-- Curators/admins can still see and restore auto-deleted content
+- Curators/admins can still see auto-deleted content with a purple banner
+- The system uses the highest score across all lounges a creator belongs to
 
 ## Current Lounge Configurations
 
@@ -78,10 +79,16 @@ ALTER TABLE deleted_content ADD COLUMN deletion_reason TEXT DEFAULT 'manual';
 
 ### UI Components
 
-- **Content List Item** (`components/content-list-item.tsx`)
+- **Daily News Dashboard** (`components/daily-news-dashboard.tsx`)
   - Shows different banners for auto-deleted vs manually deleted content
-  - Orange banner: "🤖 Auto-hidden: Low relevancy to lounge theme"
+  - Purple banner: "🤖 Auto-hidden: Low relevancy to lounge theme"
   - Yellow banner: "This content is hidden from users" (manual deletion)
+  
+- **Type Definitions** (`types/content.ts`)
+  - ContentWithCreator interface includes `deletion_reason?: string` field
+  
+- **Intersection Observer Grid** (`components/intersection-observer-grid.tsx`)
+  - Passes through deletion_reason to ContentCard for proper display
 
 ## Adding New Lounges
 
@@ -164,15 +171,24 @@ ORDER BY relevancy_score DESC;
 1. Check if OpenAI API key is configured
 2. Verify lounge has `theme_description` set
 3. Check if content has been evaluated (relevancy_checked_at not null)
+4. Verify deletion_reason is being passed through IntersectionObserverGrid component
 
 ### Too Much Content Filtered
 
-1. Lower the lounge's `relevancy_threshold`
+1. The auto-deletion threshold is fixed at 60 (not per-lounge)
 2. Refine the `theme_description` to be more inclusive
-3. Review filtered content and adjust accordingly
+3. Review filtered content and adjust theme descriptions accordingly
+
+### Auto-Deleted Content Not Showing Purple Banner
+
+1. Ensure `deletion_reason` field is included in ContentWithCreator type
+2. Verify IntersectionObserverGrid includes deletion_reason in renderItem
+3. Check that the API is properly mapping deletion_reason from deleted_content table
+4. Confirm user has curator/admin role to see deleted content
 
 ### Restoring Incorrectly Filtered Content
 
-1. Curators can manually restore through the UI
-2. Adjust theme description or threshold to prevent future false positives
+1. Curators can manually restore through the UI (undelete button)
+2. Adjust theme description to prevent future false positives
 3. Consider creating a more specific theme description
+4. Note: Manual deletion always overrides auto-deletion status
