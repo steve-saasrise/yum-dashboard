@@ -80,12 +80,27 @@ export class DigestService {
    * 5. 2 most recent Threads posts
    * If any category has fewer than 2 posts in the last 24 hours,
    * increases content from other platforms to reach 10 total
+   *
+   * Content is filtered by relevancy score if available
    */
   static async getContentForLounge(
     loungeId: string,
     limit: number = 10
   ): Promise<ContentForDigest[]> {
     const supabase = getSupabaseClient();
+
+    // Get the lounge's relevancy threshold
+    const { data: lounge, error: loungeError } = await supabase
+      .from('lounges')
+      .select('relevancy_threshold')
+      .eq('id', loungeId)
+      .single();
+
+    if (loungeError) {
+      console.error('Error fetching lounge threshold:', loungeError);
+    }
+
+    const relevancyThreshold = lounge?.relevancy_threshold || 70;
 
     // First, get creators associated with this lounge
     const { data: creatorIds, error: creatorError } = await supabase
@@ -123,7 +138,7 @@ export class DigestService {
     // Fetch content for each platform group
     for (const config of platformConfig) {
       // First try to get content from the last 24 hours
-      const { data: recentPlatformContent } = await supabase
+      let query = supabase
         .from('content')
         .select(
           `
@@ -135,6 +150,7 @@ export class DigestService {
           thumbnail_url,
           published_at,
           ai_summary_short,
+          relevancy_score,
           creators!inner(
             display_name
           )
@@ -143,15 +159,24 @@ export class DigestService {
         .in('creator_id', creatorIdList)
         .in('platform', config.platforms)
         .eq('processing_status', 'processed')
-        .gte('published_at', twentyFourHoursAgo.toISOString())
+        .gte('published_at', twentyFourHoursAgo.toISOString());
+
+      // Apply relevancy filter if scores are available
+      // We use OR condition: either score is above threshold OR score is null (not yet checked)
+      query = query.or(
+        `relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`
+      );
+
+      const { data: recentPlatformContent } = await query
+        .order('relevancy_score', { ascending: false, nullsFirst: false })
         .order('published_at', { ascending: false })
-        .limit(config.maxCount);
+        .limit(config.maxCount * 2); // Get extra to account for filtering
 
       let platformContent = recentPlatformContent || [];
 
       // If we didn't get enough from the last 24 hours, get older content
       if (platformContent.length < config.targetCount) {
-        const { data: olderPlatformContent } = await supabase
+        let olderQuery = supabase
           .from('content')
           .select(
             `
@@ -163,6 +188,7 @@ export class DigestService {
             thumbnail_url,
             published_at,
             ai_summary_short,
+            relevancy_score,
             creators!inner(
               display_name
             )
@@ -170,9 +196,17 @@ export class DigestService {
           )
           .in('creator_id', creatorIdList)
           .in('platform', config.platforms)
-          .eq('processing_status', 'processed')
+          .eq('processing_status', 'processed');
+
+        // Apply relevancy filter
+        olderQuery = olderQuery.or(
+          `relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`
+        );
+
+        const { data: olderPlatformContent } = await olderQuery
+          .order('relevancy_score', { ascending: false, nullsFirst: false })
           .order('published_at', { ascending: false })
-          .limit(config.maxCount);
+          .limit(config.maxCount * 2);
 
         if (olderPlatformContent) {
           // Merge and deduplicate, keeping the most recent
@@ -231,7 +265,8 @@ export class DigestService {
         // Count how many we have from each platform
         const platformCounts: Record<string, number> = {};
         for (const content of selectedContent) {
-          platformCounts[content.platform] = (platformCounts[content.platform] || 0) + 1;
+          platformCounts[content.platform] =
+            (platformCounts[content.platform] || 0) + 1;
         }
 
         // Add more content, but respect platform limits
@@ -240,7 +275,10 @@ export class DigestService {
           if (usedIds.has(content.id)) continue;
 
           // Special check for X/Twitter - never exceed 2
-          if (content.platform === 'twitter' && platformCounts['twitter'] >= 2) {
+          if (
+            content.platform === 'twitter' &&
+            platformCounts['twitter'] >= 2
+          ) {
             continue;
           }
 
@@ -249,7 +287,8 @@ export class DigestService {
             creator: (content as any).creators,
           });
           usedIds.add(content.id);
-          platformCounts[content.platform] = (platformCounts[content.platform] || 0) + 1;
+          platformCounts[content.platform] =
+            (platformCounts[content.platform] || 0) + 1;
         }
       }
     }

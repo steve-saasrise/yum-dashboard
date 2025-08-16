@@ -284,10 +284,11 @@ export async function GET(request: NextRequest) {
     });
 
     // For privileged users, get deleted content data after fetching content
+    const deletionReasonMap = new Map<string, string>();
     if (isPrivilegedUser && content && content.length > 0) {
       const { data: deletedContent, error: deletedError } = await supabase
         .from('deleted_content')
-        .select('platform_content_id, platform, creator_id')
+        .select('platform_content_id, platform, creator_id, deletion_reason')
         .in('creator_id', creatorIds);
 
       console.log('Deleted content query result:', {
@@ -310,6 +311,10 @@ export async function GET(request: NextRequest) {
 
           if (matchingContent) {
             deletedContentMap.set(matchingContent.id, true);
+            deletionReasonMap.set(
+              matchingContent.id,
+              dc.deletion_reason || 'manual'
+            );
           }
         });
       }
@@ -373,6 +378,7 @@ export async function GET(request: NextRequest) {
           // Add deletion status for privileged users
           ...(isPrivilegedUser && {
             is_deleted: deletedContentMap.has(item.id),
+            deletion_reason: deletionReasonMap.get(item.id),
           }),
         };
       }

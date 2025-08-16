@@ -7,6 +7,7 @@ import { BrightDataFetcher } from '@/lib/content-fetcher/brightdata-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { ContentNormalizer } from '@/lib/services/content-normalizer';
 import { getAISummaryService } from '@/lib/services/ai-summary-service';
+import { getRelevancyService } from '@/lib/services/relevancy-service';
 import type { CreateContentInput } from '@/types/content';
 
 // Verify cron authorization
@@ -596,6 +597,22 @@ export async function GET(request: NextRequest) {
           summaryError instanceof Error
             ? summaryError.message
             : 'Failed to generate summaries';
+      }
+    }
+
+    // Run relevancy checks on new content
+    if (stats.new > 0 && process.env.OPENAI_API_KEY) {
+      try {
+        const relevancyService = getRelevancyService(supabase);
+        if (relevancyService) {
+          console.log('[CRON] Starting relevancy checks for new content');
+          const relevancyResults =
+            await relevancyService.processRelevancyChecks(stats.new * 2); // Check up to 2x new items to handle multiple lounges
+          console.log('[CRON] Relevancy check results:', relevancyResults);
+        }
+      } catch (relevancyError) {
+        console.error('[CRON] Error running relevancy checks:', relevancyError);
+        // Don't fail the cron job for relevancy check errors
       }
     }
 

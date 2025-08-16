@@ -363,7 +363,9 @@ function AppSidebar({
                             }`}
                           />
                           <span className="truncate">
-                            {lounge.name === 'Venture' ? 'Venture Capital' : lounge.name}
+                            {lounge.name === 'Venture'
+                              ? 'Venture Capital'
+                              : lounge.name}
                           </span>
                           <SidebarMenuBadge
                             className={
@@ -1725,7 +1727,9 @@ function MobileFiltersSheet({
                       htmlFor={`mobile-lounge-${lounge.id}`}
                       className="text-sm font-medium leading-none"
                     >
-                      {lounge.name === 'Venture' ? 'Venture Capital' : lounge.name}
+                      {lounge.name === 'Venture'
+                        ? 'Venture Capital'
+                        : lounge.name}
                     </label>
                   </div>
                 ))}
@@ -2307,7 +2311,9 @@ export function DailyNewsDashboard() {
                                 setSelectedLoungeId(checked ? lounge.id : null)
                               }
                             >
-                              {lounge.name === 'Venture' ? 'Venture Capital' : lounge.name}
+                              {lounge.name === 'Venture'
+                                ? 'Venture Capital'
+                                : lounge.name}
                             </DropdownMenuCheckboxItem>
                           ))}
                         </DropdownMenuSubContent>

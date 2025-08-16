@@ -51,6 +51,7 @@ interface FeedItem {
   published_at: string;
   is_saved?: boolean;
   is_deleted?: boolean;
+  deletion_reason?: string;
   media_urls?: Array<{
     url: string;
     type: 'image' | 'video' | 'audio' | 'document' | 'link_preview';
@@ -156,9 +157,23 @@ export const ContentListItem = React.memo(function ContentListItem({
       className={`overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 w-full ${isDeleted ? 'opacity-60' : ''}`}
     >
       {isDeleted && canDelete && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 border-b border-yellow-200 dark:border-yellow-800">
-          <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
-            This content is hidden from users
+        <div
+          className={`px-4 py-2 border-b ${
+            item.deletion_reason === 'low_relevancy'
+              ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+              : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+          }`}
+        >
+          <p
+            className={`text-xs font-medium ${
+              item.deletion_reason === 'low_relevancy'
+                ? 'text-orange-800 dark:text-orange-200'
+                : 'text-yellow-800 dark:text-yellow-200'
+            }`}
+          >
+            {item.deletion_reason === 'low_relevancy'
+              ? '🤖 Auto-hidden: Low relevancy to lounge theme'
+              : 'This content is hidden from users'}
           </p>
         </div>
       )}
