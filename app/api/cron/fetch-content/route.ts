@@ -548,7 +548,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Generate AI summaries for newly created content
+    // NOTE: Relevancy scoring moved to separate cron job at /api/cron/score-relevancy
+    // This is because the fetch-content cron runs on cron-job.org which doesn't have
+    // access to the OpenAI API key needed for scoring
+
+    // Generate AI summaries for newly created content (AFTER relevancy to avoid summarizing deleted content)
     console.log('[CRON] Summary generation check:', {
       newContent: stats.new,
       hasOpenAIKey: !!process.env.OPENAI_API_KEY,
@@ -600,40 +604,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Run relevancy checks on new content AND any unscored content
-    if (process.env.OPENAI_API_KEY) {
-      try {
-        const relevancyService = getRelevancyService(supabase);
-        if (relevancyService) {
-          // Check if there's any unscored content (not just new)
-          const { data: unscoredCount } = await supabase
-            .from('content')
-            .select('id', { count: 'exact', head: true })
-            .is('relevancy_checked_at', null)
-            .gte(
-              'created_at',
-              new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-            );
-
-          const hasUnscoredContent = (unscoredCount as any)?.count > 0;
-
-          if (stats.new > 0 || hasUnscoredContent) {
-            console.log('[CRON] Starting relevancy checks', {
-              newContent: stats.new,
-              hasUnscoredContent,
-            });
-            // Process more items to ensure all new content gets scored (handle multiple lounges)
-            const itemsToCheck = Math.max(50, stats.new * 3);
-            const relevancyResults =
-              await relevancyService.processRelevancyChecks(itemsToCheck);
-            console.log('[CRON] Relevancy check results:', relevancyResults);
-          }
-        }
-      } catch (relevancyError) {
-        console.error('[CRON] Error running relevancy checks:', relevancyError);
-        // Don't fail the cron job for relevancy check errors
-      }
-    }
+    // Relevancy scoring has been moved to /api/cron/score-relevancy
+    // It runs as a separate cron job with access to OpenAI API
 
     // Cron fetch completed
 

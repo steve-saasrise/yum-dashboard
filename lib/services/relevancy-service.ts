@@ -263,32 +263,66 @@ Respond in JSON:
    * Update relevancy scores in the database and auto-delete low scoring content
    */
   async updateRelevancyScores(results: RelevancyResult[]): Promise<void> {
-    // Group results by content_id and take the highest score for each piece of content
+    // Group results by content_id and track ALL lounges and their scores
     const contentScores = new Map<
       string,
-      { score: number; reason: string; loungeId: string }
+      { 
+        highestScore: number; 
+        highestReason: string; 
+        loungeScores: Map<string, { score: number; threshold: number }> 
+      }
     >();
 
+    // First pass: collect all scores for each content across all lounges
     for (const result of results) {
       const existing = contentScores.get(result.content_id);
-      if (!existing || existing.score < result.score) {
+      if (!existing) {
         contentScores.set(result.content_id, {
-          score: result.score,
-          reason: result.reason,
-          loungeId: result.lounge_id,
+          highestScore: result.score,
+          highestReason: result.reason,
+          loungeScores: new Map([[result.lounge_id, { score: result.score, threshold: 0 }]])
         });
+      } else {
+        // Update highest score if this one is higher
+        if (result.score > existing.highestScore) {
+          existing.highestScore = result.score;
+          existing.highestReason = result.reason;
+        }
+        // Track this lounge's score
+        existing.loungeScores.set(result.lounge_id, { score: result.score, threshold: 0 });
+      }
+    }
+
+    // Get all lounge thresholds we need
+    const allLoungeIds = new Set<string>();
+    contentScores.forEach((data) => {
+      data.loungeScores.forEach((_, loungeId) => {
+        allLoungeIds.add(loungeId);
+      });
+    });
+    
+    // Fetch all lounge thresholds in one query
+    const { data: lounges } = await this.supabase
+      .from('lounges')
+      .select('id, relevancy_threshold')
+      .in('id', Array.from(allLoungeIds));
+    
+    const loungeThresholds = new Map<string, number>();
+    if (lounges) {
+      for (const lounge of lounges) {
+        loungeThresholds.set(lounge.id, lounge.relevancy_threshold || 60);
       }
     }
 
     // Update each content item
     const entries = Array.from(contentScores.entries());
-    for (const [contentId, { score, reason, loungeId }] of entries) {
-      // Update the relevancy score
+    for (const [contentId, { highestScore, highestReason, loungeScores }] of entries) {
+      // Update the relevancy score with the highest score
       const { error } = await this.supabase
         .from('content')
         .update({
-          relevancy_score: score,
-          relevancy_reason: reason,
+          relevancy_score: highestScore,
+          relevancy_reason: highestReason,
           relevancy_checked_at: new Date().toISOString(),
         })
         .eq('id', contentId);
@@ -301,17 +335,18 @@ Respond in JSON:
         continue;
       }
 
-      // Get the lounge's threshold
-      const { data: lounge } = await this.supabase
-        .from('lounges')
-        .select('relevancy_threshold')
-        .eq('id', loungeId)
-        .single();
+      // Check if content should be auto-deleted
+      // Only delete if score is below threshold for ALL lounges it belongs to
+      let shouldDelete = true;
+      loungeScores.forEach((scoreData, loungeId) => {
+        const threshold = loungeThresholds.get(loungeId) || 60;
+        if (scoreData.score >= threshold) {
+          shouldDelete = false;
+        }
+      });
 
-      const threshold = lounge?.relevancy_threshold || 70;
-
-      // If score is below threshold, add to deleted_content
-      if (score < threshold) {
+      // If score is below threshold for ALL lounges, add to deleted_content
+      if (shouldDelete) {
         // Get content details for deletion
         const { data: content } = await this.supabase
           .from('content')
@@ -350,8 +385,15 @@ Respond in JSON:
                 deleteError
               );
             } else {
+              // Build a summary of all lounge scores and thresholds
+              const loungeDetails = Array.from(loungeScores.entries())
+                .map(([lid, { score }]) => {
+                  const threshold = loungeThresholds.get(lid) || 60;
+                  return `${lid.substring(0, 8)}: ${score}/${threshold}`;
+                })
+                .join(', ');
               console.log(
-                `Auto-deleted content ${contentId} with score ${score} (threshold: ${threshold})`
+                `Auto-deleted content ${contentId} - failed all thresholds: [${loungeDetails}]`
               );
             }
           }

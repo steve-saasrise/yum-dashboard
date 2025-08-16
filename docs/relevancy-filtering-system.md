@@ -14,6 +14,8 @@ The relevancy filtering system automatically evaluates content against lounge th
   - Does the main topic align with the theme?
   - Would someone interested in this theme find it valuable?
   - Is it informative/educational vs just a casual mention?
+  - **For quoted/reposted content**: Both the author's commentary AND the referenced content are evaluated
+  - Content is considered relevant if EITHER the author's comment OR the quoted content is on-topic
 
 ### 2. Scoring Thresholds
 
@@ -52,6 +54,8 @@ The relevancy filtering system automatically evaluates content against lounge th
 ALTER TABLE content ADD COLUMN relevancy_score NUMERIC(5,2);
 ALTER TABLE content ADD COLUMN relevancy_reason TEXT;
 ALTER TABLE content ADD COLUMN relevancy_checked_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE content ADD COLUMN reference_type TEXT;
+ALTER TABLE content ADD COLUMN referenced_content JSONB;
 
 -- Lounges table additions
 ALTER TABLE lounges ADD COLUMN theme_description TEXT;
@@ -64,8 +68,9 @@ ALTER TABLE deleted_content ADD COLUMN deletion_reason TEXT DEFAULT 'manual';
 ### Services
 
 1. **RelevancyService** (`lib/services/relevancy-service.ts`)
-   - Fetches content needing relevancy checks
+   - Fetches content needing relevancy checks (including referenced content)
    - Evaluates content using OpenAI
+   - For quotes/reposts: Evaluates both author commentary and referenced content
    - Updates relevancy scores
    - Auto-deletes low-scoring content
 
@@ -76,6 +81,48 @@ ALTER TABLE deleted_content ADD COLUMN deletion_reason TEXT DEFAULT 'manual';
 3. **Digest Service** (`lib/services/digest-service.ts`)
    - Filters content by relevancy score during digest generation
    - Only includes content above threshold OR unchecked content
+
+### Content Processing Flow
+
+#### Step 1: Cron Job Triggers
+The cron job (`/api/cron/fetch-content`) runs periodically to:
+1. Fetch all active creators with their platform URLs
+2. Process each creator's content sources (RSS, YouTube, Twitter, LinkedIn, Threads)
+
+#### Step 2: Content Fetching
+For each creator:
+1. **Fetch new content** from their platforms using appropriate fetchers:
+   - RSS: Direct feed parsing
+   - YouTube: YouTube Data API
+   - Twitter/Threads: Apify scraper
+   - LinkedIn: BrightData scraper
+2. **Normalize content** to standard format with platform-specific metadata
+3. **Store in database** with `processing_status: 'processed'`
+
+#### Step 3: Relevancy Checking
+After content is stored:
+1. **Check for unscored content**: Query for content where `relevancy_checked_at IS NULL`
+2. **Batch process**: Fetch up to 50 items at a time using `get_content_for_relevancy_check()` function
+3. **Evaluate each item**: 
+   - Build full content including any referenced content (quotes/reposts)
+   - Send to OpenAI with lounge theme context
+   - Receive score (0-100) and reason
+4. **Update database**:
+   - Set `relevancy_score`, `relevancy_reason`, and `relevancy_checked_at`
+   - If score < 60: Insert into `deleted_content` table with `deletion_reason: 'low_relevancy'`
+
+#### Step 4: Content Display
+When users view content:
+1. **Regular users**: Only see content where `relevancy_checked_at IS NOT NULL` (scored content)
+2. **Curators/Admins**: See all content with visual indicators:
+   - Purple banner for auto-deleted (low relevancy)
+   - Yellow banner for manually deleted
+3. **Filtering**: Content API excludes deleted content for regular users
+
+#### Important Notes
+- **Relevancy checks run even when no new content**: The cron job checks for ANY unscored content, not just newly fetched
+- **Prevention of unscored display**: Content API filters out unscored content for regular users to prevent off-topic content from appearing
+- **Cross-lounge scoring**: Content belonging to multiple lounges gets the highest score across all lounges
 
 ### UI Components
 
@@ -112,6 +159,35 @@ WHERE id = 'lounge-id';
 - **70**: Standard filtering for most technical lounges
 - **65**: Lenient filtering for broader topics (e.g., Personal Growth)
 - **60 or below**: Very permissive, only filters clearly off-topic content
+
+## Handling Referenced Content
+
+### Supported Platforms and Types
+
+The system handles referenced content across all platforms:
+
+- **Twitter/X**: Quote tweets
+- **LinkedIn**: Reshares/reposts
+- **Threads**: Quote posts and reposts
+
+### Evaluation Logic
+
+When content includes a reference (quote, repost, or reply):
+
+1. **Both parts are evaluated**: The author's commentary AND the referenced content
+2. **Either can make it relevant**: If EITHER part is relevant to the lounge theme, the content scores well
+3. **Only filtered if BOTH are off-topic**: Content is only scored low if both the author's comment AND the referenced content are irrelevant
+
+### Example Scenarios
+
+| Author Comment | Referenced Content | Result |
+|---|---|---|
+| "Love this approach! 🎉" | SaaS metrics discussion | ✅ Kept (referenced content is relevant) |
+| "This applies to our SaaS pricing" | General business advice | ✅ Kept (author adds SaaS context) |
+| "So true! 😂" | Personal joke | ❌ Filtered (both parts off-topic) |
+| Technical analysis | Celebrity news | ✅ Kept (author's analysis is relevant) |
+
+This ensures curators can share relevant content with their own context without being filtered out.
 
 ## API Costs
 
