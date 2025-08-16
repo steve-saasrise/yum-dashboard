@@ -10,7 +10,9 @@ export const metadata: Metadata = {
   description: 'The Curated Internet for Smart Professionals',
   icons: {
     icon: '/lounge_favicon_2.png',
+    apple: '/lounge_app_icon.png',
   },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

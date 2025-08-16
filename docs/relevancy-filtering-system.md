@@ -262,7 +262,7 @@ ORDER BY relevancy_score DESC;
 
 -- Check multi-lounge content behavior
 WITH content_lounges AS (
-  SELECT 
+  SELECT
     c.id,
     c.title,
     c.relevancy_score,
@@ -337,6 +337,7 @@ ORDER BY relevancy_score ASC;
 ### Environment Variables
 
 Required in Railway deployment:
+
 - `OPENAI_API_KEY`: For relevancy scoring
 - `CRON_SECRET`: For authenticating cron requests
 - `SUPABASE_SERVICE_ROLE_KEY`: For database operations
