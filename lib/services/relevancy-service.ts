@@ -10,6 +10,8 @@ interface RelevancyCheckItem {
   content_description: string | null;
   content_url: string;
   creator_name: string;
+  reference_type?: string | null;
+  referenced_content?: any | null;
 }
 
 interface RelevancyResult {
@@ -150,6 +152,28 @@ FILTER OUT (Score <50):
 - Entertainment without educational value`;
       }
 
+      // Build content description including referenced content
+      let fullContent = item.content_description || item.content_title;
+
+      // If this is a quote tweet, retweet, or reply, include the referenced content
+      if (item.reference_type && item.referenced_content) {
+        const refContent = item.referenced_content;
+        if (item.reference_type === 'quote') {
+          fullContent += `\n\n[QUOTED TWEET: ${refContent.text || refContent.description || ''}]`;
+          if (refContent.author?.username) {
+            fullContent += ` by @${refContent.author.username}`;
+          }
+        } else if (item.reference_type === 'retweet') {
+          // For retweets, the referenced content IS the main content
+          fullContent = `[RETWEET: ${refContent.text || refContent.description || fullContent}]`;
+          if (refContent.author?.username) {
+            fullContent += ` by @${refContent.author.username}`;
+          }
+        } else if (item.reference_type === 'reply') {
+          fullContent += `\n\n[REPLYING TO: @${refContent.author?.username || 'unknown'}]`;
+        }
+      }
+
       const prompt = `You are a content curator. ${item.lounge_name === 'SaaS' ? 'For SaaS, prefer software content but accept relevant business strategies.' : 'Be INCLUSIVE - when in doubt, keep the content.'}
 
 LOUNGE: ${item.lounge_name}
@@ -157,7 +181,12 @@ ${loungeContext}
 
 CONTENT TO EVALUATE:
 Author: ${item.creator_name}
-Content: ${item.content_description || item.content_title}
+Content: ${fullContent}
+
+IMPORTANT: For quote tweets and retweets, evaluate BOTH the author's commentary AND the quoted/retweeted content. 
+- If EITHER the author's comment OR the quoted content is relevant to the lounge theme, score it as relevant (60+)
+- Only score low (<60) if BOTH the author's comment AND the quoted content are off-topic
+- When the author adds business/SaaS context to any content, that makes it relevant
 
 Score 0-100 based on relevance to the lounge. ${item.lounge_name === 'SaaS' ? 'SaaS prefers software context but can include transferable business insights.' : 'Be lenient - only filter obvious off-topic content.'}
 The threshold is ${item.lounge_name === 'Biohacking' || item.lounge_name === 'Personal Growth' ? '50' : '60'}, so aim higher unless clearly off-topic.

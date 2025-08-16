@@ -17,7 +17,7 @@ async function scoreSingleContent() {
   }
 
   // Score Dharmesh's heebie-jeebies tweet
-  const contentId = 'd0474986-4bbf-4453-9c8b-3cd9ec818b89';
+  const contentId = '65770708-234b-4e86-88d7-265c7d604207';
 
   // Get the content details
   const { data: contentData, error } = await supabase
@@ -64,6 +64,8 @@ async function scoreSingleContent() {
     content_description: contentData.description,
     content_url: contentData.url,
     creator_name: contentData.creators.display_name,
+    reference_type: contentData.reference_type,
+    referenced_content: contentData.referenced_content,
   };
 
   console.log('Scoring content:');
