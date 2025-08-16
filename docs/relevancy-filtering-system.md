@@ -85,12 +85,16 @@ ALTER TABLE deleted_content ADD COLUMN deletion_reason TEXT DEFAULT 'manual';
 ### Content Processing Flow
 
 #### Step 1: Cron Job Triggers
+
 The cron job (`/api/cron/fetch-content`) runs periodically to:
+
 1. Fetch all active creators with their platform URLs
 2. Process each creator's content sources (RSS, YouTube, Twitter, LinkedIn, Threads)
 
 #### Step 2: Content Fetching
+
 For each creator:
+
 1. **Fetch new content** from their platforms using appropriate fetchers:
    - RSS: Direct feed parsing
    - YouTube: YouTube Data API
@@ -100,10 +104,12 @@ For each creator:
 3. **Store in database** with `processing_status: 'processed'`
 
 #### Step 3: Relevancy Checking
+
 After content is stored:
+
 1. **Check for unscored content**: Query for content where `relevancy_checked_at IS NULL`
 2. **Batch process**: Fetch up to 50 items at a time using `get_content_for_relevancy_check()` function
-3. **Evaluate each item**: 
+3. **Evaluate each item**:
    - Build full content including any referenced content (quotes/reposts)
    - Send to OpenAI with lounge theme context
    - Receive score (0-100) and reason
@@ -112,7 +118,9 @@ After content is stored:
    - If score < 60: Insert into `deleted_content` table with `deletion_reason: 'low_relevancy'`
 
 #### Step 4: Content Display
+
 When users view content:
+
 1. **Regular users**: Only see content where `relevancy_checked_at IS NOT NULL` (scored content)
 2. **Curators/Admins**: See all content with visual indicators:
    - Purple banner for auto-deleted (low relevancy)
@@ -120,6 +128,7 @@ When users view content:
 3. **Filtering**: Content API excludes deleted content for regular users
 
 #### Important Notes
+
 - **Relevancy checks run even when no new content**: The cron job checks for ANY unscored content, not just newly fetched
 - **Prevention of unscored display**: Content API filters out unscored content for regular users to prevent off-topic content from appearing
 - **Cross-lounge scoring**: Content belonging to multiple lounges gets the highest score across all lounges
@@ -180,12 +189,12 @@ When content includes a reference (quote, repost, or reply):
 
 ### Example Scenarios
 
-| Author Comment | Referenced Content | Result |
-|---|---|---|
-| "Love this approach! 🎉" | SaaS metrics discussion | ✅ Kept (referenced content is relevant) |
-| "This applies to our SaaS pricing" | General business advice | ✅ Kept (author adds SaaS context) |
-| "So true! 😂" | Personal joke | ❌ Filtered (both parts off-topic) |
-| Technical analysis | Celebrity news | ✅ Kept (author's analysis is relevant) |
+| Author Comment                     | Referenced Content      | Result                                   |
+| ---------------------------------- | ----------------------- | ---------------------------------------- |
+| "Love this approach! 🎉"           | SaaS metrics discussion | ✅ Kept (referenced content is relevant) |
+| "This applies to our SaaS pricing" | General business advice | ✅ Kept (author adds SaaS context)       |
+| "So true! 😂"                      | Personal joke           | ❌ Filtered (both parts off-topic)       |
+| Technical analysis                 | Celebrity news          | ✅ Kept (author's analysis is relevant)  |
 
 This ensures curators can share relevant content with their own context without being filtered out.
 

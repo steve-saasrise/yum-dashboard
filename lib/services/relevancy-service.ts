@@ -266,10 +266,10 @@ Respond in JSON:
     // Group results by content_id and track ALL lounges and their scores
     const contentScores = new Map<
       string,
-      { 
-        highestScore: number; 
-        highestReason: string; 
-        loungeScores: Map<string, { score: number; threshold: number }> 
+      {
+        highestScore: number;
+        highestReason: string;
+        loungeScores: Map<string, { score: number; threshold: number }>;
       }
     >();
 
@@ -280,7 +280,9 @@ Respond in JSON:
         contentScores.set(result.content_id, {
           highestScore: result.score,
           highestReason: result.reason,
-          loungeScores: new Map([[result.lounge_id, { score: result.score, threshold: 0 }]])
+          loungeScores: new Map([
+            [result.lounge_id, { score: result.score, threshold: 0 }],
+          ]),
         });
       } else {
         // Update highest score if this one is higher
@@ -289,7 +291,10 @@ Respond in JSON:
           existing.highestReason = result.reason;
         }
         // Track this lounge's score
-        existing.loungeScores.set(result.lounge_id, { score: result.score, threshold: 0 });
+        existing.loungeScores.set(result.lounge_id, {
+          score: result.score,
+          threshold: 0,
+        });
       }
     }
 
@@ -300,13 +305,13 @@ Respond in JSON:
         allLoungeIds.add(loungeId);
       });
     });
-    
+
     // Fetch all lounge thresholds in one query
     const { data: lounges } = await this.supabase
       .from('lounges')
       .select('id, relevancy_threshold')
       .in('id', Array.from(allLoungeIds));
-    
+
     const loungeThresholds = new Map<string, number>();
     if (lounges) {
       for (const lounge of lounges) {
@@ -316,7 +321,10 @@ Respond in JSON:
 
     // Update each content item
     const entries = Array.from(contentScores.entries());
-    for (const [contentId, { highestScore, highestReason, loungeScores }] of entries) {
+    for (const [
+      contentId,
+      { highestScore, highestReason, loungeScores },
+    ] of entries) {
       // Update the relevancy score with the highest score
       const { error } = await this.supabase
         .from('content')
@@ -410,9 +418,13 @@ Respond in JSON:
     errors: number;
   }> {
     try {
+      console.log(`[RelevancyService] Starting processRelevancyChecks with limit: ${limit}`);
+      
       const items = await this.getContentForRelevancyCheck(limit);
+      console.log(`[RelevancyService] getContentForRelevancyCheck returned ${items.length} items`);
 
       if (items.length === 0) {
+        console.log('[RelevancyService] No items to process, returning early');
         return { processed: 0, errors: 0 };
       }
 
@@ -421,7 +433,10 @@ Respond in JSON:
       );
 
       const results = await this.checkRelevancy(items);
+      console.log(`[RelevancyService] checkRelevancy returned ${results.length} results`);
+      
       await this.updateRelevancyScores(results);
+      console.log(`[RelevancyService] updateRelevancyScores completed`);
 
       console.log(
         `[RelevancyService] Completed relevancy check for ${results.length} items`
@@ -432,7 +447,8 @@ Respond in JSON:
         errors: items.length - results.length,
       };
     } catch (error) {
-      console.error('Error processing relevancy checks:', error);
+      console.error('[RelevancyService] Error in processRelevancyChecks:', error);
+      console.error('[RelevancyService] Error stack:', error instanceof Error ? error.stack : 'No stack');
       return { processed: 0, errors: 1 };
     }
   }

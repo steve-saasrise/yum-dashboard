@@ -7,7 +7,7 @@ dotenv.config({ path: '.env.local' });
 
 async function runRelevancyCheck() {
   console.log('Starting manual relevancy check...');
-  
+
   // Create Supabase service client
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,7 +15,7 @@ async function runRelevancyCheck() {
   );
 
   const relevancyService = getRelevancyService(supabase);
-  
+
   if (!relevancyService) {
     console.error('OpenAI API key not configured');
     process.exit(1);
