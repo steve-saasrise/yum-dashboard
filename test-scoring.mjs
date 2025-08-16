@@ -12,7 +12,7 @@ const supabase = createClient(
 
 async function testScoring() {
   console.log('Testing relevancy scoring...\n');
-  
+
   const relevancyService = getRelevancyService(supabase);
   if (!relevancyService) {
     console.error('Failed to create relevancy service');
@@ -23,7 +23,7 @@ async function testScoring() {
     // Get items to score
     const items = await relevancyService.getContentForRelevancyCheck(5);
     console.log(`Found ${items.length} items to score\n`);
-    
+
     if (items.length === 0) {
       console.log('No items need scoring');
       return;
@@ -43,14 +43,18 @@ async function testScoring() {
     const { data: scored } = await supabase
       .from('content')
       .select('id, title, relevancy_score, relevancy_reason')
-      .in('id', items.map(i => i.content_id))
+      .in(
+        'id',
+        items.map((i) => i.content_id)
+      )
       .not('relevancy_score', 'is', null);
 
     console.log('\nScored items:');
     for (const item of scored || []) {
-      console.log(`- ${item.title}: ${item.relevancy_score} - ${item.relevancy_reason}`);
+      console.log(
+        `- ${item.title}: ${item.relevancy_score} - ${item.relevancy_reason}`
+      );
     }
-
   } catch (error) {
     console.error('Error:', error);
   }

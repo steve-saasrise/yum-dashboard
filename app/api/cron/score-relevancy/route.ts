@@ -17,7 +17,7 @@ function verifyCronAuth(request: NextRequest): boolean {
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   console.log('[RELEVANCY-CRON] Starting at', new Date().toISOString());
-  
+
   try {
     // Verify this is a legitimate cron request
     if (!verifyCronAuth(request)) {
@@ -33,7 +33,10 @@ export async function GET(request: NextRequest) {
         { status: 503 }
       );
     }
-    console.log('[RELEVANCY-CRON] OpenAI key exists, length:', process.env.OPENAI_API_KEY?.length);
+    console.log(
+      '[RELEVANCY-CRON] OpenAI key exists, length:',
+      process.env.OPENAI_API_KEY?.length
+    );
 
     // Create Supabase service client
     const supabase = createClient(
@@ -64,11 +67,16 @@ export async function GET(request: NextRequest) {
       );
 
     if (countError) {
-      console.error('[RELEVANCY-CRON] Error counting unscored content:', countError);
+      console.error(
+        '[RELEVANCY-CRON] Error counting unscored content:',
+        countError
+      );
     }
 
     const totalUnscored = unscoredCount || 0;
-    console.log(`[RELEVANCY-CRON] Unscored count query returned: ${unscoredCount}`);
+    console.log(
+      `[RELEVANCY-CRON] Unscored count query returned: ${unscoredCount}`
+    );
 
     if (totalUnscored === 0) {
       return NextResponse.json({
@@ -86,13 +94,16 @@ export async function GET(request: NextRequest) {
     // Process in batches to avoid timeout
     const batchSize = 100; // Process up to 100 items per cron run
     console.log(`[RELEVANCY-CRON] About to process ${batchSize} items...`);
-    
+
     let results;
     try {
       results = await relevancyService.processRelevancyChecks(batchSize);
       console.log('[RELEVANCY-CRON] processRelevancyChecks returned:', results);
     } catch (processError) {
-      console.error('[RELEVANCY-CRON] Error in processRelevancyChecks:', processError);
+      console.error(
+        '[RELEVANCY-CRON] Error in processRelevancyChecks:',
+        processError
+      );
       throw processError;
     }
 

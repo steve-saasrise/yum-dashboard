@@ -374,11 +374,12 @@ Respond in JSON:
 
           if (!existing) {
             // Insert into deleted_content with relevancy reason
+            // Note: platform in content table is enum, but text in deleted_content
             const { error: deleteError } = await this.supabase
               .from('deleted_content')
               .insert({
                 platform_content_id: content.platform_content_id,
-                platform: content.platform,
+                platform: String(content.platform), // Convert enum to string
                 creator_id: content.creator_id,
                 deleted_by: null, // System deletion
                 deleted_at: new Date().toISOString(),
@@ -418,10 +419,14 @@ Respond in JSON:
     errors: number;
   }> {
     try {
-      console.log(`[RelevancyService] Starting processRelevancyChecks with limit: ${limit}`);
-      
+      console.log(
+        `[RelevancyService] Starting processRelevancyChecks with limit: ${limit}`
+      );
+
       const items = await this.getContentForRelevancyCheck(limit);
-      console.log(`[RelevancyService] getContentForRelevancyCheck returned ${items.length} items`);
+      console.log(
+        `[RelevancyService] getContentForRelevancyCheck returned ${items.length} items`
+      );
 
       if (items.length === 0) {
         console.log('[RelevancyService] No items to process, returning early');
@@ -433,8 +438,10 @@ Respond in JSON:
       );
 
       const results = await this.checkRelevancy(items);
-      console.log(`[RelevancyService] checkRelevancy returned ${results.length} results`);
-      
+      console.log(
+        `[RelevancyService] checkRelevancy returned ${results.length} results`
+      );
+
       await this.updateRelevancyScores(results);
       console.log(`[RelevancyService] updateRelevancyScores completed`);
 
@@ -447,8 +454,14 @@ Respond in JSON:
         errors: items.length - results.length,
       };
     } catch (error) {
-      console.error('[RelevancyService] Error in processRelevancyChecks:', error);
-      console.error('[RelevancyService] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      console.error(
+        '[RelevancyService] Error in processRelevancyChecks:',
+        error
+      );
+      console.error(
+        '[RelevancyService] Error stack:',
+        error instanceof Error ? error.stack : 'No stack'
+      );
       return { processed: 0, errors: 1 };
     }
   }
