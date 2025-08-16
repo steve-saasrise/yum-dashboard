@@ -27,16 +27,20 @@ async function testRelevancy() {
     lounge_id: 'saas-lounge',
     lounge_name: 'SaaS',
     theme_description: 'SaaS business models, metrics, B2B software',
-    content_title: "Taylor's podcast debut gives a clinic in controlling your brand",
-    content_description: "Taylor's podcast debut gives a clinic in controlling your brand while staying genuine. She outlined why it was important to own her masters and gave her fans the respect they deserve—sharing the why behind the Easter eggs and product drops. Artists & founders: go direct and treat your audience like adults.",
+    content_title:
+      "Taylor's podcast debut gives a clinic in controlling your brand",
+    content_description:
+      "Taylor's podcast debut gives a clinic in controlling your brand while staying genuine. She outlined why it was important to own her masters and gave her fans the respect they deserve—sharing the why behind the Easter eggs and product drops. Artists & founders: go direct and treat your audience like adults.",
     content_url: 'https://linkedin.com/test',
-    creator_name: 'Amanda Natividad'
+    creator_name: 'Amanda Natividad',
   };
 
   console.log('Testing content:');
   console.log(`  Creator: ${testItem.creator_name}`);
   console.log(`  Lounge: ${testItem.lounge_name}`);
-  console.log(`  Content: "${testItem.content_description?.substring(0, 100)}..."\n`);
+  console.log(
+    `  Content: "${testItem.content_description?.substring(0, 100)}..."\n`
+  );
 
   // @ts-ignore - accessing private method for testing
   const result = await relevancyService.checkSingleItem(testItem);
@@ -48,7 +52,9 @@ async function testRelevancy() {
   console.log(`  Reason: ${result.reason}\n`);
 
   if (result.score < 60) {
-    console.log('✅ Test passed! Content would now be filtered out of SaaS lounge.');
+    console.log(
+      '✅ Test passed! Content would now be filtered out of SaaS lounge.'
+    );
   } else {
     console.log('⚠️  Content still scores too high for SaaS lounge.');
   }

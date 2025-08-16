@@ -222,6 +222,12 @@ export async function GET(request: NextRequest) {
       .in('creator_id', creatorIds)
       .eq('processing_status', 'processed');
 
+    // IMPORTANT: For regular users, only show content that has been scored
+    // This prevents unscored (potentially off-topic) content from appearing
+    if (!isPrivilegedUser) {
+      contentQuery = contentQuery.not('relevancy_checked_at', 'is', null);
+    }
+
     // Apply filters
     if (query.platforms && query.platforms.length > 0) {
       contentQuery = contentQuery.in('platform', query.platforms);

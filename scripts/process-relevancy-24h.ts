@@ -17,15 +17,19 @@ async function processRelevancy24Hours() {
   // Get relevancy service
   const relevancyService = getRelevancyService(supabase);
   if (!relevancyService) {
-    console.error('❌ Relevancy service not configured (OpenAI API key missing)');
+    console.error(
+      '❌ Relevancy service not configured (OpenAI API key missing)'
+    );
     process.exit(1);
   }
 
   // First, get count of unchecked content from past 24 hours
   const { data: stats } = await supabase.rpc('get_relevancy_stats_24h');
-  
+
   if (stats && stats[0]) {
-    console.log(`📊 Found ${stats[0].total_unchecked} unchecked items from past 24 hours`);
+    console.log(
+      `📊 Found ${stats[0].total_unchecked} unchecked items from past 24 hours`
+    );
     console.log(`   - ${stats[0].unique_content} unique content pieces`);
     console.log(`   - Across ${stats[0].lounges_involved} lounges\n`);
   }
@@ -38,11 +42,13 @@ async function processRelevancy24Hours() {
 
   // Keep processing until no more items
   while (true) {
-    console.log(`\n📦 Processing batch ${batchNumber} (up to ${batchSize} items)...`);
-    
+    console.log(
+      `\n📦 Processing batch ${batchNumber} (up to ${batchSize} items)...`
+    );
+
     try {
       const results = await relevancyService.processRelevancyChecks(batchSize);
-      
+
       if (results.processed === 0) {
         console.log('✅ No more items to process!');
         break;
@@ -58,16 +64,16 @@ async function processRelevancy24Hours() {
 
       // Wait 2 seconds between batches to avoid rate limits
       console.log('   ⏳ Waiting 2 seconds before next batch...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       batchNumber++;
     } catch (error) {
       console.error(`❌ Error processing batch ${batchNumber}:`, error);
       totalErrors++;
-      
+
       // Wait longer on error
       console.log('   ⏳ Waiting 5 seconds before retrying...');
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 
     // Safety limit to prevent infinite loops
@@ -95,7 +101,9 @@ async function processRelevancy24Hours() {
     .order('deleted_at', { ascending: false });
 
   if (deletedContent && deletedContent.length > 0) {
-    console.log(`\n🗑️  Auto-deleted ${deletedContent.length} low-relevancy items:`);
+    console.log(
+      `\n🗑️  Auto-deleted ${deletedContent.length} low-relevancy items:`
+    );
     deletedContent.slice(0, 5).forEach((item, index) => {
       console.log(`   ${index + 1}. ${item.title?.substring(0, 60)}...`);
     });
@@ -103,7 +111,9 @@ async function processRelevancy24Hours() {
       console.log(`   ... and ${deletedContent.length - 5} more`);
     }
   } else {
-    console.log('\n✨ No content was auto-deleted (all content passed relevancy thresholds)');
+    console.log(
+      '\n✨ No content was auto-deleted (all content passed relevancy thresholds)'
+    );
   }
 
   process.exit(0);

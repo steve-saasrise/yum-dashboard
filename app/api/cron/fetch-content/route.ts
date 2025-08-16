@@ -600,15 +600,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Run relevancy checks on new content
-    if (stats.new > 0 && process.env.OPENAI_API_KEY) {
+    // Run relevancy checks on new content AND any unscored content
+    if (process.env.OPENAI_API_KEY) {
       try {
         const relevancyService = getRelevancyService(supabase);
         if (relevancyService) {
-          console.log('[CRON] Starting relevancy checks for new content');
-          const relevancyResults =
-            await relevancyService.processRelevancyChecks(stats.new * 2); // Check up to 2x new items to handle multiple lounges
-          console.log('[CRON] Relevancy check results:', relevancyResults);
+          // Check if there's any unscored content (not just new)
+          const { data: unscoredCount } = await supabase
+            .from('content')
+            .select('id', { count: 'exact', head: true })
+            .is('relevancy_checked_at', null)
+            .gte(
+              'created_at',
+              new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+            );
+
+          const hasUnscoredContent = (unscoredCount as any)?.count > 0;
+
+          if (stats.new > 0 || hasUnscoredContent) {
+            console.log('[CRON] Starting relevancy checks', {
+              newContent: stats.new,
+              hasUnscoredContent,
+            });
+            // Process more items to ensure all new content gets scored (handle multiple lounges)
+            const itemsToCheck = Math.max(50, stats.new * 3);
+            const relevancyResults =
+              await relevancyService.processRelevancyChecks(itemsToCheck);
+            console.log('[CRON] Relevancy check results:', relevancyResults);
+          }
         }
       } catch (relevancyError) {
         console.error('[CRON] Error running relevancy checks:', relevancyError);

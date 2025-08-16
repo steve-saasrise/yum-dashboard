@@ -83,10 +83,8 @@ ALTER TABLE deleted_content ADD COLUMN deletion_reason TEXT DEFAULT 'manual';
   - Shows different banners for auto-deleted vs manually deleted content
   - Purple banner: "🤖 Auto-hidden: Low relevancy to lounge theme"
   - Yellow banner: "This content is hidden from users" (manual deletion)
-  
 - **Type Definitions** (`types/content.ts`)
   - ContentWithCreator interface includes `deletion_reason?: string` field
-  
 - **Intersection Observer Grid** (`components/intersection-observer-grid.tsx`)
   - Passes through deletion_reason to ContentCard for proper display
 
