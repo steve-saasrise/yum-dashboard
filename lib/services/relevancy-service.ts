@@ -281,7 +281,8 @@ Respond in JSON:
     }
 
     // Update each content item
-    for (const [contentId, { score, reason, loungeId }] of contentScores) {
+    const entries = Array.from(contentScores.entries());
+    for (const [contentId, { score, reason, loungeId }] of entries) {
       // Update the relevancy score
       const { error } = await this.supabase
         .from('content')
