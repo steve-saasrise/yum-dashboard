@@ -67,6 +67,7 @@ export function IntersectionObserverGrid({
       published_at: item.published_at || item.created_at,
       is_saved: item.is_saved,
       is_deleted: item.is_deleted,
+      deletion_reason: item.deletion_reason,
       topics: item.topics,
       media_urls: item.media_urls,
       // Include reference fields for quote tweets, retweets, etc.

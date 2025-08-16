@@ -315,6 +315,15 @@ export async function GET(request: NextRequest) {
               matchingContent.id,
               dc.deletion_reason || 'manual'
             );
+            
+            // Debug log for auto-deleted items
+            if (dc.deletion_reason === 'low_relevancy') {
+              console.log('Successfully mapped low_relevancy item:', {
+                content_id: matchingContent.id,
+                deletion_reason: dc.deletion_reason,
+                title: matchingContent.title,
+              });
+            }
           }
         });
       }
@@ -349,6 +358,35 @@ export async function GET(request: NextRequest) {
     // Transform the data to match ContentWithCreator type
     const transformedContent: ContentWithCreator[] = filteredContent.map(
       (item) => {
+        // Debug Hiten Shah tweet
+        if (item.description?.includes('pile of highlights')) {
+          const transformedItem = {
+            ...item,
+            topics: [], // No topics for now since content_topics table doesn't exist
+            creator: item.creator
+              ? {
+                  ...item.creator,
+                  name: item.creator.display_name, // Map display_name to name
+                  platform: item.platform, // Get platform from content since creators don't have it
+                }
+              : undefined,
+            // Add deletion status for privileged users
+            ...(isPrivilegedUser && {
+              is_deleted: deletedContentMap.has(item.id),
+              deletion_reason: deletionReasonMap.get(item.id),
+            }),
+          };
+          
+          console.log('Transforming Hiten Shah tweet:', {
+            id: item.id,
+            has_deletion: deletedContentMap.has(item.id),
+            deletion_reason_from_map: deletionReasonMap.get(item.id),
+            isPrivilegedUser,
+            transformed_deletion_reason: transformedItem.deletion_reason,
+            final_item: transformedItem,
+          });
+        }
+        
         // Log reference fields for debugging
         if (item.reference_type || item.referenced_content) {
           console.log('Content with reference:', {

@@ -66,6 +66,7 @@ export interface ContentWithCreator extends Content {
   }>;
   is_saved?: boolean;
   is_deleted?: boolean;
+  deletion_reason?: string;
 }
 
 // Media URL structure for images, videos, etc.

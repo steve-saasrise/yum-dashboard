@@ -170,6 +170,7 @@ interface FeedItem {
   published_at: string;
   is_saved?: boolean;
   is_deleted?: boolean; // Only present for curators/admins
+  deletion_reason?: string; // Reason for deletion (e.g., 'low_relevancy', 'manual')
   topics?: Array<{
     id: string;
     name: string;
@@ -787,6 +788,11 @@ export const ContentCard = React.memo(function ContentCard({
   const isDeleted = item.is_deleted || false;
   const creator =
     item.creator || creators.find((c) => c.id === item.creator_id);
+  
+  // Debug deletion reason
+  if (isDeleted && item.description?.includes('pile of highlights')) {
+    console.log('Hiten Shah tweet deletion_reason:', item.deletion_reason);
+  }
 
   const getPlatformIcon = (platform: string) => {
     switch (platform?.toLowerCase()) {
@@ -847,9 +853,19 @@ export const ContentCard = React.memo(function ContentCard({
       className={`overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 flex flex-col h-full ${isDeleted ? 'opacity-60' : ''}`}
     >
       {isDeleted && canDelete && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 px-4 py-2 border-b border-yellow-200 dark:border-yellow-800">
-          <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
-            This content is hidden from users
+        <div className={`px-4 py-2 border-b ${
+          item.deletion_reason === 'low_relevancy'
+            ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+            : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+        }`}>
+          <p className={`text-xs font-medium ${
+            item.deletion_reason === 'low_relevancy'
+              ? 'text-purple-800 dark:text-purple-200'
+              : 'text-yellow-800 dark:text-yellow-200'
+          }`}>
+            {item.deletion_reason === 'low_relevancy'
+              ? '🤖 Auto-hidden: Low relevancy to lounge theme'
+              : 'This content is hidden from users'}
           </p>
         </div>
       )}
