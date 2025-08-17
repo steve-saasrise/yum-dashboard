@@ -392,8 +392,10 @@ function CreatorTable({
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {creator.lounges?.slice(0, 2).map((lounge, index) => {
-                      const loungeName = typeof lounge === 'string' ? lounge : lounge.name;
-                      const key = typeof lounge === 'string' ? lounge : lounge.id;
+                      const loungeName =
+                        typeof lounge === 'string' ? lounge : lounge.name;
+                      const key =
+                        typeof lounge === 'string' ? lounge : lounge.id;
                       return (
                         <Badge
                           key={key || index}
@@ -521,10 +523,15 @@ function CreatorCards({
                 )}
                 <div className="flex flex-wrap gap-1">
                   {creator.lounges?.slice(0, 3).map((lounge, index) => {
-                    const loungeName = typeof lounge === 'string' ? lounge : lounge.name;
+                    const loungeName =
+                      typeof lounge === 'string' ? lounge : lounge.name;
                     const key = typeof lounge === 'string' ? lounge : lounge.id;
                     return (
-                      <Badge key={key || index} variant="secondary" className="text-xs">
+                      <Badge
+                        key={key || index}
+                        variant="secondary"
+                        className="text-xs"
+                      >
                         {loungeName}
                       </Badge>
                     );

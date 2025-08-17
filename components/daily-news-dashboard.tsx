@@ -919,9 +919,10 @@ export const ContentCard = React.memo(function ContentCard({
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {creator.lounges.slice(0, 2).map((lounge, index) => {
                       // Handle both string[] and object[] formats
-                      const loungeObj = typeof lounge === 'string' 
-                        ? { id: lounge, name: lounge } 
-                        : lounge;
+                      const loungeObj =
+                        typeof lounge === 'string'
+                          ? { id: lounge, name: lounge }
+                          : lounge;
                       return (
                         <button
                           key={loungeObj.id || index}
@@ -945,8 +946,11 @@ export const ContentCard = React.memo(function ContentCard({
                         title={`Also in: ${creator.lounges
                           .slice(2)
                           .map((l) => {
-                            const loungeObj = typeof l === 'string' ? { name: l } : l;
-                            return loungeObj.name === 'Venture' ? 'Venture Capital' : loungeObj.name;
+                            const loungeObj =
+                              typeof l === 'string' ? { name: l } : l;
+                            return loungeObj.name === 'Venture'
+                              ? 'Venture Capital'
+                              : loungeObj.name;
                           })
                           .join(', ')}`}
                       >

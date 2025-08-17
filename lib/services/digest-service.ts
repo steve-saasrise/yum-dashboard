@@ -159,9 +159,7 @@ export class DigestService {
         .in('platform', config.platforms)
         .eq('processing_status', 'processed')
         .gte('published_at', twentyFourHoursAgo.toISOString())
-        .or(
-          `relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`
-        )
+        .or(`relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`)
         .order('relevancy_score', { ascending: false, nullsFirst: false })
         .order('published_at', { ascending: false })
         .limit(2); // Just get up to 2 per platform
@@ -183,10 +181,10 @@ export class DigestService {
     // Phase 2: Fill to 10 items with best available recent content (no platform restrictions)
     if (selectedContent.length < limit) {
       const needed = limit - selectedContent.length;
-      
+
       // Get the IDs we've already selected to exclude them
       const selectedIds = Array.from(usedIds);
-      
+
       let fillQuery = supabase
         .from('content')
         .select(
@@ -211,12 +209,12 @@ export class DigestService {
         .or(
           `relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`
         );
-      
+
       // Exclude already selected content
       if (selectedIds.length > 0) {
         fillQuery = fillQuery.not('id', 'in', `(${selectedIds.join(',')})`);
       }
-      
+
       const { data: fillContent } = await fillQuery
         .order('relevancy_score', { ascending: false, nullsFirst: false })
         .order('published_at', { ascending: false })
