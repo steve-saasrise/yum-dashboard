@@ -135,10 +135,9 @@ export class DigestService {
     const selectedContent: ContentForDigest[] = [];
     const usedIds = new Set<string>();
 
-    // Fetch content for each platform group
+    // Phase 1: Try to get up to 2 from each platform (recent only, from last 24 hours)
     for (const config of platformConfig) {
-      // First try to get content from the last 24 hours
-      let query = supabase
+      const query = supabase
         .from('content')
         .select(
           `
@@ -159,87 +158,36 @@ export class DigestService {
         .in('creator_id', creatorIdList)
         .in('platform', config.platforms)
         .eq('processing_status', 'processed')
-        .gte('published_at', twentyFourHoursAgo.toISOString());
-
-      // Apply relevancy filter if scores are available
-      // We use OR condition: either score is above threshold OR score is null (not yet checked)
-      query = query.or(
-        `relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`
-      );
-
-      const { data: recentPlatformContent } = await query
+        .gte('published_at', twentyFourHoursAgo.toISOString())
+        .or(
+          `relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`
+        )
         .order('relevancy_score', { ascending: false, nullsFirst: false })
         .order('published_at', { ascending: false })
-        .limit(config.maxCount * 2); // Get extra to account for filtering
+        .limit(2); // Just get up to 2 per platform
 
-      let platformContent = recentPlatformContent || [];
+      const { data: platformContent } = await query;
 
-      // If we didn't get enough from the last 24 hours, get older content
-      if (platformContent.length < config.targetCount) {
-        let olderQuery = supabase
-          .from('content')
-          .select(
-            `
-            id,
-            title,
-            description,
-            url,
-            platform,
-            thumbnail_url,
-            published_at,
-            ai_summary_short,
-            relevancy_score,
-            creators!inner(
-              display_name
-            )
-          `
-          )
-          .in('creator_id', creatorIdList)
-          .in('platform', config.platforms)
-          .eq('processing_status', 'processed');
-
-        // Apply relevancy filter
-        olderQuery = olderQuery.or(
-          `relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`
-        );
-
-        const { data: olderPlatformContent } = await olderQuery
-          .order('relevancy_score', { ascending: false, nullsFirst: false })
-          .order('published_at', { ascending: false })
-          .limit(config.maxCount * 2);
-
-        if (olderPlatformContent) {
-          // Merge and deduplicate, keeping the most recent
-          const mergedContent = [...platformContent];
-          for (const content of olderPlatformContent) {
-            if (!mergedContent.find((c) => c.id === content.id)) {
-              mergedContent.push(content);
-            }
-          }
-          platformContent = mergedContent.slice(0, config.maxCount);
+      // Add what we got (might be 0, 1, or 2 items)
+      for (const content of platformContent || []) {
+        if (!usedIds.has(content.id)) {
+          selectedContent.push({
+            ...content,
+            creator: (content as any).creators,
+          });
+          usedIds.add(content.id);
         }
-      }
-
-      // Add selected content, respecting the max count for each platform
-      let addedFromPlatform = 0;
-      for (const content of platformContent) {
-        if (addedFromPlatform >= config.maxCount) break;
-        if (usedIds.has(content.id)) continue;
-
-        selectedContent.push({
-          ...content,
-          creator: (content as any).creators,
-        });
-        usedIds.add(content.id);
-        addedFromPlatform++;
       }
     }
 
-    // If we have fewer than 10 items total, try to fill up with additional content
-    // but still respect the platform limits (especially X/Twitter limit of 2)
+    // Phase 2: Fill to 10 items with best available recent content (no platform restrictions)
     if (selectedContent.length < limit) {
-      // Get more content from platforms that haven't reached their max
-      const { data: additionalContent } = await supabase
+      const needed = limit - selectedContent.length;
+      
+      // Get the IDs we've already selected to exclude them
+      const selectedIds = Array.from(usedIds);
+      
+      let fillQuery = supabase
         .from('content')
         .select(
           `
@@ -251,6 +199,7 @@ export class DigestService {
           thumbnail_url,
           published_at,
           ai_summary_short,
+          relevancy_score,
           creators!inner(
             display_name
           )
@@ -258,38 +207,28 @@ export class DigestService {
         )
         .in('creator_id', creatorIdList)
         .eq('processing_status', 'processed')
+        .gte('published_at', twentyFourHoursAgo.toISOString())
+        .or(
+          `relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`
+        );
+      
+      // Exclude already selected content
+      if (selectedIds.length > 0) {
+        fillQuery = fillQuery.not('id', 'in', `(${selectedIds.join(',')})`);
+      }
+      
+      const { data: fillContent } = await fillQuery
+        .order('relevancy_score', { ascending: false, nullsFirst: false })
         .order('published_at', { ascending: false })
-        .limit(50); // Get more to have options
+        .limit(needed);
 
-      if (additionalContent) {
-        // Count how many we have from each platform
-        const platformCounts: Record<string, number> = {};
-        for (const content of selectedContent) {
-          platformCounts[content.platform] =
-            (platformCounts[content.platform] || 0) + 1;
-        }
-
-        // Add more content, but respect platform limits
-        for (const content of additionalContent) {
-          if (selectedContent.length >= limit) break;
-          if (usedIds.has(content.id)) continue;
-
-          // Special check for X/Twitter - never exceed 2
-          if (
-            content.platform === 'twitter' &&
-            platformCounts['twitter'] >= 2
-          ) {
-            continue;
-          }
-
-          selectedContent.push({
-            ...content,
-            creator: (content as any).creators,
-          });
-          usedIds.add(content.id);
-          platformCounts[content.platform] =
-            (platformCounts[content.platform] || 0) + 1;
-        }
+      // Add the best remaining content regardless of platform
+      for (const content of fillContent || []) {
+        selectedContent.push({
+          ...content,
+          creator: (content as any).creators,
+        });
+        if (selectedContent.length >= limit) break;
       }
     }
 
