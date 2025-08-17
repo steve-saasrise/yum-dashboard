@@ -34,7 +34,7 @@ export interface Creator {
   is_active?: boolean;
   created_at: string;
   updated_at: string;
-  lounges?: string[];
+  lounges?: string[] | Array<{ id: string; name: string }>;
   lounge_ids?: string[]; // IDs for edit modal
   // New field for multiple URLs
   urls?: CreatorUrl[];

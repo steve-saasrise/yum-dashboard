@@ -166,6 +166,7 @@ interface FeedItem {
     platform: Platform;
     avatar_url?: string;
     metadata?: Record<string, unknown>;
+    lounges?: Array<{ id: string; name: string }>;
   };
   published_at: string;
   is_saved?: boolean;
@@ -769,6 +770,7 @@ export const ContentCard = React.memo(function ContentCard({
   onUndelete,
   canDelete,
   showVideoEmbeds = true,
+  onLoungeSelect,
 }: {
   item: FeedItem;
   creators: Creator[];
@@ -778,6 +780,7 @@ export const ContentCard = React.memo(function ContentCard({
   onUndelete?: (id: string) => Promise<void>;
   canDelete?: boolean;
   showVideoEmbeds?: boolean;
+  onLoungeSelect?: (loungeId: string) => void;
 }) {
   const [bookmarked, setBookmarked] = React.useState(item.is_saved || false);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -911,6 +914,47 @@ export const ContentCard = React.memo(function ContentCard({
                       : 'Recently'}
                   </span>
                 </div>
+                {/* Display lounges as subtle badge pills */}
+                {creator.lounges && creator.lounges.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {creator.lounges.slice(0, 2).map((lounge, index) => {
+                      // Handle both string[] and object[] formats
+                      const loungeObj = typeof lounge === 'string' 
+                        ? { id: lounge, name: lounge } 
+                        : lounge;
+                      return (
+                        <button
+                          key={loungeObj.id || index}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onLoungeSelect) {
+                              onLoungeSelect(loungeObj.id);
+                            }
+                          }}
+                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-500 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 cursor-pointer"
+                        >
+                          {loungeObj.name === 'Venture'
+                            ? 'Venture Capital'
+                            : loungeObj.name}
+                        </button>
+                      );
+                    })}
+                    {creator.lounges.length > 2 && (
+                      <span
+                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-600 border border-gray-200 dark:border-gray-700 cursor-default"
+                        title={`Also in: ${creator.lounges
+                          .slice(2)
+                          .map((l) => {
+                            const loungeObj = typeof l === 'string' ? { name: l } : l;
+                            return loungeObj.name === 'Venture' ? 'Venture Capital' : loungeObj.name;
+                          })
+                          .join(', ')}`}
+                      >
+                        +{creator.lounges.length - 2}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -2419,6 +2463,7 @@ export function DailyNewsDashboard() {
                   undeleteContent={handleUndeleteContent}
                   canManageCreators={canManageCreators}
                   showVideoEmbeds={showVideoEmbeds}
+                  onLoungeSelect={setSelectedLoungeId}
                 />
               </div>
             )}

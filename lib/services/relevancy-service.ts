@@ -68,27 +68,36 @@ export class RelevancyService {
       let loungeContext = '';
 
       if (item.lounge_name === 'SaaS') {
-        // SaaS-specific - prefer software businesses but accept relevant business content
+        // SaaS-focused but inclusive of all tech and AI content
         loungeContext = `
 KEEP (Score 60+):
+- ANY technology, software, AI, or programming content
+- AI tools, prompts, workflows, use cases (ChatGPT, Claude, Midjourney, etc.)
+- AI in business, AI automation, AI agents, AI APIs
+- Machine learning, LLMs, AI development, AI trends
 - Software as a Service businesses, SaaS metrics (MRR, ARR, churn, CAC, LTV)
 - B2B software sales, pricing, customer success
 - SaaS product development, features, integrations
 - Cloud software, subscription models, SaaS tools
-- Technical implementation for SaaS (APIs, infrastructure, security)
+- Technical implementation (APIs, infrastructure, security, DevOps)
+- Software engineering, coding, architecture patterns
+- Tech industry news, product launches, acquisitions
+- Developer tools, productivity software, automation
+- Open source projects, tech tutorials, best practices
+- No-code/low-code tools and platforms
 
 BORDERLINE (Score 40-59):
-- General B2B business strategies that could apply to SaaS
-- Marketing/growth tactics without specific software context
-- Startup advice that's not software-specific
-- Brand building and audience strategies
+- General B2B business strategies without tech/AI context
+- Marketing/growth tactics without specific software examples
+- Generic startup advice without tech/software focus
+- Brand building without product context
 
 FILTER OUT (Score <40):
 - Pure celebrity/entertainment content
-- Consumer product reviews
-- Personal life updates
-- Motivational quotes without business context
-- Political content unrelated to tech`;
+- Consumer product reviews (non-tech)
+- Personal life updates unrelated to tech/work
+- Motivational quotes without business/tech context
+- Political content unrelated to tech industry`;
       } else if (
         item.lounge_name === 'AI' ||
         item.lounge_name === 'Venture' ||

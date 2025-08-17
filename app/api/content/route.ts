@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Build the content query
+    // Build the content query with lounge associations
     let contentQuery = supabase
       .from('content')
       .select(
@@ -361,6 +361,35 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch lounge associations for all creators in the content
+    const uniqueCreatorIds = [
+      ...new Set(
+        filteredContent.map((item) => item.creator_id).filter(Boolean)
+      ),
+    ];
+    const creatorLoungesMap = new Map<
+      string,
+      Array<{ id: string; name: string }>
+    >();
+
+    if (uniqueCreatorIds.length > 0) {
+      const { data: creatorLounges } = await supabase
+        .from('creator_lounges')
+        .select('creator_id, lounges(id, name)')
+        .in('creator_id', uniqueCreatorIds);
+
+      if (creatorLounges) {
+        creatorLounges.forEach((cl) => {
+          if (cl.lounges) {
+            if (!creatorLoungesMap.has(cl.creator_id)) {
+              creatorLoungesMap.set(cl.creator_id, []);
+            }
+            creatorLoungesMap.get(cl.creator_id)?.push(cl.lounges as any);
+          }
+        });
+      }
+    }
+
     // Transform the data to match ContentWithCreator type
     const transformedContent: ContentWithCreator[] = filteredContent.map(
       (item) => {
@@ -374,6 +403,7 @@ export async function GET(request: NextRequest) {
                   ...item.creator,
                   name: item.creator.display_name, // Map display_name to name
                   platform: item.platform, // Get platform from content since creators don't have it
+                  lounges: creatorLoungesMap.get(item.creator_id) || [], // Add lounges
                 }
               : undefined,
             // Add deletion status for privileged users
@@ -417,6 +447,7 @@ export async function GET(request: NextRequest) {
                 ...item.creator,
                 name: item.creator.display_name, // Map display_name to name
                 platform: item.platform, // Get platform from content since creators don't have it
+                lounges: creatorLoungesMap.get(item.creator_id) || [], // Add lounges
               }
             : undefined,
           // Add deletion status for privileged users

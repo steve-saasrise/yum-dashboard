@@ -391,15 +391,19 @@ function CreatorTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {creator.lounges?.slice(0, 2).map((lounge) => (
-                      <Badge
-                        key={lounge}
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        {lounge}
-                      </Badge>
-                    ))}
+                    {creator.lounges?.slice(0, 2).map((lounge, index) => {
+                      const loungeName = typeof lounge === 'string' ? lounge : lounge.name;
+                      const key = typeof lounge === 'string' ? lounge : lounge.id;
+                      return (
+                        <Badge
+                          key={key || index}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          {loungeName}
+                        </Badge>
+                      );
+                    })}
                     {creator.lounges && creator.lounges.length > 2 && (
                       <Badge variant="outline" className="text-xs">
                         +{creator.lounges.length - 2}
@@ -516,11 +520,15 @@ function CreatorCards({
                   </p>
                 )}
                 <div className="flex flex-wrap gap-1">
-                  {creator.lounges?.slice(0, 3).map((lounge) => (
-                    <Badge key={lounge} variant="secondary" className="text-xs">
-                      {lounge}
-                    </Badge>
-                  ))}
+                  {creator.lounges?.slice(0, 3).map((lounge, index) => {
+                    const loungeName = typeof lounge === 'string' ? lounge : lounge.name;
+                    const key = typeof lounge === 'string' ? lounge : lounge.id;
+                    return (
+                      <Badge key={key || index} variant="secondary" className="text-xs">
+                        {loungeName}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
               {canManageCreators && (
