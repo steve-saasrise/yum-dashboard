@@ -1,89 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import {
-  rateLimitConfig,
-  magicLinkConfig,
-  getAuthErrorMessage,
-  isRateLimitError,
-} from '@/lib/supabase';
+import { redis } from '@/lib/redis';
 import { z } from 'zod';
 
-// Rate limiting storage (in production, use Redis or a database)
-const rateLimitStore = new Map<
-  string,
-  { count: number; resetTime: number; lastRequest: number }
->();
-
-// Clean up old entries every 10 minutes
-setInterval(
-  () => {
-    const now = Date.now();
-    for (const [key, value] of rateLimitStore.entries()) {
-      if (now > value.resetTime) {
-        rateLimitStore.delete(key);
-      }
-    }
-  },
-  10 * 60 * 1000
-);
+// Rate limit configuration
+const RATE_LIMIT_WINDOW = 15 * 60; // 15 minutes in seconds
+const RATE_LIMIT_MAX_ATTEMPTS = 5;
+const MAGIC_LINK_COOLDOWN = 60; // 1 minute between requests
 
 // Input validation schema
 const magicLinkSchema = z.object({
   email: z.string().email('Invalid email address'),
-  redirectTo: z.string().url().optional(),
 });
 
-function getRateLimitKey(ip: string, email: string): string {
-  return `${ip}:${email}`;
-}
-
-function isRateLimited(key: string): { limited: boolean; resetTime?: number } {
-  const now = Date.now();
-  const entry = rateLimitStore.get(key);
-
-  if (!entry) {
+async function checkRateLimit(email: string, ip: string) {
+  // If Redis is not configured, allow all requests (development)
+  if (!redis) {
+    console.warn('Redis not configured - rate limiting disabled');
     return { limited: false };
   }
 
-  // Reset if window has expired
-  if (now > entry.resetTime) {
-    rateLimitStore.delete(key);
+  const key = `rate_limit:magic_link:${ip}:${email}`;
+
+  try {
+    // Get current count
+    const count = await redis.get(key);
+
+    if (count && parseInt(count as string) >= RATE_LIMIT_MAX_ATTEMPTS) {
+      const ttl = await redis.ttl(key);
+      return {
+        limited: true,
+        remainingSeconds: ttl > 0 ? ttl : RATE_LIMIT_WINDOW,
+      };
+    }
+
+    // Check cooldown
+    const cooldownKey = `cooldown:magic_link:${email}`;
+    const cooldown = await redis.get(cooldownKey);
+    if (cooldown) {
+      const ttl = await redis.ttl(cooldownKey);
+      return {
+        limited: true,
+        remainingSeconds: ttl > 0 ? ttl : MAGIC_LINK_COOLDOWN,
+      };
+    }
+
+    // Increment counter
+    const newCount = await redis.incr(key);
+    if (newCount === 1) {
+      await redis.expire(key, RATE_LIMIT_WINDOW);
+    }
+
+    // Set cooldown
+    await redis.set(cooldownKey, '1', { ex: MAGIC_LINK_COOLDOWN });
+
     return { limited: false };
-  }
-
-  // Check if within cooldown period
-  if (now - entry.lastRequest < rateLimitConfig.magicLinkCooldown) {
-    return {
-      limited: true,
-      resetTime: entry.lastRequest + rateLimitConfig.magicLinkCooldown,
-    };
-  }
-
-  // Check if max attempts exceeded
-  if (entry.count >= rateLimitConfig.maxAttempts) {
-    return { limited: true, resetTime: entry.resetTime };
-  }
-
-  return { limited: false };
-}
-
-function updateRateLimit(key: string): void {
-  const now = Date.now();
-  const entry = rateLimitStore.get(key);
-
-  if (!entry || now > entry.resetTime) {
-    rateLimitStore.set(key, {
-      count: 1,
-      resetTime: now + rateLimitConfig.windowMs,
-      lastRequest: now,
-    });
-  } else {
-    rateLimitStore.set(key, {
-      count: entry.count + 1,
-      resetTime: entry.resetTime,
-      lastRequest: now,
-    });
+  } catch (error) {
+    console.error('Rate limit check failed:', error);
+    // On Redis error, allow the request
+    return { limited: false };
   }
 }
 
@@ -95,15 +71,12 @@ export async function POST(request: NextRequest) {
     const validation = magicLinkSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        {
-          error: 'Invalid input',
-          details: validation.error.errors.map((e) => e.message),
-        },
+        { error: 'Invalid email address' },
         { status: 400 }
       );
     }
 
-    const { email, redirectTo } = validation.data;
+    const { email } = validation.data;
 
     // Get client IP for rate limiting
     const ip =
@@ -111,31 +84,17 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-real-ip') ||
       '127.0.0.1';
 
-    const rateLimitKey = getRateLimitKey(ip, email);
-
     // Check rate limiting
-    const { limited, resetTime } = isRateLimited(rateLimitKey);
+    const { limited, remainingSeconds } = await checkRateLimit(email, ip);
     if (limited) {
-      const remainingTime = resetTime
-        ? Math.ceil((resetTime - Date.now()) / 1000)
-        : 60;
       return NextResponse.json(
         {
-          error: 'Rate limit exceeded',
-          message: `Too many requests. Please wait ${remainingTime} seconds before trying again.`,
-          retryAfter: remainingTime,
+          error: 'Too many requests',
+          message: `Please wait ${remainingSeconds} seconds before trying again`,
         },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': remainingTime.toString(),
-          },
-        }
+        { status: 429 }
       );
     }
-
-    // Update rate limit counter
-    updateRateLimit(rateLimitKey);
 
     // Create Supabase server client
     const cookieStore = await cookies();
@@ -153,9 +112,7 @@ export async function POST(request: NextRequest) {
                 cookieStore.set(name, value, options);
               });
             } catch {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
+              // Ignore cookie errors in Server Components
             }
           },
         },
@@ -166,95 +123,22 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo:
-          redirectTo ||
-          `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
-        shouldCreateUser: magicLinkConfig.shouldCreateUser,
-        data: {
-          ...magicLinkConfig.data,
-          timestamp: new Date().toISOString(),
-          source: 'magic-link-api',
-        },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
       },
     });
 
     if (error) {
-      // Error logging removed - error details are captured in the response
-
-      // Return user-friendly error message
-      const userMessage = getAuthErrorMessage(error);
-
-      // Don't increment rate limit for certain errors
-      if (isRateLimitError(error)) {
-        return NextResponse.json(
-          {
-            error: 'Rate limit exceeded',
-            message: userMessage,
-          },
-          { status: 429 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          error: 'Magic link failed',
-          message: userMessage,
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // Success response
     return NextResponse.json({
       success: true,
-      message: 'Magic link sent successfully',
-      email,
-      expiresIn: magicLinkConfig.expiresIn,
+      message: 'Magic link sent! Check your email.',
     });
-  } catch {
+  } catch (error) {
+    console.error('Magic link error:', error);
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: 'An unexpected error occurred. Please try again later.',
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// GET endpoint to check rate limit status
-export async function GET(request: NextRequest) {
-  try {
-    const url = new URL(request.url);
-    const email = url.searchParams.get('email');
-
-    if (!email) {
-      return NextResponse.json(
-        { error: 'Email parameter is required' },
-        { status: 400 }
-      );
-    }
-
-    const ip =
-      request.headers.get('x-forwarded-for') ||
-      request.headers.get('x-real-ip') ||
-      '127.0.0.1';
-
-    const rateLimitKey = getRateLimitKey(ip, email);
-    const { limited, resetTime } = isRateLimited(rateLimitKey);
-
-    return NextResponse.json({
-      email,
-      rateLimited: limited,
-      resetTime: resetTime || null,
-      remainingTime: resetTime
-        ? Math.max(0, Math.ceil((resetTime - Date.now()) / 1000))
-        : 0,
-    });
-  } catch {
-    // Rate limit check failed
-    return NextResponse.json(
-      { error: 'Failed to check rate limit' },
+      { error: 'Failed to send magic link' },
       { status: 500 }
     );
   }

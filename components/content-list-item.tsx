@@ -45,8 +45,9 @@ interface FeedItem {
     id: string;
     name: string;
     platform: string;
-    avatar_url?: string;
+    avatar_url?: string | null;
     metadata?: Record<string, unknown>;
+    lounges?: Array<{ id: string; name: string }>;
   };
   published_at: string;
   is_saved?: boolean;

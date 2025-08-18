@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
-import type { ContentWithCreator } from '@/types/content';
+import type { ContentWithCreator, EngagementMetrics } from '@/types/content';
+import type { Database } from '@/types/database.types';
 
 // Query parameters schema
 const querySchema = z.object({
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
   try {
     // Create Supabase server client
     const cookieStore = await cookies();
-    const supabase = createServerClient(
+    const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
@@ -278,6 +279,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Debug: Check if relevancy fields are in raw data
+    if (content && content.length > 0) {
+      const bobGourley = content.find((c: any) => c.id === '87546a50-7064-4c2b-90a9-e18ec5f4a1dd');
+      if (bobGourley) {
+        console.log('[API] Raw Bob Gourley content from DB:', {
+          id: bobGourley.id,
+          title: bobGourley.title,
+          relevancy_score: bobGourley.relevancy_score,
+          relevancy_checked_at: bobGourley.relevancy_checked_at,
+          relevancy_reason: bobGourley.relevancy_reason,
+          hasFields: {
+            score: 'relevancy_score' in bobGourley,
+            checked: 'relevancy_checked_at' in bobGourley,
+            reason: 'relevancy_reason' in bobGourley
+          }
+        });
+      }
+    }
+
     console.log('Content query results:', {
       totalCount: count,
       fetchedCount: content?.length || 0,
@@ -392,17 +412,27 @@ export async function GET(request: NextRequest) {
 
     // Transform the data to match ContentWithCreator type
     const transformedContent: ContentWithCreator[] = filteredContent.map(
-      (item) => {
+      (item): ContentWithCreator => {
         // Debug Hiten Shah tweet
         if (item.description?.includes('pile of highlights')) {
           const transformedItem = {
             ...item,
+            // Handle media_urls Json type
+            media_urls: Array.isArray(item.media_urls) ? item.media_urls as any : null,
+            // Handle engagement_metrics Json type
+            engagement_metrics: typeof item.engagement_metrics === 'object' && item.engagement_metrics && !Array.isArray(item.engagement_metrics)
+              ? item.engagement_metrics as EngagementMetrics
+              : null,
             topics: [], // No topics for now since content_topics table doesn't exist
             creator: item.creator
               ? {
-                  ...item.creator,
+                  id: item.creator.id,
                   name: item.creator.display_name, // Map display_name to name
                   platform: item.platform, // Get platform from content since creators don't have it
+                  avatar_url: item.creator.avatar_url,
+                  metadata: typeof item.creator.metadata === 'object' && item.creator.metadata && !Array.isArray(item.creator.metadata) 
+                    ? item.creator.metadata as Record<string, any>
+                    : undefined,
                   lounges: creatorLoungesMap.get(item.creator_id) || [], // Add lounges
                 }
               : undefined,
@@ -432,21 +462,36 @@ export async function GET(request: NextRequest) {
             has_referenced_content: !!item.referenced_content,
             referenced_content_sample: item.referenced_content
               ? {
-                  text: item.referenced_content.text?.substring(0, 50),
-                  author: item.referenced_content.author?.username,
+                  text: (item.referenced_content as any)?.text?.substring(0, 50),
+                  author: (item.referenced_content as any)?.author?.username,
                 }
               : null,
           });
         }
 
-        return {
+
+        const transformedItem = {
           ...item,
+          // Explicitly preserve relevancy fields
+          relevancy_score: item.relevancy_score,
+          relevancy_checked_at: item.relevancy_checked_at,
+          relevancy_reason: item.relevancy_reason,
+          // Handle media_urls Json type
+          media_urls: Array.isArray(item.media_urls) ? item.media_urls : null,
+          // Handle engagement_metrics Json type
+          engagement_metrics: typeof item.engagement_metrics === 'object' && item.engagement_metrics && !Array.isArray(item.engagement_metrics)
+            ? item.engagement_metrics as EngagementMetrics
+            : null,
           topics: [], // No topics for now since content_topics table doesn't exist
           creator: item.creator
             ? {
-                ...item.creator,
+                id: item.creator.id,
                 name: item.creator.display_name, // Map display_name to name
                 platform: item.platform, // Get platform from content since creators don't have it
+                avatar_url: item.creator.avatar_url,
+                metadata: typeof item.creator.metadata === 'object' && item.creator.metadata && !Array.isArray(item.creator.metadata) 
+                  ? item.creator.metadata as Record<string, any>
+                  : undefined,
                 lounges: creatorLoungesMap.get(item.creator_id) || [], // Add lounges
               }
             : undefined,
@@ -456,6 +501,23 @@ export async function GET(request: NextRequest) {
             deletion_reason: deletionReasonMap.get(item.id),
           }),
         };
+
+        // Debug Bob Gourley's transformed data
+        if (item.title?.includes('@bobgourley')) {
+          console.log('[API] Bob Gourley transformed data:', {
+            id: transformedItem.id,
+            relevancy_score: transformedItem.relevancy_score,
+            relevancy_checked_at: transformedItem.relevancy_checked_at,
+            relevancy_reason: transformedItem.relevancy_reason,
+            hasFields: {
+              score: 'relevancy_score' in transformedItem,
+              checked: 'relevancy_checked_at' in transformedItem,
+              reason: 'relevancy_reason' in transformedItem
+            }
+          });
+        }
+
+        return transformedItem as ContentWithCreator;
       }
     );
 
@@ -476,6 +538,23 @@ export async function GET(request: NextRequest) {
       transformedContent.forEach((content) => {
         (content as ContentWithCreator & { is_saved: boolean }).is_saved =
           savedContentIds.has(content.id);
+      });
+    }
+
+    // Debug: Check Bob Gourley in transformed content
+    const transformedBobGourley = transformedContent.find(c => c.id === '87546a50-7064-4c2b-90a9-e18ec5f4a1dd');
+    if (transformedBobGourley) {
+      console.log('[API] Transformed Bob Gourley content:', {
+        id: transformedBobGourley.id,
+        title: transformedBobGourley.title,
+        relevancy_score: transformedBobGourley.relevancy_score,
+        relevancy_checked_at: transformedBobGourley.relevancy_checked_at,
+        relevancy_reason: transformedBobGourley.relevancy_reason,
+        hasFields: {
+          score: 'relevancy_score' in transformedBobGourley,
+          checked: 'relevancy_checked_at' in transformedBobGourley,
+          reason: 'relevancy_reason' in transformedBobGourley
+        }
       });
     }
 
@@ -530,7 +609,7 @@ export async function POST(request: NextRequest) {
   try {
     // Create Supabase server client
     const cookieStore = await cookies();
-    const supabase = createServerClient(
+    const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
@@ -623,7 +702,7 @@ export async function DELETE(request: NextRequest) {
   try {
     // Create Supabase server client
     const cookieStore = await cookies();
-    const supabase = createServerClient(
+    const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {

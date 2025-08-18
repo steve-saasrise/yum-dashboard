@@ -11,7 +11,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth, useUser, useAuthLoading } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
@@ -19,7 +18,6 @@ import { Mail, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { SessionUtils } from '@/lib/supabase';
 
 export default function LoginPage() {
   const { signIn, signInWithOAuth, signInWithMagicLink } = useAuth();
@@ -28,15 +26,11 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [rememberMe, setRememberMe] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -45,92 +39,61 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setError(null);
-
-    // Clear email error when user starts typing in email field
-    if (name === 'email') {
-      setEmailError(null);
-    }
-  };
-
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoading(true);
 
-    // Validate form
-    if (!formData.email || !formData.password) {
+    if (!email || !password) {
       setError('Please fill in all fields');
-      setIsLoading(false);
       return;
     }
 
-    try {
-      // Set Remember Me preference before signing in
-      SessionUtils.setRememberMe(rememberMe);
+    setIsLoading(true);
+    const { error } = await signIn(email, password);
 
-      const { error } = await signIn(formData.email, formData.password);
-
-      if (error) {
-        setError(error.message);
-      }
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
+    if (error) {
+      setError(error.message);
     }
+    setIsLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      setIsLoading(true);
-      // Set Remember Me preference before signing in
-      SessionUtils.setRememberMe(rememberMe);
       await signInWithOAuth('google');
     } catch {
-      setError('Failed to sign in with Google. Please try again.');
-    } finally {
-      setIsLoading(false);
+      setError('Failed to sign in with Google');
     }
+    setIsLoading(false);
   };
 
   const handleMagicLinkSignIn = async () => {
-    if (!formData.email) {
-      setEmailError('Please enter your email address first');
+    if (!email) {
+      setError('Please enter your email address first');
       return;
     }
 
-    try {
-      setIsLoading(true);
-      // Set Remember Me preference before signing in
-      SessionUtils.setRememberMe(rememberMe);
-      const { error } = await signInWithMagicLink(formData.email);
+    setIsLoading(true);
+    setError(null);
 
-      if (error) {
-        setError(error.message);
-      } else {
-        toast({
-          title: 'Magic link sent!',
-          description: 'Check your email to sign in.',
-        });
-      }
-    } catch {
-      setError('Failed to send magic link. Please try again.');
-    } finally {
-      setIsLoading(false);
+    const { error } = await signInWithMagicLink(email);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      toast({
+        title: 'Magic link sent!',
+        description: 'Check your email to sign in.',
+      });
     }
+    setIsLoading(false);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -140,9 +103,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>
-            Sign in to your account using one of the methods below
-          </CardDescription>
+          <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
@@ -151,23 +112,18 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          {/* Email/Password Form */}
           <form onSubmit={handleEmailSignIn} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                name="email"
                 type="email"
                 placeholder="Enter your email"
-                value={formData.email}
-                onChange={handleInputChange}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
                 required
               />
-              {emailError && (
-                <p className="text-sm text-destructive">{emailError}</p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -175,11 +131,10 @@ export default function LoginPage() {
               <div className="relative">
                 <Input
                   id="password"
-                  name="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={handleInputChange}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                   required
                 />
@@ -200,23 +155,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) =>
-                    setRememberMe(checked as boolean)
-                  }
-                  disabled={isLoading}
-                />
-                <Label
-                  htmlFor="remember"
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  Keep me logged in
-                </Label>
-              </div>
+            <div className="flex justify-end">
               <Link
                 href="/auth/forgot-password"
                 className="text-sm text-primary hover:underline"
@@ -271,19 +210,6 @@ export default function LoginPage() {
                 className="underline hover:text-primary"
               >
                 Sign up
-              </Link>
-            </p>
-          </div>
-
-          <div className="text-center text-sm text-muted-foreground">
-            <p>
-              By continuing, you agree to our{' '}
-              <Link href="/terms" className="underline hover:text-primary">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="underline hover:text-primary">
-                Privacy Policy
               </Link>
             </p>
           </div>

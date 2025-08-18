@@ -164,7 +164,7 @@ interface FeedItem {
     id: string;
     name: string;
     platform: Platform;
-    avatar_url?: string;
+    avatar_url?: string | null;
     metadata?: Record<string, unknown>;
     lounges?: Array<{ id: string; name: string }>;
   };
@@ -172,6 +172,9 @@ interface FeedItem {
   is_saved?: boolean;
   is_deleted?: boolean; // Only present for curators/admins
   deletion_reason?: string; // Reason for deletion (e.g., 'low_relevancy', 'manual')
+  relevancy_score?: number;
+  relevancy_checked_at?: string;
+  relevancy_reason?: string;
   topics?: Array<{
     id: string;
     name: string;
@@ -491,13 +494,11 @@ function AppSidebar({
 }
 
 function Header({
-  onSignOut,
   canManageCreators,
   searchQuery,
   onSearchChange,
   isSearching,
 }: {
-  onSignOut: () => void;
   canManageCreators: boolean;
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -744,9 +745,11 @@ function Header({
                 <DropdownMenuSeparator />
               </>
             )}
-            <DropdownMenuItem onClick={onSignOut} className="cursor-pointer">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+            <DropdownMenuItem asChild>
+              <a href="/auth/signout" className="cursor-pointer flex items-center">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </a>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -789,8 +792,21 @@ export const ContentCard = React.memo(function ContentCard({
     [key: string]: number;
   }>({});
   const isDeleted = item.is_deleted || false;
+  const isUnscored = !item.relevancy_checked_at;
   const creator =
     item.creator || creators.find((c) => c.id === item.creator_id);
+
+  // Debug relevancy status for Bob Gourley's tweet
+  if (item.creator?.name === 'Bob Gourley' || item.title?.includes('@bobgourley')) {
+    console.log('Bob Gourley tweet debug:', {
+      id: item.id,
+      title: item.title,
+      relevancy_checked_at: item.relevancy_checked_at,
+      relevancy_score: item.relevancy_score,
+      isUnscored: isUnscored,
+      fullItem: item
+    });
+  }
 
   // Debug deletion reason
   if (isDeleted && item.description?.includes('pile of highlights')) {
@@ -873,6 +889,13 @@ export const ContentCard = React.memo(function ContentCard({
             {item.deletion_reason === 'low_relevancy'
               ? '🤖 Auto-hidden: Low relevancy to lounge theme'
               : 'This content is hidden from users'}
+          </p>
+        </div>
+      )}
+      {isUnscored && canDelete && !isDeleted && (
+        <div className="px-4 py-2 border-b bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
+            ⏳ Pending relevancy check
           </p>
         </div>
       )}
@@ -1861,7 +1884,7 @@ function MobileFiltersSheet({
 // --- MAIN DASHBOARD COMPONENT ---
 
 export function DailyNewsDashboard() {
-  const { signOut, state: authState } = useAuth();
+  const { state: authState } = useAuth();
   const userRole = authState.profile?.role;
   const canManageCreators = userRole === 'curator' || userRole === 'admin';
 
@@ -1874,19 +1897,6 @@ export function DailyNewsDashboard() {
     canManageCreators,
   });
 
-  const handleSignOut = async () => {
-    try {
-      const { error } = await signOut();
-      if (error) {
-        console.error('Logout error:', error);
-        toast.error('Failed to sign out. Please try again.');
-      }
-      // Don't redirect here - let the auth state change handle it
-    } catch (error) {
-      console.error('Unexpected logout error:', error);
-      toast.error('An unexpected error occurred during sign out.');
-    }
-  };
   // Single column feed - no view toggle needed
   const [isTopicModalOpen, setTopicModalOpen] = React.useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -2221,7 +2231,6 @@ export function DailyNewsDashboard() {
         />
         <SidebarInset className="flex-1 flex flex-col w-full min-h-screen bg-gray-50 dark:bg-gray-950">
           <Header
-            onSignOut={handleSignOut}
             canManageCreators={canManageCreators}
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}

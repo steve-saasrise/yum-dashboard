@@ -20,32 +20,36 @@ export interface Content {
   platform: Platform;
   platform_content_id: string;
   url: string;
-  title?: string;
-  description?: string;
-  thumbnail_url?: string;
-  published_at?: string;
-  content_body?: string;
-  ai_summary?: string; // Deprecated - use ai_summary_short or ai_summary_long
-  ai_summary_short?: string;
-  ai_summary_long?: string;
-  summary_generated_at?: string;
-  summary_model?: string;
-  summary_status?: SummaryStatus;
-  summary_error_message?: string;
-  summary_word_count_short?: number;
-  summary_word_count_long?: number;
-  processing_status?: ContentProcessingStatus;
-  error_message?: string;
-  created_at: string;
-  updated_at: string;
-  word_count?: number;
-  reading_time_minutes?: number;
-  media_urls?: MediaUrl[];
-  engagement_metrics?: EngagementMetrics;
+  title?: string | null;
+  description?: string | null;
+  thumbnail_url?: string | null;
+  published_at?: string | null;
+  content_body?: string | null;
+  ai_summary?: string | null; // Deprecated - use ai_summary_short or ai_summary_long
+  ai_summary_short?: string | null;
+  ai_summary_long?: string | null;
+  summary_generated_at?: string | null;
+  summary_model?: string | null;
+  summary_status?: SummaryStatus | null;
+  summary_error_message?: string | null;
+  summary_word_count_short?: number | null;
+  summary_word_count_long?: number | null;
+  processing_status?: ContentProcessingStatus | null;
+  error_message?: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  word_count?: number | null;
+  reading_time_minutes?: number | null;
+  media_urls?: MediaUrl[] | null;
+  engagement_metrics?: EngagementMetrics | null;
   // Reference fields for quoted/retweeted/replied content
-  reference_type?: ReferenceType;
-  referenced_content_id?: string;
-  referenced_content?: ReferencedContent;
+  reference_type?: ReferenceType | null;
+  referenced_content_id?: string | null;
+  referenced_content?: ReferencedContent | null;
+  // Relevancy scoring fields
+  relevancy_score?: number | null;
+  relevancy_checked_at?: string | null;
+  relevancy_reason?: string | null;
 }
 
 // Content with creator information
@@ -54,8 +58,9 @@ export interface ContentWithCreator extends Content {
     id: string;
     name: string;
     platform: Platform;
-    avatar_url?: string;
+    avatar_url?: string | null;
     metadata?: Record<string, any>;
+    lounges?: Array<{ id: string; name: string }>;
   };
   topics?: Array<{
     id: string;

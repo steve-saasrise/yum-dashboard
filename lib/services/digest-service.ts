@@ -159,7 +159,7 @@ export class DigestService {
         .in('platform', config.platforms)
         .eq('processing_status', 'processed')
         .gte('published_at', twentyFourHoursAgo.toISOString())
-        .or(`relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`)
+        .gte('relevancy_score', relevancyThreshold)
         .order('relevancy_score', { ascending: false, nullsFirst: false })
         .order('published_at', { ascending: false })
         .limit(2); // Just get up to 2 per platform
@@ -206,9 +206,7 @@ export class DigestService {
         .in('creator_id', creatorIdList)
         .eq('processing_status', 'processed')
         .gte('published_at', twentyFourHoursAgo.toISOString())
-        .or(
-          `relevancy_score.gte.${relevancyThreshold},relevancy_score.is.null`
-        );
+        .gte('relevancy_score', relevancyThreshold);
 
       // Exclude already selected content
       if (selectedIds.length > 0) {
