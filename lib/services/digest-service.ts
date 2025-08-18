@@ -44,6 +44,9 @@ interface ContentForDigest {
   thumbnail_url: string | null;
   published_at: string;
   ai_summary_short: string | null;
+  content_body: string | null;
+  reference_type: string | null;
+  referenced_content: any | null;
   creator: {
     display_name: string;
   };
@@ -150,6 +153,9 @@ export class DigestService {
           published_at,
           ai_summary_short,
           relevancy_score,
+          content_body,
+          reference_type,
+          referenced_content,
           creators!inner(
             display_name
           )
@@ -198,6 +204,9 @@ export class DigestService {
           published_at,
           ai_summary_short,
           relevancy_score,
+          content_body,
+          reference_type,
+          referenced_content,
           creators!inner(
             display_name
           )
@@ -272,6 +281,9 @@ export class DigestService {
         thumbnail_url: item.thumbnail_url || undefined,
         published_at: item.published_at,
         ai_summary_short: item.ai_summary_short || undefined,
+        content_body: item.content_body || undefined,
+        reference_type: item.reference_type as 'quote' | 'retweet' | 'reply' | undefined,
+        referenced_content: item.referenced_content || undefined,
       }));
 
       // Send email

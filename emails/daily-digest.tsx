@@ -26,6 +26,34 @@ interface ContentItem {
   thumbnail_url?: string;
   published_at: string;
   ai_summary_short?: string;
+  content_body?: string;
+  reference_type?: 'quote' | 'retweet' | 'reply';
+  referenced_content?: {
+    id?: string;
+    platform_content_id?: string;
+    url?: string;
+    text?: string;
+    author?: {
+      id?: string;
+      username?: string;
+      name?: string;
+      avatar_url?: string;
+      is_verified?: boolean;
+    };
+    created_at?: string;
+    media_urls?: Array<{
+      url: string;
+      type: string;
+      width?: number;
+      height?: number;
+    }>;
+    engagement_metrics?: {
+      likes?: number;
+      views?: number;
+      shares?: number;
+      comments?: number;
+    };
+  };
 }
 
 interface DailyDigestEmailProps {
@@ -180,6 +208,68 @@ export const DailyDigestEmail = ({
                     })()}
                   </Text>
 
+                  {/* Referenced Content (for quotes/retweets) */}
+                  {item.reference_type && item.referenced_content && (
+                    <div style={referencedContentContainer}>
+                      <Text style={referenceLabel}>
+                        {item.reference_type === 'quote' ? '💬 Quoted' : 
+                         item.reference_type === 'retweet' ? '🔁 Reposted' : 
+                         '↪ Replied to'}
+                      </Text>
+                      <div style={referencedContentBox}>
+                        {item.referenced_content.author && (
+                          <div style={referencedAuthorContainer}>
+                            <Text style={referencedAuthor}>
+                              {item.referenced_content.author.name || 
+                               item.referenced_content.author.username || 
+                               'Unknown'}
+                            </Text>
+                            {item.referenced_content.author.username && (
+                              <Text style={referencedUsername}>
+                                @{item.referenced_content.author.username}
+                              </Text>
+                            )}
+                            {item.referenced_content.author.is_verified && (
+                              <Text style={verifiedBadge}>✓</Text>
+                            )}
+                          </div>
+                        )}
+                        {item.referenced_content.text && (
+                          <Text style={referencedText}>
+                            {item.referenced_content.text}
+                          </Text>
+                        )}
+                        {item.referenced_content.media_urls && 
+                         item.referenced_content.media_urls.length > 0 && (
+                          <div style={mediaContainer}>
+                            {item.referenced_content.media_urls
+                              .slice(0, 2)
+                              .map((media, idx) => (
+                                media.type === 'image' && (
+                                  <Img
+                                    key={idx}
+                                    src={media.url}
+                                    width="80"
+                                    height="80"
+                                    alt=""
+                                    style={referencedImage}
+                                  />
+                                )
+                              ))}
+                          </div>
+                        )}
+                        {item.referenced_content.engagement_metrics && (
+                          <Text style={engagementMetrics}>
+                            {item.referenced_content.engagement_metrics.likes && 
+                              `❤️ ${item.referenced_content.engagement_metrics.likes.toLocaleString()}`}
+                            {item.referenced_content.engagement_metrics.views && 
+                              ` · ${item.referenced_content.engagement_metrics.views.toLocaleString()} views`}
+                          </Text>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Button */}
                   <Button
                     style={viewButton}
@@ -257,6 +347,60 @@ DailyDigestEmail.PreviewProps = {
     },
     {
       id: '2',
+      title: 'Tweet by @nathanbenaich',
+      description: '🙏',
+      content_body: '🙏',
+      url: 'https://x.com/nathanbenaich/status/example',
+      creator_name: 'Nathan Benaich',
+      platform: 'twitter',
+      published_at: new Date().toISOString(),
+      reference_type: 'quote',
+      referenced_content: {
+        id: '12345',
+        text: "I'm running an AI usage survey for the State of AI Report. The results will be open sourced in October '25. It takes 10 mins and I want to hear from everyone, regardless of expertise. Head to stateofai.com/survey",
+        author: {
+          name: 'Nathan Benaich',
+          username: 'nathanbenaich',
+          is_verified: true,
+        },
+        created_at: new Date().toISOString(),
+        engagement_metrics: {
+          likes: 58,
+          views: 37270,
+        },
+      },
+    },
+    {
+      id: '3',
+      title: 'Thread by @ryanallis',
+      description: '',
+      content_body: '',
+      url: 'https://threads.net/@ryanallis/example',
+      creator_name: 'Ryan Allis',
+      platform: 'threads',
+      published_at: new Date().toISOString(),
+      reference_type: 'retweet',
+      referenced_content: {
+        id: '67890',
+        text: 'GPT-5 is freaking awesome! The new capabilities include real-time video understanding, 10x faster inference, and native tool use.',
+        author: {
+          name: 'ChatGPTricks',
+          username: 'chatgptricks',
+          is_verified: true,
+        },
+        created_at: new Date().toISOString(),
+        media_urls: [
+          {
+            url: 'https://pbs.twimg.com/media/GvfqVVkWgAAS4hD.jpg',
+            type: 'image',
+            width: 1200,
+            height: 800,
+          },
+        ],
+      },
+    },
+    {
+      id: '4',
       title: 'How AI is Revolutionizing Healthcare',
       description:
         'A deep dive into machine learning applications in medical diagnosis...',
@@ -438,4 +582,82 @@ const copyright = {
   color: '#8898aa',
   fontSize: '11px',
   margin: '10px 0 0 0',
+};
+
+const referencedContentContainer = {
+  margin: '12px 0',
+};
+
+const referenceLabel = {
+  color: '#6b7280',
+  fontSize: '11px',
+  fontWeight: '500',
+  marginBottom: '8px',
+  display: 'block',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.5px',
+};
+
+const referencedContentBox = {
+  backgroundColor: '#fafafa',
+  borderLeft: '3px solid rgba(34, 173, 236, 0.6)',
+  borderRadius: '6px',
+  padding: '12px',
+};
+
+const referencedAuthorContainer = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  marginBottom: '8px',
+};
+
+const referencedAuthor = {
+  color: '#1a1a1a',
+  fontSize: '13px',
+  fontWeight: '600',
+  display: 'inline',
+  margin: '0',
+};
+
+const referencedUsername = {
+  color: '#6b7280',
+  fontSize: '12px',
+  display: 'inline',
+  margin: '0',
+};
+
+const verifiedBadge = {
+  color: '#22ADEC',
+  fontSize: '12px',
+  display: 'inline',
+  margin: '0',
+};
+
+const referencedText = {
+  color: '#4b5563',
+  fontSize: '13px',
+  lineHeight: '1.5',
+  margin: '0',
+  display: 'block',
+};
+
+const mediaContainer = {
+  display: 'flex',
+  gap: '4px',
+  marginTop: '8px',
+};
+
+const referencedImage = {
+  borderRadius: '4px',
+  objectFit: 'cover' as const,
+  display: 'block',
+};
+
+const engagementMetrics = {
+  color: '#6b7280',
+  fontSize: '11px',
+  marginTop: '8px',
+  marginBottom: '0',
+  display: 'block',
 };
