@@ -16,6 +16,7 @@ interface IntersectionObserverGridProps {
   unsaveContent: (id: string) => Promise<void>;
   deleteContent: (id: string) => Promise<void>;
   undeleteContent: (id: string) => Promise<void>;
+  undoDuplicate: (id: string) => Promise<void>;
   canManageCreators: boolean;
   showVideoEmbeds?: boolean;
   onLoungeSelect?: (loungeId: string) => void;
@@ -34,6 +35,7 @@ export function IntersectionObserverGrid({
   unsaveContent,
   deleteContent,
   undeleteContent,
+  undoDuplicate,
   canManageCreators,
   showVideoEmbeds = true,
   onLoungeSelect,
@@ -54,32 +56,62 @@ export function IntersectionObserverGrid({
       title: item.title || '',
       description: item.description === null ? undefined : item.description,
       ai_summary: item.ai_summary === null ? undefined : item.ai_summary,
-      ai_summary_short: item.ai_summary_short === null ? undefined : item.ai_summary_short,
-      ai_summary_long: item.ai_summary_long === null ? undefined : item.ai_summary_long,
-      summary_generated_at: item.summary_generated_at === null ? undefined : item.summary_generated_at,
-      summary_model: item.summary_model === null ? undefined : item.summary_model,
-      summary_status: item.summary_status === null ? undefined : item.summary_status as any,
-      summary_error_message: item.summary_error_message === null ? undefined : item.summary_error_message,
+      ai_summary_short:
+        item.ai_summary_short === null ? undefined : item.ai_summary_short,
+      ai_summary_long:
+        item.ai_summary_long === null ? undefined : item.ai_summary_long,
+      summary_generated_at:
+        item.summary_generated_at === null
+          ? undefined
+          : item.summary_generated_at,
+      summary_model:
+        item.summary_model === null ? undefined : item.summary_model,
+      summary_status:
+        item.summary_status === null ? undefined : (item.summary_status as any),
+      summary_error_message:
+        item.summary_error_message === null
+          ? undefined
+          : item.summary_error_message,
       url: item.url,
       platform: item.platform,
-      platform_content_id: item.platform_content_id === null ? undefined : item.platform_content_id,
-      thumbnail_url: item.thumbnail_url === null ? undefined : item.thumbnail_url,
+      platform_content_id:
+        item.platform_content_id === null
+          ? undefined
+          : item.platform_content_id,
+      thumbnail_url:
+        item.thumbnail_url === null ? undefined : item.thumbnail_url,
       creator_id: item.creator_id,
       creator: item.creator,
-      published_at: item.published_at || item.created_at || new Date().toISOString(),
+      published_at:
+        item.published_at || item.created_at || new Date().toISOString(),
       is_saved: item.is_saved,
       is_deleted: item.is_deleted,
       deletion_reason: item.deletion_reason,
       topics: item.topics === null ? undefined : item.topics,
       media_urls: item.media_urls === null ? undefined : item.media_urls,
       // Include reference fields for quote tweets, retweets, etc.
-      reference_type: item.reference_type === null ? undefined : item.reference_type,
-      referenced_content_id: item.referenced_content_id === null ? undefined : item.referenced_content_id,
-      referenced_content: item.referenced_content === null ? undefined : item.referenced_content,
+      reference_type:
+        item.reference_type === null ? undefined : item.reference_type,
+      referenced_content_id:
+        item.referenced_content_id === null
+          ? undefined
+          : item.referenced_content_id,
+      referenced_content:
+        item.referenced_content === null ? undefined : item.referenced_content,
       // Include relevancy fields
-      relevancy_score: item.relevancy_score === null ? undefined : item.relevancy_score,
-      relevancy_checked_at: item.relevancy_checked_at === null ? undefined : item.relevancy_checked_at,
-      relevancy_reason: item.relevancy_reason === null ? undefined : item.relevancy_reason,
+      relevancy_score:
+        item.relevancy_score === null ? undefined : item.relevancy_score,
+      relevancy_checked_at:
+        item.relevancy_checked_at === null
+          ? undefined
+          : item.relevancy_checked_at,
+      relevancy_reason:
+        item.relevancy_reason === null ? undefined : item.relevancy_reason,
+      // Include duplicate fields for admin/curator view
+      duplicate_group_id:
+        item.duplicate_group_id === null ? undefined : item.duplicate_group_id,
+      is_primary: item.is_primary === null ? undefined : item.is_primary,
+      content_hash: item.content_hash === null ? undefined : item.content_hash,
     }),
     []
   );
@@ -186,6 +218,7 @@ export function IntersectionObserverGrid({
           onUnsave={unsaveContent}
           onDelete={deleteContent}
           onUndelete={undeleteContent}
+          onUndoDuplicate={undoDuplicate}
           canDelete={canManageCreators}
           showVideoEmbeds={showVideoEmbeds}
           onLoungeSelect={onLoungeSelect}

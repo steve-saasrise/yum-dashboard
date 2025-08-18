@@ -172,6 +172,9 @@ interface FeedItem {
   is_saved?: boolean;
   is_deleted?: boolean; // Only present for curators/admins
   deletion_reason?: string; // Reason for deletion (e.g., 'low_relevancy', 'manual')
+  content_hash?: string; // Only present for curators/admins
+  duplicate_group_id?: string; // Only present for curators/admins
+  is_primary?: boolean; // Only present for curators/admins
   relevancy_score?: number;
   relevancy_checked_at?: string;
   relevancy_reason?: string;
@@ -746,7 +749,10 @@ function Header({
               </>
             )}
             <DropdownMenuItem asChild>
-              <a href="/auth/signout" className="cursor-pointer flex items-center">
+              <a
+                href="/auth/signout"
+                className="cursor-pointer flex items-center"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </a>
@@ -771,6 +777,7 @@ export const ContentCard = React.memo(function ContentCard({
   onUnsave,
   onDelete,
   onUndelete,
+  onUndoDuplicate,
   canDelete,
   showVideoEmbeds = true,
   onLoungeSelect,
@@ -781,6 +788,7 @@ export const ContentCard = React.memo(function ContentCard({
   onUnsave?: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   onUndelete?: (id: string) => Promise<void>;
+  onUndoDuplicate?: (id: string) => Promise<void>;
   canDelete?: boolean;
   showVideoEmbeds?: boolean;
   onLoungeSelect?: (loungeId: string) => void;
@@ -793,18 +801,44 @@ export const ContentCard = React.memo(function ContentCard({
   }>({});
   const isDeleted = item.is_deleted || false;
   const isUnscored = !item.relevancy_checked_at;
+  const isDuplicate = item.duplicate_group_id && !item.is_primary;
+  const isPrimary = item.is_primary === true;
+
+  // Debug duplicate detection
+  if (
+    item.title?.includes('Taylor Swift') ||
+    item.description?.includes('Taylor Swift')
+  ) {
+    console.log('Frontend duplicate detection debug:', {
+      id: item.id,
+      title: item.title,
+      duplicate_group_id: item.duplicate_group_id,
+      is_primary: item.is_primary,
+      isDuplicate,
+      isPrimary,
+      canDelete,
+      hasAllFields: {
+        duplicate_group_id: !!item.duplicate_group_id,
+        is_primary: item.is_primary !== undefined,
+        content_hash: !!item.content_hash,
+      },
+    });
+  }
   const creator =
     item.creator || creators.find((c) => c.id === item.creator_id);
 
   // Debug relevancy status for Bob Gourley's tweet
-  if (item.creator?.name === 'Bob Gourley' || item.title?.includes('@bobgourley')) {
+  if (
+    item.creator?.name === 'Bob Gourley' ||
+    item.title?.includes('@bobgourley')
+  ) {
     console.log('Bob Gourley tweet debug:', {
       id: item.id,
       title: item.title,
       relevancy_checked_at: item.relevancy_checked_at,
       relevancy_score: item.relevancy_score,
       isUnscored: isUnscored,
-      fullItem: item
+      fullItem: item,
     });
   }
 
@@ -869,7 +903,9 @@ export const ContentCard = React.memo(function ContentCard({
 
   return (
     <Card
-      className={`overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 flex flex-col h-full ${isDeleted ? 'opacity-60' : ''}`}
+      className={`overflow-hidden transition-all hover:shadow-md dark:bg-gray-800/50 flex flex-col h-full ${
+        isDeleted ? 'opacity-60' : isDuplicate ? 'opacity-60' : ''
+      }`}
     >
       {isDeleted && canDelete && (
         <div
@@ -889,6 +925,21 @@ export const ContentCard = React.memo(function ContentCard({
             {item.deletion_reason === 'low_relevancy'
               ? '🤖 Auto-hidden: Low relevancy to lounge theme'
               : 'This content is hidden from users'}
+          </p>
+        </div>
+      )}
+      {isDuplicate && canDelete && (
+        <div className="px-4 py-2 border-b bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
+            🔗 Duplicate content: Hidden from users (primary version is shown
+            instead)
+          </p>
+        </div>
+      )}
+      {isPrimary && item.duplicate_group_id && canDelete && (
+        <div className="px-4 py-2 border-b bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+          <p className="text-xs font-medium text-green-800 dark:text-green-200">
+            ✅ Primary version: This content represents a duplicate group
           </p>
         </div>
       )}
@@ -985,7 +1036,7 @@ export const ContentCard = React.memo(function ContentCard({
               </div>
             </div>
             <div className="flex items-center gap-1">
-              {canDelete && (onDelete || onUndelete) && (
+              {canDelete && (onDelete || onUndelete) && !isDuplicate && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1014,6 +1065,31 @@ export const ContentCard = React.memo(function ContentCard({
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>{isDeleted ? 'Undelete' : 'Delete'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {canDelete && isDuplicate && onUndoDuplicate && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-green-600 hover:text-green-700"
+                        onClick={async () => {
+                          try {
+                            await onUndoDuplicate(item.id);
+                          } catch {
+                            // Error is handled by the hook with toast
+                          }
+                        }}
+                      >
+                        <Icons.undo className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Show to all users</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -1957,6 +2033,7 @@ export function DailyNewsDashboard() {
     unsaveContent,
     deleteContent,
     undeleteContent,
+    undoDuplicate,
     refreshContent,
     isFetchingNextPage,
     fetchNextPage,
@@ -2474,6 +2551,7 @@ export function DailyNewsDashboard() {
                   unsaveContent={unsaveContent}
                   deleteContent={handleDeleteContent}
                   undeleteContent={handleUndeleteContent}
+                  undoDuplicate={undoDuplicate}
                   canManageCreators={canManageCreators}
                   showVideoEmbeds={showVideoEmbeds}
                   onLoungeSelect={setSelectedLoungeId}

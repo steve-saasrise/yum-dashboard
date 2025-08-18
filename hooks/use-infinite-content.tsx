@@ -209,6 +209,33 @@ export function useInfiniteContent(filters?: ContentFilters) {
     [refetch]
   );
 
+  const undoDuplicate = useCallback(
+    async (contentId: string) => {
+      try {
+        const params = new URLSearchParams({
+          content_id: contentId,
+          action: 'unduplicate',
+        });
+
+        const response = await fetch(`/api/content?${params.toString()}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to undo duplicate status');
+        }
+
+        toast.success('Content will now be shown to all users');
+        // Refetch to update the list
+        refetch();
+      } catch (error) {
+        toast.error('Failed to undo duplicate status');
+        console.error('Error undoing duplicate:', error);
+      }
+    },
+    [refetch]
+  );
+
   return {
     content: allContent,
     loading: isLoading,
@@ -221,6 +248,7 @@ export function useInfiniteContent(filters?: ContentFilters) {
     unsaveContent,
     deleteContent,
     undeleteContent,
+    undoDuplicate,
     refreshContent: refetch,
     fetchNextPage,
   };

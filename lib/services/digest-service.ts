@@ -164,6 +164,7 @@ export class DigestService {
         .in('creator_id', creatorIdList)
         .in('platform', config.platforms)
         .eq('processing_status', 'processed')
+        .eq('is_primary', true) // Only show primary content (filter duplicates)
         .gte('published_at', twentyFourHoursAgo.toISOString())
         .gte('relevancy_score', relevancyThreshold)
         .order('relevancy_score', { ascending: false, nullsFirst: false })
@@ -214,6 +215,7 @@ export class DigestService {
         )
         .in('creator_id', creatorIdList)
         .eq('processing_status', 'processed')
+        .eq('is_primary', true) // Only show primary content (filter duplicates)
         .gte('published_at', twentyFourHoursAgo.toISOString())
         .gte('relevancy_score', relevancyThreshold);
 
@@ -282,7 +284,11 @@ export class DigestService {
         published_at: item.published_at,
         ai_summary_short: item.ai_summary_short || undefined,
         content_body: item.content_body || undefined,
-        reference_type: item.reference_type as 'quote' | 'retweet' | 'reply' | undefined,
+        reference_type: item.reference_type as
+          | 'quote'
+          | 'retweet'
+          | 'reply'
+          | undefined,
         referenced_content: item.referenced_content || undefined,
       }));
 

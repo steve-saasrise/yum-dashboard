@@ -72,6 +72,10 @@ export interface ContentWithCreator extends Content {
   is_saved?: boolean;
   is_deleted?: boolean;
   deletion_reason?: string;
+  // Deduplication fields
+  content_hash?: string;
+  duplicate_group_id?: string;
+  is_primary?: boolean;
 }
 
 // Media URL structure for images, videos, etc.

@@ -212,17 +212,19 @@ export const DailyDigestEmail = ({
                   {item.reference_type && item.referenced_content && (
                     <div style={referencedContentContainer}>
                       <Text style={referenceLabel}>
-                        {item.reference_type === 'quote' ? '💬 Quoted' : 
-                         item.reference_type === 'retweet' ? '🔁 Reposted' : 
-                         '↪ Replied to'}
+                        {item.reference_type === 'quote'
+                          ? '💬 Quoted'
+                          : item.reference_type === 'retweet'
+                            ? '🔁 Reposted'
+                            : '↪ Replied to'}
                       </Text>
                       <div style={referencedContentBox}>
                         {item.referenced_content.author && (
                           <div style={referencedAuthorContainer}>
                             <Text style={referencedAuthor}>
-                              {item.referenced_content.author.name || 
-                               item.referenced_content.author.username || 
-                               'Unknown'}
+                              {item.referenced_content.author.name ||
+                                item.referenced_content.author.username ||
+                                'Unknown'}
                             </Text>
                             {item.referenced_content.author.username && (
                               <Text style={referencedUsername}>
@@ -239,30 +241,31 @@ export const DailyDigestEmail = ({
                             {item.referenced_content.text}
                           </Text>
                         )}
-                        {item.referenced_content.media_urls && 
-                         item.referenced_content.media_urls.length > 0 && (
-                          <div style={mediaContainer}>
-                            {item.referenced_content.media_urls
-                              .slice(0, 2)
-                              .map((media, idx) => (
-                                media.type === 'image' && (
-                                  <Img
-                                    key={idx}
-                                    src={media.url}
-                                    width="80"
-                                    height="80"
-                                    alt=""
-                                    style={referencedImage}
-                                  />
-                                )
-                              ))}
-                          </div>
-                        )}
+                        {item.referenced_content.media_urls &&
+                          item.referenced_content.media_urls.length > 0 && (
+                            <div style={mediaContainer}>
+                              {item.referenced_content.media_urls
+                                .slice(0, 2)
+                                .map(
+                                  (media, idx) =>
+                                    media.type === 'image' && (
+                                      <Img
+                                        key={idx}
+                                        src={media.url}
+                                        width="80"
+                                        height="80"
+                                        alt=""
+                                        style={referencedImage}
+                                      />
+                                    )
+                                )}
+                            </div>
+                          )}
                         {item.referenced_content.engagement_metrics && (
                           <Text style={engagementMetrics}>
-                            {item.referenced_content.engagement_metrics.likes && 
+                            {item.referenced_content.engagement_metrics.likes &&
                               `❤️ ${item.referenced_content.engagement_metrics.likes.toLocaleString()}`}
-                            {item.referenced_content.engagement_metrics.views && 
+                            {item.referenced_content.engagement_metrics.views &&
                               ` · ${item.referenced_content.engagement_metrics.views.toLocaleString()} views`}
                           </Text>
                         )}

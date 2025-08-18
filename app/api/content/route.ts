@@ -229,6 +229,12 @@ export async function GET(request: NextRequest) {
       contentQuery = contentQuery.not('relevancy_checked_at', 'is', null);
     }
 
+    // Filter duplicates - only show primary content for regular users
+    // Privileged users see all content but with duplicate information
+    if (!isPrivilegedUser) {
+      contentQuery = contentQuery.eq('is_primary', true);
+    }
+
     // Apply filters
     if (query.platforms && query.platforms.length > 0) {
       contentQuery = contentQuery.in('platform', query.platforms);
@@ -281,7 +287,9 @@ export async function GET(request: NextRequest) {
 
     // Debug: Check if relevancy fields are in raw data
     if (content && content.length > 0) {
-      const bobGourley = content.find((c: any) => c.id === '87546a50-7064-4c2b-90a9-e18ec5f4a1dd');
+      const bobGourley = content.find(
+        (c: any) => c.id === '87546a50-7064-4c2b-90a9-e18ec5f4a1dd'
+      );
       if (bobGourley) {
         console.log('[API] Raw Bob Gourley content from DB:', {
           id: bobGourley.id,
@@ -292,8 +300,8 @@ export async function GET(request: NextRequest) {
           hasFields: {
             score: 'relevancy_score' in bobGourley,
             checked: 'relevancy_checked_at' in bobGourley,
-            reason: 'relevancy_reason' in bobGourley
-          }
+            reason: 'relevancy_reason' in bobGourley,
+          },
         });
       }
     }
@@ -418,11 +426,16 @@ export async function GET(request: NextRequest) {
           const transformedItem = {
             ...item,
             // Handle media_urls Json type
-            media_urls: Array.isArray(item.media_urls) ? item.media_urls as any : null,
-            // Handle engagement_metrics Json type
-            engagement_metrics: typeof item.engagement_metrics === 'object' && item.engagement_metrics && !Array.isArray(item.engagement_metrics)
-              ? item.engagement_metrics as EngagementMetrics
+            media_urls: Array.isArray(item.media_urls)
+              ? (item.media_urls as any)
               : null,
+            // Handle engagement_metrics Json type
+            engagement_metrics:
+              typeof item.engagement_metrics === 'object' &&
+              item.engagement_metrics &&
+              !Array.isArray(item.engagement_metrics)
+                ? (item.engagement_metrics as EngagementMetrics)
+                : null,
             topics: [], // No topics for now since content_topics table doesn't exist
             creator: item.creator
               ? {
@@ -430,9 +443,12 @@ export async function GET(request: NextRequest) {
                   name: item.creator.display_name, // Map display_name to name
                   platform: item.platform, // Get platform from content since creators don't have it
                   avatar_url: item.creator.avatar_url,
-                  metadata: typeof item.creator.metadata === 'object' && item.creator.metadata && !Array.isArray(item.creator.metadata) 
-                    ? item.creator.metadata as Record<string, any>
-                    : undefined,
+                  metadata:
+                    typeof item.creator.metadata === 'object' &&
+                    item.creator.metadata &&
+                    !Array.isArray(item.creator.metadata)
+                      ? (item.creator.metadata as Record<string, any>)
+                      : undefined,
                   lounges: creatorLoungesMap.get(item.creator_id) || [], // Add lounges
                 }
               : undefined,
@@ -462,13 +478,15 @@ export async function GET(request: NextRequest) {
             has_referenced_content: !!item.referenced_content,
             referenced_content_sample: item.referenced_content
               ? {
-                  text: (item.referenced_content as any)?.text?.substring(0, 50),
+                  text: (item.referenced_content as any)?.text?.substring(
+                    0,
+                    50
+                  ),
                   author: (item.referenced_content as any)?.author?.username,
                 }
               : null,
           });
         }
-
 
         const transformedItem = {
           ...item,
@@ -479,9 +497,12 @@ export async function GET(request: NextRequest) {
           // Handle media_urls Json type
           media_urls: Array.isArray(item.media_urls) ? item.media_urls : null,
           // Handle engagement_metrics Json type
-          engagement_metrics: typeof item.engagement_metrics === 'object' && item.engagement_metrics && !Array.isArray(item.engagement_metrics)
-            ? item.engagement_metrics as EngagementMetrics
-            : null,
+          engagement_metrics:
+            typeof item.engagement_metrics === 'object' &&
+            item.engagement_metrics &&
+            !Array.isArray(item.engagement_metrics)
+              ? (item.engagement_metrics as EngagementMetrics)
+              : null,
           topics: [], // No topics for now since content_topics table doesn't exist
           creator: item.creator
             ? {
@@ -489,9 +510,12 @@ export async function GET(request: NextRequest) {
                 name: item.creator.display_name, // Map display_name to name
                 platform: item.platform, // Get platform from content since creators don't have it
                 avatar_url: item.creator.avatar_url,
-                metadata: typeof item.creator.metadata === 'object' && item.creator.metadata && !Array.isArray(item.creator.metadata) 
-                  ? item.creator.metadata as Record<string, any>
-                  : undefined,
+                metadata:
+                  typeof item.creator.metadata === 'object' &&
+                  item.creator.metadata &&
+                  !Array.isArray(item.creator.metadata)
+                    ? (item.creator.metadata as Record<string, any>)
+                    : undefined,
                 lounges: creatorLoungesMap.get(item.creator_id) || [], // Add lounges
               }
             : undefined,
@@ -500,7 +524,25 @@ export async function GET(request: NextRequest) {
             is_deleted: deletedContentMap.has(item.id),
             deletion_reason: deletionReasonMap.get(item.id),
           }),
+          // Add deduplication info for privileged users
+          ...(isPrivilegedUser && {
+            content_hash: item.content_hash,
+            duplicate_group_id: item.duplicate_group_id,
+            is_primary: item.is_primary,
+          }),
         };
+
+        // Debug duplicate content
+        if (item.duplicate_group_id) {
+          console.log('Duplicate content found:', {
+            id: transformedItem.id,
+            title: transformedItem.title,
+            content_hash: transformedItem.content_hash,
+            duplicate_group_id: transformedItem.duplicate_group_id,
+            is_primary: transformedItem.is_primary,
+            isPrivilegedUser,
+          });
+        }
 
         // Debug Bob Gourley's transformed data
         if (item.title?.includes('@bobgourley')) {
@@ -512,8 +554,8 @@ export async function GET(request: NextRequest) {
             hasFields: {
               score: 'relevancy_score' in transformedItem,
               checked: 'relevancy_checked_at' in transformedItem,
-              reason: 'relevancy_reason' in transformedItem
-            }
+              reason: 'relevancy_reason' in transformedItem,
+            },
           });
         }
 
@@ -542,7 +584,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Debug: Check Bob Gourley in transformed content
-    const transformedBobGourley = transformedContent.find(c => c.id === '87546a50-7064-4c2b-90a9-e18ec5f4a1dd');
+    const transformedBobGourley = transformedContent.find(
+      (c) => c.id === '87546a50-7064-4c2b-90a9-e18ec5f4a1dd'
+    );
     if (transformedBobGourley) {
       console.log('[API] Transformed Bob Gourley content:', {
         id: transformedBobGourley.id,
@@ -553,8 +597,8 @@ export async function GET(request: NextRequest) {
         hasFields: {
           score: 'relevancy_score' in transformedBobGourley,
           checked: 'relevancy_checked_at' in transformedBobGourley,
-          reason: 'relevancy_reason' in transformedBobGourley
-        }
+          reason: 'relevancy_reason' in transformedBobGourley,
+        },
       });
     }
 
@@ -749,7 +793,7 @@ export async function DELETE(request: NextRequest) {
     if (
       !content_id ||
       !action ||
-      (action !== 'delete' && action !== 'undelete')
+      (action !== 'delete' && action !== 'undelete' && action !== 'unduplicate')
     ) {
       return NextResponse.json(
         { error: 'Invalid parameters' },
@@ -792,7 +836,7 @@ export async function DELETE(request: NextRequest) {
           { status: 500 }
         );
       }
-    } else {
+    } else if (action === 'undelete') {
       // Undelete - remove from deleted_content
       // First get the content details to match the deletion
       const { data: content, error: contentError } = await supabase
@@ -818,6 +862,19 @@ export async function DELETE(request: NextRequest) {
       if (undeleteError) {
         return NextResponse.json(
           { error: 'Failed to undelete content' },
+          { status: 500 }
+        );
+      }
+    } else if (action === 'unduplicate') {
+      // Unduplicate - set is_primary = true to show this content to all users
+      const { error: unduplicateError } = await supabase
+        .from('content')
+        .update({ is_primary: true })
+        .eq('id', content_id);
+
+      if (unduplicateError) {
+        return NextResponse.json(
+          { error: 'Failed to unduplicate content' },
           { status: 500 }
         );
       }

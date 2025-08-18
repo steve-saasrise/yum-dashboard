@@ -13,9 +13,17 @@ import {
   calculateReadingTime,
   extractTextFromHTML,
 } from '@/types/content';
+import {
+  ContentDeduplicationService,
+  generateContentHash,
+} from './content-deduplication';
 
 export class ContentService {
-  constructor(private supabase: SupabaseClient) {}
+  private deduplicationService: ContentDeduplicationService;
+
+  constructor(private supabase: SupabaseClient) {
+    this.deduplicationService = new ContentDeduplicationService(supabase);
+  }
 
   /**
    * Store a single content item with duplicate checking
@@ -56,7 +64,23 @@ export class ContentService {
     const reading_time_minutes =
       validatedInput.reading_time_minutes ?? calculateReadingTime(textContent);
 
-    // Insert content
+    // Generate temporary ID for deduplication processing
+    const tempContentId = crypto.randomUUID();
+
+    // Process deduplication
+    const deduplicationResult =
+      await this.deduplicationService.processContentForDeduplication({
+        id: tempContentId,
+        title: validatedInput.title || '',
+        description: validatedInput.description,
+        content_body: validatedInput.content_body,
+        url: validatedInput.url,
+        platform: validatedInput.platform,
+        creator_id: validatedInput.creator_id,
+        published_at: validatedInput.published_at || new Date().toISOString(),
+      });
+
+    // Insert content with deduplication fields
     const { data, error } = await this.supabase
       .from('content')
       .insert({
@@ -65,6 +89,10 @@ export class ContentService {
         reading_time_minutes,
         media_urls: validatedInput.media_urls || [],
         engagement_metrics: validatedInput.engagement_metrics || {},
+        // Add deduplication fields
+        content_hash: deduplicationResult.contentHash,
+        duplicate_group_id: deduplicationResult.duplicateGroupId,
+        is_primary: deduplicationResult.isPrimary,
         // IMPORTANT: Content with processing_status = 'pending' will NOT appear in the dashboard
         // Only content with processing_status = 'processed' is shown to users
         // Add new platforms here when implementing their fetchers
