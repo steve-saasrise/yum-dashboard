@@ -544,6 +544,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
           throw new Error('Failed to undelete content');
         }
 
+        // Restoration tracking is now handled in the API endpoint
         toast.success('Content restored and visible to all users');
       } catch (err) {
         // Rollback on failure

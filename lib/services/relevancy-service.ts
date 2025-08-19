@@ -21,6 +21,11 @@ interface RelevancyResult {
   reason: string;
 }
 
+interface PromptAdjustment {
+  adjustment_type: 'keep' | 'filter' | 'borderline';
+  adjustment_text: string;
+}
+
 export class RelevancyService {
   private openai: OpenAI;
   private supabase: SupabaseClient;
@@ -58,108 +63,205 @@ export class RelevancyService {
   }
 
   /**
+   * Get dynamic prompt adjustments from database
+   */
+  private async getPromptAdjustments(
+    loungeId: string
+  ): Promise<PromptAdjustment[]> {
+    const { data, error } = await this.supabase
+      .from('prompt_adjustments')
+      .select('adjustment_type, adjustment_text')
+      .eq('lounge_id', loungeId)
+      .eq('approved', true)
+      .eq('active', true);
+
+    if (error) {
+      console.error('Error fetching prompt adjustments:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Build lounge context with base rules and dynamic adjustments
+   */
+  private async buildLoungeContext(
+    loungeName: string,
+    loungeId: string
+  ): Promise<string> {
+    // Get dynamic adjustments from database
+    const adjustments = await this.getPromptAdjustments(loungeId);
+
+    // Group adjustments by type
+    const keepAdjustments = adjustments
+      .filter((a) => a.adjustment_type === 'keep')
+      .map((a) => `- ${a.adjustment_text}`);
+    const filterAdjustments = adjustments
+      .filter((a) => a.adjustment_type === 'filter')
+      .map((a) => `- ${a.adjustment_text}`);
+    const borderlineAdjustments = adjustments
+      .filter((a) => a.adjustment_type === 'borderline')
+      .map((a) => `- ${a.adjustment_text}`);
+
+    let baseContext = '';
+
+    if (loungeName === 'SaaS') {
+      // Base SaaS context
+      const baseKeep = [
+        '- ANY technology, software, AI, or programming content',
+        '- AI tools, prompts, workflows, use cases (ChatGPT, Claude, Midjourney, etc.)',
+        '- AI in business, AI automation, AI agents, AI APIs',
+        '- Machine learning, LLMs, AI development, AI trends',
+        '- Software as a Service businesses, SaaS metrics (MRR, ARR, churn, CAC, LTV)',
+        '- B2B software sales, pricing, customer success',
+        '- SaaS product development, features, integrations',
+        '- Cloud software, subscription models, SaaS tools',
+        '- Technical implementation (APIs, infrastructure, security, DevOps)',
+        '- Software engineering, coding, architecture patterns',
+        '- Tech industry news, product launches, acquisitions',
+        '- Developer tools, productivity software, automation',
+        '- Open source projects, tech tutorials, best practices',
+        '- No-code/low-code tools and platforms',
+        ...keepAdjustments, // Add dynamic adjustments
+      ];
+
+      const baseBorderline = [
+        '- General B2B business strategies without tech/AI context',
+        '- Marketing/growth tactics without specific software examples',
+        '- Generic startup advice without tech/software focus',
+        '- Brand building without product context',
+        ...borderlineAdjustments,
+      ];
+
+      const baseFilter = [
+        '- Pure celebrity/entertainment content',
+        '- Consumer product reviews (non-tech)',
+        '- Personal life updates unrelated to tech/work',
+        '- Motivational quotes without business/tech context',
+        '- Political content unrelated to tech industry',
+        ...filterAdjustments,
+      ];
+
+      baseContext = `
+KEEP (Score 60+):
+${baseKeep.join('\n')}
+
+BORDERLINE (Score 40-59):
+${baseBorderline.join('\n')}
+
+FILTER OUT (Score <40):
+${baseFilter.join('\n')}`;
+    } else if (
+      loungeName === 'AI' ||
+      loungeName === 'Venture' ||
+      loungeName === 'B2B Growth' ||
+      loungeName === 'Crypto'
+    ) {
+      // Other Business/Tech lounges
+      const baseKeep = [
+        '- ANY business, technology, or professional content',
+        '- Cross-domain content (AI in SaaS, crypto ventures, etc.) is WELCOME',
+        '- Product launches, company news, industry analysis',
+        '- Technical content, engineering, development',
+        '- Marketing, sales, growth strategies',
+        '- Pricing, metrics, case studies',
+        '- Professional insights and experiences',
+        '- Even brief business observations or questions',
+        ...keepAdjustments,
+      ];
+
+      const baseFilter = [
+        '- Pure motivational quotes with no business context',
+        '- Personal daily routines unrelated to work',
+        '- Birthday wishes, personal celebrations',
+        '- Generic life advice without professional context',
+        '- Political rants unrelated to tech/business',
+        '- Sports, entertainment (unless business angle)',
+        '- Vague excitement without context ("So cool!", "Amazing!")',
+        ...filterAdjustments,
+      ];
+
+      baseContext = `
+KEEP (Score 60+):
+${baseKeep.join('\n')}
+
+FILTER OUT (Score <60):
+${baseFilter.join('\n')}`;
+    } else if (loungeName === 'Biohacking') {
+      const baseKeep = [
+        '- Health optimization, fitness, nutrition content',
+        '- Sleep, recovery, performance tips',
+        '- Supplements, nootropics, health tech',
+        '- Personal health experiments and results',
+        '- Wellness routines and protocols',
+        '- Mental health and cognitive enhancement',
+        '- Even personal stories IF they include health insights',
+        ...keepAdjustments,
+      ];
+
+      const baseFilter = [
+        '- Pure motivational content without health context',
+        '- Business content unrelated to health',
+        '- Political or social commentary',
+        '- Entertainment, sports (unless health-related)',
+        '- Vague statements without health information',
+        ...filterAdjustments,
+      ];
+
+      baseContext = `
+KEEP (Score 50+):
+${baseKeep.join('\n')}
+
+FILTER OUT (Score <50):
+${baseFilter.join('\n')}`;
+    } else if (loungeName === 'Personal Growth') {
+      const baseKeep = [
+        '- Productivity tips and systems',
+        '- Goal setting and achievement',
+        '- Learning strategies, skill development',
+        '- Career growth and professional development',
+        '- Mindset and psychology insights',
+        '- Work-life balance strategies',
+        '- Personal experiences with lessons learned',
+        '- Even motivational content IF it has actionable advice',
+        ...keepAdjustments,
+      ];
+
+      const baseFilter = [
+        '- Empty motivational quotes with no substance',
+        '- Pure business metrics without growth angle',
+        '- Technical content without learning aspect',
+        '- Political or controversial topics',
+        '- Entertainment without educational value',
+        ...filterAdjustments,
+      ];
+
+      baseContext = `
+KEEP (Score 50+):
+${baseKeep.join('\n')}
+
+FILTER OUT (Score <50):
+${baseFilter.join('\n')}`;
+    }
+
+    return baseContext;
+  }
+
+  /**
    * Check relevancy for a single content item
    */
   private async checkSingleItem(
     item: RelevancyCheckItem
   ): Promise<RelevancyResult> {
     try {
-      // Lounge-specific but broader, more inclusive prompts
-      let loungeContext = '';
+      // Build lounge context with base rules and dynamic adjustments
+      const loungeContext = await this.buildLoungeContext(
+        item.lounge_name,
+        item.lounge_id
+      );
 
-      if (item.lounge_name === 'SaaS') {
-        // SaaS-focused but inclusive of all tech and AI content
-        loungeContext = `
-KEEP (Score 60+):
-- ANY technology, software, AI, or programming content
-- AI tools, prompts, workflows, use cases (ChatGPT, Claude, Midjourney, etc.)
-- AI in business, AI automation, AI agents, AI APIs
-- Machine learning, LLMs, AI development, AI trends
-- Software as a Service businesses, SaaS metrics (MRR, ARR, churn, CAC, LTV)
-- B2B software sales, pricing, customer success
-- SaaS product development, features, integrations
-- Cloud software, subscription models, SaaS tools
-- Technical implementation (APIs, infrastructure, security, DevOps)
-- Software engineering, coding, architecture patterns
-- Tech industry news, product launches, acquisitions
-- Developer tools, productivity software, automation
-- Open source projects, tech tutorials, best practices
-- No-code/low-code tools and platforms
-
-BORDERLINE (Score 40-59):
-- General B2B business strategies without tech/AI context
-- Marketing/growth tactics without specific software examples
-- Generic startup advice without tech/software focus
-- Brand building without product context
-
-FILTER OUT (Score <40):
-- Pure celebrity/entertainment content
-- Consumer product reviews (non-tech)
-- Personal life updates unrelated to tech/work
-- Motivational quotes without business/tech context
-- Political content unrelated to tech industry`;
-      } else if (
-        item.lounge_name === 'AI' ||
-        item.lounge_name === 'Venture' ||
-        item.lounge_name === 'B2B Growth' ||
-        item.lounge_name === 'Crypto'
-      ) {
-        // Other Business/Tech lounges - filter out personal content
-        loungeContext = `
-KEEP (Score 60+):
-- ANY business, technology, or professional content
-- Cross-domain content (AI in SaaS, crypto ventures, etc.) is WELCOME
-- Product launches, company news, industry analysis
-- Technical content, engineering, development
-- Marketing, sales, growth strategies
-- Pricing, metrics, case studies
-- Professional insights and experiences
-- Even brief business observations or questions
-
-FILTER OUT (Score <60):
-- Pure motivational quotes with no business context
-- Personal daily routines unrelated to work
-- Birthday wishes, personal celebrations
-- Generic life advice without professional context
-- Political rants unrelated to tech/business
-- Sports, entertainment (unless business angle)
-- Vague excitement without context ("So cool!", "Amazing!")`;
-      } else if (item.lounge_name === 'Biohacking') {
-        loungeContext = `
-KEEP (Score 50+):
-- Health optimization, fitness, nutrition content
-- Sleep, recovery, performance tips
-- Supplements, nootropics, health tech
-- Personal health experiments and results
-- Wellness routines and protocols
-- Mental health and cognitive enhancement
-- Even personal stories IF they include health insights
-
-FILTER OUT (Score <50):
-- Pure motivational content without health context
-- Business content unrelated to health
-- Political or social commentary
-- Entertainment, sports (unless health-related)
-- Vague statements without health information`;
-      } else if (item.lounge_name === 'Personal Growth') {
-        loungeContext = `
-KEEP (Score 50+):
-- Productivity tips and systems
-- Goal setting and achievement
-- Learning strategies, skill development
-- Career growth and professional development
-- Mindset and psychology insights
-- Work-life balance strategies
-- Personal experiences with lessons learned
-- Even motivational content IF it has actionable advice
-
-FILTER OUT (Score <50):
-- Empty motivational quotes with no substance
-- Pure business metrics without growth angle
-- Technical content without learning aspect
-- Political or controversial topics
-- Entertainment without educational value`;
-      }
+      // loungeContext is now built dynamically above
 
       // Build content description including referenced content
       let fullContent = item.content_description || item.content_title;

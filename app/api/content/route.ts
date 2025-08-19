@@ -841,7 +841,9 @@ export async function DELETE(request: NextRequest) {
       // First get the content details to match the deletion
       const { data: content, error: contentError } = await supabase
         .from('content')
-        .select('platform_content_id, platform, creator_id')
+        .select(
+          'platform_content_id, platform, creator_id, relevancy_score, relevancy_reason, title, description, url'
+        )
         .eq('id', content_id)
         .single();
 
@@ -864,6 +866,75 @@ export async function DELETE(request: NextRequest) {
           { error: 'Failed to undelete content' },
           { status: 500 }
         );
+      }
+
+      // Track restoration for relevancy learning (only if content has low relevancy score)
+      if (
+        content.relevancy_score &&
+        parseFloat(content.relevancy_score.toString()) < 60
+      ) {
+        try {
+          // Get the first lounge this content belongs to via creator
+          const { data: loungeData } = await supabase
+            .from('creator_lounges')
+            .select('lounge_id')
+            .eq('creator_id', content.creator_id)
+            .limit(1)
+            .single();
+
+          if (loungeData?.lounge_id) {
+            // Get creator name for the snapshot
+            const { data: creatorData } = await supabase
+              .from('creators')
+              .select('display_name')
+              .eq('id', content.creator_id)
+              .single();
+
+            const contentSnapshot = {
+              title: content.title,
+              description: content.description,
+              url: content.url,
+              platform: content.platform,
+              creator_name: creatorData?.display_name || 'Unknown',
+            };
+
+            // Track the restoration
+            const { error: trackingError } = await supabase
+              .from('relevancy_corrections')
+              .insert({
+                content_id: content_id,
+                lounge_id: loungeData.lounge_id,
+                original_score: parseFloat(content.relevancy_score.toString()),
+                original_reason:
+                  content.relevancy_reason || 'No reason recorded',
+                restored_by: user.id,
+                content_snapshot: contentSnapshot,
+              });
+
+            if (!trackingError) {
+              console.log('Restoration tracked for relevancy learning:', {
+                content_id,
+                lounge_id: loungeData.lounge_id,
+                score: content.relevancy_score,
+              });
+
+              // Also update the content's relevancy score to prevent immediate re-filtering
+              await supabase
+                .from('content')
+                .update({
+                  relevancy_score: 100, // Max score to indicate manual approval
+                  relevancy_reason: 'Manually restored by ' + userData.role,
+                })
+                .eq('id', content_id);
+            }
+          }
+        } catch (trackError) {
+          // Don't fail the undelete if tracking fails, just log it
+          console.error(
+            'Failed to track restoration for learning:',
+            trackError
+          );
+        }
       }
     } else if (action === 'unduplicate') {
       // Unduplicate - set is_primary = true to show this content to all users
