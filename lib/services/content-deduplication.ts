@@ -369,8 +369,13 @@ export class ContentDeduplicationService {
     }
 
     // Duplicates exist, determine if this should be primary
+    // Ensure existingContent is an array
+    const existingContent = Array.isArray(duplicateInfo.existingContent) 
+      ? duplicateInfo.existingContent 
+      : [];
+    
     const allContent = [
-      ...duplicateInfo.existingContent!,
+      ...existingContent,
       {
         id: content.id,
         platform: content.platform,
