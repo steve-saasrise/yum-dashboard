@@ -62,43 +62,53 @@ export function AdminRelevancyLearning() {
     setLoading(true);
     try {
       console.log('Loading relevancy data via API...');
-      
+
       // Fetch pending suggestions via API
-      const pendingResponse = await fetch('/api/admin/relevancy-suggestions?status=pending');
+      const pendingResponse = await fetch(
+        '/api/admin/relevancy-suggestions?status=pending'
+      );
       const pendingData = await pendingResponse.json();
-      
+
       if (!pendingResponse.ok) {
-        throw new Error(pendingData.error || 'Failed to fetch pending suggestions');
+        throw new Error(
+          pendingData.error || 'Failed to fetch pending suggestions'
+        );
       }
-      
+
       // Fetch active suggestions via API
-      const activeResponse = await fetch('/api/admin/relevancy-suggestions?status=active');
+      const activeResponse = await fetch(
+        '/api/admin/relevancy-suggestions?status=active'
+      );
       const activeData = await activeResponse.json();
-      
+
       if (!activeResponse.ok) {
-        throw new Error(activeData.error || 'Failed to fetch active suggestions');
+        throw new Error(
+          activeData.error || 'Failed to fetch active suggestions'
+        );
       }
-      
+
       // Fetch analysis runs via API
       const runsResponse = await fetch('/api/relevancy/analysis-runs');
       const runsData = await runsResponse.json();
-      
+
       if (!runsResponse.ok) {
         throw new Error(runsData.error || 'Failed to fetch analysis runs');
       }
 
-      console.log('Loaded data:', { 
-        pending: pendingData.suggestions, 
-        active: activeData.suggestions, 
-        runs: runsData.runs 
+      console.log('Loaded data:', {
+        pending: pendingData.suggestions,
+        active: activeData.suggestions,
+        runs: runsData.runs,
       });
-      
+
       setPendingSuggestions(pendingData.suggestions || []);
       setActiveSuggestions(activeData.suggestions || []);
       setRecentRuns(runsData.runs || []);
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to load relevancy data');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to load relevancy data'
+      );
     } finally {
       setLoading(false);
     }
@@ -119,7 +129,7 @@ export function AdminRelevancyLearning() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to approve suggestion');
       }
@@ -128,7 +138,9 @@ export function AdminRelevancyLearning() {
       await loadData();
     } catch (error) {
       console.error('Error approving suggestion:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to approve suggestion');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to approve suggestion'
+      );
     } finally {
       setProcessing(false);
     }
@@ -149,7 +161,7 @@ export function AdminRelevancyLearning() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to reject suggestion');
       }
@@ -158,7 +170,9 @@ export function AdminRelevancyLearning() {
       await loadData();
     } catch (error) {
       console.error('Error rejecting suggestion:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to reject suggestion');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to reject suggestion'
+      );
     } finally {
       setProcessing(false);
     }
@@ -179,7 +193,7 @@ export function AdminRelevancyLearning() {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to deactivate adjustment');
       }
@@ -188,7 +202,11 @@ export function AdminRelevancyLearning() {
       await loadData();
     } catch (error) {
       console.error('Error deactivating adjustment:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to deactivate adjustment');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to deactivate adjustment'
+      );
     } finally {
       setProcessing(false);
     }
