@@ -78,6 +78,8 @@ export class YouTubeFetcher {
       const channelResponse = await this.youtube.channels.list({
         part: ['contentDetails', 'snippet', 'statistics'],
         id: [channelId],
+        fields:
+          'items(id,snippet(title,description,thumbnails,publishedAt),contentDetails(relatedPlaylists(uploads)),statistics)', // Optimize response size
       });
 
       if (
@@ -105,13 +107,20 @@ export class YouTubeFetcher {
         );
       }
 
-      // Fetch videos from the uploads playlist
-      const playlistResponse = await this.youtube.playlistItems.list({
-        part: ['snippet', 'contentDetails', 'status'],
+      // Fetch videos from the uploads playlist with date filtering
+      const playlistParams: any = {
+        part: ['snippet', 'contentDetails'],
         playlistId: uploadsPlaylistId,
         maxResults: fetchOptions.maxResults,
         pageToken: fetchOptions.pageToken,
-      });
+        fields:
+          'items(contentDetails(videoId),snippet(publishedAt)),nextPageToken,prevPageToken,pageInfo', // Optimize response size
+      };
+
+      // Note: playlistItems.list doesn't support publishedAfter directly
+      // We'll need to filter after fetching, but we can limit the number of items
+      const playlistResponse =
+        await this.youtube.playlistItems.list(playlistParams);
 
       if (!playlistResponse.data.items) {
         return {
@@ -123,12 +132,29 @@ export class YouTubeFetcher {
         };
       }
 
+      // Filter by date BEFORE fetching detailed video info to save quota
+      let filteredPlaylistItems = playlistResponse.data.items;
+      if (fetchOptions.publishedAfter) {
+        filteredPlaylistItems = playlistResponse.data.items.filter((item) => {
+          const publishedAt = item.snippet?.publishedAt;
+          if (!publishedAt) return true; // Include if no date info
+          return new Date(publishedAt) > fetchOptions.publishedAfter!;
+        });
+
+        console.log(
+          `[YouTube] Filtered ${playlistResponse.data.items.length} items to ${filteredPlaylistItems.length} based on publishedAfter`
+        );
+      }
+
       // Get video IDs for detailed information
-      const videoIds = playlistResponse.data.items
+      const videoIds = filteredPlaylistItems
         .map((item) => item.contentDetails?.videoId)
         .filter((id): id is string => !!id);
 
       if (videoIds.length === 0) {
+        console.log(
+          `[YouTube] No new videos found for channel ${channelId} after date filter`
+        );
         return {
           success: true,
           videos: [],
@@ -138,10 +164,12 @@ export class YouTubeFetcher {
         };
       }
 
-      // Fetch detailed video information
+      // Fetch detailed video information with optimized fields
       const videosResponse = await this.youtube.videos.list({
         part: ['snippet', 'contentDetails', 'statistics', 'status'],
         id: videoIds,
+        fields:
+          'items(id,snippet(publishedAt,channelId,title,description,thumbnails,channelTitle,tags),contentDetails(duration),statistics,status)', // Optimize response size
       });
 
       const videos = videosResponse.data.items || [];
@@ -312,10 +340,12 @@ export class YouTubeFetcher {
         .map((item) => item.id?.videoId)
         .filter((id): id is string => !!id);
 
-      // Fetch detailed video information
+      // Fetch detailed video information with optimized fields
       const videosResponse = await this.youtube.videos.list({
         part: ['snippet', 'contentDetails', 'statistics', 'status'],
         id: videoIds,
+        fields:
+          'items(id,snippet(publishedAt,channelId,title,description,thumbnails,channelTitle,tags),contentDetails(duration),statistics,status)', // Optimize response size
       });
 
       const videos = videosResponse.data.items || [];

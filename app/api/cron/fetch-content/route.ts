@@ -76,6 +76,8 @@ export async function GET(request: NextRequest) {
       summariesGenerated?: number;
       summaryErrors?: number;
       summaryGenerationError?: string;
+      youtubeQuotaUsed?: number;
+      youtubeCreatorsProcessed?: number;
       creators: Array<{
         id: string;
         name: string;
@@ -95,6 +97,8 @@ export async function GET(request: NextRequest) {
       new: 0,
       updated: 0,
       errors: 0,
+      youtubeQuotaUsed: 0,
+      youtubeCreatorsProcessed: 0,
       creators: [],
     };
 
@@ -105,6 +109,7 @@ export async function GET(request: NextRequest) {
         `
         id,
         display_name,
+        metadata,
         creator_urls!inner (
           url,
           platform,
@@ -214,11 +219,25 @@ export async function GET(request: NextRequest) {
               continue;
             }
 
-            // Fetching YouTube videos
+            // Get last fetch timestamp from creator metadata
+            const lastYoutubeFetch = creator.metadata?.last_youtube_fetch
+              ? new Date(creator.metadata.last_youtube_fetch as string)
+              : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // Default to 7 days ago for first fetch
+
+            // Determine maxResults based on whether this is first fetch or incremental
+            const isFirstFetch = !creator.metadata?.last_youtube_fetch;
+            const maxResults = isFirstFetch ? 10 : 5; // Reduced from 20 to save quota
+
+            console.log(
+              `[YouTube] Fetching for ${creator.display_name}: maxResults=${maxResults}, since=${lastYoutubeFetch.toISOString()}`
+            );
+
+            // Fetching YouTube videos with date filter
             const result = await youtubeFetcher.fetchChannelVideosByUrl(
               creatorUrl.url,
               {
-                maxResults: 20, // Limit to 20 most recent videos
+                maxResults, // Dynamic based on first fetch or incremental
+                publishedAfter: lastYoutubeFetch, // Only fetch new videos
                 storage: {
                   enabled: true,
                   supabaseClient: supabase,
@@ -253,6 +272,16 @@ export async function GET(request: NextRequest) {
               errors: [],
             };
 
+            // Log quota usage (3 units per fetch: channels.list, playlistItems.list, videos.list)
+            const quotaUsed = result.videos.length > 0 ? 3 : 2; // Only 2 units if no videos to fetch details
+            console.log(
+              `[YouTube] Quota used: ${quotaUsed} units for ${creator.display_name}`
+            );
+
+            stats.youtubeQuotaUsed = (stats.youtubeQuotaUsed || 0) + quotaUsed;
+            stats.youtubeCreatorsProcessed =
+              (stats.youtubeCreatorsProcessed || 0) + 1;
+
             creatorStats.urls.push({
               url: creatorUrl.url,
               status: 'success',
@@ -260,12 +289,26 @@ export async function GET(request: NextRequest) {
               new: storedContent.created,
               updated: storedContent.updated,
               errors: storedContent.errors.length,
+              message: `Quota: ${quotaUsed} units`,
             });
 
             stats.processed += result.videos.length;
             stats.new += storedContent.created;
             stats.updated += storedContent.updated;
             stats.errors += storedContent.errors.length;
+
+            // Update last_youtube_fetch only if we successfully fetched videos
+            if (result.videos.length > 0 || storedContent.created > 0) {
+              await supabase
+                .from('creators')
+                .update({
+                  metadata: {
+                    ...(creator.metadata || {}),
+                    last_youtube_fetch: new Date().toISOString(),
+                  },
+                })
+                .eq('id', creator.id);
+            }
           } else if (creatorUrl.platform === 'twitter') {
             // Check if Apify fetcher is initialized
             if (!apifyFetcher) {
@@ -609,9 +652,17 @@ export async function GET(request: NextRequest) {
 
     // Cron fetch completed
 
+    // Add quota summary message
+    const quotaPercentage = stats.youtubeQuotaUsed
+      ? ((stats.youtubeQuotaUsed / 10000) * 100).toFixed(2)
+      : 0;
+    const message = stats.youtubeQuotaUsed
+      ? `Content fetch completed. YouTube quota used: ${stats.youtubeQuotaUsed}/10000 units (${quotaPercentage}%) for ${stats.youtubeCreatorsProcessed} creators`
+      : 'Content fetch completed';
+
     return NextResponse.json({
       success: true,
-      message: 'Content fetch completed',
+      message,
       stats,
       timestamp: new Date().toISOString(),
     });

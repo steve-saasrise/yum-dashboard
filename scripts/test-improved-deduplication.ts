@@ -10,9 +10,8 @@ import {
   ContentForDeduplication,
 } from '../lib/services/content-deduplication';
 
-const SUPABASE_URL = 'https://gtmynspbdgdlxgwlkpye.supabase.co';
-const SUPABASE_SERVICE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bXluc3BiZGdkbHhnd2xrcHllIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTY0NTc1NiwiZXhwIjoyMDY3MjIxNzU2fQ.jJmzK03ZnVvkJUFaVd_LdTGLNiLJtDUqWpWNdnvQpPI';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('Missing required environment variables');
