@@ -61,34 +61,44 @@ export function AdminRelevancyLearning() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load pending suggestions
-      const { data: pending } = await supabase
-        .from('prompt_adjustments')
-        .select('*, lounges(name)')
-        .eq('approved', false)
-        .order('suggested_at', { ascending: false });
+      console.log('Loading relevancy data via API...');
+      
+      // Fetch pending suggestions via API
+      const pendingResponse = await fetch('/api/admin/relevancy-suggestions?status=pending');
+      const pendingData = await pendingResponse.json();
+      
+      if (!pendingResponse.ok) {
+        throw new Error(pendingData.error || 'Failed to fetch pending suggestions');
+      }
+      
+      // Fetch active suggestions via API
+      const activeResponse = await fetch('/api/admin/relevancy-suggestions?status=active');
+      const activeData = await activeResponse.json();
+      
+      if (!activeResponse.ok) {
+        throw new Error(activeData.error || 'Failed to fetch active suggestions');
+      }
+      
+      // Fetch analysis runs via API
+      const runsResponse = await fetch('/api/relevancy/analysis-runs');
+      const runsData = await runsResponse.json();
+      
+      if (!runsResponse.ok) {
+        throw new Error(runsData.error || 'Failed to fetch analysis runs');
+      }
 
-      // Load active suggestions
-      const { data: active } = await supabase
-        .from('prompt_adjustments')
-        .select('*, lounges(name)')
-        .eq('approved', true)
-        .eq('active', true)
-        .order('approved_at', { ascending: false });
-
-      // Load recent analysis runs
-      const { data: runs } = await supabase
-        .from('relevancy_analysis_runs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      setPendingSuggestions(pending || []);
-      setActiveSuggestions(active || []);
-      setRecentRuns(runs || []);
+      console.log('Loaded data:', { 
+        pending: pendingData.suggestions, 
+        active: activeData.suggestions, 
+        runs: runsData.runs 
+      });
+      
+      setPendingSuggestions(pendingData.suggestions || []);
+      setActiveSuggestions(activeData.suggestions || []);
+      setRecentRuns(runsData.runs || []);
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error('Failed to load relevancy data');
+      toast.error(error instanceof Error ? error.message : 'Failed to load relevancy data');
     } finally {
       setLoading(false);
     }
@@ -97,28 +107,28 @@ export function AdminRelevancyLearning() {
   const handleApprove = async (suggestionId: string) => {
     setProcessing(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const response = await fetch('/api/admin/relevancy-suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'approve',
+          suggestion_id: suggestionId,
+        }),
+      });
 
-      const { error } = await supabase
-        .from('prompt_adjustments')
-        .update({
-          approved: true,
-          approved_by: user.id,
-          approved_at: new Date().toISOString(),
-          active: true,
-        })
-        .eq('id', suggestionId);
-
-      if (error) throw error;
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to approve suggestion');
+      }
 
       toast.success('Suggestion approved and activated');
       await loadData();
     } catch (error) {
       console.error('Error approving suggestion:', error);
-      toast.error('Failed to approve suggestion');
+      toast.error(error instanceof Error ? error.message : 'Failed to approve suggestion');
     } finally {
       setProcessing(false);
     }
@@ -127,18 +137,28 @@ export function AdminRelevancyLearning() {
   const handleReject = async (suggestionId: string) => {
     setProcessing(true);
     try {
-      const { error } = await supabase
-        .from('prompt_adjustments')
-        .delete()
-        .eq('id', suggestionId);
+      const response = await fetch('/api/admin/relevancy-suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reject',
+          suggestion_id: suggestionId,
+        }),
+      });
 
-      if (error) throw error;
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reject suggestion');
+      }
 
       toast.success('Suggestion rejected');
       await loadData();
     } catch (error) {
       console.error('Error rejecting suggestion:', error);
-      toast.error('Failed to reject suggestion');
+      toast.error(error instanceof Error ? error.message : 'Failed to reject suggestion');
     } finally {
       setProcessing(false);
     }
@@ -147,18 +167,28 @@ export function AdminRelevancyLearning() {
   const handleDeactivate = async (suggestionId: string) => {
     setProcessing(true);
     try {
-      const { error } = await supabase
-        .from('prompt_adjustments')
-        .update({ active: false })
-        .eq('id', suggestionId);
+      const response = await fetch('/api/admin/relevancy-suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'deactivate',
+          suggestion_id: suggestionId,
+        }),
+      });
 
-      if (error) throw error;
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to deactivate adjustment');
+      }
 
       toast.success('Adjustment deactivated');
       await loadData();
     } catch (error) {
       console.error('Error deactivating adjustment:', error);
-      toast.error('Failed to deactivate adjustment');
+      toast.error(error instanceof Error ? error.message : 'Failed to deactivate adjustment');
     } finally {
       setProcessing(false);
     }

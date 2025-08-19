@@ -50,6 +50,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
 import { UserCog, Shield, Users, Loader2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { AdminRelevancyLearning } from '@/components/admin-relevancy-learning';
 
 interface UserWithRole {
   id: string;
@@ -432,6 +433,9 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Relevancy Learning System */}
+        <AdminRelevancyLearning />
       </div>
 
       {/* Delete Confirmation Dialog */}
