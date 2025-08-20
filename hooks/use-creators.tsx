@@ -2,14 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
-import { useAuth } from '@/hooks/use-auth';
 import type { Creator, CreatorFilters } from '@/types/creator';
 import { DEFAULT_FILTERS } from '@/types/creator';
 
 export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
-  const {
-    state: { user, session, loading: authLoading },
-  } = useAuth();
   const [allCreatorsData, setAllCreatorsData] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,19 +27,6 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
 
   // Fetch all creators data once (or when refresh is triggered)
   useEffect(() => {
-    // Skip if auth is still loading
-    if (authLoading) {
-      return;
-    }
-
-    // Handle authentication state properly
-    if (!user || !session) {
-      setLoading(false);
-      setError('Please sign in to view your creators');
-      setAllCreatorsData([]);
-      return;
-    }
-
     // Prevent duplicate fetches
     if (isFetchingRef.current) {
       return;
@@ -64,7 +47,13 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
           .order('created_at', { ascending: false });
 
         if (fetchError) {
-          throw new Error(fetchError.message);
+          // If it's an auth error, Supabase middleware will handle redirect
+          // Just set empty data and let the page render
+          console.error('Error fetching creators:', fetchError);
+          setAllCreatorsData([]);
+          setLoading(false);
+          isFetchingRef.current = false;
+          return;
         }
 
         const creatorsData = allCreators || [];
@@ -137,7 +126,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
     };
 
     fetchAllCreators();
-  }, [authLoading, user, session, refreshTrigger]); // Remove filters from dependencies
+  }, [refreshTrigger]); // Only re-fetch when explicitly refreshed
 
   // Filter and paginate creators on the client side
   const { creators, totalCount } = useMemo(() => {

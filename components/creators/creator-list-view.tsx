@@ -750,30 +750,8 @@ export function CreatorListView() {
     );
   }
 
-  if (error) {
-    const isAuthError = error.includes('sign in');
-    return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <p className="text-lg font-medium text-destructive">
-          {isAuthError ? 'Authentication Required' : 'Failed to load creators'}
-        </p>
-        <p className="text-sm text-muted-foreground">{error}</p>
-        {isAuthError ? (
-          <Button
-            onClick={() => (window.location.href = '/auth/login')}
-            variant="default"
-          >
-            Sign In
-          </Button>
-        ) : (
-          <Button onClick={refreshCreators} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
-        )}
-      </div>
-    );
-  }
+  // Don't show error state - let Supabase handle auth errors
+  // If there's a non-auth error, just show empty state
 
   return (
     <div className="space-y-6">
