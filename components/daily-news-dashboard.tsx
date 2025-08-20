@@ -473,7 +473,7 @@ function AppSidebar({
                             tooltip={`${platform.name} (${platform.count} items)`}
                             onClick={() => onPlatformToggle(platform.platform)}
                             className={
-                              isSelected ? 'bg-gray-100 dark:bg-gray-800' : ''
+                              isSelected ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary' : ''
                             }
                           >
                             <Icon className="w-4 h-4" />
