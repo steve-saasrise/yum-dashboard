@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
+import { useAuth } from '@/hooks/use-auth';
 import type { Creator, CreatorFilters } from '@/types/creator';
 import { DEFAULT_FILTERS } from '@/types/creator';
 
 export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
+  const { state: authState } = useAuth();
   const [allCreatorsData, setAllCreatorsData] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +27,13 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
   const isFetchingRef = useRef(false);
   const previousFiltersRef = useRef<CreatorFilters>(filters);
 
-  // Fetch all creators data once (or when refresh is triggered)
+  // Fetch all creators data once (or when refresh is triggered or session changes)
   useEffect(() => {
+    // Don't fetch if we don't have a session yet (still loading auth)
+    if (authState.loading) {
+      return;
+    }
+
     // Prevent duplicate fetches
     if (isFetchingRef.current) {
       return;
@@ -126,7 +133,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
     };
 
     fetchAllCreators();
-  }, [refreshTrigger]); // Only re-fetch when explicitly refreshed
+  }, [refreshTrigger, authState.session, authState.loading]); // Re-fetch when session changes or explicitly refreshed
 
   // Filter and paginate creators on the client side
   const { creators, totalCount } = useMemo(() => {
@@ -225,7 +232,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
 
   return {
     creators,
-    loading,
+    loading: loading || authState.loading, // Include auth loading state
     error,
     filters,
     pagination,
