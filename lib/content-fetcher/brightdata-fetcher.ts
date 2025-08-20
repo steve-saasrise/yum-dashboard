@@ -98,8 +98,41 @@ export class BrightDataFetcher {
   }
 
   /**
+   * Get existing snapshots for the dataset
+   */
+  async getExistingSnapshots(status: 'ready' | 'running' | 'failed' = 'ready'): Promise<any[]> {
+    const endpoint = `${this.baseUrl}/datasets/v3/snapshots`;
+    const queryParams = new URLSearchParams({
+      dataset_id: BrightDataFetcher.DATASET_ID,
+      status: status,
+      limit: '10', // Get last 10 ready snapshots
+    });
+
+    const fullUrl = `${endpoint}?${queryParams.toString()}`;
+    console.log(`[BrightDataFetcher] Getting existing snapshots: ${fullUrl}`);
+
+    const response = await fetch(fullUrl, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `[BrightDataFetcher] Failed to get snapshots: ${response.status} - ${errorText}`
+      );
+      throw new Error(`Failed to get snapshots: ${response.status}`);
+    }
+
+    const snapshots = await response.json();
+    console.log(`[BrightDataFetcher] Found ${snapshots.length} existing snapshots`);
+    return snapshots;
+  }
+
+  /**
    * Fetch LinkedIn posts for given profile URLs
-   * Uses async trigger endpoint with polling for results
+   * First tries to use existing collected data, then falls back to triggering new collection
    */
   async fetchLinkedInContent(
     profileUrls: string[],
@@ -108,6 +141,7 @@ export class BrightDataFetcher {
       startDate?: string; // YYYY-MM-DD
       endDate?: string; // YYYY-MM-DD
       timeout?: number; // Max time to wait for results in ms
+      useExistingData?: boolean; // Try to use existing data first
     }
   ): Promise<CreateContentInput[]> {
     console.log(
@@ -117,6 +151,50 @@ export class BrightDataFetcher {
     const allContent: CreateContentInput[] = [];
     const timeout = options?.timeout || 300000; // Default 5 minutes (LinkedIn scraping can be slow)
 
+    // Try to use existing data first if not explicitly disabled
+    if (options?.useExistingData !== false) {
+      try {
+        console.log('[BrightDataFetcher] Checking for existing collected data...');
+        const existingSnapshots = await this.getExistingSnapshots('ready');
+        
+        if (existingSnapshots.length > 0) {
+          // Use the most recent ready snapshot
+          const latestSnapshot = existingSnapshots[0];
+          console.log(
+            `[BrightDataFetcher] Using existing snapshot: ${latestSnapshot.id} from ${latestSnapshot.created}`
+          );
+          
+          const results = await this.getSnapshotData(latestSnapshot.id);
+          
+          if (results && results.length > 0) {
+            console.log(
+              `[BrightDataFetcher] Retrieved ${results.length} posts from existing snapshot`
+            );
+            
+            // Filter results by profile URLs if needed
+            const filteredResults = results.filter((post: any) => {
+              // Check if this post belongs to one of the requested profiles
+              if (!post.url && !post.use_url) return false;
+              const postUrl = post.url || post.use_url;
+              return profileUrls.some(profileUrl => 
+                postUrl.toLowerCase().includes(profileUrl.toLowerCase().replace('https://www.linkedin.com/in/', ''))
+              );
+            });
+            
+            const transformedContent = this.transformLinkedInData(
+              filteredResults,
+              options?.maxResults
+            );
+            return transformedContent;
+          }
+        }
+      } catch (error) {
+        console.error('[BrightDataFetcher] Error fetching existing data:', error);
+        console.log('[BrightDataFetcher] Falling back to triggering new collection...');
+      }
+    }
+
+    // Fall back to triggering new collection if no existing data or error
     // Process each profile URL
     for (const profileUrl of profileUrls) {
       try {
@@ -209,12 +287,13 @@ export class BrightDataFetcher {
       },
     ];
 
-    // Use the correct query parameters - profile_url supports date filtering
+    // Use the correct query parameters for profile-specific collection
+    // Must use type: 'discover_new' with discover_by: 'profile_url' for profile URLs
     const queryParams = new URLSearchParams({
       dataset_id: BrightDataFetcher.DATASET_ID,
       include_errors: 'true',
-      type: 'discover_new',
-      discover_by: 'profile_url', // This endpoint supports start_date and end_date
+      type: 'discover_new', // Required for discovery phase
+      discover_by: 'profile_url', // Required to accept profile URLs instead of post URLs
     });
 
     const fullUrl = `${endpoint}?${queryParams.toString()}`;
