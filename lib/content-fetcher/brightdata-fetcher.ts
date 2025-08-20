@@ -100,7 +100,9 @@ export class BrightDataFetcher {
   /**
    * Get existing snapshots for the dataset
    */
-  async getExistingSnapshots(status: 'ready' | 'running' | 'failed' = 'ready'): Promise<any[]> {
+  async getExistingSnapshots(
+    status: 'ready' | 'running' | 'failed' = 'ready'
+  ): Promise<any[]> {
     const endpoint = `${this.baseUrl}/datasets/v3/snapshots`;
     const queryParams = new URLSearchParams({
       dataset_id: BrightDataFetcher.DATASET_ID,
@@ -126,7 +128,9 @@ export class BrightDataFetcher {
     }
 
     const snapshots = await response.json();
-    console.log(`[BrightDataFetcher] Found ${snapshots.length} existing snapshots`);
+    console.log(
+      `[BrightDataFetcher] Found ${snapshots.length} existing snapshots`
+    );
     return snapshots;
   }
 
@@ -154,33 +158,41 @@ export class BrightDataFetcher {
     // Try to use existing data first if not explicitly disabled
     if (options?.useExistingData !== false) {
       try {
-        console.log('[BrightDataFetcher] Checking for existing collected data...');
+        console.log(
+          '[BrightDataFetcher] Checking for existing collected data...'
+        );
         const existingSnapshots = await this.getExistingSnapshots('ready');
-        
+
         if (existingSnapshots.length > 0) {
           // Use the most recent ready snapshot
           const latestSnapshot = existingSnapshots[0];
           console.log(
             `[BrightDataFetcher] Using existing snapshot: ${latestSnapshot.id} from ${latestSnapshot.created}`
           );
-          
+
           const results = await this.getSnapshotData(latestSnapshot.id);
-          
+
           if (results && results.length > 0) {
             console.log(
               `[BrightDataFetcher] Retrieved ${results.length} posts from existing snapshot`
             );
-            
+
             // Filter results by profile URLs if needed
             const filteredResults = results.filter((post: any) => {
               // Check if this post belongs to one of the requested profiles
               if (!post.url && !post.use_url) return false;
               const postUrl = post.url || post.use_url;
-              return profileUrls.some(profileUrl => 
-                postUrl.toLowerCase().includes(profileUrl.toLowerCase().replace('https://www.linkedin.com/in/', ''))
+              return profileUrls.some((profileUrl) =>
+                postUrl
+                  .toLowerCase()
+                  .includes(
+                    profileUrl
+                      .toLowerCase()
+                      .replace('https://www.linkedin.com/in/', '')
+                  )
               );
             });
-            
+
             const transformedContent = this.transformLinkedInData(
               filteredResults,
               options?.maxResults
@@ -189,8 +201,13 @@ export class BrightDataFetcher {
           }
         }
       } catch (error) {
-        console.error('[BrightDataFetcher] Error fetching existing data:', error);
-        console.log('[BrightDataFetcher] Falling back to triggering new collection...');
+        console.error(
+          '[BrightDataFetcher] Error fetching existing data:',
+          error
+        );
+        console.log(
+          '[BrightDataFetcher] Falling back to triggering new collection...'
+        );
       }
     }
 

@@ -19,10 +19,14 @@ export async function GET(request: NextRequest) {
       .eq('platform', 'linkedin');
 
     if (creatorsError) {
-      throw new Error(`Failed to fetch LinkedIn creators: ${creatorsError.message}`);
+      throw new Error(
+        `Failed to fetch LinkedIn creators: ${creatorsError.message}`
+      );
     }
 
-    console.log(`[ImportAll] Found ${linkedinCreators?.length || 0} LinkedIn creators`);
+    console.log(
+      `[ImportAll] Found ${linkedinCreators?.length || 0} LinkedIn creators`
+    );
 
     // Create a map of LinkedIn username to creator_id
     const creatorMap = new Map<string, string>();
@@ -33,14 +37,16 @@ export async function GET(request: NextRequest) {
         .replace('https://linkedin.com/in/', '')
         .replace('/', '');
       creatorMap.set(username, creator.creator_id);
-      console.log(`[ImportAll] Mapped username: ${username} to creator: ${creator.creator_id}`);
+      console.log(
+        `[ImportAll] Mapped username: ${username} to creator: ${creator.creator_id}`
+      );
     });
 
     // Get ALL snapshots (not just ready ones, and not limited to 10)
     const snapshotsUrl = `https://api.brightdata.com/datasets/v3/snapshots?dataset_id=gd_lyy3tktm25m4avu764&status=ready&limit=100`;
-    
+
     console.log(`[ImportAll] Fetching snapshots from: ${snapshotsUrl}`);
-    
+
     const snapshotsResponse = await fetch(snapshotsUrl, {
       headers: {
         Authorization: `Bearer ${process.env.BRIGHTDATA_API_KEY}`,
@@ -80,17 +86,19 @@ export async function GET(request: NextRequest) {
       try {
         // Download the FULL snapshot data (no batching for now)
         const dataUrl = `https://api.brightdata.com/datasets/v3/snapshot/${snapshot.id}?format=json`;
-        
+
         console.log(`[ImportAll] Downloading from: ${dataUrl}`);
-        
+
         const dataResponse = await fetch(dataUrl, {
           headers: {
             Authorization: `Bearer ${process.env.BRIGHTDATA_API_KEY}`,
           },
         });
-        
+
         if (!dataResponse.ok) {
-          console.error(`[ImportAll] Failed to fetch snapshot ${snapshot.id}: ${dataResponse.status}`);
+          console.error(
+            `[ImportAll] Failed to fetch snapshot ${snapshot.id}: ${dataResponse.status}`
+          );
           results.errors.push({
             snapshot_id: snapshot.id,
             error: `HTTP ${dataResponse.status}`,
@@ -102,7 +110,9 @@ export async function GET(request: NextRequest) {
         const posts = Array.isArray(data) ? data : [data];
         results.total_posts_found += posts.length;
 
-        console.log(`[ImportAll] Retrieved ${posts.length} posts from snapshot ${snapshot.id}`);
+        console.log(
+          `[ImportAll] Retrieved ${posts.length} posts from snapshot ${snapshot.id}`
+        );
 
         // Keep track of sample posts for debugging
         if (results.sample_posts.length < 5 && posts.length > 0) {
@@ -119,19 +129,24 @@ export async function GET(request: NextRequest) {
           try {
             // Extract username from post
             const postUrl = post.url || post.use_url || '';
-            const username = post.user_id || 
-              postUrl.match(/linkedin\.com\/in\/([^\/]+)/)?.[1] || 
-              postUrl.match(/linkedin\.com\/posts\/([^_]+)_/)?.[1] || '';
+            const username =
+              post.user_id ||
+              postUrl.match(/linkedin\.com\/in\/([^\/]+)/)?.[1] ||
+              postUrl.match(/linkedin\.com\/posts\/([^_]+)_/)?.[1] ||
+              '';
 
             if (!username) {
-              console.log('[ImportAll] Could not extract username from post:', postUrl.substring(0, 100));
+              console.log(
+                '[ImportAll] Could not extract username from post:',
+                postUrl.substring(0, 100)
+              );
               results.posts_skipped++;
               continue;
             }
 
             // Find the creator_id for this username
             const creatorId = creatorMap.get(username.toLowerCase());
-            
+
             if (!creatorId) {
               // Track posts without matching creators
               results.posts_no_creator++;
@@ -144,7 +159,9 @@ export async function GET(request: NextRequest) {
             const contentInput: CreateContentInput = {
               creator_id: creatorId,
               platform: 'linkedin',
-              platform_content_id: post.id || `linkedin_${username}_${Date.parse(post.date_posted || '')}`,
+              platform_content_id:
+                post.id ||
+                `linkedin_${username}_${Date.parse(post.date_posted || '')}`,
               url: postUrl,
               title: post.title || post.headline || null,
               description: post.post_text || null,
@@ -180,7 +197,9 @@ export async function GET(request: NextRequest) {
                   contentInput.media_urls?.push({
                     url: videoUrl,
                     type: 'video',
-                    thumbnail_url: post.video_thumbnail || (typeof video === 'object' ? video.thumbnail : undefined),
+                    thumbnail_url:
+                      post.video_thumbnail ||
+                      (typeof video === 'object' ? video.thumbnail : undefined),
                   });
                 }
               });
@@ -204,14 +223,20 @@ export async function GET(request: NextRequest) {
             // Don't log individual post errors to avoid spam, just count them
             results.errors.push({
               post_url: (post.url || post.use_url || '').substring(0, 100),
-              error: error instanceof Error ? error.message.substring(0, 100) : 'Unknown',
+              error:
+                error instanceof Error
+                  ? error.message.substring(0, 100)
+                  : 'Unknown',
             });
           }
         }
 
         results.snapshots_processed++;
       } catch (error) {
-        console.error(`[ImportAll] Error processing snapshot ${snapshot.id}:`, error);
+        console.error(
+          `[ImportAll] Error processing snapshot ${snapshot.id}:`,
+          error
+        );
         results.errors.push({
           snapshot_id: snapshot.id,
           error: error instanceof Error ? error.message : 'Unknown error',

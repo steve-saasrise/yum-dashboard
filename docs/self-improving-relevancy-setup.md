@@ -75,6 +75,7 @@ curl -X GET https://yourdomain.com/api/cron/analyze-relevancy \
 ✅ **The admin interface is already set up** at `/dashboard/admin`
 
 The `AdminRelevancyLearning` component has been integrated into the admin dashboard and includes:
+
 - **Pending Suggestions**: Review and approve/reject AI-generated adjustments
 - **Active Adjustments**: View and manage currently active prompt improvements
 - **Analysis History**: Track weekly analysis runs and their results

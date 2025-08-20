@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Bright Data API key not configured',
-          message: 'Please add BRIGHTDATA_API_KEY to your environment variables',
+          message:
+            'Please add BRIGHTDATA_API_KEY to your environment variables',
         },
         { status: 500 }
       );
@@ -29,8 +30,9 @@ export async function GET(request: NextRequest) {
 
     // Get all ready snapshots
     console.log('[Import] Getting existing BrightData snapshots...');
-    const readySnapshots = await brightDataFetcher.getExistingSnapshots('ready');
-    
+    const readySnapshots =
+      await brightDataFetcher.getExistingSnapshots('ready');
+
     if (readySnapshots.length === 0) {
       return NextResponse.json({
         success: false,
@@ -47,10 +49,14 @@ export async function GET(request: NextRequest) {
       .eq('platform', 'linkedin');
 
     if (creatorsError) {
-      throw new Error(`Failed to fetch LinkedIn creators: ${creatorsError.message}`);
+      throw new Error(
+        `Failed to fetch LinkedIn creators: ${creatorsError.message}`
+      );
     }
 
-    console.log(`[Import] Found ${linkedinCreators?.length || 0} LinkedIn creators`);
+    console.log(
+      `[Import] Found ${linkedinCreators?.length || 0} LinkedIn creators`
+    );
 
     // Create a map of LinkedIn username to creator_id
     const creatorMap = new Map<string, string>();
@@ -86,15 +92,17 @@ export async function GET(request: NextRequest) {
       try {
         // Fetch the actual data from the snapshot
         const endpoint = `https://api.brightdata.com/datasets/v3/snapshot/${snapshot.id}?format=json`;
-        
+
         const response = await fetch(endpoint, {
           headers: {
             Authorization: `Bearer ${process.env.BRIGHTDATA_API_KEY}`,
           },
         });
-        
+
         if (!response.ok) {
-          console.error(`[Import] Failed to fetch snapshot ${snapshot.id}: ${response.status}`);
+          console.error(
+            `[Import] Failed to fetch snapshot ${snapshot.id}: ${response.status}`
+          );
           results.errors.push({
             snapshot_id: snapshot.id,
             error: `HTTP ${response.status}`,
@@ -106,28 +114,37 @@ export async function GET(request: NextRequest) {
         const posts = Array.isArray(data) ? data : [data];
         results.total_posts_found += posts.length;
 
-        console.log(`[Import] Retrieved ${posts.length} posts from snapshot ${snapshot.id}`);
+        console.log(
+          `[Import] Retrieved ${posts.length} posts from snapshot ${snapshot.id}`
+        );
 
         // Transform and store each post
         for (const post of posts) {
           try {
             // Extract username from post URL
             const postUrl = post.url || post.use_url || '';
-            const username = post.user_id || 
-              postUrl.match(/linkedin\.com\/in\/([^\/]+)/)?.[1] || 
-              postUrl.match(/linkedin\.com\/posts\/([^_]+)_/)?.[1] || '';
+            const username =
+              post.user_id ||
+              postUrl.match(/linkedin\.com\/in\/([^\/]+)/)?.[1] ||
+              postUrl.match(/linkedin\.com\/posts\/([^_]+)_/)?.[1] ||
+              '';
 
             if (!username) {
-              console.log('[Import] Could not extract username from post:', postUrl);
+              console.log(
+                '[Import] Could not extract username from post:',
+                postUrl
+              );
               results.posts_skipped++;
               continue;
             }
 
             // Find the creator_id for this username
             const creatorId = creatorMap.get(username.toLowerCase());
-            
+
             if (!creatorId) {
-              console.log(`[Import] No creator found for username: ${username}`);
+              console.log(
+                `[Import] No creator found for username: ${username}`
+              );
               results.posts_skipped++;
               continue;
             }
@@ -138,7 +155,9 @@ export async function GET(request: NextRequest) {
             const contentInput: CreateContentInput = {
               creator_id: creatorId,
               platform: 'linkedin',
-              platform_content_id: post.id || `linkedin_${post.user_id}_${Date.parse(post.date_posted || '')}`,
+              platform_content_id:
+                post.id ||
+                `linkedin_${post.user_id}_${Date.parse(post.date_posted || '')}`,
               url: postUrl,
               title: post.title || post.headline || null,
               description: post.post_text || null,
@@ -174,7 +193,9 @@ export async function GET(request: NextRequest) {
                   contentInput.media_urls?.push({
                     url: videoUrl,
                     type: 'video',
-                    thumbnail_url: post.video_thumbnail || (typeof video === 'object' ? video.thumbnail : undefined),
+                    thumbnail_url:
+                      post.video_thumbnail ||
+                      (typeof video === 'object' ? video.thumbnail : undefined),
                   });
                 }
               });
@@ -219,7 +240,10 @@ export async function GET(request: NextRequest) {
 
         results.snapshots_processed++;
       } catch (error) {
-        console.error(`[Import] Error processing snapshot ${snapshot.id}:`, error);
+        console.error(
+          `[Import] Error processing snapshot ${snapshot.id}:`,
+          error
+        );
         results.errors.push({
           snapshot_id: snapshot.id,
           error: error instanceof Error ? error.message : 'Unknown error',

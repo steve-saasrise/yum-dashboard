@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Bright Data API key not configured',
-          message: 'Please add BRIGHTDATA_API_KEY to your environment variables',
+          message:
+            'Please add BRIGHTDATA_API_KEY to your environment variables',
         },
         { status: 500 }
       );
@@ -21,34 +22,38 @@ export async function GET(request: NextRequest) {
 
     // Get existing snapshots
     console.log('[Test] Checking for existing BrightData snapshots...');
-    
-    const readySnapshots = await brightDataFetcher.getExistingSnapshots('ready');
-    const runningSnapshots = await brightDataFetcher.getExistingSnapshots('running');
-    
+
+    const readySnapshots =
+      await brightDataFetcher.getExistingSnapshots('ready');
+    const runningSnapshots =
+      await brightDataFetcher.getExistingSnapshots('running');
+
     // Get sample data from the most recent ready snapshot
     let sampleData = null;
     let sampleCount = 0;
-    
+
     if (readySnapshots.length > 0) {
       const latestSnapshot = readySnapshots[0];
-      console.log(`[Test] Fetching data from latest snapshot: ${latestSnapshot.id}`);
-      
+      console.log(
+        `[Test] Fetching data from latest snapshot: ${latestSnapshot.id}`
+      );
+
       try {
         // Fetch the actual data from the snapshot
         const endpoint = `https://api.brightdata.com/datasets/v3/snapshot/${latestSnapshot.id}?format=json`;
-        
+
         const response = await fetch(endpoint, {
           headers: {
             Authorization: `Bearer ${process.env.BRIGHTDATA_API_KEY}`,
           },
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           sampleCount = Array.isArray(data) ? data.length : 1;
-          
+
           // Get first 3 items as sample
-          sampleData = Array.isArray(data) 
+          sampleData = Array.isArray(data)
             ? data.slice(0, 3).map((item: any) => ({
                 id: item.id,
                 url: item.url || item.use_url,
@@ -61,7 +66,7 @@ export async function GET(request: NextRequest) {
                 engagement: {
                   likes: item.num_likes,
                   comments: item.num_comments,
-                }
+                },
               }))
             : [data];
         }
@@ -93,9 +98,10 @@ export async function GET(request: NextRequest) {
         elapsed_time: Date.now() - new Date(s.created).getTime(),
       })),
       sample_data: sampleData,
-      recommendation: readySnapshots.length > 0 
-        ? `You have ${readySnapshots.length} ready snapshots with data. The latest contains ${sampleCount} posts.`
-        : 'No ready snapshots found. You may need to trigger a collection.',
+      recommendation:
+        readySnapshots.length > 0
+          ? `You have ${readySnapshots.length} ready snapshots with data. The latest contains ${sampleCount} posts.`
+          : 'No ready snapshots found. You may need to trigger a collection.',
     });
   } catch (error) {
     console.error('[Test] Error checking BrightData snapshots:', error);
