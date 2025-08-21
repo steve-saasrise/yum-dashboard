@@ -17,6 +17,8 @@ function verifyCronAuth(request: NextRequest): boolean {
   return process.env.NODE_ENV === 'development';
 }
 
+export const maxDuration = 300; // 5 minutes max execution time
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
