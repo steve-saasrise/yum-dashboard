@@ -196,7 +196,9 @@ export async function GET(request: NextRequest) {
       } else {
         // For viewers seeing all content, we'll handle deleted content filtering after fetching
         // This is because we need to match by platform_content_id, platform, and creator_id
-        console.log('Will filter deleted content after fetching for viewer seeing all content');
+        console.log(
+          'Will filter deleted content after fetching for viewer seeing all content'
+        );
       }
     }
 
@@ -216,7 +218,7 @@ export async function GET(request: NextRequest) {
         { count: 'exact' }
       )
       .eq('processing_status', 'processed');
-    
+
     // Only filter by creator_id if we have specific creators
     if (creatorIds.length > 0) {
       contentQuery = contentQuery.in('creator_id', creatorIds);
@@ -322,13 +324,14 @@ export async function GET(request: NextRequest) {
       let deletedContentQuery = supabase
         .from('deleted_content')
         .select('platform_content_id, platform, creator_id, deletion_reason');
-      
+
       // Only filter by creator_id if we have specific creators
       if (creatorIds.length > 0) {
         deletedContentQuery = deletedContentQuery.in('creator_id', creatorIds);
       }
-      
-      const { data: deletedContent, error: deletedError } = await deletedContentQuery;
+
+      const { data: deletedContent, error: deletedError } =
+        await deletedContentQuery;
 
       console.log('Deleted content query result:', {
         found: deletedContent?.length || 0,
@@ -374,7 +377,9 @@ export async function GET(request: NextRequest) {
       // If we didn't pre-fetch deleted content (because we're showing all content),
       // we need to fetch it now based on the actual content we retrieved
       if (creatorIds.length === 0 && filteredContent.length > 0) {
-        const contentCreatorIds = [...new Set(filteredContent.map(c => c.creator_id).filter(Boolean))];
+        const contentCreatorIds = [
+          ...new Set(filteredContent.map((c) => c.creator_id).filter(Boolean)),
+        ];
         const { data: deletedContent, error: deletedError } = await supabase
           .from('deleted_content')
           .select('platform_content_id, platform, creator_id')
@@ -382,10 +387,11 @@ export async function GET(request: NextRequest) {
 
         if (deletedContent && deletedContent.length > 0) {
           deletedContent.forEach((dc) => {
-            const matchingContent = filteredContent.find((c) => 
-              c.platform_content_id === dc.platform_content_id &&
-              String(c.platform) === dc.platform &&
-              c.creator_id === dc.creator_id
+            const matchingContent = filteredContent.find(
+              (c) =>
+                c.platform_content_id === dc.platform_content_id &&
+                String(c.platform) === dc.platform &&
+                c.creator_id === dc.creator_id
             );
             if (matchingContent) {
               deletedContentMap.set(matchingContent.id, true);
