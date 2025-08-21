@@ -1,3 +1,5 @@
+'use client';
+
 import { CreatorListView } from '@/components/creators/creator-list-view';
 import Link from 'next/link';
 import {

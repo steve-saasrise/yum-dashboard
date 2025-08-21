@@ -4,12 +4,18 @@ import { createBrowserClient } from '@supabase/ssr';
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+// Singleton instance for browser client
+let browserClient: ReturnType<typeof createBrowserClient> | null = null;
+
 // Create browser client - let Supabase handle all session management
 export function createBrowserSupabaseClient() {
-  return createBrowserClient(
-    supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder-key'
-  );
+  if (!browserClient) {
+    browserClient = createBrowserClient(
+      supabaseUrl || 'https://placeholder.supabase.co',
+      supabaseAnonKey || 'placeholder-key'
+    );
+  }
+  return browserClient;
 }
 
 // Simple error message helper

@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
       if (session) {
         // Create basic profile from session
         const basicProfile: UserProfile = {
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes - KEEP IT SIMPLE
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       console.log('Auth event:', event);
 
       if (event === 'SIGNED_OUT') {

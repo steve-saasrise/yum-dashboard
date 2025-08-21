@@ -750,8 +750,8 @@ export function CreatorListView() {
     );
   }
 
-  // Don't show error state - let Supabase handle auth errors
-  // If there's a non-auth error, just show empty state
+  // Don't show error state for now - just continue with empty data
+  // This prevents UI flashing during navigation
 
   return (
     <div className="space-y-6">

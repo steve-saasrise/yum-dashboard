@@ -214,7 +214,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
           .select('creator_id')
           .eq('lounge_id', filtersRef.current.lounge_id);
 
-        creatorIds = creatorLounges?.map((cl) => cl.creator_id) || [];
+        creatorIds = creatorLounges?.map((cl: any) => cl.creator_id) || [];
       } else {
         // Get all creators from user's lounges
         const { data: userLounges } = await supabase
@@ -222,7 +222,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
           .select('lounge_id')
           .eq('user_id', session.user.id);
 
-        const loungeIds = userLounges?.map((ul) => ul.lounge_id) || [];
+        const loungeIds = userLounges?.map((ul: any) => ul.lounge_id) || [];
 
         if (loungeIds.length > 0) {
           const { data: creatorLounges } = await supabase
@@ -230,7 +230,7 @@ export function useContent(filters?: ContentFilters): UseContentReturn {
             .select('creator_id')
             .in('lounge_id', loungeIds);
 
-          creatorIds = creatorLounges?.map((cl) => cl.creator_id) || [];
+          creatorIds = creatorLounges?.map((cl: any) => cl.creator_id) || [];
         }
       }
 

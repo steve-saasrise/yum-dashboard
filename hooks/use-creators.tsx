@@ -1,13 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createBrowserSupabaseClient } from '@/lib/supabase';
-import { useAuth } from '@/hooks/use-auth';
 import type { Creator, CreatorFilters } from '@/types/creator';
 import { DEFAULT_FILTERS } from '@/types/creator';
 
 export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
-  const { state: authState } = useAuth();
   const [allCreatorsData, setAllCreatorsData] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,43 +21,34 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
   });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Use a ref to track if we're currently fetching to prevent duplicate calls
-  const isFetchingRef = useRef(false);
-  const previousFiltersRef = useRef<CreatorFilters>(filters);
-
-  // Fetch all creators data once (or when refresh is triggered or session changes)
+  // Fetch all creators data once (or when refresh is triggered)
   useEffect(() => {
-    // Don't fetch if we don't have a session yet (still loading auth)
-    if (authState.loading) {
-      return;
-    }
-
-    // Prevent duplicate fetches
-    if (isFetchingRef.current) {
-      return;
-    }
+    const abortController = new AbortController();
 
     const fetchAllCreators = async () => {
-      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
 
       try {
         const supabase = createBrowserSupabaseClient();
 
-        // Fetch ALL creators without any filters (we'll filter client-side)
+        // Skip session check - let the query fail if not authenticated
+        // This avoids the hanging session check issue
+
+        // Fetch ALL creators with abort signal
         const { data: allCreators, error: fetchError } = await supabase
           .from('creators')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .abortSignal(abortController.signal);
 
         if (fetchError) {
-          // If it's an auth error, Supabase middleware will handle redirect
-          // Just set empty data and let the page render
-          console.error('Error fetching creators:', fetchError);
+          // Don't log auth errors - they're expected when not logged in
+          if (!fetchError.message?.includes('JWT')) {
+            console.error('[useCreators] Error fetching creators:', fetchError);
+          }
           setAllCreatorsData([]);
           setLoading(false);
-          isFetchingRef.current = false;
           return;
         }
 
@@ -67,40 +56,42 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
 
         // If we have creators, fetch all related data at once
         if (creatorsData.length > 0) {
-          const creatorIds = creatorsData.map((c) => c.id);
+          const creatorIds = creatorsData.map((c: any) => c.id);
 
-          // Fetch all URLs
+          // Fetch all URLs with abort signal
           const { data: urls } = await supabase
             .from('creator_urls')
             .select('id, creator_id, platform, url, validation_status')
-            .in('creator_id', creatorIds);
+            .in('creator_id', creatorIds)
+            .abortSignal(abortController.signal);
 
           const creatorUrls = urls || [];
 
-          // Fetch all lounges
+          // Fetch all lounges with abort signal
           const { data: loungesData } = await supabase
             .from('creator_lounges')
             .select('creator_id, lounge_id, lounges(id, name)')
-            .in('creator_id', creatorIds);
+            .in('creator_id', creatorIds)
+            .abortSignal(abortController.signal);
 
           const creatorLounges = loungesData || [];
 
           // Transform creators to include all related data
-          const transformedCreators = creatorsData.map((creator) => {
+          const transformedCreators = creatorsData.map((creator: any) => {
             // Get URLs for this creator
             const creatorUrlsList = creatorUrls.filter(
-              (url) => url.creator_id === creator.id
+              (url: any) => url.creator_id === creator.id
             );
 
             // Get lounges for this creator
             const creatorLoungesList = creatorLounges
-              .filter((cl) => cl.creator_id === creator.id)
+              .filter((cl: any) => cl.creator_id === creator.id)
               .map((cl: any) => cl.lounges?.name)
               .filter(Boolean);
 
             // Also get lounge IDs for the edit modal
             const creatorLoungeIds = creatorLounges
-              .filter((cl) => cl.creator_id === creator.id)
+              .filter((cl: any) => cl.creator_id === creator.id)
               .map((cl: any) => cl.lounges?.id)
               .filter(Boolean);
 
@@ -122,18 +113,31 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
         } else {
           setAllCreatorsData([]);
         }
-      } catch (err) {
+      } catch (err: any) {
+        // Check if it was aborted
+        if (err?.name === 'AbortError') {
+          console.log('[useCreators] Request aborted');
+          return;
+        }
+        console.error('[useCreators] Error in fetch:', err);
         setError(
           err instanceof Error ? err.message : 'Failed to load creators'
         );
       } finally {
-        setLoading(false);
-        isFetchingRef.current = false;
+        // Only set loading false if not aborted
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchAllCreators();
-  }, [refreshTrigger, authState.session, authState.loading]); // Re-fetch when session changes or explicitly refreshed
+
+    // Cleanup function - abort any in-flight requests
+    return () => {
+      abortController.abort();
+    };
+  }, [refreshTrigger]); // Only re-fetch when explicitly triggered
 
   // Filter and paginate creators on the client side
   const { creators, totalCount } = useMemo(() => {
@@ -232,7 +236,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
 
   return {
     creators,
-    loading: loading || authState.loading, // Include auth loading state
+    loading,
     error,
     filters,
     pagination,
