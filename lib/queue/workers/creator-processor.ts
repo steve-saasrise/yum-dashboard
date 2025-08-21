@@ -184,11 +184,27 @@ async function processCreator(job: Job) {
           case 'linkedin':
             // Use BrightData for LinkedIn instead of Apify
             if (brightDataFetcher) {
+              console.log(
+                `[LinkedIn] Fetching for ${creatorName}: ${creatorUrl.url}`
+              );
               items = await brightDataFetcher.fetchLinkedInContent(
                 [creatorUrl.url],
-                { maxResults: 20 }
+                {
+                  maxResults: 10, // Reduced from 20 to match main cron
+                  // Get posts from the last 24 hours to reduce costs
+                  startDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+                    .toISOString()
+                    .split('T')[0],
+                }
+              );
+              console.log(
+                `[LinkedIn] BrightData returned ${items.length} items for ${creatorName}`
               );
               items = items.map((item) => ({ ...item, creator_id: creatorId }));
+            } else {
+              console.warn(
+                `[LinkedIn] BrightData not configured for ${creatorName}`
+              );
             }
             break;
         }
