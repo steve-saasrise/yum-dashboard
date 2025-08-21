@@ -195,6 +195,7 @@ async function processCreator(job: Job) {
                   startDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
                     .toISOString()
                     .split('T')[0],
+                  useExistingData: false, // Force new collection for each profile
                 }
               );
               console.log(
