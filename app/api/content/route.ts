@@ -113,19 +113,9 @@ export async function GET(request: NextRequest) {
       creatorIds = creatorLounges?.map((cl) => cl.creator_id) || [];
     } else {
       // When no lounge is selected, show ALL content from ALL creators
-      // This provides a unified feed view
-      const { data: creators, error: creatorsError } = await supabase
-        .from('creators')
-        .select('id');
-
-      if (creatorsError) {
-        return NextResponse.json(
-          { error: 'Failed to fetch creators' },
-          { status: 500 }
-        );
-      }
-
-      creatorIds = creators?.map((c) => c.id) || [];
+      // Instead of fetching all creators first, we'll query content directly
+      // and let the database handle the filtering
+      creatorIds = []; // Empty array means no creator filtering
     }
 
     // If there's a search query, also find creators whose names match
@@ -166,13 +156,12 @@ export async function GET(request: NextRequest) {
     console.log('Creator IDs for query:', {
       loungeId: query.lounge_id,
       creatorCount: creatorIds.length,
-      includesLinkedInCreator: creatorIds.includes(
-        '67597381-9a5c-4a88-9f21-db122c404e80'
-      ),
+      showingAllContent: creatorIds.length === 0 && !query.lounge_id,
     });
 
-    if (creatorIds.length === 0) {
-      // No creators, return empty content
+    // Only return empty if we have a specific lounge with no creators
+    if (query.lounge_id && creatorIds.length === 0) {
+      // Specific lounge has no creators
       return NextResponse.json({
         content: [],
         page: query.page,
@@ -185,23 +174,29 @@ export async function GET(request: NextRequest) {
     // Get deleted content IDs first (before fetching content)
     const deletedContentMap = new Map<string, boolean>();
 
-    if (!isPrivilegedUser && creatorIds.length > 0) {
-      // For viewers, get deleted content IDs using the database function
-      const { data: deletedContentIds, error: rpcError } = await supabase.rpc(
-        'get_deleted_content_for_filtering',
-        { creator_ids: creatorIds }
-      );
+    if (!isPrivilegedUser) {
+      if (creatorIds.length > 0) {
+        // For viewers with specific creators, get deleted content IDs using the database function
+        const { data: deletedContentIds, error: rpcError } = await supabase.rpc(
+          'get_deleted_content_for_filtering',
+          { creator_ids: creatorIds }
+        );
 
-      console.log('Deleted content IDs from RPC for viewer:', {
-        count: deletedContentIds?.length || 0,
-        error: rpcError,
-        ids: deletedContentIds?.map((d: any) => d.content_id),
-      });
-
-      if (deletedContentIds && deletedContentIds.length > 0) {
-        deletedContentIds.forEach((item: any) => {
-          deletedContentMap.set(item.content_id, true);
+        console.log('Deleted content IDs from RPC for viewer:', {
+          count: deletedContentIds?.length || 0,
+          error: rpcError,
+          ids: deletedContentIds?.map((d: any) => d.content_id),
         });
+
+        if (deletedContentIds && deletedContentIds.length > 0) {
+          deletedContentIds.forEach((item: any) => {
+            deletedContentMap.set(item.content_id, true);
+          });
+        }
+      } else {
+        // For viewers seeing all content, we'll handle deleted content filtering after fetching
+        // This is because we need to match by platform_content_id, platform, and creator_id
+        console.log('Will filter deleted content after fetching for viewer seeing all content');
       }
     }
 
@@ -220,8 +215,12 @@ export async function GET(request: NextRequest) {
       `,
         { count: 'exact' }
       )
-      .in('creator_id', creatorIds)
       .eq('processing_status', 'processed');
+    
+    // Only filter by creator_id if we have specific creators
+    if (creatorIds.length > 0) {
+      contentQuery = contentQuery.in('creator_id', creatorIds);
+    }
 
     // IMPORTANT: For regular users, only show content that has been scored
     // This prevents unscored (potentially off-topic) content from appearing
@@ -320,10 +319,16 @@ export async function GET(request: NextRequest) {
     // For privileged users, get deleted content data after fetching content
     const deletionReasonMap = new Map<string, string>();
     if (isPrivilegedUser && content && content.length > 0) {
-      const { data: deletedContent, error: deletedError } = await supabase
+      let deletedContentQuery = supabase
         .from('deleted_content')
-        .select('platform_content_id, platform, creator_id, deletion_reason')
-        .in('creator_id', creatorIds);
+        .select('platform_content_id, platform, creator_id, deletion_reason');
+      
+      // Only filter by creator_id if we have specific creators
+      if (creatorIds.length > 0) {
+        deletedContentQuery = deletedContentQuery.in('creator_id', creatorIds);
+      }
+      
+      const { data: deletedContent, error: deletedError } = await deletedContentQuery;
 
       console.log('Deleted content query result:', {
         found: deletedContent?.length || 0,
@@ -366,6 +371,29 @@ export async function GET(request: NextRequest) {
     // Filter out deleted content for regular users
     let filteredContent = content || [];
     if (!isPrivilegedUser) {
+      // If we didn't pre-fetch deleted content (because we're showing all content),
+      // we need to fetch it now based on the actual content we retrieved
+      if (creatorIds.length === 0 && filteredContent.length > 0) {
+        const contentCreatorIds = [...new Set(filteredContent.map(c => c.creator_id).filter(Boolean))];
+        const { data: deletedContent, error: deletedError } = await supabase
+          .from('deleted_content')
+          .select('platform_content_id, platform, creator_id')
+          .in('creator_id', contentCreatorIds);
+
+        if (deletedContent && deletedContent.length > 0) {
+          deletedContent.forEach((dc) => {
+            const matchingContent = filteredContent.find((c) => 
+              c.platform_content_id === dc.platform_content_id &&
+              String(c.platform) === dc.platform &&
+              c.creator_id === dc.creator_id
+            );
+            if (matchingContent) {
+              deletedContentMap.set(matchingContent.id, true);
+            }
+          });
+        }
+      }
+
       const beforeCount = filteredContent.length;
       const deletedCount = Array.from(deletedContentMap.keys()).length;
       console.log(`Filtering deleted content for viewer ${user.email}:`, {
