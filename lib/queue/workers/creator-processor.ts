@@ -212,10 +212,18 @@ async function processCreator(job: Job) {
 
         // Store content if not already handled by the fetcher
         if (items.length > 0 && creatorUrl.platform !== 'youtube') {
+          console.log(
+            `[${creatorUrl.platform.toUpperCase()}] Storing ${items.length} items for ${creatorName}`
+          );
           const results = await contentService.storeMultipleContent(items);
           platformStats.fetched = items.length;
           platformStats.new = results.created;
           platformStats.updated = results.updated;
+
+          console.log(
+            `[${creatorUrl.platform.toUpperCase()}] Storage results for ${creatorName}: ` +
+            `${results.created} new, ${results.updated} updated, ${results.errors.length} errors`
+          );
 
           stats.processed += items.length;
           stats.new += results.created;
@@ -245,7 +253,11 @@ async function processCreator(job: Job) {
       })
       .eq('id', creatorId);
 
-    // Removed progress update
+    // Log final stats for this creator
+    console.log(
+      `[Creator ${creatorName}] Processing complete: ` +
+      `${stats.processed} processed, ${stats.new} new, ${stats.updated} updated, ${stats.errors} errors`
+    );
 
     // Queue new content for AI summary generation
     console.log(`[Creator ${creatorName}] Summary queue check:`, {
