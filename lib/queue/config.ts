@@ -46,7 +46,7 @@ export function getRedisConnection(): ConnectionOptions {
   return baseConfig;
 }
 
-// Job options - Balanced for performance and debugging
+// Job options - Extended timeouts for slow external APIs (BrightData)
 export const DEFAULT_JOB_OPTIONS = {
   removeOnComplete: {
     count: 50, // Keep last 50 completed jobs for debugging
@@ -59,13 +59,16 @@ export const DEFAULT_JOB_OPTIONS = {
   attempts: 3, // Standard retry count
   backoff: {
     type: 'exponential' as const,
-    delay: 2000, // Standard backoff delay
+    delay: 5000, // Increased backoff delay for API rate limits
   },
+  // Extended lock duration to handle slow BrightData API (135+ seconds)
+  lockDuration: 300000, // 5 minutes (was default 30 seconds)
+  stalledInterval: 300000, // 5 minutes check interval
 };
 
-// Worker concurrency settings
+// Worker concurrency settings - Reduced to prevent lock contention
 export const WORKER_CONCURRENCY = {
-  CONTENT_FETCH: 5, // Process 5 creators concurrently
+  CONTENT_FETCH: 2, // Process 2 creators concurrently (reduced from 5)
   AI_SUMMARY: 3, // Generate 3 summaries concurrently
-  CREATOR_PROCESSING: 10, // Process 10 individual creators
+  CREATOR_PROCESSING: 3, // Process 3 individual creators (reduced from 10 to prevent lock issues)
 };
