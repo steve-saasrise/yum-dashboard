@@ -38,12 +38,9 @@
       "type": "http",
       "url": "https://api.ref.tools/mcp?apiKey=ref-bb6a93a759a6656eacd4"
     },
-    "Bright Data": {
-      "command": "npx",
-      "args": ["@brightdata/mcp"],
-      "env": {
-        "API_TOKEN": "dea94102ac579ebe6fb0df65fd2ce59435561724e648f4f71994c57f6830a9de"
-      }
+    "railway": {
+      "command": "/Users/steve/.nvm/versions/node/v24.4.0/bin/railway-mcp-server",
+      "args": []
     }
   }
 }

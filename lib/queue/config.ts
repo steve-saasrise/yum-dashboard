@@ -23,11 +23,11 @@ export function getRedisConnection(): ConnectionOptions {
     throw new Error('Redis connection details not configured');
   }
 
-  // Extract host and port from Upstash URL
-  // Format: https://xxxxx.upstash.io:6379
-  const urlParts = url.replace('https://', '').split(':');
-  const host = urlParts[0];
-  const port = parseInt(urlParts[1] || '6379');
+  // Extract host from Upstash URL (remove https:// prefix)
+  // REST URL format: https://xxxxx.upstash.io
+  // Redis endpoint: xxxxx.upstash.io:6379
+  const host = url.replace('https://', '').replace(/:\d+$/, ''); // Remove https:// and any port
+  const port = 6379; // Upstash Redis always uses port 6379
 
   const baseConfig = {
     host,
@@ -39,6 +39,8 @@ export function getRedisConnection(): ConnectionOptions {
     },
     maxRetriesPerRequest: 3,
   };
+
+  console.log(`Connecting to Redis at ${host}:${port} with TLS`);
 
   // Return the connection options directly - BullMQ handles connection pooling internally
   return baseConfig;

@@ -43,6 +43,20 @@ console.log(
 );
 console.log('- Summary processor worker: Generating summaries for new content');
 
+// Error handling
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  // Exit with failure code to trigger Railway restart
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Exit with failure code to trigger Railway restart
+  process.exit(1);
+});
+
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, closing workers...');
