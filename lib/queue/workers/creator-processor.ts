@@ -295,15 +295,15 @@ async function processCreator(job: Job) {
 export function createCreatorProcessorWorker() {
   const worker = new Worker(QUEUE_NAMES.CREATOR_PROCESSING, processCreator, {
     connection: getRedisConnection(),
-    concurrency: 5, // Balanced concurrency for medium scale
+    concurrency: WORKER_CONCURRENCY.CREATOR_PROCESSING, // Use config value (3)
     limiter: {
       max: 10,
       duration: 1000, // Max 10 jobs per second
     },
-    // Professional optimization settings
+    // Extended timeouts for slow external APIs (BrightData)
     drainDelay: 5, // Standard drain delay
-    stalledInterval: 30000, // Standard stalled check interval
-    lockDuration: 30000, // Standard lock duration
+    stalledInterval: 300000, // 5 minutes - matches lock duration
+    lockDuration: 300000, // 5 minutes - for slow BrightData API
     skipStalledCheck: false, // Keep stalled checks for reliability
     // Additional settings for performance
   });

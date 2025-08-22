@@ -39,7 +39,7 @@ const summaryWorker = createSummaryProcessorWorker();
 
 console.log('Workers started successfully!');
 console.log(
-  '- Creator processor worker: Processing up to 10 creators concurrently'
+  '- Creator processor worker: Processing up to 3 creators concurrently (reduced for stability)'
 );
 console.log('- Summary processor worker: Generating summaries for new content');
 
