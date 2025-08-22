@@ -47,4 +47,7 @@ node_modules/
 
 # Task files
 # tasks.json
-# tasks/ 
+# tasks/
+
+# MCP configuration (contains API keys)
+.mcp.json 
