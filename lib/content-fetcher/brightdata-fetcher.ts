@@ -551,20 +551,25 @@ export class BrightDataFetcher {
       }
 
       // Build the content object
-      // Generate a unique ID if missing (use date + text hash)
-      const fallbackId = post.date_posted 
-        ? `linkedin-${new Date(post.date_posted).getTime()}-${Math.random().toString(36).substring(2, 9)}`
-        : `linkedin-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      
-      // Generate URL if missing (LinkedIn doesn't always provide direct URLs)
-      const fallbackUrl = post.url || 
-        (post.profile_url ? `${post.profile_url}/posts/${fallbackId}` : `https://www.linkedin.com/feed/update/${fallbackId}`);
+      // Skip posts without proper IDs or URLs as they cannot be properly linked
+      if (!post.id || !post.url) {
+        console.warn(
+          '[BrightDataFetcher] Skipping LinkedIn post without ID or URL:',
+          {
+            id: post.id,
+            url: post.url,
+            text: post.post_text?.substring(0, 50),
+            date: post.date_posted,
+          }
+        );
+        return null; // Will be filtered out
+      }
       
       return {
         platform: 'linkedin' as const,
-        platform_content_id: post.id || fallbackId,
+        platform_content_id: post.id,
         creator_id: '', // Will be set by the content service
-        url: post.url || fallbackUrl,
+        url: post.url,
         title: post.title || post.headline || 'LinkedIn post',
         description: post.post_text || '',
         content_body: post.post_text_html || post.post_text || '', // Prefer HTML for richer content
@@ -591,7 +596,7 @@ export class BrightDataFetcher {
         reference_type: referenceType,
         referenced_content: referencedContent,
       };
-    });
+    }).filter((item): item is CreateContentInput => item !== null);
   }
 
   /**

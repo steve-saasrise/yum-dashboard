@@ -324,37 +324,43 @@ export class ApifyFetcher {
             : undefined,
           created_at: tweet.quote.createdAt,
           media_urls: tweet.quote.extendedEntities?.media
-            ? tweet.quote.extendedEntities.media.map((media: any) => {
-                if (media.type === 'video' || media.type === 'animated_gif') {
-                  const mp4Variants = media.video_info?.variants?.filter(
-                    (v: any) => v.content_type === 'video/mp4'
-                  );
-                  const bestVideo = mp4Variants?.reduce(
-                    (best: any, current: any) => {
-                      if (!best) return current;
-                      return (current.bitrate || 0) > (best.bitrate || 0)
-                        ? current
-                        : best;
-                    },
-                    null
-                  );
+            ? tweet.quote.extendedEntities.media
+                .map((media: any) => {
+                  if (media.type === 'video' || media.type === 'animated_gif') {
+                    const mp4Variants = media.video_info?.variants?.filter(
+                      (v: any) => v.content_type === 'video/mp4'
+                    );
+                    const bestVideo = mp4Variants?.reduce(
+                      (best: any, current: any) => {
+                        if (!best) return current;
+                        return (current.bitrate || 0) > (best.bitrate || 0)
+                          ? current
+                          : best;
+                      },
+                      null
+                    );
+                    const videoUrl = bestVideo?.url || media.media_url_https || media.url;
+                    if (!videoUrl) return null; // Filter out items without URLs
+                    return {
+                      url: videoUrl,
+                      type: 'video' as const,
+                      thumbnail_url: media.media_url_https || media.url,
+                      width: media.sizes?.large?.w,
+                      height: media.sizes?.large?.h,
+                      duration: media.video_info?.duration_millis,
+                      bitrate: bestVideo?.bitrate,
+                    };
+                  }
+                  const imageUrl = media.media_url_https || media.url;
+                  if (!imageUrl) return null; // Filter out items without URLs
                   return {
-                    url: bestVideo?.url || media.media_url_https || media.url,
-                    type: 'video' as const,
-                    thumbnail_url: media.media_url_https || media.url,
+                    url: imageUrl,
+                    type: 'image' as const,
                     width: media.sizes?.large?.w,
                     height: media.sizes?.large?.h,
-                    duration: media.video_info?.duration_millis,
-                    bitrate: bestVideo?.bitrate,
                   };
-                }
-                return {
-                  url: media.media_url_https || media.url,
-                  type: 'image' as const,
-                  width: media.sizes?.large?.w,
-                  height: media.sizes?.large?.h,
-                };
-              })
+                })
+                .filter((item: any) => item !== null) // Remove null entries
             : [],
           engagement_metrics: {
             likes: tweet.quote.likeCount || 0,
@@ -398,23 +404,31 @@ export class ApifyFetcher {
                 : best;
             }, null);
 
-            mediaUrls.push({
-              url: bestVideo?.url || media.media_url_https || media.url,
-              type: 'video' as const,
-              thumbnail_url: media.media_url_https || media.url,
-              width: media.sizes?.large?.w,
-              height: media.sizes?.large?.h,
-              duration: media.video_info?.duration_millis,
-              bitrate: bestVideo?.bitrate,
-            });
+            const videoUrl = bestVideo?.url || media.media_url_https || media.url;
+            // Only add if we have a valid URL
+            if (videoUrl) {
+              mediaUrls.push({
+                url: videoUrl,
+                type: 'video' as const,
+                thumbnail_url: media.media_url_https || media.url,
+                width: media.sizes?.large?.w,
+                height: media.sizes?.large?.h,
+                duration: media.video_info?.duration_millis,
+                bitrate: bestVideo?.bitrate,
+              });
+            }
           } else {
             // For images
-            mediaUrls.push({
-              url: media.media_url_https || media.url,
-              type: 'image' as const,
-              width: media.sizes?.large?.w,
-              height: media.sizes?.large?.h,
-            });
+            const imageUrl = media.media_url_https || media.url;
+            // Only add if we have a valid URL
+            if (imageUrl) {
+              mediaUrls.push({
+                url: imageUrl,
+                type: 'image' as const,
+                width: media.sizes?.large?.w,
+                height: media.sizes?.large?.h,
+              });
+            }
           }
         });
       }
@@ -486,6 +500,11 @@ export class ApifyFetcher {
           linkPreview.link_url &&
           (linkPreview.link_title || linkPreview.url)
         ) {
+          // Ensure we have a url field (required by MediaUrlSchema)
+          // Use the image URL if available, otherwise use the link URL
+          if (!linkPreview.url) {
+            linkPreview.url = linkPreview.link_url;
+          }
           mediaUrls.push(linkPreview);
         }
       }

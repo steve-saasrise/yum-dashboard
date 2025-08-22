@@ -286,6 +286,8 @@ Dashboard → Supabase → Displayed to Users
 - 24-hour lookback window might miss older content
 - Collection quota/limits
 
+**Known Issue**: BrightData may return LinkedIn posts without `id` or `url` fields. System now skips these invalid posts to prevent broken links.
+
 ### Issue: No AI Summaries
 
 **Check**:
@@ -293,6 +295,26 @@ Dashboard → Supabase → Displayed to Users
 - OpenAI API key configured
 - Content queued for summaries
 - Summary worker running
+
+### Issue: Queue Lock Timeout (RESOLVED)
+
+**Problem**: BullMQ jobs failing with "could not renew lock" errors after 30 seconds when processing BrightData API calls that take 135+ seconds.
+
+**Solution**: Increased `lockDuration` and `stalledInterval` to 300000ms (5 minutes) in queue configuration. Reduced worker concurrency from 10 to 3 to prevent lock contention.
+
+### Issue: Twitter Validation Errors
+
+**Problem**: "Validation error: Required" when storing Twitter content with media URLs.
+
+**Root Cause**: Media items in `media_urls` array must have a valid `url` field (required by MediaUrlSchema). Link previews and media without URLs were causing validation failures.
+
+**Solution**: Filter out media items without valid URLs before storing. Ensure link previews have a `url` field (use link URL as fallback).
+
+### Issue: Invalid LinkedIn URLs
+
+**Problem**: When BrightData doesn't provide post URLs, system was generating invalid fallback URLs like `https://www.linkedin.com/feed/update/linkedin-1755884526777-jef97cg`.
+
+**Solution**: Skip LinkedIn posts that don't have both valid `id` and `url` fields from BrightData rather than attempting to generate URLs.
 
 ## Development Workflow
 
