@@ -224,6 +224,14 @@ async function processCreator(job: Job) {
             `[${creatorUrl.platform.toUpperCase()}] Storage results for ${creatorName}: ` +
             `${results.created} new, ${results.updated} updated, ${results.errors.length} errors`
           );
+          
+          // Log specific errors if any
+          if (results.errors.length > 0) {
+            console.error(
+              `[${creatorUrl.platform.toUpperCase()}] Storage errors for ${creatorName}:`,
+              results.errors
+            );
+          }
 
           stats.processed += items.length;
           stats.new += results.created;
