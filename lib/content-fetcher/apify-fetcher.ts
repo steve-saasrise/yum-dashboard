@@ -92,6 +92,11 @@ export class ApifyFetcher {
       `[ApifyFetcher] Fetching Twitter content for ${urls.length} URLs`
     );
 
+    // Calculate date 2 months ago for filtering inactive users
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    const sinceDate = twoMonthsAgo.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
     // Convert URLs to search terms - filter out replies and pure retweets, but keep quote tweets
     const searchTerms = urls.map((url) => {
       // If it's already a search term, add filters if not present
@@ -103,6 +108,10 @@ export class ApifyFetcher {
         if (!searchTerm.includes('-filter:retweets')) {
           searchTerm = `${searchTerm} -filter:retweets`;
         }
+        // Add date filter to only get tweets from last 2 months
+        if (!searchTerm.includes('since:')) {
+          searchTerm = `${searchTerm} since:${sinceDate}`;
+        }
         return searchTerm;
       }
 
@@ -111,7 +120,8 @@ export class ApifyFetcher {
       if (usernameMatch) {
         const username = usernameMatch[1].replace('@', '');
         // Filter out replies and pure retweets (quote tweets will still come through)
-        return `from:${username} -filter:replies -filter:retweets`;
+        // Add date filter to only get tweets from last 2 months
+        return `from:${username} -filter:replies -filter:retweets since:${sinceDate}`;
       }
 
       // Fallback to original URL if pattern doesn't match
@@ -122,7 +132,7 @@ export class ApifyFetcher {
 
     const input: TwitterActorInput = {
       searchTerms: searchTerms,
-      maxItems: options?.maxTweets || 20,
+      maxItems: options?.maxTweets || 5, // Changed default from 20 to 5
       sort: 'Latest',
     };
 
