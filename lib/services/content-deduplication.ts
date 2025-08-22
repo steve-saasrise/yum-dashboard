@@ -397,7 +397,7 @@ export class ContentDeduplicationService {
 
     return {
       contentHash,
-      duplicateGroupId: duplicateInfo.duplicateGroupId || crypto.randomUUID(),
+      duplicateGroupId: duplicateInfo.duplicateGroupId || `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
       isPrimary: isNewContentPrimary,
       shouldStore: true, // We still store duplicates but mark them appropriately
     };

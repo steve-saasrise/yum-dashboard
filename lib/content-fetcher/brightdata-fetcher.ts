@@ -551,11 +551,20 @@ export class BrightDataFetcher {
       }
 
       // Build the content object
+      // Generate a unique ID if missing (use date + text hash)
+      const fallbackId = post.date_posted 
+        ? `linkedin-${new Date(post.date_posted).getTime()}-${Math.random().toString(36).substring(2, 9)}`
+        : `linkedin-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      
+      // Generate URL if missing (LinkedIn doesn't always provide direct URLs)
+      const fallbackUrl = post.url || 
+        (post.profile_url ? `${post.profile_url}/posts/${fallbackId}` : `https://www.linkedin.com/feed/update/${fallbackId}`);
+      
       return {
         platform: 'linkedin' as const,
-        platform_content_id: post.id || '',
+        platform_content_id: post.id || fallbackId,
         creator_id: '', // Will be set by the content service
-        url: post.url || '',
+        url: post.url || fallbackUrl,
         title: post.title || post.headline || 'LinkedIn post',
         description: post.post_text || '',
         content_body: post.post_text_html || post.post_text || '', // Prefer HTML for richer content

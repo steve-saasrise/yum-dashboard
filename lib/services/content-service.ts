@@ -65,7 +65,7 @@ export class ContentService {
       validatedInput.reading_time_minutes ?? calculateReadingTime(textContent);
 
     // Generate temporary ID for deduplication processing
-    const tempContentId = crypto.randomUUID();
+    const tempContentId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 
     // Process deduplication
     const deduplicationResult =
