@@ -5,6 +5,7 @@ export const QUEUE_NAMES = {
   CONTENT_FETCH: 'content-fetch',
   AI_SUMMARY: 'ai-summary',
   CREATOR_PROCESSING: 'creator-processing',
+  BRIGHTDATA_PROCESSING: 'brightdata-processing',
 } as const;
 
 // Job names
@@ -71,4 +72,5 @@ export const WORKER_CONCURRENCY = {
   CONTENT_FETCH: 2, // Process 2 creators concurrently (reduced from 5)
   AI_SUMMARY: 3, // Generate 3 summaries concurrently
   CREATOR_PROCESSING: 3, // Process 3 individual creators (reduced from 10 to prevent lock issues)
+  BRIGHTDATA_PROCESSING: 2, // Process 2 BrightData snapshots concurrently
 };

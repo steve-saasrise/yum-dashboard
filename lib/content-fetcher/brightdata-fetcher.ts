@@ -20,6 +20,10 @@ export interface BrightDataSnapshotStatus {
   snapshot_id: string;
   result_count?: number;
   error?: string;
+  error_code?: string;
+  cost?: number;
+  file_size?: number;
+  created?: string;
 }
 
 export interface BrightDataLinkedInPost {
@@ -456,8 +460,11 @@ export class BrightDataFetcher {
   ): CreateContentInput[] {
     // Limit results if specified
     const postsToProcess = maxResults ? posts.slice(0, maxResults) : posts;
+    
+    console.log(`[BrightDataFetcher] Transforming ${postsToProcess.length} LinkedIn posts`);
+    let skippedCount = 0;
 
-    return postsToProcess
+    const transformed = postsToProcess
       .map((post) => {
         // Extract media URLs
         const mediaUrls: CreateContentInput['media_urls'] = [];
@@ -492,12 +499,8 @@ export class BrightDataFetcher {
           });
         } else if (post.video_thumbnail) {
           // Sometimes video is indicated by thumbnail only
-          mediaUrls.push({
-            url: '', // No URL available, just thumbnail
-            type: 'video',
-            thumbnail_url: post.video_thumbnail,
-            duration: post.video_duration, // Add video duration if available
-          } as any);
+          // Skip videos without URLs as they can't pass validation
+          // The thumbnail URL alone isn't sufficient for a valid media entry
         }
 
         // Process embedded links as link previews
@@ -505,8 +508,9 @@ export class BrightDataFetcher {
           post.embedded_links.forEach((link) => {
             if (link) {
               mediaUrls.push({
+                url: link, // Use 'url' field as required by MediaUrlSchema
                 type: 'link_preview',
-                link_url: link,
+                link_url: link, // Keep for backwards compatibility
                 // Add external link data if available
                 ...(post.external_link_data && {
                   link_title: post.external_link_data.title,
@@ -552,8 +556,9 @@ export class BrightDataFetcher {
         }
 
         // Build the content object
-        // Skip posts without proper IDs or URLs as they cannot be properly linked
+        // Skip posts without proper IDs or URLs
         if (!post.id || !post.url) {
+          skippedCount++;
           console.warn(
             '[BrightDataFetcher] Skipping LinkedIn post without ID or URL:',
             {
@@ -599,6 +604,185 @@ export class BrightDataFetcher {
         };
       })
       .filter((item): item is CreateContentInput => item !== null);
+    
+    const validCount = transformed.length;
+    console.log(`[BrightDataFetcher] Transformation complete: ${validCount} valid posts, ${skippedCount} skipped`);
+    
+    return transformed;
+  }
+
+  /**
+   * Trigger collection without waiting for results (Phase 1)
+   * Returns snapshot ID for later processing
+   */
+  async triggerCollectionOnly(
+    profileUrls: string[],
+    options?: {
+      startDate?: string;
+      endDate?: string;
+    }
+  ): Promise<string> {
+    console.log(
+      `[BrightDataFetcher] Triggering collection for ${profileUrls.length} profiles (no wait)`
+    );
+
+    // For now, we'll batch all URLs in one request
+    // BrightData can handle multiple URLs in a single snapshot
+    const endpoint = `${this.baseUrl}/datasets/v3/trigger`;
+
+    const body = profileUrls.map(url => ({
+      url,
+      ...(options?.startDate && { start_date: options.startDate }),
+      ...(options?.endDate && { end_date: options.endDate }),
+    }));
+
+    const queryParams = new URLSearchParams({
+      dataset_id: BrightDataFetcher.DATASET_ID,
+      include_errors: 'true',
+      type: 'discover_new',
+      discover_by: 'profile_url',
+    });
+
+    const fullUrl = `${endpoint}?${queryParams.toString()}`;
+    console.log(`[BrightDataFetcher] Triggering collection: ${fullUrl}`);
+
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `[BrightDataFetcher] Trigger failed: ${response.status} - ${errorText}`
+      );
+      throw new Error(
+        `Bright Data API error: ${response.status} - ${errorText}`
+      );
+    }
+
+    const result = await response.json();
+    console.log(`[BrightDataFetcher] Collection triggered, snapshot: ${result.snapshot_id}`);
+    return result.snapshot_id;
+  }
+
+  /**
+   * Process a ready snapshot (Phase 2)
+   * Downloads and transforms the data
+   */
+  async processReadySnapshot(
+    snapshotId: string,
+    maxResults?: number
+  ): Promise<CreateContentInput[]> {
+    console.log(`[BrightDataFetcher] Processing snapshot: ${snapshotId}`);
+
+    // Get the snapshot data
+    const posts = await this.getSnapshotData(snapshotId);
+    
+    if (!posts || posts.length === 0) {
+      console.log(`[BrightDataFetcher] No posts found in snapshot ${snapshotId}`);
+      return [];
+    }
+
+    console.log(`[BrightDataFetcher] Retrieved ${posts.length} posts from snapshot`);
+    
+    // Transform the data
+    const transformedContent = this.transformLinkedInData(posts, maxResults);
+    
+    console.log(
+      `[BrightDataFetcher] Transformed ${transformedContent.length} posts from snapshot`
+    );
+    
+    return transformedContent;
+  }
+
+  /**
+   * Get full snapshot metadata
+   */
+  async getSnapshotMetadata(snapshotId: string): Promise<BrightDataSnapshotStatus> {
+    const endpoint = `${this.baseUrl}/datasets/snapshots/${snapshotId}`;
+    
+    const response = await fetch(endpoint, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Snapshot ${snapshotId} not found`);
+      }
+      const errorText = await response.text();
+      console.error(
+        `[BrightDataFetcher] Failed to get snapshot metadata: ${response.status} - ${errorText}`
+      );
+      throw new Error(`Failed to get snapshot metadata: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      status: data.status,
+      snapshot_id: data.id,
+      result_count: data.dataset_size,
+      error: data.error,
+      error_code: data.error_code,
+      cost: data.cost,
+      file_size: data.file_size,
+      created: data.created,
+    };
+  }
+
+  /**
+   * Get all historical snapshots (for recovery)
+   */
+  async getAllHistoricalSnapshots(
+    limit: number = 50,
+    status?: 'ready' | 'running' | 'failed'
+  ): Promise<BrightDataSnapshotStatus[]> {
+    const endpoint = `${this.baseUrl}/datasets/v3/snapshots`;
+    const queryParams = new URLSearchParams({
+      dataset_id: BrightDataFetcher.DATASET_ID,
+      limit: limit.toString(),
+      ...(status && { status }),
+    });
+
+    const fullUrl = `${endpoint}?${queryParams.toString()}`;
+    console.log(`[BrightDataFetcher] Getting historical snapshots: ${fullUrl}`);
+
+    const response = await fetch(fullUrl, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `[BrightDataFetcher] Failed to get snapshots: ${response.status} - ${errorText}`
+      );
+      throw new Error(`Failed to get snapshots: ${response.status}`);
+    }
+
+    const snapshots = await response.json();
+    console.log(
+      `[BrightDataFetcher] Found ${snapshots.length} historical snapshots`
+    );
+    
+    // Map to our format
+    return snapshots.map((s: any) => ({
+      status: s.status,
+      snapshot_id: s.id,
+      result_count: s.dataset_size,
+      error: s.error,
+      error_code: s.error_code,
+      cost: s.cost,
+      file_size: s.file_size,
+      created: s.created,
+    }));
   }
 
   /**

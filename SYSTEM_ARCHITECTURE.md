@@ -124,9 +124,10 @@ Dashboard → Supabase → Displayed to Users
 #### LinkedIn
 
 - **Service**: `BrightDataFetcher`
-- **API**: BrightData Scraping Browser
-- **Cost optimization**: 24-hour lookback window
+- **API**: BrightData Scraping Browser (Dataset ID: `gd_lyy3tktm25m4avu764`)
+- **Cost optimization**: 48-hour lookback window (increased from 24 to ensure no posts are missed)
 - **Processing**: Batch of 10 creators at a time
+- **Collection**: Forces fresh data collection (`useExistingData: false`)
 
 ## Relevancy System
 
@@ -278,13 +279,18 @@ Dashboard → Supabase → Displayed to Users
 
 **Solution**: Ensure `RAILWAY_SERVICE_TYPE=workers` is set in worker deployment
 
-### Issue: LinkedIn Content Missing
+### Issue: LinkedIn Content Missing (RESOLVED)
 
-**Check**:
+**Problem**: LinkedIn posts were being fetched by BrightData but failing validation when stored.
 
-- BrightData API key configured
-- 24-hour lookback window might miss older content
-- Collection quota/limits
+**Root Cause**: Media URLs in LinkedIn posts were missing required `url` fields or using incorrect field names:
+- Videos with only thumbnails had empty `url` strings
+- Link previews used `link_url` instead of `url` field
+
+**Solution**: 
+- Fixed media URL validation by skipping videos without URLs
+- Corrected link preview field from `link_url` to `url`
+- Increased lookback window from 24 to 48 hours to prevent missing posts
 
 **Known Issue**: BrightData may return LinkedIn posts without `id` or `url` fields. System now skips these invalid posts to prevent broken links.
 
@@ -373,9 +379,16 @@ npm run workers:dev
 
 ### Cost Management
 
-- LinkedIn: 24-hour window reduces API costs
+- LinkedIn: 48-hour window balances completeness vs API costs
 - YouTube: Quota management prevents overuse
 - Batch processing minimizes API calls
+
+### Architecture Improvements
+
+- **Separate Collection from Processing**: Decouple BrightData scraping triggers from data retrieval
+- **Webhook Integration**: Use BrightData webhooks for real-time snapshot notifications
+- **Snapshot Tracking**: Add database table to track collected snapshots and their processing status
+- **Smart Collection**: Only trigger new collections when needed, reuse recent snapshots
 
 ### Feature Expansion
 

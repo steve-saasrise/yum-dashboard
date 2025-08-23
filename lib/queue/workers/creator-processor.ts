@@ -182,26 +182,59 @@ async function processCreator(job: Job) {
             break;
 
           case 'linkedin':
-            // Use BrightData for LinkedIn instead of Apify
+            // Use BrightData for LinkedIn - now with two-phase approach
             if (brightDataFetcher) {
               console.log(
-                `[LinkedIn] Fetching for ${creatorName}: ${creatorUrl.url}`
+                `[LinkedIn] Triggering BrightData collection for ${creatorName}: ${creatorUrl.url}`
               );
-              items = await brightDataFetcher.fetchLinkedInContent(
-                [creatorUrl.url],
-                {
-                  maxResults: 10, // Reduced from 20 to match main cron
-                  // Get posts from the last 24 hours to reduce costs
-                  startDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-                    .toISOString()
-                    .split('T')[0],
-                  useExistingData: false, // Force new collection for each profile
+              
+              try {
+                // Phase 1: Just trigger the collection and save snapshot ID
+                const snapshotId = await brightDataFetcher.triggerCollectionOnly(
+                  [creatorUrl.url],
+                  {
+                    startDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+                      .toISOString()
+                      .split('T')[0],
+                  }
+                );
+
+                // Save snapshot to database for processing later
+                const { error: insertError } = await supabase
+                  .from('brightdata_snapshots')
+                  .insert({
+                    snapshot_id: snapshotId,
+                    dataset_id: 'gd_lyy3tktm25m4avu764',
+                    status: 'pending',
+                    creator_urls: [creatorUrl.url],
+                    metadata: {
+                      creator_id: creatorId,
+                      creator_name: creatorName,
+                      max_results: 10,
+                    }
+                  });
+
+                if (insertError) {
+                  console.error(
+                    `[LinkedIn] Failed to save snapshot ${snapshotId}:`,
+                    insertError
+                  );
                 }
-              );
-              console.log(
-                `[LinkedIn] BrightData returned ${items.length} items for ${creatorName}`
-              );
-              items = items.map((item) => ({ ...item, creator_id: creatorId }));
+
+                console.log(
+                  `[LinkedIn] Collection triggered for ${creatorName}, snapshot: ${snapshotId}`
+                );
+                
+                // Don't wait for results - they'll be processed by separate worker
+                platformStats.fetched = 0;
+                platformStats.status = 'collection_triggered';
+              } catch (error) {
+                console.error(
+                  `[LinkedIn] Failed to trigger collection for ${creatorName}:`,
+                  error
+                );
+                platformStats.error = error instanceof Error ? error.message : 'Failed to trigger collection';
+              }
             } else {
               console.warn(
                 `[LinkedIn] BrightData not configured for ${creatorName}`

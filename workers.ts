@@ -7,6 +7,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 import { createCreatorProcessorWorker } from '@/lib/queue/workers/creator-processor';
 import { createSummaryProcessorWorker } from '@/lib/queue/workers/summary-processor';
+import { createBrightDataProcessorWorker } from '@/lib/queue/workers/brightdata-processor';
 
 console.log('Starting queue workers...');
 console.log('NODE_ENV:', process.env.NODE_ENV);
@@ -36,12 +37,14 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
 // Start workers
 const creatorWorker = createCreatorProcessorWorker();
 const summaryWorker = createSummaryProcessorWorker();
+const brightdataWorker = createBrightDataProcessorWorker();
 
 console.log('Workers started successfully!');
 console.log(
   '- Creator processor worker: Processing up to 3 creators concurrently (reduced for stability)'
 );
 console.log('- Summary processor worker: Generating summaries for new content');
+console.log('- BrightData processor worker: Processing LinkedIn snapshots asynchronously');
 
 // Error handling
 process.on('uncaughtException', (error) => {
@@ -62,6 +65,7 @@ process.on('SIGTERM', async () => {
   console.log('SIGTERM received, closing workers...');
   await creatorWorker.close();
   await summaryWorker.close();
+  await brightdataWorker.close();
   process.exit(0);
 });
 
@@ -69,5 +73,6 @@ process.on('SIGINT', async () => {
   console.log('SIGINT received, closing workers...');
   await creatorWorker.close();
   await summaryWorker.close();
+  await brightdataWorker.close();
   process.exit(0);
 });
