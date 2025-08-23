@@ -96,6 +96,38 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
         contentItems.forEach((item) => {
           item.creator_id = creatorId;
         });
+      } else {
+        // Try to match creators by URL when creator_id is missing (recovery scenarios)
+        console.log(
+          '[BrightData Processor] No creator_id in metadata, attempting to match by URL'
+        );
+        
+        for (const item of contentItems) {
+          // Extract username from LinkedIn URL
+          const urlMatch = item.url?.match(/linkedin\.com\/in\/([^\/]+)/);
+          if (urlMatch) {
+            const username = urlMatch[1];
+            
+            // Find creator by LinkedIn URL pattern
+            const { data: creators } = await supabase
+              .from('creator_urls')
+              .select('creator_id')
+              .eq('platform', 'linkedin')
+              .ilike('url', `%${username}%`)
+              .limit(1);
+            
+            if (creators && creators.length > 0) {
+              item.creator_id = creators[0].creator_id;
+              console.log(
+                `[BrightData Processor] Matched post to creator ${creators[0].creator_id} by URL`
+              );
+            } else {
+              console.warn(
+                `[BrightData Processor] Could not find creator for LinkedIn user: ${username}`
+              );
+            }
+          }
+        }
       }
 
       // Store content in database
