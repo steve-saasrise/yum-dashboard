@@ -6,7 +6,7 @@ import {
 } from '@/lib/queue/config';
 import { BrightDataFetcher } from '@/lib/content-fetcher/brightdata-fetcher';
 import { ContentService } from '@/lib/services/content-service';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 export interface BrightDataSnapshotJob {
   snapshotId: string;
@@ -23,7 +23,21 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
   const { snapshotId, maxResults, metadata } = job.data;
   console.log(`[BrightData Processor] Processing snapshot: ${snapshotId}`);
 
-  const supabase = createClient();
+  // Use service role client for workers
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Supabase configuration missing');
+  }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
   const contentService = new ContentService(supabase);
 
   // Initialize BrightData fetcher
