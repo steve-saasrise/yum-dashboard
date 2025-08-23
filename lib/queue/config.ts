@@ -30,7 +30,7 @@ export function getRedisConnection(): ConnectionOptions {
   const host = url.replace('https://', '').replace(/:\d+$/, ''); // Remove https:// and any port
   const port = 6379; // Upstash Redis always uses port 6379
 
-  const baseConfig = {
+  const baseConfig: ConnectionOptions = {
     host,
     port,
     username: 'default',
@@ -38,7 +38,7 @@ export function getRedisConnection(): ConnectionOptions {
     tls: {
       rejectUnauthorized: false,
     },
-    maxRetriesPerRequest: 3,
+    maxRetriesPerRequest: null as any, // BullMQ requires this to be null
   };
 
   console.log(`Connecting to Redis at ${host}:${port} with TLS`);

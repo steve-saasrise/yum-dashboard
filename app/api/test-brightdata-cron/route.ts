@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 export const maxDuration = 10; // seconds
 
@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     // Test 1: Environment variables
     const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const hasSupabaseServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
     const hasRedis =
       !!process.env.UPSTASH_REDIS_REST_URL &&
       !!process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[Test] Environment check:', {
       hasSupabase,
+      hasSupabaseServiceKey,
       hasRedis,
       hasCronSecret,
     });
@@ -23,7 +25,21 @@ export async function GET(request: NextRequest) {
     // Test 2: Database connection
     const dbTest = { success: false, error: null as any, snapshotCount: 0 };
     try {
-      const supabase = createClient();
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('Supabase configuration missing');
+      }
+      
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          },
+        }
+      );
+      
       const { data: snapshots, error } = await supabase
         .from('brightdata_snapshots')
         .select('status')
@@ -66,6 +82,7 @@ export async function GET(request: NextRequest) {
       tests: {
         environment: {
           hasSupabase,
+          hasSupabaseServiceKey,
           hasRedis,
           hasCronSecret,
         },

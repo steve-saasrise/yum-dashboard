@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { Queue } from 'bullmq';
 import { getRedisConnection, QUEUE_NAMES } from '@/lib/queue/config';
 
@@ -26,7 +26,25 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = createClient();
+    // Use service role client for cron jobs
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[Cron] Supabase configuration missing');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
 
     // Get unprocessed snapshots
     const { data: snapshots, error } = await supabase
@@ -121,9 +139,14 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Cron] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[Cron] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    
+    // Return more detailed error in development
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = process.env.NODE_ENV === 'development' 
+      ? { error: errorMessage, stack: error instanceof Error ? error.stack : undefined }
+      : { error: 'Internal server error' };
+      
+    return NextResponse.json(errorDetails, { status: 500 });
   }
 }
