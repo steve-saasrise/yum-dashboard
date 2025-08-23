@@ -339,7 +339,8 @@ export class ApifyFetcher {
                       },
                       null
                     );
-                    const videoUrl = bestVideo?.url || media.media_url_https || media.url;
+                    const videoUrl =
+                      bestVideo?.url || media.media_url_https || media.url;
                     if (!videoUrl) return null; // Filter out items without URLs
                     return {
                       url: videoUrl,
@@ -404,7 +405,8 @@ export class ApifyFetcher {
                 : best;
             }, null);
 
-            const videoUrl = bestVideo?.url || media.media_url_https || media.url;
+            const videoUrl =
+              bestVideo?.url || media.media_url_https || media.url;
             // Only add if we have a valid URL
             if (videoUrl) {
               mediaUrls.push({

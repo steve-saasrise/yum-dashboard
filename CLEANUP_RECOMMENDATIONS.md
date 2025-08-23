@@ -3,6 +3,7 @@
 ## DEFINITELY UNUSED APIs (Can be removed)
 
 ### 1. Old Content Fetching Endpoints (Replaced by Queue System)
+
 - `/app/api/cron/fetch-content/route.ts` - OLD, replaced by queue-creators
 - `/app/api/content/refresh/route.ts` - OLD manual refresh endpoint
 - `/app/api/content/process-pending/route.ts` - OLD processing endpoint
@@ -12,11 +13,14 @@
 - `/app/api/cron/test-linkedin/` - Empty directory, never implemented
 
 These were from BEFORE the queue system was implemented. The NEW system uses:
+
 - `/app/api/cron/queue-creators/route.ts` - Current system
 - Queue workers handle all processing
 
 ### 2. Confusing Test Scripts in /scripts
+
 Many one-off test scripts that were used during development:
+
 - `scripts/add-all-missing-content.js`
 - `scripts/add-brightdata-linkedin-to-supabase.js`
 - `scripts/add-missing-content-to-supabase.js`
@@ -42,10 +46,12 @@ Many one-off test scripts that were used during development:
 - `scripts/test-single-rss.ts`
 
 ### 3. Outdated Configuration Files
+
 - `vercel.json` - References old `/api/cron/fetch-content` endpoint
 - `cron-runner.js` - Old local cron runner, not used with Railway
 
 ### 4. Confusing Data Files
+
 - `apify-content-analysis.json`
 - `brightdata-linkedin-import-results.json`
 - `brightdata-missing-linkedin-content.json`
@@ -54,10 +60,11 @@ Many one-off test scripts that were used during development:
 ## CURRENT WORKING SYSTEM
 
 The ACTUAL content ingestion flow is:
+
 1. **Cron trigger**: External service → `/api/cron/queue-creators`
 2. **Queue system**: BullMQ with Redis (Upstash)
 3. **Worker service**: Separate Railway deployment (`queue-workers`)
-4. **Content fetchers**: 
+4. **Content fetchers**:
    - `lib/content-fetcher/rss-fetcher.ts`
    - `lib/content-fetcher/youtube-fetcher.ts`
    - `lib/content-fetcher/apify-fetcher.ts` (Twitter/Threads)

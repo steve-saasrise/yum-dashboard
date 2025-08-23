@@ -7,7 +7,10 @@ import path from 'path';
 
 config({ path: path.resolve(process.cwd(), '.env.local') });
 
-if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+if (
+  !process.env.UPSTASH_REDIS_REST_URL ||
+  !process.env.UPSTASH_REDIS_REST_TOKEN
+) {
   console.error('❌ Redis not configured');
   process.exit(1);
 }
@@ -53,7 +56,7 @@ async function verifyQueueHealth() {
 
   // Queue a test creator to verify processing works
   console.log('\n🧪 Testing queue with Erik Torenberg...');
-  
+
   const { data: erik } = await supabase
     .from('creators')
     .select('id, display_name')
@@ -62,7 +65,7 @@ async function verifyQueueHealth() {
 
   if (erik) {
     const jobId = `creator-${erik.id}`;
-    
+
     // Remove any existing job first
     const existingJob = await queue.getJob(jobId);
     if (existingJob) {
@@ -85,13 +88,13 @@ async function verifyQueueHealth() {
     );
 
     console.log(`  ✅ Queued ${erik.display_name} (Job ID: ${newJob.id})`);
-    
+
     // Wait a moment and check status
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
     const jobStatus = await newJob.getState();
     console.log(`  Job status after 3 seconds: ${jobStatus}`);
-    
+
     if (jobStatus === 'active') {
       console.log('  ✅ Job is being processed!');
     } else if (jobStatus === 'completed') {

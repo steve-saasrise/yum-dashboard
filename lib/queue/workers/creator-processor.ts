@@ -222,9 +222,9 @@ async function processCreator(job: Job) {
 
           console.log(
             `[${creatorUrl.platform.toUpperCase()}] Storage results for ${creatorName}: ` +
-            `${results.created} new, ${results.updated} updated, ${results.errors.length} errors`
+              `${results.created} new, ${results.updated} updated, ${results.errors.length} errors`
           );
-          
+
           // Log specific errors if any
           if (results.errors.length > 0) {
             console.error(
@@ -264,7 +264,7 @@ async function processCreator(job: Job) {
     // Log final stats for this creator
     console.log(
       `[Creator ${creatorName}] Processing complete: ` +
-      `${stats.processed} processed, ${stats.new} new, ${stats.updated} updated, ${stats.errors} errors`
+        `${stats.processed} processed, ${stats.new} new, ${stats.updated} updated, ${stats.errors} errors`
     );
 
     // Queue new content for AI summary generation

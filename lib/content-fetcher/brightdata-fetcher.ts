@@ -457,146 +457,148 @@ export class BrightDataFetcher {
     // Limit results if specified
     const postsToProcess = maxResults ? posts.slice(0, maxResults) : posts;
 
-    return postsToProcess.map((post) => {
-      // Extract media URLs
-      const mediaUrls: CreateContentInput['media_urls'] = [];
+    return postsToProcess
+      .map((post) => {
+        // Extract media URLs
+        const mediaUrls: CreateContentInput['media_urls'] = [];
 
-      // Process images
-      if (post.images && Array.isArray(post.images)) {
-        post.images.forEach((imageUrl) => {
-          if (imageUrl) {
-            mediaUrls.push({
-              url: imageUrl,
-              type: 'image',
-            });
-          }
-        });
-      }
+        // Process images
+        if (post.images && Array.isArray(post.images)) {
+          post.images.forEach((imageUrl) => {
+            if (imageUrl) {
+              mediaUrls.push({
+                url: imageUrl,
+                type: 'image',
+              });
+            }
+          });
+        }
 
-      // Process videos - check both videos array and video_thumbnail
-      if (post.videos && Array.isArray(post.videos)) {
-        post.videos.forEach((video) => {
-          // Videos can be either strings (direct URLs) or objects with url property
-          const videoUrl = typeof video === 'string' ? video : video?.url;
-          if (videoUrl) {
-            mediaUrls.push({
-              url: videoUrl,
-              type: 'video',
-              thumbnail_url:
-                post.video_thumbnail ||
-                (typeof video === 'object' ? video.thumbnail : undefined),
-              duration: post.video_duration, // Add video duration if available
-            } as any);
-          }
-        });
-      } else if (post.video_thumbnail) {
-        // Sometimes video is indicated by thumbnail only
-        mediaUrls.push({
-          url: '', // No URL available, just thumbnail
-          type: 'video',
-          thumbnail_url: post.video_thumbnail,
-          duration: post.video_duration, // Add video duration if available
-        } as any);
-      }
+        // Process videos - check both videos array and video_thumbnail
+        if (post.videos && Array.isArray(post.videos)) {
+          post.videos.forEach((video) => {
+            // Videos can be either strings (direct URLs) or objects with url property
+            const videoUrl = typeof video === 'string' ? video : video?.url;
+            if (videoUrl) {
+              mediaUrls.push({
+                url: videoUrl,
+                type: 'video',
+                thumbnail_url:
+                  post.video_thumbnail ||
+                  (typeof video === 'object' ? video.thumbnail : undefined),
+                duration: post.video_duration, // Add video duration if available
+              } as any);
+            }
+          });
+        } else if (post.video_thumbnail) {
+          // Sometimes video is indicated by thumbnail only
+          mediaUrls.push({
+            url: '', // No URL available, just thumbnail
+            type: 'video',
+            thumbnail_url: post.video_thumbnail,
+            duration: post.video_duration, // Add video duration if available
+          } as any);
+        }
 
-      // Process embedded links as link previews
-      if (post.embedded_links && Array.isArray(post.embedded_links)) {
-        post.embedded_links.forEach((link) => {
-          if (link) {
-            mediaUrls.push({
-              type: 'link_preview',
-              link_url: link,
-              // Add external link data if available
-              ...(post.external_link_data && {
-                link_title: post.external_link_data.title,
-                link_description: post.external_link_data.description,
-              }),
-            });
-          }
-        });
-      }
+        // Process embedded links as link previews
+        if (post.embedded_links && Array.isArray(post.embedded_links)) {
+          post.embedded_links.forEach((link) => {
+            if (link) {
+              mediaUrls.push({
+                type: 'link_preview',
+                link_url: link,
+                // Add external link data if available
+                ...(post.external_link_data && {
+                  link_title: post.external_link_data.title,
+                  link_description: post.external_link_data.description,
+                }),
+              });
+            }
+          });
+        }
 
-      // Process document if present
-      if (post.document_cover_image) {
-        mediaUrls.push({
-          type: 'link_preview',
-          url: post.document_cover_image,
-          link_title: 'Document',
-          link_description: post.document_page_count
-            ? `${post.document_page_count} pages`
-            : undefined,
-        });
-      }
+        // Process document if present
+        if (post.document_cover_image) {
+          mediaUrls.push({
+            type: 'link_preview',
+            url: post.document_cover_image,
+            link_title: 'Document',
+            link_description: post.document_page_count
+              ? `${post.document_page_count} pages`
+              : undefined,
+          });
+        }
 
-      // Handle reposts/reshares
-      let referenceType: 'retweet' | undefined;
-      let referencedContent: CreateContentInput['referenced_content'];
+        // Handle reposts/reshares
+        let referenceType: 'retweet' | undefined;
+        let referencedContent: CreateContentInput['referenced_content'];
 
-      if (post.repost && post.repost.repost_id) {
-        referenceType = 'retweet';
-        referencedContent = {
-          id: post.repost.repost_id,
-          platform_content_id: post.repost.repost_id,
-          url: post.repost.repost_url || '',
-          text: post.repost.repost_text || '',
-          author: post.repost.repost_user_id
-            ? {
-                id: post.repost.repost_user_id,
-                username: post.repost.repost_user_id,
-                name: post.repost.repost_user_name || '',
-              }
-            : undefined,
-          created_at: post.repost.repost_date || '',
+        if (post.repost && post.repost.repost_id) {
+          referenceType = 'retweet';
+          referencedContent = {
+            id: post.repost.repost_id,
+            platform_content_id: post.repost.repost_id,
+            url: post.repost.repost_url || '',
+            text: post.repost.repost_text || '',
+            author: post.repost.repost_user_id
+              ? {
+                  id: post.repost.repost_user_id,
+                  username: post.repost.repost_user_id,
+                  name: post.repost.repost_user_name || '',
+                }
+              : undefined,
+            created_at: post.repost.repost_date || '',
+          };
+        }
+
+        // Build the content object
+        // Skip posts without proper IDs or URLs as they cannot be properly linked
+        if (!post.id || !post.url) {
+          console.warn(
+            '[BrightDataFetcher] Skipping LinkedIn post without ID or URL:',
+            {
+              id: post.id,
+              url: post.url,
+              text: post.post_text?.substring(0, 50),
+              date: post.date_posted,
+            }
+          );
+          return null; // Will be filtered out
+        }
+
+        return {
+          platform: 'linkedin' as const,
+          platform_content_id: post.id,
+          creator_id: '', // Will be set by the content service
+          url: post.url,
+          title: post.title || post.headline || 'LinkedIn post',
+          description: post.post_text || '',
+          content_body: post.post_text_html || post.post_text || '', // Prefer HTML for richer content
+          published_at: post.date_posted
+            ? new Date(post.date_posted).toISOString()
+            : new Date().toISOString(),
+          media_urls: mediaUrls,
+          engagement_metrics: {
+            likes: post.num_likes || 0,
+            comments: post.num_comments || 0,
+            shares: 0, // Not directly available, would need to count reposts
+            views: 0, // Not available in this response
+            // Store additional rich data here since metadata field doesn't exist in DB
+            hashtags: post.hashtags || [],
+            post_type: post.post_type || '',
+            account_type: post.account_type || '',
+            author_followers: post.user_followers || 0,
+            author_avatar: post.author_profile_pic || '',
+            author_title: post.user_title || '',
+            tagged_companies: post.tagged_companies || [],
+            tagged_people: post.tagged_people || [],
+            top_comments: post.top_visible_comments || [],
+          } as any,
+          reference_type: referenceType,
+          referenced_content: referencedContent,
         };
-      }
-
-      // Build the content object
-      // Skip posts without proper IDs or URLs as they cannot be properly linked
-      if (!post.id || !post.url) {
-        console.warn(
-          '[BrightDataFetcher] Skipping LinkedIn post without ID or URL:',
-          {
-            id: post.id,
-            url: post.url,
-            text: post.post_text?.substring(0, 50),
-            date: post.date_posted,
-          }
-        );
-        return null; // Will be filtered out
-      }
-      
-      return {
-        platform: 'linkedin' as const,
-        platform_content_id: post.id,
-        creator_id: '', // Will be set by the content service
-        url: post.url,
-        title: post.title || post.headline || 'LinkedIn post',
-        description: post.post_text || '',
-        content_body: post.post_text_html || post.post_text || '', // Prefer HTML for richer content
-        published_at: post.date_posted
-          ? new Date(post.date_posted).toISOString()
-          : new Date().toISOString(),
-        media_urls: mediaUrls,
-        engagement_metrics: {
-          likes: post.num_likes || 0,
-          comments: post.num_comments || 0,
-          shares: 0, // Not directly available, would need to count reposts
-          views: 0, // Not available in this response
-          // Store additional rich data here since metadata field doesn't exist in DB
-          hashtags: post.hashtags || [],
-          post_type: post.post_type || '',
-          account_type: post.account_type || '',
-          author_followers: post.user_followers || 0,
-          author_avatar: post.author_profile_pic || '',
-          author_title: post.user_title || '',
-          tagged_companies: post.tagged_companies || [],
-          tagged_people: post.tagged_people || [],
-          top_comments: post.top_visible_comments || [],
-        } as any,
-        reference_type: referenceType,
-        referenced_content: referencedContent,
-      };
-    }).filter((item): item is CreateContentInput => item !== null);
+      })
+      .filter((item): item is CreateContentInput => item !== null);
   }
 
   /**
