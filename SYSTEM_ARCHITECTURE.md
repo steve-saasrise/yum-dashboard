@@ -349,6 +349,7 @@ Dashboard → Supabase → Displayed to Users
 **Problem**: LinkedIn data collection via BrightData takes 2-3 minutes, causing worker timeouts and lost data.
 
 **Solution - Two-Phase Architecture**:
+
 - **Phase 1**: Creator processor triggers collection and saves snapshot ID (instant)
 - **Phase 2**: Separate worker processes snapshots when ready (async)
 - **Recovery**: Script to retrieve historical snapshots that were never processed

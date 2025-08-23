@@ -1,5 +1,9 @@
 import { Worker, Job } from 'bullmq';
-import { getRedisConnection, QUEUE_NAMES, WORKER_CONCURRENCY } from '@/lib/queue/config';
+import {
+  getRedisConnection,
+  QUEUE_NAMES,
+  WORKER_CONCURRENCY,
+} from '@/lib/queue/config';
 import { BrightDataFetcher } from '@/lib/content-fetcher/brightdata-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { createClient } from '@/utils/supabase/server';
