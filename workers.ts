@@ -44,7 +44,9 @@ console.log(
   '- Creator processor worker: Processing up to 3 creators concurrently (reduced for stability)'
 );
 console.log('- Summary processor worker: Generating summaries for new content');
-console.log('- BrightData processor worker: Processing LinkedIn snapshots asynchronously');
+console.log(
+  '- BrightData processor worker: Processing LinkedIn snapshots asynchronously'
+);
 
 // Error handling
 process.on('uncaughtException', (error) => {

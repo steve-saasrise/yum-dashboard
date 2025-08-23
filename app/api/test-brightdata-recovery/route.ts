@@ -19,7 +19,10 @@ export async function GET() {
 
     // Get historical snapshots
     console.log('Fetching historical snapshots...');
-    const snapshots = await brightDataFetcher.getAllHistoricalSnapshots(10, 'ready');
+    const snapshots = await brightDataFetcher.getAllHistoricalSnapshots(
+      10,
+      'ready'
+    );
 
     // Check database
     const { data: dbSnapshots } = await supabase
@@ -38,7 +41,7 @@ export async function GET() {
     return NextResponse.json({
       brightdata: {
         available_snapshots: snapshots.length,
-        snapshots: snapshots.slice(0, 5).map(s => ({
+        snapshots: snapshots.slice(0, 5).map((s) => ({
           id: s.snapshot_id,
           status: s.status,
           created: s.created,

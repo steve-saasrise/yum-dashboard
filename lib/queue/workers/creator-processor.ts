@@ -187,17 +187,18 @@ async function processCreator(job: Job) {
               console.log(
                 `[LinkedIn] Triggering BrightData collection for ${creatorName}: ${creatorUrl.url}`
               );
-              
+
               try {
                 // Phase 1: Just trigger the collection and save snapshot ID
-                const snapshotId = await brightDataFetcher.triggerCollectionOnly(
-                  [creatorUrl.url],
-                  {
-                    startDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-                      .toISOString()
-                      .split('T')[0],
-                  }
-                );
+                const snapshotId =
+                  await brightDataFetcher.triggerCollectionOnly(
+                    [creatorUrl.url],
+                    {
+                      startDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+                        .toISOString()
+                        .split('T')[0],
+                    }
+                  );
 
                 // Save snapshot to database for processing later
                 const { error: insertError } = await supabase
@@ -211,7 +212,7 @@ async function processCreator(job: Job) {
                       creator_id: creatorId,
                       creator_name: creatorName,
                       max_results: 10,
-                    }
+                    },
                   });
 
                 if (insertError) {
@@ -224,7 +225,7 @@ async function processCreator(job: Job) {
                 console.log(
                   `[LinkedIn] Collection triggered for ${creatorName}, snapshot: ${snapshotId}`
                 );
-                
+
                 // Don't wait for results - they'll be processed by separate worker
                 platformStats.fetched = 0;
                 platformStats.status = 'collection_triggered';
@@ -233,7 +234,10 @@ async function processCreator(job: Job) {
                   `[LinkedIn] Failed to trigger collection for ${creatorName}:`,
                   error
                 );
-                platformStats.error = error instanceof Error ? error.message : 'Failed to trigger collection';
+                platformStats.error =
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to trigger collection';
               }
             } else {
               console.warn(

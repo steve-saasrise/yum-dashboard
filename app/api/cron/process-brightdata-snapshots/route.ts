@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { Queue } from 'bullmq';
-import { getRedisConnection } from '@/lib/queue/redis-connection';
-import { QUEUE_NAMES } from '@/lib/queue/config';
+import { getRedisConnection, QUEUE_NAMES } from '@/lib/queue/config';
 
 export const maxDuration = 30; // seconds
 
@@ -15,7 +14,10 @@ export async function GET(request: NextRequest) {
 
   if (!cronSecret) {
     console.error('[Cron] CRON_SECRET not configured');
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Server configuration error' },
+      { status: 500 }
+    );
   }
 
   if (authHeader !== `Bearer ${cronSecret}`) {
@@ -25,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = createClient();
-    
+
     // Get unprocessed snapshots
     const { data: snapshots, error } = await supabase
       .from('brightdata_snapshots')
@@ -58,13 +60,19 @@ export async function GET(request: NextRequest) {
       snapshots.map(async (snapshot) => {
         try {
           // Check if already in queue
-          const existingJobs = await queue.getJobs(['waiting', 'active', 'delayed']);
+          const existingJobs = await queue.getJobs([
+            'waiting',
+            'active',
+            'delayed',
+          ]);
           const alreadyQueued = existingJobs.some(
             (job) => job.data.snapshotId === snapshot.snapshot_id
           );
 
           if (alreadyQueued) {
-            console.log(`[Cron] Snapshot ${snapshot.snapshot_id} already in queue, skipping`);
+            console.log(
+              `[Cron] Snapshot ${snapshot.snapshot_id} already in queue, skipping`
+            );
             return false;
           }
 
@@ -87,10 +95,15 @@ export async function GET(request: NextRequest) {
             }
           );
 
-          console.log(`[Cron] Queued snapshot ${snapshot.snapshot_id} for processing`);
+          console.log(
+            `[Cron] Queued snapshot ${snapshot.snapshot_id} for processing`
+          );
           return true;
         } catch (error) {
-          console.error(`[Cron] Error queueing snapshot ${snapshot.snapshot_id}:`, error);
+          console.error(
+            `[Cron] Error queueing snapshot ${snapshot.snapshot_id}:`,
+            error
+          );
           return false;
         }
       })

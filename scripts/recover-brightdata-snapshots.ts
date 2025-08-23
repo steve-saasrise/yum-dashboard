@@ -40,8 +40,11 @@ async function recoverSnapshots() {
   try {
     // Step 1: Get all historical snapshots
     console.log('📋 Fetching historical snapshots from BrightData...');
-    const snapshots = await brightDataFetcher.getAllHistoricalSnapshots(50, 'ready');
-    
+    const snapshots = await brightDataFetcher.getAllHistoricalSnapshots(
+      50,
+      'ready'
+    );
+
     console.log(`Found ${snapshots.length} ready snapshots\n`);
 
     if (snapshots.length === 0) {
@@ -53,7 +56,9 @@ async function recoverSnapshots() {
     console.log('Available snapshots:');
     snapshots.forEach((snapshot, index) => {
       const date = new Date(snapshot.created || '').toLocaleString();
-      console.log(`${index + 1}. ${snapshot.snapshot_id} - Created: ${date} - Records: ${snapshot.result_count || 0}`);
+      console.log(
+        `${index + 1}. ${snapshot.snapshot_id} - Created: ${date} - Records: ${snapshot.result_count || 0}`
+      );
     });
 
     // Step 2: Check which snapshots are already in our database
@@ -61,10 +66,17 @@ async function recoverSnapshots() {
     const { data: existingSnapshots } = await supabase
       .from('brightdata_snapshots')
       .select('snapshot_id, status, processed_at')
-      .in('snapshot_id', snapshots.map(s => s.snapshot_id));
+      .in(
+        'snapshot_id',
+        snapshots.map((s) => s.snapshot_id)
+      );
 
-    const existingIds = new Set(existingSnapshots?.map(s => s.snapshot_id) || []);
-    const newSnapshots = snapshots.filter(s => !existingIds.has(s.snapshot_id));
+    const existingIds = new Set(
+      existingSnapshots?.map((s) => s.snapshot_id) || []
+    );
+    const newSnapshots = snapshots.filter(
+      (s) => !existingIds.has(s.snapshot_id)
+    );
 
     console.log(`Found ${newSnapshots.length} new snapshots not in database`);
     console.log(`Found ${existingIds.size} snapshots already tracked`);
@@ -72,45 +84,47 @@ async function recoverSnapshots() {
     // Step 3: Process untracked snapshots
     if (newSnapshots.length > 0) {
       console.log('\n🚀 Processing new snapshots...\n');
-      
+
       for (const snapshot of newSnapshots) {
         console.log(`\nProcessing snapshot: ${snapshot.snapshot_id}`);
-        console.log(`Created: ${new Date(snapshot.created || '').toLocaleString()}`);
+        console.log(
+          `Created: ${new Date(snapshot.created || '').toLocaleString()}`
+        );
         console.log(`Records: ${snapshot.result_count || 0}`);
 
         try {
           // Save to database
-          await supabase
-            .from('brightdata_snapshots')
-            .insert({
-              snapshot_id: snapshot.snapshot_id,
-              dataset_id: 'gd_lyy3tktm25m4avu764',
-              status: 'ready',
-              created_at: snapshot.created,
-              metadata: {
-                cost: snapshot.cost,
-                file_size: snapshot.file_size,
-                result_count: snapshot.result_count,
-                recovery_run: true,
-              }
-            });
+          await supabase.from('brightdata_snapshots').insert({
+            snapshot_id: snapshot.snapshot_id,
+            dataset_id: 'gd_lyy3tktm25m4avu764',
+            status: 'ready',
+            created_at: snapshot.created,
+            metadata: {
+              cost: snapshot.cost,
+              file_size: snapshot.file_size,
+              result_count: snapshot.result_count,
+              recovery_run: true,
+            },
+          });
 
           // Download and process the data
           console.log('📥 Downloading snapshot data...');
-          const contentItems = await brightDataFetcher.processReadySnapshot(snapshot.snapshot_id);
-          
+          const contentItems = await brightDataFetcher.processReadySnapshot(
+            snapshot.snapshot_id
+          );
+
           console.log(`Retrieved ${contentItems.length} posts`);
 
           if (contentItems.length > 0) {
             // Try to match creators based on URLs
             console.log('🔍 Matching creators...');
-            
+
             for (const item of contentItems) {
               // Extract username from LinkedIn URL
               const urlMatch = item.url?.match(/linkedin\.com\/in\/([^\/]+)/);
               if (urlMatch) {
                 const username = urlMatch[1];
-                
+
                 // Find creator by LinkedIn URL pattern
                 const { data: creators } = await supabase
                   .from('creator_urls')
@@ -121,16 +135,21 @@ async function recoverSnapshots() {
 
                 if (creators && creators.length > 0) {
                   item.creator_id = creators[0].creator_id;
-                  console.log(`Matched post to creator: ${creators[0].creator_id}`);
+                  console.log(
+                    `Matched post to creator: ${creators[0].creator_id}`
+                  );
                 }
               }
             }
 
             // Store content
             console.log('💾 Storing content...');
-            const results = await contentService.storeMultipleContent(contentItems);
-            
-            console.log(`✅ Stored: ${results.created} new, ${results.updated} updated, ${results.errors.length} errors`);
+            const results =
+              await contentService.storeMultipleContent(contentItems);
+
+            console.log(
+              `✅ Stored: ${results.created} new, ${results.updated} updated, ${results.errors.length} errors`
+            );
 
             // Update snapshot status
             await supabase
@@ -148,14 +167,17 @@ async function recoverSnapshots() {
                     created: results.created,
                     updated: results.updated,
                     errors: results.errors.length,
-                  }
-                }
+                  },
+                },
               })
               .eq('snapshot_id', snapshot.snapshot_id);
           }
         } catch (error) {
-          console.error(`❌ Error processing snapshot ${snapshot.snapshot_id}:`, error);
-          
+          console.error(
+            `❌ Error processing snapshot ${snapshot.snapshot_id}:`,
+            error
+          );
+
           // Mark as failed
           await supabase
             .from('brightdata_snapshots')
@@ -178,32 +200,37 @@ async function recoverSnapshots() {
 
     if (failedSnapshots && failedSnapshots.length > 0) {
       console.log(`Found ${failedSnapshots.length} failed snapshots to retry`);
-      
-      const retry = await promptUser('Do you want to retry failed snapshots? (y/n): ');
-      
+
+      const retry = await promptUser(
+        'Do you want to retry failed snapshots? (y/n): '
+      );
+
       if (retry.toLowerCase() === 'y') {
         for (const snapshot of failedSnapshots) {
           console.log(`\nRetrying snapshot: ${snapshot.snapshot_id}`);
-          
+
           try {
             const contentItems = await brightDataFetcher.processReadySnapshot(
               snapshot.snapshot_id,
               snapshot.metadata?.max_results
             );
-            
+
             console.log(`Retrieved ${contentItems.length} posts`);
-            
+
             // Add creator_id from metadata
             if (snapshot.metadata?.creator_id) {
-              contentItems.forEach(item => {
+              contentItems.forEach((item) => {
                 item.creator_id = snapshot.metadata.creator_id;
               });
             }
-            
-            const results = await contentService.storeMultipleContent(contentItems);
-            
-            console.log(`✅ Stored: ${results.created} new, ${results.updated} updated`);
-            
+
+            const results =
+              await contentService.storeMultipleContent(contentItems);
+
+            console.log(
+              `✅ Stored: ${results.created} new, ${results.updated} updated`
+            );
+
             // Update as processed
             await supabase
               .from('brightdata_snapshots')
@@ -222,23 +249,26 @@ async function recoverSnapshots() {
     }
 
     console.log('\n✨ Recovery complete!');
-    
+
     // Final summary
     const { data: summary } = await supabase
       .from('brightdata_snapshots')
       .select('status')
       .in('status', ['processed', 'failed', 'pending']);
-    
-    const counts = summary?.reduce((acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {};
-    
+
+    const counts =
+      summary?.reduce(
+        (acc, item) => {
+          acc[item.status] = (acc[item.status] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      ) || {};
+
     console.log('\n📊 Final Status:');
     console.log(`- Processed: ${counts.processed || 0}`);
     console.log(`- Pending: ${counts.pending || 0}`);
     console.log(`- Failed: ${counts.failed || 0}`);
-
   } catch (error) {
     console.error('❌ Recovery failed:', error);
     process.exit(1);

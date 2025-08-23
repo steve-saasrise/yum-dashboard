@@ -8,6 +8,7 @@ The BrightData integration now uses a two-phase architecture to separate scrapin
 2. **Phase 2 (Processing)**: Separate worker processes ready snapshots asynchronously
 
 This approach ensures:
+
 - No timeouts during collection
 - Recovery of failed/missed snapshots
 - Reprocessing capability for historical data
@@ -16,11 +17,13 @@ This approach ensures:
 ## Architecture Components
 
 ### Database Table
+
 - `brightdata_snapshots` - Tracks all BrightData collections
   - Stores snapshot IDs, status, creator URLs, and processing results
   - Enables recovery of unprocessed data
 
 ### Workers
+
 1. **Creator Processor** (`lib/queue/workers/creator-processor.ts`)
    - Triggers BrightData collections for LinkedIn profiles
    - Saves snapshot IDs to database
@@ -32,6 +35,7 @@ This approach ensures:
    - Handles retries for snapshots still running
 
 ### API Endpoints
+
 - `/api/cron/process-brightdata-snapshots` - Cron endpoint to queue pending snapshots
 - `/api/test-brightdata-recovery` - Test endpoint to check snapshot status
 
@@ -47,12 +51,14 @@ This approach ensures:
 
 **Title**: Process BrightData Snapshots
 
-**URL**: 
+**URL**:
+
 ```
 https://your-app-domain.railway.app/api/cron/process-brightdata-snapshots
 ```
 
-**Schedule**: 
+**Schedule**:
+
 - Select "Every 30 minutes" (or custom schedule)
 - Or use custom settings:
   - Minutes: `*/30` (every 30 minutes)
@@ -64,9 +70,11 @@ https://your-app-domain.railway.app/api/cron/process-brightdata-snapshots
 **Request Method**: GET
 
 **Request Headers**:
+
 ```
 Authorization: Bearer YOUR_CRON_SECRET
 ```
+
 (Replace YOUR_CRON_SECRET with the value from your environment variables)
 
 ### 3. Advanced Settings
@@ -92,6 +100,7 @@ npx tsx scripts/recover-brightdata-snapshots.ts
 ```
 
 This will:
+
 1. Fetch all available snapshots from BrightData
 2. Check which ones are already in the database
 3. Process any new snapshots found
@@ -100,6 +109,7 @@ This will:
 ### Check Snapshot Status
 
 Visit the test endpoint to see current status:
+
 ```
 https://your-app-domain.railway.app/api/test-brightdata-recovery
 ```
@@ -107,6 +117,7 @@ https://your-app-domain.railway.app/api/test-brightdata-recovery
 ### Manually Trigger Processing
 
 To manually process pending snapshots:
+
 ```bash
 curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
   https://your-app-domain.railway.app/api/cron/process-brightdata-snapshots
@@ -155,9 +166,10 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 ## Monitoring
 
 ### Check Processing Status
+
 ```sql
 -- View snapshot status summary
-SELECT 
+SELECT
   status,
   COUNT(*) as count,
   SUM(posts_retrieved) as total_posts
@@ -165,7 +177,7 @@ FROM brightdata_snapshots
 GROUP BY status;
 
 -- View recent snapshots
-SELECT 
+SELECT
   snapshot_id,
   status,
   posts_retrieved,
@@ -182,6 +194,7 @@ ORDER BY created_at DESC;
 ```
 
 ### Worker Logs
+
 - Check Railway logs for worker processing
 - Look for "[BrightData Processor]" entries
 - Monitor for snapshot processing success/failure
@@ -189,12 +202,14 @@ ORDER BY created_at DESC;
 ## Troubleshooting
 
 ### Snapshots Stuck in "Pending"
+
 - Check if cron job is running
 - Verify worker is deployed and running
 - Check Redis connection
 - Look for errors in worker logs
 
 ### Failed Snapshots
+
 - Check the `error` field in database
 - Common issues:
   - Snapshot not found (404) - may have expired
@@ -202,6 +217,7 @@ ORDER BY created_at DESC;
   - Timeout - snapshot took too long to complete
 
 ### Missing Data
+
 - Run recovery script to fetch historical snapshots
 - Check BrightData dashboard for collection status
 - Verify creator URLs are correct LinkedIn profile URLs

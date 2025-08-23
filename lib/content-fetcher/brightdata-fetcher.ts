@@ -460,8 +460,10 @@ export class BrightDataFetcher {
   ): CreateContentInput[] {
     // Limit results if specified
     const postsToProcess = maxResults ? posts.slice(0, maxResults) : posts;
-    
-    console.log(`[BrightDataFetcher] Transforming ${postsToProcess.length} LinkedIn posts`);
+
+    console.log(
+      `[BrightDataFetcher] Transforming ${postsToProcess.length} LinkedIn posts`
+    );
     let skippedCount = 0;
 
     const transformed = postsToProcess
@@ -604,10 +606,12 @@ export class BrightDataFetcher {
         };
       })
       .filter((item): item is CreateContentInput => item !== null);
-    
+
     const validCount = transformed.length;
-    console.log(`[BrightDataFetcher] Transformation complete: ${validCount} valid posts, ${skippedCount} skipped`);
-    
+    console.log(
+      `[BrightDataFetcher] Transformation complete: ${validCount} valid posts, ${skippedCount} skipped`
+    );
+
     return transformed;
   }
 
@@ -630,7 +634,7 @@ export class BrightDataFetcher {
     // BrightData can handle multiple URLs in a single snapshot
     const endpoint = `${this.baseUrl}/datasets/v3/trigger`;
 
-    const body = profileUrls.map(url => ({
+    const body = profileUrls.map((url) => ({
       url,
       ...(options?.startDate && { start_date: options.startDate }),
       ...(options?.endDate && { end_date: options.endDate }),
@@ -666,7 +670,9 @@ export class BrightDataFetcher {
     }
 
     const result = await response.json();
-    console.log(`[BrightDataFetcher] Collection triggered, snapshot: ${result.snapshot_id}`);
+    console.log(
+      `[BrightDataFetcher] Collection triggered, snapshot: ${result.snapshot_id}`
+    );
     return result.snapshot_id;
   }
 
@@ -682,30 +688,36 @@ export class BrightDataFetcher {
 
     // Get the snapshot data
     const posts = await this.getSnapshotData(snapshotId);
-    
+
     if (!posts || posts.length === 0) {
-      console.log(`[BrightDataFetcher] No posts found in snapshot ${snapshotId}`);
+      console.log(
+        `[BrightDataFetcher] No posts found in snapshot ${snapshotId}`
+      );
       return [];
     }
 
-    console.log(`[BrightDataFetcher] Retrieved ${posts.length} posts from snapshot`);
-    
+    console.log(
+      `[BrightDataFetcher] Retrieved ${posts.length} posts from snapshot`
+    );
+
     // Transform the data
     const transformedContent = this.transformLinkedInData(posts, maxResults);
-    
+
     console.log(
       `[BrightDataFetcher] Transformed ${transformedContent.length} posts from snapshot`
     );
-    
+
     return transformedContent;
   }
 
   /**
    * Get full snapshot metadata
    */
-  async getSnapshotMetadata(snapshotId: string): Promise<BrightDataSnapshotStatus> {
+  async getSnapshotMetadata(
+    snapshotId: string
+  ): Promise<BrightDataSnapshotStatus> {
     const endpoint = `${this.baseUrl}/datasets/snapshots/${snapshotId}`;
-    
+
     const response = await fetch(endpoint, {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -771,7 +783,7 @@ export class BrightDataFetcher {
     console.log(
       `[BrightDataFetcher] Found ${snapshots.length} historical snapshots`
     );
-    
+
     // Map to our format
     return snapshots.map((s: any) => ({
       status: s.status,

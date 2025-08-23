@@ -1,9 +1,8 @@
 import { Worker, Job } from 'bullmq';
-import { getRedisConnection } from '@/lib/queue/redis-connection';
+import { getRedisConnection, QUEUE_NAMES, WORKER_CONCURRENCY } from '@/lib/queue/config';
 import { BrightDataFetcher } from '@/lib/content-fetcher/brightdata-fetcher';
 import { ContentService } from '@/lib/services/content-service';
 import { createClient } from '@/utils/supabase/server';
-import { QUEUE_NAMES, WORKER_CONCURRENCY } from '@/lib/queue/config';
 
 export interface BrightDataSnapshotJob {
   snapshotId: string;
@@ -34,8 +33,9 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
 
   try {
     // Check snapshot status
-    const snapshotStatus = await brightDataFetcher.getSnapshotMetadata(snapshotId);
-    
+    const snapshotStatus =
+      await brightDataFetcher.getSnapshotMetadata(snapshotId);
+
     // Update database status
     await supabase
       .from('brightdata_snapshots')
@@ -47,13 +47,15 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
           result_count: snapshotStatus.result_count,
           cost: snapshotStatus.cost,
           file_size: snapshotStatus.file_size,
-        }
+        },
       })
       .eq('snapshot_id', snapshotId);
 
     if (snapshotStatus.status === 'ready') {
-      console.log(`[BrightData Processor] Snapshot ${snapshotId} is ready, downloading data...`);
-      
+      console.log(
+        `[BrightData Processor] Snapshot ${snapshotId} is ready, downloading data...`
+      );
+
       // Mark as processing
       await supabase
         .from('brightdata_snapshots')
@@ -66,12 +68,14 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
         maxResults || metadata?.max_results
       );
 
-      console.log(`[BrightData Processor] Retrieved ${contentItems.length} items from snapshot`);
+      console.log(
+        `[BrightData Processor] Retrieved ${contentItems.length} items from snapshot`
+      );
 
       // Add creator_id if available in metadata
       const creatorId = metadata?.creator_id;
       if (creatorId) {
-        contentItems.forEach(item => {
+        contentItems.forEach((item) => {
           item.creator_id = creatorId;
         });
       }
@@ -79,10 +83,10 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
       // Store content in database
       if (contentItems.length > 0) {
         const results = await contentService.storeMultipleContent(contentItems);
-        
+
         console.log(
           `[BrightData Processor] Storage results: ` +
-          `${results.created} new, ${results.updated} updated, ${results.errors.length} errors`
+            `${results.created} new, ${results.updated} updated, ${results.errors.length} errors`
         );
 
         // Update snapshot as processed
@@ -99,8 +103,8 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
                 created: results.created,
                 updated: results.updated,
                 errors: results.errors.length,
-              }
-            }
+              },
+            },
           })
           .eq('snapshot_id', snapshotId);
 
@@ -116,8 +120,12 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
 
           if (newContent && newContent.length > 0) {
             // Import queue function
-            const { queueContentForSummaries } = await import('@/lib/queue/queue-helpers');
-            const contentIds = newContent.map((item: { id: string }) => item.id);
+            const { queueContentForSummaries } = await import(
+              '@/lib/queue/queue-helpers'
+            );
+            const contentIds = newContent.map(
+              (item: { id: string }) => item.id
+            );
             await queueContentForSummaries(contentIds, creatorId);
             console.log(
               `[BrightData Processor] Queued ${contentIds.length} items for AI summaries`
@@ -167,14 +175,21 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
       throw new Error(`Snapshot ${snapshotId} failed: ${snapshotStatus.error}`);
     } else {
       // Still running - requeue for later
-      console.log(`[BrightData Processor] Snapshot ${snapshotId} still running, will retry later`);
-      
+      console.log(
+        `[BrightData Processor] Snapshot ${snapshotId} still running, will retry later`
+      );
+
       // Throw error to trigger retry with backoff
-      throw new Error(`Snapshot ${snapshotId} not ready yet (status: ${snapshotStatus.status})`);
+      throw new Error(
+        `Snapshot ${snapshotId} not ready yet (status: ${snapshotStatus.status})`
+      );
     }
   } catch (error) {
-    console.error(`[BrightData Processor] Error processing snapshot ${snapshotId}:`, error);
-    
+    console.error(
+      `[BrightData Processor] Error processing snapshot ${snapshotId}:`,
+      error
+    );
+
     // Update error in database
     await supabase
       .from('brightdata_snapshots')
@@ -183,7 +198,7 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
         last_checked_at: new Date().toISOString(),
       })
       .eq('snapshot_id', snapshotId);
-    
+
     throw error;
   }
 }
@@ -212,11 +227,16 @@ export function createBrightDataProcessorWorker() {
   );
 
   worker.on('completed', (job) => {
-    console.log(`[BrightData Processor] Snapshot ${job.data.snapshotId} processed successfully`);
+    console.log(
+      `[BrightData Processor] Snapshot ${job.data.snapshotId} processed successfully`
+    );
   });
 
   worker.on('failed', (job, err) => {
-    console.error(`[BrightData Processor] Snapshot ${job?.data.snapshotId} processing failed:`, err);
+    console.error(
+      `[BrightData Processor] Snapshot ${job?.data.snapshotId} processing failed:`,
+      err
+    );
   });
 
   return worker;

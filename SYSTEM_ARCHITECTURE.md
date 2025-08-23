@@ -23,14 +23,16 @@ Lounge.ai (formerly Daily News) is a content aggregation platform that unifies c
   - `creator-processing`: Processes individual creators
   - `content-fetch`: Fetches content from platforms
   - `ai-summary`: Generates AI summaries for content
+  - `brightdata-processing`: Processes BrightData snapshots (Phase 2)
 
 ### 3. Worker Service
 
 - **Separate deployment**: Runs as `queue-workers` service on Railway
 - **Start command**: `npm run workers` (via `RAILWAY_SERVICE_TYPE=workers`)
 - **Workers**:
-  - **Creator Processor Worker**: Fetches content from all platforms
+  - **Creator Processor Worker**: Triggers content collection from all platforms
   - **Summary Processor Worker**: Generates AI summaries using OpenAI
+  - **BrightData Processor Worker**: Processes LinkedIn snapshots asynchronously (Phase 2)
 
 ## Content Flow Architecture
 
@@ -71,14 +73,21 @@ The separate worker deployment processes jobs:
      - **YouTube**: YouTube Data API (with quota management)
      - **Twitter/X**: Apify Actor API
      - **Threads**: Apify Actor API
-     - **LinkedIn**: BrightData API (24-hour lookback)
-   - Stores content in database
+     - **LinkedIn**: Triggers BrightData collection (Phase 1 only)
+   - Stores content in database (except LinkedIn)
    - Queues new content for AI summarization
 
 2. **Summary Processor** (`lib/queue/workers/summary-processor.ts`):
    - Pulls jobs from `ai-summary` queue
    - Generates brief and detailed summaries using OpenAI
    - Updates content records with summaries
+
+3. **BrightData Processor** (`lib/queue/workers/brightdata-processor.ts`):
+   - Pulls jobs from `brightdata-processing` queue
+   - Checks snapshot status via BrightData API
+   - Downloads ready snapshots
+   - Transforms and stores LinkedIn content
+   - Retries if snapshot still running
 
 ### Step 4: Content Display
 
@@ -121,13 +130,21 @@ Dashboard → Supabase → Displayed to Users
 - **API**: Apify Actor (Threads Scraper)
 - **Username extraction**: From URL pattern
 
-#### LinkedIn
+#### LinkedIn (Two-Phase Architecture)
 
 - **Service**: `BrightDataFetcher`
 - **API**: BrightData Scraping Browser (Dataset ID: `gd_lyy3tktm25m4avu764`)
-- **Cost optimization**: 48-hour lookback window (increased from 24 to ensure no posts are missed)
-- **Processing**: Batch of 10 creators at a time
-- **Collection**: Forces fresh data collection (`useExistingData: false`)
+- **Phase 1 - Collection Trigger**:
+  - Creator processor triggers collection without waiting
+  - Snapshot ID saved to `brightdata_snapshots` table
+  - Completes immediately (no timeout risk)
+- **Phase 2 - Snapshot Processing**:
+  - Separate cron job (`/api/cron/process-brightdata-snapshots`) runs every 30 minutes
+  - BrightData processor worker downloads ready snapshots
+  - Retries with exponential backoff if snapshot still running
+  - Stores content in database when complete
+- **Cost optimization**: 48-hour lookback window
+- **Recovery**: Can retrieve and process historical snapshots
 
 ## Relevancy System
 
@@ -155,6 +172,7 @@ Dashboard → Supabase → Displayed to Users
 - **lounges**: Topic groupings (formerly topics)
 - **content**: Aggregated content from all platforms
 - **lounge_digest_subscriptions**: Email digest preferences
+- **brightdata_snapshots**: Tracks BrightData collection snapshots (Phase 2 processing)
 
 ### Row Level Security (RLS)
 
@@ -260,8 +278,10 @@ Dashboard → Supabase → Displayed to Users
 ### Debug Endpoints
 
 - `/api/test-brightdata` - Test LinkedIn fetching
+- `/api/test-brightdata-recovery` - Check BrightData snapshot status
 - `/api/debug-linkedin` - LinkedIn data inspection
 - `/api/test-apify` - Test Twitter/Threads
+- `/api/cron/process-brightdata-snapshots` - Manually trigger snapshot processing
 - Various platform-specific test endpoints
 
 ## Common Issues & Solutions
@@ -284,10 +304,12 @@ Dashboard → Supabase → Displayed to Users
 **Problem**: LinkedIn posts were being fetched by BrightData but failing validation when stored.
 
 **Root Cause**: Media URLs in LinkedIn posts were missing required `url` fields or using incorrect field names:
+
 - Videos with only thumbnails had empty `url` strings
 - Link previews used `link_url` instead of `url` field
 
-**Solution**: 
+**Solution**:
+
 - Fixed media URL validation by skipping videos without URLs
 - Corrected link preview field from `link_url` to `url`
 - Increased lookback window from 24 to 48 hours to prevent missing posts
@@ -321,6 +343,16 @@ Dashboard → Supabase → Displayed to Users
 **Problem**: When BrightData doesn't provide post URLs, system was generating invalid fallback URLs like `https://www.linkedin.com/feed/update/linkedin-1755884526777-jef97cg`.
 
 **Solution**: Skip LinkedIn posts that don't have both valid `id` and `url` fields from BrightData rather than attempting to generate URLs.
+
+### Issue: BrightData Timeout (RESOLVED)
+
+**Problem**: LinkedIn data collection via BrightData takes 2-3 minutes, causing worker timeouts and lost data.
+
+**Solution - Two-Phase Architecture**:
+- **Phase 1**: Creator processor triggers collection and saves snapshot ID (instant)
+- **Phase 2**: Separate worker processes snapshots when ready (async)
+- **Recovery**: Script to retrieve historical snapshots that were never processed
+- **Monitoring**: Database tracks all snapshots with status (pending/ready/processing/processed/failed)
 
 ## Development Workflow
 
@@ -383,12 +415,12 @@ npm run workers:dev
 - YouTube: Quota management prevents overuse
 - Batch processing minimizes API calls
 
-### Architecture Improvements
+### Architecture Improvements (IMPLEMENTED)
 
-- **Separate Collection from Processing**: Decouple BrightData scraping triggers from data retrieval
-- **Webhook Integration**: Use BrightData webhooks for real-time snapshot notifications
-- **Snapshot Tracking**: Add database table to track collected snapshots and their processing status
-- **Smart Collection**: Only trigger new collections when needed, reuse recent snapshots
+- **✅ Separate Collection from Processing**: Decoupled BrightData triggers from data retrieval (Two-Phase Architecture)
+- **✅ Snapshot Tracking**: Added `brightdata_snapshots` table to track collections and processing status
+- **✅ Smart Collection**: Can reuse existing snapshots via recovery script
+- **Future: Webhook Integration**: Use BrightData webhooks for real-time snapshot notifications
 
 ### Feature Expansion
 

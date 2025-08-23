@@ -29,7 +29,7 @@ async function testBrightDataLinkedIn() {
     console.log('⏳ This may take 2-3 minutes...\n');
 
     const startTime = Date.now();
-    
+
     // Fetch with debug output
     const content = await fetcher.fetchLinkedInContent([profileUrl], {
       maxResults: 5, // Just get 5 posts for testing
@@ -39,7 +39,7 @@ async function testBrightDataLinkedIn() {
     });
 
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
-    
+
     console.log(`\n✅ Fetching completed in ${elapsedTime} seconds`);
     console.log(`📊 Total posts returned: ${content.length}`);
 
@@ -55,7 +55,10 @@ async function testBrightDataLinkedIn() {
       });
 
       // Save full response for inspection
-      const outputPath = path.join(process.cwd(), 'brightdata-test-output.json');
+      const outputPath = path.join(
+        process.cwd(),
+        'brightdata-test-output.json'
+      );
       fs.writeFileSync(outputPath, JSON.stringify(content, null, 2));
       console.log(`\n💾 Full response saved to: ${outputPath}`);
     } else {
@@ -73,7 +76,6 @@ async function testBrightDataLinkedIn() {
         status: snapshots[0].status,
       });
     }
-
   } catch (error) {
     console.error('\n❌ Error during testing:', error);
     if (error instanceof Error) {
