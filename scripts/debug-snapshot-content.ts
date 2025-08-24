@@ -22,7 +22,7 @@ async function debugSnapshot(snapshotId: string) {
     // Download the raw snapshot data
     const endpoint = `https://api.brightdata.com/datasets/v3/snapshot/${snapshotId}`;
     const url = `${endpoint}?format=json`;
-    
+
     console.log(`📥 Downloading from: ${url}\n`);
 
     const response = await fetch(url, {
@@ -39,19 +39,19 @@ async function debugSnapshot(snapshotId: string) {
     }
 
     const data = await response.json();
-    
+
     console.log(`✅ Downloaded snapshot data\n`);
     console.log('Raw data structure:');
     console.log('='.repeat(80));
-    
+
     // Show the structure
     if (Array.isArray(data)) {
       console.log(`Data is an array with ${data.length} items\n`);
-      
+
       if (data.length > 0) {
         console.log('First item structure:');
         console.log(JSON.stringify(data[0], null, 2));
-        
+
         // Save to file for inspection
         const outputPath = path.join(
           process.cwd(),
@@ -59,7 +59,7 @@ async function debugSnapshot(snapshotId: string) {
         );
         fs.writeFileSync(outputPath, JSON.stringify(data, null, 2));
         console.log(`\n💾 Full data saved to: ${outputPath}`);
-        
+
         // Check for required fields
         console.log('\n📋 Field analysis:');
         data.forEach((item: any, index: number) => {

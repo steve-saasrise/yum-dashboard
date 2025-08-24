@@ -53,16 +53,16 @@ async function recoverSpecificSnapshot(snapshotId: string) {
       console.log('- Processed:', existingSnapshot.processed_at);
       console.log('- Posts retrieved:', existingSnapshot.posts_retrieved);
       console.log('- Error:', existingSnapshot.error);
-      
+
       if (existingSnapshot.status === 'processed') {
         console.log('\n✅ Snapshot already processed');
         return;
       }
-      
+
       const shouldReprocess = await promptUser(
         '\nSnapshot exists but not fully processed. Reprocess? (y/n): '
       );
-      
+
       if (shouldReprocess.toLowerCase() !== 'y') {
         return;
       }
@@ -84,7 +84,9 @@ async function recoverSpecificSnapshot(snapshotId: string) {
         return;
       }
     } catch (error) {
-      console.log('\n⚠️ Could not fetch metadata, will try to download anyway...');
+      console.log(
+        '\n⚠️ Could not fetch metadata, will try to download anyway...'
+      );
     }
 
     // Step 3: Add to database if not exists
@@ -111,9 +113,8 @@ async function recoverSpecificSnapshot(snapshotId: string) {
     // Step 4: Download and process the snapshot
     console.log('\n📥 Downloading snapshot data...');
     try {
-      const contentItems = await brightDataFetcher.processReadySnapshot(
-        snapshotId
-      );
+      const contentItems =
+        await brightDataFetcher.processReadySnapshot(snapshotId);
 
       console.log(`Retrieved ${contentItems.length} posts from snapshot`);
 
@@ -174,7 +175,7 @@ async function recoverSpecificSnapshot(snapshotId: string) {
         console.log('\n✨ Snapshot processed successfully!');
       } else {
         console.log('\n⚠️ No content found in snapshot');
-        
+
         // Update snapshot status
         await supabase
           .from('brightdata_snapshots')
@@ -187,7 +188,7 @@ async function recoverSpecificSnapshot(snapshotId: string) {
       }
     } catch (error) {
       console.error('\n❌ Error processing snapshot:', error);
-      
+
       // Update error in database
       await supabase
         .from('brightdata_snapshots')
@@ -224,7 +225,9 @@ const snapshotId = process.argv[2];
 
 if (!snapshotId) {
   console.error('❌ Please provide a snapshot ID as an argument');
-  console.error('Usage: npm run script scripts/recover-specific-snapshot.ts s_meoje189itkmbeamv');
+  console.error(
+    'Usage: npm run script scripts/recover-specific-snapshot.ts s_meoje189itkmbeamv'
+  );
   process.exit(1);
 }
 

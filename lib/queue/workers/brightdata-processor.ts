@@ -24,7 +24,10 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
   console.log(`[BrightData Processor] Processing snapshot: ${snapshotId}`);
 
   // Use service role client for workers
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
     throw new Error('Supabase configuration missing');
   }
 
@@ -101,13 +104,13 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
         console.log(
           '[BrightData Processor] No creator_id in metadata, attempting to match by URL'
         );
-        
+
         for (const item of contentItems) {
           // Extract username from LinkedIn URL
           const urlMatch = item.url?.match(/linkedin\.com\/in\/([^\/]+)/);
           if (urlMatch) {
             const username = urlMatch[1];
-            
+
             // Find creator by LinkedIn URL pattern
             const { data: creators } = await supabase
               .from('creator_urls')
@@ -115,7 +118,7 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
               .eq('platform', 'linkedin')
               .ilike('url', `%${username}%`)
               .limit(1);
-            
+
             if (creators && creators.length > 0) {
               item.creator_id = creators[0].creator_id;
               console.log(

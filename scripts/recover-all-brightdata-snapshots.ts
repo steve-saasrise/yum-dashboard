@@ -38,12 +38,16 @@ async function recoverAllSnapshots() {
 
   try {
     // Step 1: Get ALL snapshots from the last 48 hours
-    console.log('📋 Fetching ALL snapshots from the last 48 hours from BrightData API...');
-    
+    console.log(
+      '📋 Fetching ALL snapshots from the last 48 hours from BrightData API...'
+    );
+
     // Calculate 48 hours ago
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    console.log(`Looking for snapshots created after: ${fortyEightHoursAgo.toISOString()}\n`);
-    
+    console.log(
+      `Looking for snapshots created after: ${fortyEightHoursAgo.toISOString()}\n`
+    );
+
     // Fetch snapshots with higher limit
     const endpoint = `https://api.brightdata.com/datasets/v3/snapshots`;
     const queryParams = new URLSearchParams({
@@ -59,34 +63,40 @@ async function recoverAllSnapshots() {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Failed to fetch snapshots: ${response.status} - ${errorText}`);
+      console.error(
+        `Failed to fetch snapshots: ${response.status} - ${errorText}`
+      );
       throw new Error(`Failed to fetch snapshots: ${response.status}`);
     }
 
     const fetchedSnapshots = await response.json();
     console.log(`Fetched ${fetchedSnapshots.length} snapshots from API`);
-    
+
     // Filter for snapshots from the last 48 hours
     const allSnapshots = fetchedSnapshots.filter((s: any) => {
       const createdDate = new Date(s.created);
       return createdDate >= fortyEightHoursAgo;
     });
-    
-    console.log(`Found ${allSnapshots.length} snapshots from the last 48 hours`);
-    
+
+    console.log(
+      `Found ${allSnapshots.length} snapshots from the last 48 hours`
+    );
+
     // Also show how many have content
-    const withContent = allSnapshots.filter((s: any) => s.dataset_size && s.dataset_size > 0);
+    const withContent = allSnapshots.filter(
+      (s: any) => s.dataset_size && s.dataset_size > 0
+    );
     console.log(`${withContent.length} snapshots have content (> 0 records)\n`);
 
     // Display snapshots with content first
     if (withContent.length > 0) {
       console.log('Snapshots WITH CONTENT:');
       console.log('='.repeat(80));
-      
+
       withContent.forEach((snapshot: any, index: number) => {
         const date = new Date(snapshot.created || '').toLocaleString();
         const status = snapshot.status || 'unknown';
-        
+
         console.log(
           `${index + 1}. ${snapshot.id}`,
           `| Status: ${status}`,
@@ -96,14 +106,14 @@ async function recoverAllSnapshots() {
       });
       console.log('='.repeat(80));
     }
-    
+
     // Count by status
     const statusCounts: Record<string, number> = {};
     allSnapshots.forEach((snapshot: any) => {
       const status = snapshot.status || 'unknown';
       statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
-    
+
     console.log('\nStatus summary:');
     Object.entries(statusCounts).forEach(([status, count]) => {
       console.log(`- ${status}: ${count} snapshots`);
@@ -141,7 +151,9 @@ async function recoverAllSnapshots() {
       console.log('\n📦 New snapshots WITH CONTENT not in database:');
       newSnapshotsWithContent.forEach((s: any) => {
         const date = new Date(s.created || '').toLocaleString();
-        console.log(`- ${s.id} (${s.status}) - ${s.dataset_size} records - Created: ${date}`);
+        console.log(
+          `- ${s.id} (${s.status}) - ${s.dataset_size} records - Created: ${date}`
+        );
       });
 
       const proceed = await promptUser(
@@ -151,23 +163,23 @@ async function recoverAllSnapshots() {
       if (proceed.toLowerCase() === 'y') {
         // Add only snapshots with content to database
         for (const snapshot of newSnapshotsWithContent) {
-          console.log(`\nAdding snapshot: ${snapshot.id} (${snapshot.dataset_size} records)`);
-          
-          const { error } = await supabase
-            .from('brightdata_snapshots')
-            .insert({
-              snapshot_id: snapshot.id,
-              dataset_id: 'gd_lyy3tktm25m4avu764',
-              status: snapshot.status || 'ready',
-              created_at: snapshot.created || new Date().toISOString(),
-              metadata: {
-                result_count: snapshot.dataset_size,
-                cost: snapshot.cost,
-                file_size: snapshot.file_size,
-                recovery_run: true,
-                original_status: snapshot.status,
-              },
-            });
+          console.log(
+            `\nAdding snapshot: ${snapshot.id} (${snapshot.dataset_size} records)`
+          );
+
+          const { error } = await supabase.from('brightdata_snapshots').insert({
+            snapshot_id: snapshot.id,
+            dataset_id: 'gd_lyy3tktm25m4avu764',
+            status: snapshot.status || 'ready',
+            created_at: snapshot.created || new Date().toISOString(),
+            metadata: {
+              result_count: snapshot.dataset_size,
+              cost: snapshot.cost,
+              file_size: snapshot.file_size,
+              recovery_run: true,
+              original_status: snapshot.status,
+            },
+          });
 
           if (error) {
             console.error(`Error adding snapshot ${snapshot.id}:`, error);
@@ -193,27 +205,33 @@ async function recoverAllSnapshots() {
       .in('status', ['ready', 'pending'])
       .not('status', 'eq', 'processed');
 
-    const unprocessedWithContent = readySnapshotsWithContent.filter(
-      (s: any) => unprocessedSnapshots?.some(u => u.snapshot_id === s.id)
+    const unprocessedWithContent = readySnapshotsWithContent.filter((s: any) =>
+      unprocessedSnapshots?.some((u) => u.snapshot_id === s.id)
     );
 
     if (unprocessedWithContent.length > 0) {
-      console.log(`\n📦 Found ${unprocessedWithContent.length} unprocessed snapshots with content in database`);
+      console.log(
+        `\n📦 Found ${unprocessedWithContent.length} unprocessed snapshots with content in database`
+      );
       unprocessedWithContent.forEach((s: any) => {
         console.log(`- ${s.id} - ${s.dataset_size} records`);
       });
-      
+
       const processReady = await promptUser(
         'Do you want to queue these for processing? (y/n): '
       );
 
       if (processReady.toLowerCase() === 'y') {
         console.log('\n✨ Run the cron job to process them:');
-        console.log('curl -X GET https://lounge-ai.up.railway.app/api/cron/process-brightdata-snapshots \\');
+        console.log(
+          'curl -X GET https://lounge-ai.up.railway.app/api/cron/process-brightdata-snapshots \\'
+        );
         console.log('  -H "Authorization: Bearer YOUR_CRON_SECRET"');
       }
     } else if (readySnapshotsWithContent.length > 0) {
-      console.log(`\n✅ All snapshots with content (${readySnapshotsWithContent.length}) are already processed or not in database`);
+      console.log(
+        `\n✅ All snapshots with content (${readySnapshotsWithContent.length}) are already processed or not in database`
+      );
     }
 
     console.log('\n✨ Recovery scan complete!');

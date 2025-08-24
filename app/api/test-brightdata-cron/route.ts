@@ -25,10 +25,13 @@ export async function GET(request: NextRequest) {
     // Test 2: Database connection
     const dbTest = { success: false, error: null as any, snapshotCount: 0 };
     try {
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      if (
+        !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+        !process.env.SUPABASE_SERVICE_ROLE_KEY
+      ) {
         throw new Error('Supabase configuration missing');
       }
-      
+
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest) {
           },
         }
       );
-      
+
       const { data: snapshots, error } = await supabase
         .from('brightdata_snapshots')
         .select('status')

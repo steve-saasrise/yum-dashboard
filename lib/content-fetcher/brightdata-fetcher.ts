@@ -716,7 +716,8 @@ export class BrightDataFetcher {
   async getSnapshotMetadata(
     snapshotId: string
   ): Promise<BrightDataSnapshotStatus> {
-    const endpoint = `${this.baseUrl}/datasets/snapshots/${snapshotId}`;
+    // Use the /log endpoint which provides Dataset_size field
+    const endpoint = `${this.baseUrl}/datasets/v3/log/${snapshotId}`;
 
     const response = await fetch(endpoint, {
       headers: {
@@ -726,7 +727,18 @@ export class BrightDataFetcher {
 
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error(`Snapshot ${snapshotId} not found`);
+        // Snapshot doesn't exist or has 0 records
+        // BrightData returns 404 for snapshots with 0 records
+        console.log(
+          `[BrightDataFetcher] Snapshot ${snapshotId} not found (404) - likely empty with 0 records`
+        );
+        // Return a synthetic response indicating it's empty
+        return {
+          status: 'ready',
+          snapshot_id: snapshotId,
+          result_count: 0,
+          error: 'Snapshot not found - empty dataset (0 records)',
+        };
       }
       const errorText = await response.text();
       console.error(
@@ -736,10 +748,11 @@ export class BrightDataFetcher {
     }
 
     const data = await response.json();
+    // The /log endpoint uses capitalized field names
     return {
-      status: data.status,
-      snapshot_id: data.id,
-      result_count: data.dataset_size,
+      status: (data.Status || data.status || 'unknown').toLowerCase() as any,
+      snapshot_id: data.id || snapshotId,
+      result_count: data.Dataset_size || data.dataset_size || 0,
       error: data.error,
       error_code: data.error_code,
       cost: data.cost,
