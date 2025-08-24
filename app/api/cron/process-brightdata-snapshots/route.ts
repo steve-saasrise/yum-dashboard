@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Queue } from 'bullmq';
 import { getRedisConnection, QUEUE_NAMES } from '@/lib/queue/config';
+import { BrightDataFetcher } from '@/lib/content-fetcher/brightdata-fetcher';
 
 export const maxDuration = 30; // seconds
 
@@ -27,7 +28,10 @@ export async function GET(request: NextRequest) {
 
   try {
     // Use service role client for cron jobs
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
       console.error('[Cron] Supabase configuration missing');
       return NextResponse.json(
         { error: 'Server configuration error' },
@@ -69,14 +73,83 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Cron] Found ${snapshots.length} pending snapshots`);
 
+    // Initialize BrightData fetcher to check snapshot metadata
+    let brightDataFetcher: BrightDataFetcher | null = null;
+    if (process.env.BRIGHTDATA_API_KEY) {
+      brightDataFetcher = new BrightDataFetcher({
+        apiKey: process.env.BRIGHTDATA_API_KEY,
+      });
+    } else {
+      console.error('[Cron] BRIGHTDATA_API_KEY not configured');
+      return NextResponse.json(
+        { error: 'BrightData configuration missing' },
+        { status: 500 }
+      );
+    }
+
     // Queue snapshots for processing
     const queue = new Queue(QUEUE_NAMES.BRIGHTDATA_PROCESSING, {
       connection: getRedisConnection(),
     });
 
+    let emptySnapshots = 0;
     const queuedCount = await Promise.all(
       snapshots.map(async (snapshot) => {
         try {
+          // Check if snapshot has content before queueing
+          try {
+            const metadata = await brightDataFetcher!.getSnapshotStatus(
+              snapshot.snapshot_id
+            );
+
+            // Check if snapshot has no content (dataset_size of 0)
+            if (metadata.result_count === 0) {
+              console.log(
+                `[Cron] Snapshot ${snapshot.snapshot_id} has no content (0 records), marking as processed`
+              );
+
+              // Mark as processed with 0 posts
+              await supabase
+                .from('brightdata_snapshots')
+                .update({
+                  status: 'processed',
+                  posts_retrieved: 0,
+                  processed_at: new Date().toISOString(),
+                  metadata: {
+                    ...snapshot.metadata,
+                    result_count: 0,
+                    skipped_reason: 'No content in snapshot',
+                  },
+                })
+                .eq('snapshot_id', snapshot.snapshot_id);
+
+              emptySnapshots++;
+              return false; // Don't queue this snapshot
+            }
+
+            // Update metadata with result count if we have content
+            if (metadata.result_count && metadata.result_count > 0) {
+              await supabase
+                .from('brightdata_snapshots')
+                .update({
+                  metadata: {
+                    ...snapshot.metadata,
+                    result_count: metadata.result_count,
+                    cost: metadata.cost,
+                    file_size: metadata.file_size,
+                  },
+                })
+                .eq('snapshot_id', snapshot.snapshot_id);
+            }
+          } catch (metadataError) {
+            console.error(
+              `[Cron] Error checking metadata for snapshot ${snapshot.snapshot_id}:`,
+              metadataError
+            );
+            // Continue to queue even if metadata check fails
+            // The worker will handle it
+          }
+
           // Check if already in queue
           const existingJobs = await queue.getJobs([
             'waiting',
@@ -136,17 +209,26 @@ export async function GET(request: NextRequest) {
       found: snapshots.length,
       queued: successCount,
       skipped: snapshots.length - successCount,
+      empty_snapshots: emptySnapshots,
     });
   } catch (error) {
     console.error('[Cron] Unexpected error:', error);
-    console.error('[Cron] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    
+    console.error(
+      '[Cron] Error stack:',
+      error instanceof Error ? error.stack : 'No stack trace'
+    );
+
     // Return more detailed error in development
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorDetails = process.env.NODE_ENV === 'development' 
-      ? { error: errorMessage, stack: error instanceof Error ? error.stack : undefined }
-      : { error: 'Internal server error' };
-      
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails =
+      process.env.NODE_ENV === 'development'
+        ? {
+            error: errorMessage,
+            stack: error instanceof Error ? error.stack : undefined,
+          }
+        : { error: 'Internal server error' };
+
     return NextResponse.json(errorDetails, { status: 500 });
   }
 }

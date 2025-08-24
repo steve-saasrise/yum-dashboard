@@ -140,6 +140,11 @@ Dashboard → Supabase → Displayed to Users
   - Completes immediately (no timeout risk)
 - **Phase 2 - Snapshot Processing**:
   - Separate cron job (`/api/cron/process-brightdata-snapshots`) runs every 30 minutes
+  - **Content Validation** (Added 2025-08-24):
+    - Checks snapshot `result_count` before queueing for processing
+    - Skips empty snapshots (0 records) to save API calls
+    - Marks empty snapshots as processed with skip reason
+    - Updates metadata with cost and file size for non-empty snapshots
   - BrightData processor worker downloads ready snapshots
   - Retries with exponential backoff if snapshot still running
   - Stores content in database when complete
@@ -354,6 +359,21 @@ Dashboard → Supabase → Displayed to Users
 - **Phase 2**: Separate worker processes snapshots when ready (async)
 - **Recovery**: Script to retrieve historical snapshots that were never processed
 - **Monitoring**: Database tracks all snapshots with status (pending/ready/processing/processed/failed)
+
+### Issue: Empty BrightData Snapshots (RESOLVED - 2025-08-24)
+
+**Problem**: System was processing empty BrightData snapshots (0 records), wasting API calls and processing time.
+
+**Root Cause**: No validation of snapshot content before queueing for processing. All pending snapshots were queued regardless of whether they contained data.
+
+**Solution**: Added content validation in `/api/cron/process-brightdata-snapshots`:
+
+- Check snapshot `result_count` via BrightData API before queueing
+- Skip snapshots with 0 records, marking them as processed
+- Store skip reason in metadata for monitoring
+- Add `empty_snapshots` count to cron response
+
+**Impact**: Prevents unnecessary processing of 327+ empty snapshots, saving significant API calls and worker processing time.
 
 ## Development Workflow
 
