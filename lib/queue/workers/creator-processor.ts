@@ -190,14 +190,12 @@ async function processCreator(job: Job) {
 
               try {
                 // Phase 1: Just trigger the collection and save snapshot ID
+                // Note: We don't set date filters because many LinkedIn posts lack dates
+                // and will be filtered out if dates are specified (per BrightData API warning)
                 const snapshotId =
                   await brightDataFetcher.triggerCollectionOnly(
-                    [creatorUrl.url],
-                    {
-                      startDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-                        .toISOString()
-                        .split('T')[0],
-                    }
+                    [creatorUrl.url]
+                    // Removed date filter - causes posts without dates to be excluded
                   );
 
                 // Save snapshot to database for processing later
