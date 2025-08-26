@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .single() as { data: { role: string } | null; error: any };
 
     console.log('User data query:', {
       userData,
@@ -93,15 +93,16 @@ export async function GET(request: NextRequest) {
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = querySchema.parse(searchParams);
 
-    // Get creator IDs based on lounge_id
+    // Get creator IDs based on lounge_id and feed subscriptions
     let creatorIds: string[] = [];
+    let excludedCreatorIds: string[] = [];
 
     if (query.lounge_id) {
       // If lounge_id is provided, get creators for that specific lounge
       const { data: creatorLounges, error: creatorsError } = await supabase
         .from('creator_lounges')
         .select('creator_id')
-        .eq('lounge_id', query.lounge_id);
+        .eq('lounge_id', query.lounge_id) as { data: { creator_id: string }[] | null; error: any };
 
       if (creatorsError) {
         return NextResponse.json(
@@ -112,10 +113,70 @@ export async function GET(request: NextRequest) {
 
       creatorIds = creatorLounges?.map((cl) => cl.creator_id) || [];
     } else {
-      // When no lounge is selected, show ALL content from ALL creators
-      // Instead of fetching all creators first, we'll query content directly
-      // and let the database handle the filtering
-      creatorIds = []; // Empty array means no creator filtering
+      // When no lounge is selected, exclude content from creators who are ONLY in unsubscribed lounges
+      // This applies to ALL users including curators/admins
+      const { data: unsubscribedLounges, error: subsError } = await supabase
+        .from('lounge_feed_subscriptions')
+        .select('lounge_id')
+        .eq('user_id', user.id)
+        .eq('subscribed', false) as { data: { lounge_id: string }[] | null; error: any };
+
+      if (!subsError && unsubscribedLounges && unsubscribedLounges.length > 0) {
+        const unsubscribedLoungeIds = unsubscribedLounges.map(
+          (s) => s.lounge_id
+        );
+        
+        // Get ALL lounges the user is subscribed to (or hasn't explicitly unsubscribed from)
+        const { data: allLounges } = await supabase
+          .from('lounges')
+          .select('id') as { data: { id: string }[] | null; error: any };
+        
+        const subscribedLoungeIds = allLounges
+          ?.filter(l => !unsubscribedLoungeIds.includes(l.id))
+          .map(l => l.id) || [];
+
+        // Get creators from unsubscribed lounges
+        const { data: creatorsInUnsubscribedLounges } = await supabase
+          .from('creator_lounges')
+          .select('creator_id')
+          .in('lounge_id', unsubscribedLoungeIds) as { data: { creator_id: string }[] | null; error: any };
+
+        // Get creators from subscribed lounges (only if there are any subscribed lounges)
+        let creatorsInSubscribedLounges: { creator_id: string }[] | null = null;
+        if (subscribedLoungeIds.length > 0) {
+          const result = await supabase
+            .from('creator_lounges')
+            .select('creator_id')
+            .in('lounge_id', subscribedLoungeIds) as { data: { creator_id: string }[] | null; error: any };
+          creatorsInSubscribedLounges = result.data;
+        }
+
+        if (creatorsInUnsubscribedLounges) {
+          // Find creators who are ONLY in unsubscribed lounges
+          const subscribedCreatorSet = new Set(
+            creatorsInSubscribedLounges?.map(cl => cl.creator_id) || []
+          );
+          
+          const unsubscribedCreatorIds = creatorsInUnsubscribedLounges.map(cl => cl.creator_id);
+          
+          // Only exclude creators who are NOT in any subscribed lounge
+          excludedCreatorIds = [...new Set(
+            unsubscribedCreatorIds.filter(id => !subscribedCreatorSet.has(id))
+          )];
+          
+          console.log('Feed subscription filtering:', {
+            userId: user.id,
+            unsubscribedLounges: unsubscribedLoungeIds,
+            subscribedLounges: subscribedLoungeIds.length,
+            creatorsInUnsubscribed: unsubscribedCreatorIds.length,
+            creatorsInSubscribed: subscribedCreatorSet.size,
+            actuallyExcluded: excludedCreatorIds.length,
+            isPrivilegedUser,
+          });
+        }
+      }
+      // Empty creatorIds array means no creator filtering (show all)
+      creatorIds = [];
     }
 
     // If there's a search query, also find creators whose names match
@@ -124,7 +185,7 @@ export async function GET(request: NextRequest) {
       const { data: matchingCreators, error: searchError } = await supabase
         .from('creators')
         .select('id, display_name')
-        .ilike('display_name', `%${query.search}%`);
+        .ilike('display_name', `%${query.search}%`) as { data: { id: string; display_name: string }[] | null; error: any };
 
       console.log('Creator search query:', {
         searchTerm: query.search,
@@ -156,6 +217,7 @@ export async function GET(request: NextRequest) {
     console.log('Creator IDs for query:', {
       loungeId: query.lounge_id,
       creatorCount: creatorIds.length,
+      excludedCreatorCount: excludedCreatorIds.length,
       showingAllContent: creatorIds.length === 0 && !query.lounge_id,
     });
 
@@ -180,16 +242,16 @@ export async function GET(request: NextRequest) {
         const { data: deletedContentIds, error: rpcError } = await supabase.rpc(
           'get_deleted_content_for_filtering',
           { creator_ids: creatorIds }
-        );
+        ) as { data: { content_id: string }[] | null; error: any };
 
         console.log('Deleted content IDs from RPC for viewer:', {
           count: deletedContentIds?.length || 0,
           error: rpcError,
-          ids: deletedContentIds?.map((d: any) => d.content_id),
+          ids: deletedContentIds?.map((d) => d.content_id),
         });
 
         if (deletedContentIds && deletedContentIds.length > 0) {
-          deletedContentIds.forEach((item: any) => {
+          deletedContentIds.forEach((item) => {
             deletedContentMap.set(item.content_id, true);
           });
         }
@@ -219,9 +281,18 @@ export async function GET(request: NextRequest) {
       )
       .eq('processing_status', 'processed');
 
-    // Only filter by creator_id if we have specific creators
+    // Filter by creator_id if we have specific creators
     if (creatorIds.length > 0) {
       contentQuery = contentQuery.in('creator_id', creatorIds);
+    } else if (excludedCreatorIds.length > 0) {
+      // When showing all content, exclude creators from unsubscribed lounges
+      // This applies to ALL users including curators/admins to respect their feed preferences
+      // Using proper Supabase filter syntax for NOT IN
+      contentQuery = contentQuery.filter(
+        'creator_id',
+        'not.in',
+        `(${excludedCreatorIds.map((id) => `"${id}"`).join(',')})`
+      );
     }
 
     // IMPORTANT: For regular users, only show content that has been scored
@@ -276,7 +347,7 @@ export async function GET(request: NextRequest) {
     contentQuery = contentQuery.range(offset, offset + query.limit - 1);
 
     // Execute query
-    const { data: content, error: contentError, count } = await contentQuery;
+    const { data: content, error: contentError, count } = await contentQuery as { data: any[] | null; error: any; count: number | null };
 
     if (contentError) {
       // Error fetching content
@@ -289,7 +360,7 @@ export async function GET(request: NextRequest) {
     // Debug: Check if relevancy fields are in raw data
     if (content && content.length > 0) {
       const bobGourley = content.find(
-        (c: any) => c.id === '87546a50-7064-4c2b-90a9-e18ec5f4a1dd'
+        (c) => c.id === '87546a50-7064-4c2b-90a9-e18ec5f4a1dd'
       );
       if (bobGourley) {
         console.log('[API] Raw Bob Gourley content from DB:', {
@@ -331,7 +402,7 @@ export async function GET(request: NextRequest) {
       }
 
       const { data: deletedContent, error: deletedError } =
-        await deletedContentQuery;
+        await deletedContentQuery as { data: { platform_content_id: string; platform: string; creator_id: string; deletion_reason: string | null }[] | null; error: any };
 
       console.log('Deleted content query result:', {
         found: deletedContent?.length || 0,

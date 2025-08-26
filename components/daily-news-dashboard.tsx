@@ -8,6 +8,7 @@ import { useInfiniteContent } from '@/hooks/use-infinite-content';
 import { useLounges } from '@/hooks/use-lounges';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useDigestSubscription } from '@/hooks/use-digest-subscription';
+import { useFeedSubscription } from '@/hooks/use-feed-subscription';
 import type { Creator, Platform } from '@/types/creator';
 import type { Lounge } from '@/types/lounge';
 import type { MediaUrl } from '@/types/content';
@@ -2005,10 +2006,17 @@ export function DailyNewsDashboard() {
 
   // Digest subscription state
   const {
-    subscribed,
+    subscribed: digestSubscribed,
     loading: digestLoading,
-    toggleSubscription,
+    toggleSubscription: toggleDigestSubscription,
   } = useDigestSubscription(selectedLoungeId);
+
+  // Feed subscription state
+  const {
+    subscribed: feedSubscribed,
+    loading: feedLoading,
+    toggleSubscription: toggleFeedSubscription,
+  } = useFeedSubscription(selectedLoungeId);
   const [platformData, setPlatformData] = React.useState<
     Array<{
       name: string;
@@ -2361,20 +2369,34 @@ export function DailyNewsDashboard() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {/* Email Digest Toggle - only show when a lounge is selected */}
+                {/* Feed & Digest Toggles - only show when a lounge is selected */}
                 {selectedLoungeId && (
-                  <Button
-                    variant={subscribed ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={toggleSubscription}
-                    disabled={digestLoading}
-                    className="gap-2"
-                  >
-                    <Mail className="h-4 w-4" />
-                    <span className="hidden sm:inline">
-                      {subscribed ? 'Subscribed' : 'Get Daily Digest'}
-                    </span>
-                  </Button>
+                  <>
+                    <Button
+                      variant={feedSubscribed ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={toggleFeedSubscription}
+                      disabled={feedLoading}
+                      className="gap-2"
+                    >
+                      <Rss className="h-4 w-4" />
+                      <span className="hidden sm:inline">
+                        {feedSubscribed ? 'In Feed' : 'Hidden'}
+                      </span>
+                    </Button>
+                    <Button
+                      variant={digestSubscribed ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={toggleDigestSubscription}
+                      disabled={digestLoading}
+                      className="gap-2"
+                    >
+                      <Mail className="h-4 w-4" />
+                      <span className="hidden sm:inline">
+                        {digestSubscribed ? 'Email On' : 'Email Off'}
+                      </span>
+                    </Button>
+                  </>
                 )}
 
                 {/* Mobile Filter Button */}

@@ -107,10 +107,20 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.githubusercontent.com',
       },
+      // Specific domains that may use HTTP
+      {
+        protocol: 'http',
+        hostname: 'keywordtool.io',
+      },
       // Allow all HTTPS domains for RSS feed images
       // RSS feeds can pull images from any domain
       {
         protocol: 'https',
+        hostname: '**',
+      },
+      // Allow all HTTP domains as fallback (some RSS feeds use HTTP)
+      {
+        protocol: 'http',
         hostname: '**',
       },
     ],

@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
+import { Database } from '@/types/database.types';
 
 export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -9,8 +10,8 @@ export function createClient() {
   if (!url || !key) {
     // This is safe because during static generation,
     // the client won't actually be used for API calls
-    return createBrowserClient('', '');
+    return createBrowserClient<Database>('', '');
   }
 
-  return createBrowserClient(url, key);
+  return createBrowserClient<Database>(url, key);
 }
