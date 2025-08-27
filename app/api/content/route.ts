@@ -23,6 +23,8 @@ const querySchema = z.object({
   search: z.string().optional(),
   sort_by: z.enum(['published_at', 'created_at']).default('published_at'),
   sort_order: z.enum(['asc', 'desc']).default('desc'),
+  content_type: z.enum(['social', 'news']).optional(),
+  hours_ago: z.coerce.number().min(1).max(168).optional(), // For news filtering (max 7 days)
 });
 
 export async function GET(request: NextRequest) {
@@ -64,11 +66,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is curator or admin
-    const { data: userData, error: userError } = await supabase
+    const { data: userData, error: userError } = (await supabase
       .from('users')
       .select('role')
       .eq('id', user.id)
-      .single() as { data: { role: string } | null; error: any };
+      .single()) as { data: { role: string } | null; error: any };
 
     console.log('User data query:', {
       userData,
@@ -99,10 +101,13 @@ export async function GET(request: NextRequest) {
 
     if (query.lounge_id) {
       // If lounge_id is provided, get creators for that specific lounge
-      const { data: creatorLounges, error: creatorsError } = await supabase
+      const { data: creatorLounges, error: creatorsError } = (await supabase
         .from('creator_lounges')
         .select('creator_id')
-        .eq('lounge_id', query.lounge_id) as { data: { creator_id: string }[] | null; error: any };
+        .eq('lounge_id', query.lounge_id)) as {
+        data: { creator_id: string }[] | null;
+        error: any;
+      };
 
       if (creatorsError) {
         return NextResponse.json(
@@ -115,55 +120,71 @@ export async function GET(request: NextRequest) {
     } else {
       // When no lounge is selected, exclude content from creators who are ONLY in unsubscribed lounges
       // This applies to ALL users including curators/admins
-      const { data: unsubscribedLounges, error: subsError } = await supabase
+      const { data: unsubscribedLounges, error: subsError } = (await supabase
         .from('lounge_feed_subscriptions')
         .select('lounge_id')
         .eq('user_id', user.id)
-        .eq('subscribed', false) as { data: { lounge_id: string }[] | null; error: any };
+        .eq('subscribed', false)) as {
+        data: { lounge_id: string }[] | null;
+        error: any;
+      };
 
       if (!subsError && unsubscribedLounges && unsubscribedLounges.length > 0) {
         const unsubscribedLoungeIds = unsubscribedLounges.map(
           (s) => s.lounge_id
         );
-        
+
         // Get ALL lounges the user is subscribed to (or hasn't explicitly unsubscribed from)
-        const { data: allLounges } = await supabase
+        const { data: allLounges } = (await supabase
           .from('lounges')
-          .select('id') as { data: { id: string }[] | null; error: any };
-        
-        const subscribedLoungeIds = allLounges
-          ?.filter(l => !unsubscribedLoungeIds.includes(l.id))
-          .map(l => l.id) || [];
+          .select('id')) as { data: { id: string }[] | null; error: any };
+
+        const subscribedLoungeIds =
+          allLounges
+            ?.filter((l) => !unsubscribedLoungeIds.includes(l.id))
+            .map((l) => l.id) || [];
 
         // Get creators from unsubscribed lounges
-        const { data: creatorsInUnsubscribedLounges } = await supabase
+        const { data: creatorsInUnsubscribedLounges } = (await supabase
           .from('creator_lounges')
           .select('creator_id')
-          .in('lounge_id', unsubscribedLoungeIds) as { data: { creator_id: string }[] | null; error: any };
+          .in('lounge_id', unsubscribedLoungeIds)) as {
+          data: { creator_id: string }[] | null;
+          error: any;
+        };
 
         // Get creators from subscribed lounges (only if there are any subscribed lounges)
         let creatorsInSubscribedLounges: { creator_id: string }[] | null = null;
         if (subscribedLoungeIds.length > 0) {
-          const result = await supabase
+          const result = (await supabase
             .from('creator_lounges')
             .select('creator_id')
-            .in('lounge_id', subscribedLoungeIds) as { data: { creator_id: string }[] | null; error: any };
+            .in('lounge_id', subscribedLoungeIds)) as {
+            data: { creator_id: string }[] | null;
+            error: any;
+          };
           creatorsInSubscribedLounges = result.data;
         }
 
         if (creatorsInUnsubscribedLounges) {
           // Find creators who are ONLY in unsubscribed lounges
           const subscribedCreatorSet = new Set(
-            creatorsInSubscribedLounges?.map(cl => cl.creator_id) || []
+            creatorsInSubscribedLounges?.map((cl) => cl.creator_id) || []
           );
-          
-          const unsubscribedCreatorIds = creatorsInUnsubscribedLounges.map(cl => cl.creator_id);
-          
+
+          const unsubscribedCreatorIds = creatorsInUnsubscribedLounges.map(
+            (cl) => cl.creator_id
+          );
+
           // Only exclude creators who are NOT in any subscribed lounge
-          excludedCreatorIds = [...new Set(
-            unsubscribedCreatorIds.filter(id => !subscribedCreatorSet.has(id))
-          )];
-          
+          excludedCreatorIds = [
+            ...new Set(
+              unsubscribedCreatorIds.filter(
+                (id) => !subscribedCreatorSet.has(id)
+              )
+            ),
+          ];
+
           console.log('Feed subscription filtering:', {
             userId: user.id,
             unsubscribedLounges: unsubscribedLoungeIds,
@@ -182,10 +203,13 @@ export async function GET(request: NextRequest) {
     // If there's a search query, also find creators whose names match
     let searchCreatorIds: string[] = [];
     if (query.search) {
-      const { data: matchingCreators, error: searchError } = await supabase
+      const { data: matchingCreators, error: searchError } = (await supabase
         .from('creators')
         .select('id, display_name')
-        .ilike('display_name', `%${query.search}%`) as { data: { id: string; display_name: string }[] | null; error: any };
+        .ilike('display_name', `%${query.search}%`)) as {
+        data: { id: string; display_name: string }[] | null;
+        error: any;
+      };
 
       console.log('Creator search query:', {
         searchTerm: query.search,
@@ -239,10 +263,10 @@ export async function GET(request: NextRequest) {
     if (!isPrivilegedUser) {
       if (creatorIds.length > 0) {
         // For viewers with specific creators, get deleted content IDs using the database function
-        const { data: deletedContentIds, error: rpcError } = await supabase.rpc(
-          'get_deleted_content_for_filtering',
-          { creator_ids: creatorIds }
-        ) as { data: { content_id: string }[] | null; error: any };
+        const { data: deletedContentIds, error: rpcError } =
+          (await supabase.rpc('get_deleted_content_for_filtering', {
+            creator_ids: creatorIds,
+          })) as { data: { content_id: string }[] | null; error: any };
 
         console.log('Deleted content IDs from RPC for viewer:', {
           count: deletedContentIds?.length || 0,
@@ -274,7 +298,8 @@ export async function GET(request: NextRequest) {
           id,
           display_name,
           avatar_url,
-          metadata
+          metadata,
+          content_type
         )
       `,
         { count: 'exact' }
@@ -305,6 +330,43 @@ export async function GET(request: NextRequest) {
     // Privileged users see all content but with duplicate information
     if (!isPrivilegedUser) {
       contentQuery = contentQuery.eq('is_primary', true);
+    }
+
+    // Apply content type filter if specified
+    if (query.content_type) {
+      // First get creators of the specified type
+      const { data: typedCreators } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('content_type', query.content_type);
+      
+      if (typedCreators && typedCreators.length > 0) {
+        const typedCreatorIds = typedCreators.map(c => c.id);
+        if (creatorIds.length > 0) {
+          // If we already have creator filtering, intersect with typed creators
+          const intersection = creatorIds.filter(id => typedCreatorIds.includes(id));
+          contentQuery = contentQuery.in('creator_id', intersection);
+        } else {
+          // Apply content type filtering
+          contentQuery = contentQuery.in('creator_id', typedCreatorIds);
+        }
+      } else {
+        // No creators of this type, return empty result
+        return NextResponse.json({
+          content: [],
+          page: query.page,
+          limit: query.limit,
+          total: 0,
+          has_more: false,
+        });
+      }
+    }
+
+    // Apply time-based filtering for news content
+    if (query.hours_ago) {
+      const cutoffDate = new Date();
+      cutoffDate.setHours(cutoffDate.getHours() - query.hours_ago);
+      contentQuery = contentQuery.gte('published_at', cutoffDate.toISOString());
     }
 
     // Apply filters
@@ -347,7 +409,15 @@ export async function GET(request: NextRequest) {
     contentQuery = contentQuery.range(offset, offset + query.limit - 1);
 
     // Execute query
-    const { data: content, error: contentError, count } = await contentQuery as { data: any[] | null; error: any; count: number | null };
+    const {
+      data: content,
+      error: contentError,
+      count,
+    } = (await contentQuery) as {
+      data: any[] | null;
+      error: any;
+      count: number | null;
+    };
 
     if (contentError) {
       // Error fetching content
@@ -402,7 +472,17 @@ export async function GET(request: NextRequest) {
       }
 
       const { data: deletedContent, error: deletedError } =
-        await deletedContentQuery as { data: { platform_content_id: string; platform: string; creator_id: string; deletion_reason: string | null }[] | null; error: any };
+        (await deletedContentQuery) as {
+          data:
+            | {
+                platform_content_id: string;
+                platform: string;
+                creator_id: string;
+                deletion_reason: string | null;
+              }[]
+            | null;
+          error: any;
+        };
 
       console.log('Deleted content query result:', {
         found: deletedContent?.length || 0,

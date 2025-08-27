@@ -5,7 +5,9 @@ interface DigestSubscriptionData {
   subscribed: boolean;
 }
 
-async function fetchDigestSubscription(loungeId: string): Promise<DigestSubscriptionData> {
+async function fetchDigestSubscription(
+  loungeId: string
+): Promise<DigestSubscriptionData> {
   const response = await fetch(`/api/lounges/${loungeId}/digest`);
   if (!response.ok) {
     throw new Error('Failed to fetch subscription status');
@@ -76,7 +78,7 @@ export function useDigestSubscription(loungeId: string | null) {
           ? '📧 Daily digest enabled for this lounge'
           : 'Daily digest disabled for this lounge'
       );
-      
+
       // No need to invalidate content queries for digest subscription
       // as it doesn't affect the feed display
     },
@@ -102,7 +104,7 @@ export function useDigestSubscription(loungeId: string | null) {
 
   const toggleSubscription = () => {
     if (!loungeId || mutation.isPending) return;
-    
+
     const newStatus = !(data?.subscribed ?? false);
     mutation.mutate(newStatus);
   };

@@ -74,19 +74,68 @@ export class DigestService {
   }
 
   /**
-   * Get content for a specific lounge
-   * Prioritizes content by platform in this order:
-   * 1. 2 most recent YouTube videos
-   * 2. 2 most recent blog posts (RSS/Website)
-   * 3. 2 most recent LinkedIn posts
-   * 4. 2 most recent X (Twitter) posts (LIMITED TO 2)
-   * 5. 2 most recent Threads posts
-   * If any category has fewer than 2 posts in the last 24 hours,
-   * increases content from other platforms to reach 10 total
-   *
-   * Content is filtered by relevancy score if available
+   * Get news content for digest (max 5 items from last 24 hours)
+   * Only includes content from creators marked as 'news' type
    */
-  static async getContentForLounge(
+  static async getNewsContent(
+    limit: number = 5
+  ): Promise<ContentForDigest[]> {
+    const supabase = getSupabaseClient();
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // Get news creators
+    const { data: newsCreators } = await supabase
+      .from('creators')
+      .select('id')
+      .eq('content_type', 'news');
+
+    if (!newsCreators || newsCreators.length === 0) {
+      return [];
+    }
+
+    const newsCreatorIds = newsCreators.map(c => c.id);
+
+    // Get news content from last 24 hours
+    const { data: newsContent } = await supabase
+      .from('content')
+      .select(
+        `
+        id,
+        title,
+        description,
+        url,
+        platform,
+        thumbnail_url,
+        published_at,
+        ai_summary_short,
+        content_body,
+        reference_type,
+        referenced_content,
+        creators!inner(
+          display_name
+        )
+      `
+      )
+      .in('creator_id', newsCreatorIds)
+      .eq('processing_status', 'processed')
+      .eq('is_primary', true)
+      .gte('published_at', twentyFourHoursAgo.toISOString())
+      .not('relevancy_checked_at', 'is', null)
+      .order('published_at', { ascending: false })
+      .limit(limit);
+
+    return (newsContent || []).map(content => ({
+      ...content,
+      creator: (content as any).creators,
+    })) as ContentForDigest[];
+  }
+
+  /**
+   * Get social content for digest (max 10 items)
+   * Only includes content from creators marked as 'social' type
+   * Content is filtered by lounge associations
+   */
+  static async getSocialContentForLounge(
     loungeId: string,
     limit: number = 10
   ): Promise<ContentForDigest[]> {
@@ -106,9 +155,9 @@ export class DigestService {
     const relevancyThreshold = lounge?.relevancy_threshold || 70;
 
     // First, get creators associated with this lounge
-    const { data: creatorIds, error: creatorError } = await supabase
+    const { data: creatorLounges, error: creatorError } = await supabase
       .from('creator_lounges')
-      .select('creator_id')
+      .select('creator_id, creators!inner(content_type)')
       .eq('lounge_id', loungeId);
 
     if (creatorError) {
@@ -116,11 +165,20 @@ export class DigestService {
       throw creatorError;
     }
 
-    if (!creatorIds || creatorIds.length === 0) {
+    if (!creatorLounges || creatorLounges.length === 0) {
       return [];
     }
 
-    const creatorIdList = creatorIds.map((c: any) => c.creator_id);
+    // Filter for social creators only (or creators without a type, defaulting to social)
+    const socialCreators = creatorLounges.filter(
+      (cl: any) => cl.creators?.content_type === 'social' || !cl.creators?.content_type
+    );
+
+    if (socialCreators.length === 0) {
+      return [];
+    }
+
+    const creatorIdList = socialCreators.map((c: any) => c.creator_id);
 
     // Calculate 24 hours ago
     const twentyFourHoursAgo = new Date();
@@ -251,15 +309,21 @@ export class DigestService {
     unsubscribeToken?: string
   ): Promise<void> {
     try {
-      // Get content for this lounge
-      const content = await this.getContentForLounge(lounge.id);
+      // Get news content (same for all users)
+      const newsContent = await this.getNewsContent(5);
+      
+      // Get social content for this lounge
+      const socialContent = await this.getSocialContentForLounge(lounge.id, 10);
 
-      if (content.length === 0) {
+      if (newsContent.length === 0 && socialContent.length === 0) {
         console.log(
           `No content available for ${lounge.name} lounge, skipping digest`
         );
         return;
       }
+      
+      // Combine content with news first, then social
+      const content = [...newsContent, ...socialContent];
 
       // Format date
       const date = new Date().toLocaleDateString('en-US', {

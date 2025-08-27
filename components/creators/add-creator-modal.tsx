@@ -29,6 +29,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Youtube,
   Linkedin,
@@ -37,6 +38,8 @@ import {
   Loader2,
   AlertCircle,
   X,
+  Newspaper,
+  Users,
 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -73,6 +76,7 @@ const createCreatorSchema = z.object({
   topics: z.array(z.string()).optional(),
   lounge_id: z.string().optional(), // Add lounge_id to form schema
   avatar_url: z.string().optional(),
+  content_type: z.enum(['social', 'news']).default('social'),
 });
 
 type CreateCreatorFormData = z.infer<typeof createCreatorSchema>;
@@ -112,6 +116,7 @@ export function AddCreatorModal({
       description: '',
       urls: [],
       topics: [],
+      content_type: 'social',
     },
   });
 
@@ -125,6 +130,7 @@ export function AddCreatorModal({
         topics: creator.lounge_ids || [], // Use lounge_ids for edit mode
         lounge_id: undefined, // Not needed for edit mode
         avatar_url: creator.avatar_url || '',
+        content_type: (creator as any).content_type || 'social',
       });
       setAvatarUrl(creator.avatar_url || '');
       setDeletedUrlIds([]); // Reset deleted URLs tracking
@@ -138,6 +144,7 @@ export function AddCreatorModal({
         topics: initialTopics,
         lounge_id: selectedLoungeId || undefined,
         avatar_url: '',
+        content_type: 'social',
       });
       setAvatarUrl('');
       setDeletedUrlIds([]);
@@ -414,6 +421,7 @@ export function AddCreatorModal({
           topics: data.topics,
           lounge_id: loungeId,
           avatar_url: avatarUrl || undefined,
+          content_type: data.content_type,
         };
         console.log('Sending request to /api/creators:', requestBody);
 
@@ -451,6 +459,7 @@ export function AddCreatorModal({
             display_name: data.display_name,
             bio: data.description || null,
             avatar_url: avatarUrl || null,
+            content_type: data.content_type,
           })
           .eq('id', creator?.id);
 
@@ -609,6 +618,56 @@ export function AddCreatorModal({
                       {...field}
                       disabled={isSubmitting}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="content_type"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Content Type</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex flex-col space-y-2"
+                      disabled={isSubmitting}
+                    >
+                      <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="social" id="social" />
+                        <label
+                          htmlFor="social"
+                          className="flex items-center gap-2 flex-1 cursor-pointer"
+                        >
+                          <Users className="h-4 w-4" />
+                          <div>
+                            <div className="font-medium">Social Content</div>
+                            <div className="text-sm text-muted-foreground">
+                              Individual creators, thought leaders, YouTube channels
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="news" id="news" />
+                        <label
+                          htmlFor="news"
+                          className="flex items-center gap-2 flex-1 cursor-pointer"
+                        >
+                          <Newspaper className="h-4 w-4" />
+                          <div>
+                            <div className="font-medium">News Content</div>
+                            <div className="text-sm text-muted-foreground">
+                              News outlets, RSS feeds, media organizations
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

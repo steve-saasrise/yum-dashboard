@@ -5,7 +5,9 @@ interface FeedSubscriptionData {
   subscribed: boolean;
 }
 
-async function fetchFeedSubscription(loungeId: string): Promise<FeedSubscriptionData> {
+async function fetchFeedSubscription(
+  loungeId: string
+): Promise<FeedSubscriptionData> {
   const response = await fetch(`/api/lounges/${loungeId}/feed`);
   if (!response.ok) {
     throw new Error('Failed to fetch subscription status');
@@ -106,7 +108,7 @@ export function useFeedSubscription(loungeId: string | null) {
 
   const toggleSubscription = () => {
     if (!loungeId || mutation.isPending) return;
-    
+
     const newStatus = !(data?.subscribed ?? true);
     mutation.mutate(newStatus);
   };

@@ -582,6 +582,9 @@ export function CreatorListView() {
   const { state: authState } = useAuth();
   const userRole = authState.profile?.role;
   const canManageCreators = userRole === 'curator' || userRole === 'admin';
+  
+  // Check if auth is still loading
+  const authLoading = authState.loading;
 
   const [selectedCreators, setSelectedCreators] = useState<Set<string>>(
     new Set()
@@ -734,7 +737,8 @@ export function CreatorListView() {
     }
   }, [selectedCreators, refreshCreators, toast]);
 
-  if (loading && creators.length === 0) {
+  // Show loading skeleton while auth or data is loading
+  if (authLoading || (loading && creators.length === 0)) {
     return (
       <div className="space-y-4" data-testid="creators-loading">
         <div className="flex items-center justify-between">
@@ -746,6 +750,18 @@ export function CreatorListView() {
             <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
+      </div>
+    );
+  }
+  
+  // Show message if user is not authenticated
+  if (!authState.session && !authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <h3 className="text-lg font-medium">Authentication Required</h3>
+        <p className="text-sm text-muted-foreground">
+          Please sign in to view and manage creators
+        </p>
       </div>
     );
   }

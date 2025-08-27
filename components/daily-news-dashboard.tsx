@@ -117,6 +117,8 @@ import type { ReferenceType, ReferencedContent } from '@/types/content';
 import { useSearchSuggestions } from '@/hooks/use-search-suggestions';
 import { SearchSuggestions } from '@/components/search-suggestions';
 import { LinkedInContentDisplay } from '@/components/ui/linkedin-content-display';
+import { NewsWidget } from '@/components/news/news-widget';
+import { MobileNewsSection } from '@/components/news/mobile-news-section';
 
 // --- PLATFORM ICONS ---
 
@@ -2324,8 +2326,16 @@ export function DailyNewsDashboard() {
             isSearching={isFetching && !isFetchingNextPage}
           />
           <main className="flex-1 py-4 md:py-6 lg:py-8">
-            <div className="flex justify-between items-center mb-6 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex-1">
+            {/* Mobile news section - visible on small screens */}
+            <div className="block lg:hidden px-4 sm:px-6">
+              <MobileNewsSection className="mb-4" />
+            </div>
+            
+            <div className="lg:flex lg:gap-6 lg:px-8">
+              {/* Main content area */}
+              <div className="flex-1 max-w-3xl mx-auto lg:mx-0">
+                <div className="flex justify-between items-center mb-6 px-4 sm:px-6 lg:px-0">
+                  <div className="flex-1">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {searchQuery
                     ? `Search results for "${searchQuery}"`
@@ -2582,6 +2592,15 @@ export function DailyNewsDashboard() {
                 />
               </div>
             )}
+              </div>{/* End main content area */}
+              
+              {/* News sidebar - visible on large screens */}
+              <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+                <div className="sticky top-20">
+                  <NewsWidget className="shadow-sm" />
+                </div>
+              </div>
+            </div>{/* End flex container */}
           </main>
           <BackToTop />
         </SidebarInset>
