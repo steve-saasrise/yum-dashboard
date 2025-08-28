@@ -212,7 +212,6 @@ interface SidebarLounge {
 // --- SUBCOMPONENTS ---
 
 interface AppSidebarProps {
-  onTopicCreate: () => void;
   onTopicEdit: (topic: { id: string; name: string; color?: string }) => void;
   onTopicDelete: (topic: { id: string; name: string; color?: string }) => void;
   onCreatorCreate: () => void;
@@ -233,7 +232,6 @@ interface AppSidebarProps {
 }
 
 function AppSidebar({
-  onTopicCreate,
   onTopicEdit,
   onTopicDelete,
   onCreatorCreate,
@@ -259,8 +257,8 @@ function AppSidebar({
           className="flex items-center cursor-pointer focus:outline-none w-full h-full"
         >
           <Image
-            src="/lounge_logo.svg"
-            alt="Lounge Logo"
+            src="/rise_logo.png"
+            alt="Rise Logo"
             width={160}
             height={56}
             className="h-12 w-auto object-contain mx-auto"
@@ -296,15 +294,6 @@ function AppSidebar({
                       <span className="truncate">Add Creator</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      tooltip="Add Lounge"
-                      onClick={onTopicCreate}
-                    >
-                      <PlusCircle className="w-4 h-4" />
-                      <span className="truncate">Add Lounge</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -315,12 +304,12 @@ function AppSidebar({
         {/* Extra spacing above Lounges for non-curator users */}
         {!canManageCreators && <div className="h-3"></div>}
 
-        {/* Lounges Section */}
+        {/* Topics Section */}
         <SidebarGroup>
           <Collapsible defaultOpen>
             <SidebarGroupLabel asChild>
               <CollapsibleTrigger className="w-full flex items-center justify-between hover:bg-sidebar-accent rounded-md px-2 py-1 transition-colors duration-200 group">
-                <span>Lounges</span>
+                <span>Topics</span>
                 <ChevronDown className="h-4 w-4 transition-transform duration-300 ease-in-out group-data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
             </SidebarGroupLabel>
@@ -362,7 +351,7 @@ function AppSidebar({
                           }}
                           className={
                             selectedLoungeId === lounge.id
-                              ? 'bg-gray-100 dark:bg-gray-800'
+                              ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary'
                               : ''
                           }
                         >
@@ -2088,11 +2077,6 @@ export function DailyNewsDashboard() {
   // Use the lounges hook to fetch real lounges
   const { lounges, loading: isLoadingLounges, refreshLounges } = useLounges();
 
-  const handleCreateTopic = () => {
-    setSelectedTopic(null);
-    setTopicModalOpen(true);
-  };
-
   const handleEditTopic = (topic: {
     id: string;
     name: string;
@@ -2303,7 +2287,6 @@ export function DailyNewsDashboard() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar
-          onTopicCreate={handleCreateTopic}
           onTopicEdit={handleEditTopic}
           onTopicDelete={handleDeleteTopic}
           onCreatorCreate={handleCreateCreator}
@@ -2330,277 +2313,305 @@ export function DailyNewsDashboard() {
             <div className="block lg:hidden px-4 sm:px-6">
               <MobileNewsSection className="mb-4" />
             </div>
-            
-            <div className="lg:flex lg:gap-6 lg:px-8">
-              {/* Main content area */}
-              <div className="flex-1 max-w-3xl mx-auto lg:mx-0">
-                <div className="flex justify-between items-center mb-6 px-4 sm:px-6 lg:px-0">
-                  <div className="flex-1">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {searchQuery
-                    ? `Search results for "${searchQuery}"`
-                    : lounges.find((l) => l.id === selectedLoungeId)?.name
-                      ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
-                      : 'Your Lounge'}
-                </h1>
-                {(searchQuery || selectedPlatforms.length > 0) && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <p className="text-sm text-gray-500">Active filters:</p>
-                    {searchQuery && (
-                      <Badge
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
-                        onClick={() => setSearchQuery('')}
-                      >
-                        Search: {searchQuery}
-                        <XIcon className="h-3 w-3 ml-1" />
-                      </Badge>
-                    )}
-                    {selectedPlatforms.map((platform) => (
-                      <Badge
-                        key={platform}
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
-                        onClick={() => handlePlatformToggle(platform)}
-                      >
-                        {platform}
-                        <XIcon className="h-3 w-3 ml-1" />
-                      </Badge>
-                    ))}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearAllFilters}
-                      className="text-xs"
-                    >
-                      Clear all
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Feed & Digest Toggles - only show when a lounge is selected */}
-                {selectedLoungeId && (
-                  <>
-                    <Button
-                      variant={feedSubscribed ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={toggleFeedSubscription}
-                      disabled={feedLoading}
-                      className="gap-2"
-                    >
-                      <Rss className="h-4 w-4" />
-                      <span className="hidden sm:inline">
-                        {feedSubscribed ? 'In Feed' : 'Hidden'}
-                      </span>
-                    </Button>
-                    <Button
-                      variant={digestSubscribed ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={toggleDigestSubscription}
-                      disabled={digestLoading}
-                      className="gap-2"
-                    >
-                      <Mail className="h-4 w-4" />
-                      <span className="hidden sm:inline">
-                        {digestSubscribed ? 'Email On' : 'Email Off'}
-                      </span>
-                    </Button>
-                  </>
-                )}
 
-                {/* Mobile Filter Button */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="md:hidden h-9 w-9 bg-transparent"
-                  onClick={() => setMobileFiltersOpen(true)}
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-
-                {/* Desktop Filter Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="hidden md:flex bg-transparent"
-                    >
-                      <Filter className="h-4 w-4 mr-2" />
-                      Filters
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    className="w-80 min-w-[320px]"
-                    align="end"
-                    side="bottom"
-                    sideOffset={4}
-                  >
-                    <DropdownMenuLabel>Filter By</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <div className="px-2 py-1.5">
-                      <DatePickerWithRange className="w-full" />
-                    </div>
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Platforms</DropdownMenuSubTrigger>
-                      <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                          {selectedPlatforms.length > 0 && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={handleClearPlatforms}
-                                className="text-xs text-muted-foreground"
+            <div className="max-w-7xl mx-auto">
+              <div className="lg:flex lg:gap-6 lg:px-8">
+                {/* Main content area */}
+                <div className="flex-1 max-w-3xl mx-auto lg:mx-0">
+                  <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center mb-6">
+                      <div className="flex-1">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {searchQuery
+                            ? `Search results for "${searchQuery}"`
+                            : lounges.find((l) => l.id === selectedLoungeId)
+                                  ?.name
+                              ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
+                              : 'Your Lounge'}
+                        </h1>
+                        {(searchQuery || selectedPlatforms.length > 0) && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <p className="text-sm text-gray-500">
+                              Active filters:
+                            </p>
+                            {searchQuery && (
+                              <Badge
+                                variant="secondary"
+                                className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                                onClick={() => setSearchQuery('')}
                               >
-                                <XIcon className="w-3 h-3 mr-2" />
-                                Clear all
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
-                          {platformData.map((p) => {
-                            const Icon = getPlatformIcon(p.platform);
-                            return (
-                              <DropdownMenuCheckboxItem
-                                key={p.platform}
-                                checked={selectedPlatforms.includes(p.platform)}
-                                onCheckedChange={() =>
-                                  handlePlatformToggle(p.platform)
-                                }
+                                Search: {searchQuery}
+                                <XIcon className="h-3 w-3 ml-1" />
+                              </Badge>
+                            )}
+                            {selectedPlatforms.map((platform) => (
+                              <Badge
+                                key={platform}
+                                variant="secondary"
+                                className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700"
+                                onClick={() => handlePlatformToggle(platform)}
                               >
-                                <Icon className="w-4 h-4 mr-2" />
-                                {p.name} ({p.count})
-                              </DropdownMenuCheckboxItem>
-                            );
-                          })}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Creators</DropdownMenuSubTrigger>
-                      <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                          {creators.map((c) => (
-                            <DropdownMenuCheckboxItem key={c.id}>
-                              {c.display_name}
-                            </DropdownMenuCheckboxItem>
-                          ))}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Lounges</DropdownMenuSubTrigger>
-                      <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                          {lounges.map((lounge) => (
-                            <DropdownMenuCheckboxItem
-                              key={lounge.id}
-                              checked={selectedLoungeId === lounge.id}
-                              onCheckedChange={(checked) =>
-                                setSelectedLoungeId(checked ? lounge.id : null)
-                              }
+                                {platform}
+                                <XIcon className="h-3 w-3 ml-1" />
+                              </Badge>
+                            ))}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleClearAllFilters}
+                              className="text-xs"
                             >
-                              {lounge.name === 'Venture'
-                                ? 'Venture Capital'
-                                : lounge.name}
-                            </DropdownMenuCheckboxItem>
-                          ))}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                    <div className="flex items-center justify-between px-2 py-1.5">
-                      <span className="text-sm font-medium">Saved Items</span>
-                      <Switch />
+                              Clear all
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {/* Feed & Digest Toggles - only show when a lounge is selected */}
+                        {selectedLoungeId && (
+                          <>
+                            <Button
+                              variant={feedSubscribed ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={toggleFeedSubscription}
+                              disabled={feedLoading}
+                              className="gap-2"
+                            >
+                              <Rss className="h-4 w-4" />
+                              <span className="hidden sm:inline">
+                                {feedSubscribed ? 'In Feed' : 'Hidden'}
+                              </span>
+                            </Button>
+                            <Button
+                              variant={digestSubscribed ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={toggleDigestSubscription}
+                              disabled={digestLoading}
+                              className="gap-2"
+                            >
+                              <Mail className="h-4 w-4" />
+                              <span className="hidden sm:inline">
+                                {digestSubscribed ? 'Email On' : 'Email Off'}
+                              </span>
+                            </Button>
+                          </>
+                        )}
+
+                        {/* Mobile Filter Button */}
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="md:hidden h-9 w-9 bg-transparent"
+                          onClick={() => setMobileFiltersOpen(true)}
+                        >
+                          <Filter className="h-4 w-4" />
+                        </Button>
+
+                        {/* Desktop Filter Dropdown */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="hidden md:flex bg-transparent"
+                            >
+                              <Filter className="h-4 w-4 mr-2" />
+                              Filters
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            className="w-80 min-w-[320px]"
+                            align="end"
+                            side="bottom"
+                            sideOffset={4}
+                          >
+                            <DropdownMenuLabel>Filter By</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <div className="px-2 py-1.5">
+                              <DatePickerWithRange className="w-full" />
+                            </div>
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                Platforms
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                  {selectedPlatforms.length > 0 && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={handleClearPlatforms}
+                                        className="text-xs text-muted-foreground"
+                                      >
+                                        <XIcon className="w-3 h-3 mr-2" />
+                                        Clear all
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                    </>
+                                  )}
+                                  {platformData.map((p) => {
+                                    const Icon = getPlatformIcon(p.platform);
+                                    return (
+                                      <DropdownMenuCheckboxItem
+                                        key={p.platform}
+                                        checked={selectedPlatforms.includes(
+                                          p.platform
+                                        )}
+                                        onCheckedChange={() =>
+                                          handlePlatformToggle(p.platform)
+                                        }
+                                      >
+                                        <Icon className="w-4 h-4 mr-2" />
+                                        {p.name} ({p.count})
+                                      </DropdownMenuCheckboxItem>
+                                    );
+                                  })}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuPortal>
+                            </DropdownMenuSub>
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                Creators
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                  {creators.map((c) => (
+                                    <DropdownMenuCheckboxItem key={c.id}>
+                                      {c.display_name}
+                                    </DropdownMenuCheckboxItem>
+                                  ))}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuPortal>
+                            </DropdownMenuSub>
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                Lounges
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                  {lounges.map((lounge) => (
+                                    <DropdownMenuCheckboxItem
+                                      key={lounge.id}
+                                      checked={selectedLoungeId === lounge.id}
+                                      onCheckedChange={(checked) =>
+                                        setSelectedLoungeId(
+                                          checked ? lounge.id : null
+                                        )
+                                      }
+                                    >
+                                      {lounge.name === 'Venture'
+                                        ? 'Venture Capital'
+                                        : lounge.name}
+                                    </DropdownMenuCheckboxItem>
+                                  ))}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuPortal>
+                            </DropdownMenuSub>
+                            <div className="flex items-center justify-between px-2 py-1.5">
+                              <span className="text-sm font-medium">
+                                Saved Items
+                              </span>
+                              <Switch />
+                            </div>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>Advanced Search</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>Advanced Search</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-            {filteredContent.length === 0 && !isLoadingContent ? (
-              // Empty state
-              <div className="flex flex-col items-center justify-center py-16 px-4 max-w-3xl mx-auto">
-                <div className="max-w-md text-center space-y-6">
-                  <div className="w-20 h-20 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                    <Rss className="w-10 h-10 text-gray-400" />
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {searchQuery ? 'No results found' : 'No content yet'}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      {searchQuery
-                        ? `Try adjusting your search query or clearing filters`
-                        : creators.length === 0
-                          ? 'Start by adding creators to follow their content'
-                          : "Content from your creators will appear here once it's fetched"}
-                    </p>
-                  </div>
-                  {searchQuery ? (
-                    <Button
-                      onClick={() => setSearchQuery('')}
-                      variant="outline"
-                    >
-                      <XIcon className="w-4 h-4 mr-2" />
-                      Clear search
-                    </Button>
+                  {filteredContent.length === 0 && !isLoadingContent ? (
+                    // Empty state
+                    <div className="flex flex-col items-center justify-center py-16 px-4 max-w-3xl mx-auto">
+                      <div className="max-w-md text-center space-y-6">
+                        <div className="w-20 h-20 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                          <Rss className="w-10 h-10 text-gray-400" />
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            {searchQuery
+                              ? 'No results found'
+                              : 'No content yet'}
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            {searchQuery
+                              ? `Try adjusting your search query or clearing filters`
+                              : creators.length === 0
+                                ? 'Start by adding creators to follow their content'
+                                : "Content from your creators will appear here once it's fetched"}
+                          </p>
+                        </div>
+                        {searchQuery ? (
+                          <Button
+                            onClick={() => setSearchQuery('')}
+                            variant="outline"
+                          >
+                            <XIcon className="w-4 h-4 mr-2" />
+                            Clear search
+                          </Button>
+                        ) : (
+                          creators.length === 0 &&
+                          canManageCreators && (
+                            <Button onClick={handleCreateCreator} size="lg">
+                              <PlusCircle className="w-5 h-5 mr-2" />
+                              Add Your First Creator
+                            </Button>
+                          )
+                        )}
+                        {creators.length > 0 && (
+                          <div className="space-y-3">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              You're following {creators.length} creator
+                              {creators.length !== 1 ? 's' : ''}. New content
+                              will be fetched automatically.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : isLoadingContent && filteredContent.length === 0 ? (
+                    // Loading state
+                    <div className="flex items-center justify-center py-16 max-w-3xl mx-auto">
+                      <div className="relative w-12 h-12">
+                        <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-gray-800"></div>
+                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin"></div>
+                      </div>
+                    </div>
                   ) : (
-                    creators.length === 0 &&
-                    canManageCreators && (
-                      <Button onClick={handleCreateCreator} size="lg">
-                        <PlusCircle className="w-5 h-5 mr-2" />
-                        Add Your First Creator
-                      </Button>
-                    )
-                  )}
-                  {creators.length > 0 && (
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        You're following {creators.length} creator
-                        {creators.length !== 1 ? 's' : ''}. New content will be
-                        fetched automatically.
-                      </p>
+                    // Content feed with ultra-smooth virtualization
+                    <div>
+                      <IntersectionObserverGrid
+                        items={filteredContent}
+                        creators={creators}
+                        hasMore={hasMore}
+                        isFetchingNextPage={isFetchingNextPage}
+                        fetchNextPage={fetchNextPage}
+                        saveContent={saveContent}
+                        unsaveContent={unsaveContent}
+                        deleteContent={handleDeleteContent}
+                        undeleteContent={handleUndeleteContent}
+                        undoDuplicate={undoDuplicate}
+                        canManageCreators={canManageCreators}
+                        showVideoEmbeds={showVideoEmbeds}
+                        onLoungeSelect={setSelectedLoungeId}
+                      />
                     </div>
                   )}
                 </div>
-              </div>
-            ) : isLoadingContent && filteredContent.length === 0 ? (
-              // Loading state
-              <div className="flex items-center justify-center py-16 max-w-3xl mx-auto">
-                <div className="relative w-12 h-12">
-                  <div className="absolute inset-0 rounded-full border-2 border-gray-200 dark:border-gray-800"></div>
-                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin"></div>
+                {/* End main content area */}
+
+                {/* News sidebar - visible on large screens */}
+                <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+                  <div className="sticky top-20">
+                    <NewsWidget
+                      className="shadow-sm"
+                      loungeId={selectedLoungeId || undefined}
+                      showAISummary={true}
+                    />
+                  </div>
                 </div>
               </div>
-            ) : (
-              // Content feed with ultra-smooth virtualization
-              <div>
-                <IntersectionObserverGrid
-                  items={filteredContent}
-                  creators={creators}
-                  hasMore={hasMore}
-                  isFetchingNextPage={isFetchingNextPage}
-                  fetchNextPage={fetchNextPage}
-                  saveContent={saveContent}
-                  unsaveContent={unsaveContent}
-                  deleteContent={handleDeleteContent}
-                  undeleteContent={handleUndeleteContent}
-                  undoDuplicate={undoDuplicate}
-                  canManageCreators={canManageCreators}
-                  showVideoEmbeds={showVideoEmbeds}
-                  onLoungeSelect={setSelectedLoungeId}
-                />
-              </div>
-            )}
-              </div>{/* End main content area */}
-              
-              {/* News sidebar - visible on large screens */}
-              <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
-                <div className="sticky top-20">
-                  <NewsWidget className="shadow-sm" />
-                </div>
-              </div>
-            </div>{/* End flex container */}
+              {/* End flex container */}
+            </div>
+            {/* End max-width container */}
           </main>
           <BackToTop />
         </SidebarInset>

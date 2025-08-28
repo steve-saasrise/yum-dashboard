@@ -9,6 +9,11 @@ import type {
 
 // Rate limiting configuration
 const RATE_LIMITS = {
+  'gpt-5-mini': {
+    requestsPerMinute: 1000,
+    tokensPerMinute: 400000,
+    requestsPerDay: 20000,
+  },
   'gpt-4o-mini': {
     requestsPerMinute: 500,
     tokensPerMinute: 200000,
@@ -28,6 +33,10 @@ const RATE_LIMITS = {
 
 // Cost per 1M tokens (as of 2025)
 const COST_PER_MILLION_TOKENS = {
+  'gpt-5-mini': {
+    input: 0.25, // $0.25 per 1M input tokens
+    output: 2.0, // $2.00 per 1M output tokens
+  },
   'gpt-4o-mini': {
     input: 0.15, // $0.15 per 1M input tokens
     output: 0.6, // $0.60 per 1M output tokens

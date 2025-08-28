@@ -582,7 +582,7 @@ export function CreatorListView() {
   const { state: authState } = useAuth();
   const userRole = authState.profile?.role;
   const canManageCreators = userRole === 'curator' || userRole === 'admin';
-  
+
   // Check if auth is still loading
   const authLoading = authState.loading;
 
@@ -753,7 +753,7 @@ export function CreatorListView() {
       </div>
     );
   }
-  
+
   // Show message if user is not authenticated
   if (!authState.session && !authLoading) {
     return (

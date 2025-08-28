@@ -27,9 +27,11 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
     const checkAuth = async () => {
       try {
         const supabase = createBrowserSupabaseClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         setAuthChecked(true);
-        
+
         // If no session, set loading to false and return
         if (!session) {
           setLoading(false);
@@ -42,7 +44,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
         setLoading(false);
       }
     };
-    
+
     checkAuth();
   }, []);
 
@@ -50,7 +52,7 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
   useEffect(() => {
     // Don't fetch until auth is checked
     if (!authChecked) return;
-    
+
     const abortController = new AbortController();
 
     const fetchAllCreators = async () => {
@@ -61,7 +63,9 @@ export function useCreators(initialFilters: Partial<CreatorFilters> = {}) {
         const supabase = createBrowserSupabaseClient();
 
         // Double check we have a session
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) {
           setLoading(false);
           setAllCreatorsData([]);

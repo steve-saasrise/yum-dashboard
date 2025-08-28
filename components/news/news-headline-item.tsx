@@ -10,30 +10,31 @@ interface NewsHeadlineItemProps {
 }
 
 export function NewsHeadlineItem({ item }: NewsHeadlineItemProps) {
-  const timeAgo = formatDistanceToNow(new Date(item.published_at), { 
-    addSuffix: false 
+  const timeAgo = formatDistanceToNow(new Date(item.published_at), {
+    addSuffix: false,
   }).replace('about ', '');
-  
+
   // Format engagement metrics for display
   const formatEngagement = () => {
     if (!item.engagement_metrics) return null;
-    
+
     const { views, likes, comments } = item.engagement_metrics;
     const parts = [];
-    
+
     if (views && views > 0) {
-      const formatted = views > 999 ? `${(views / 1000).toFixed(1)}k` : views.toString();
+      const formatted =
+        views > 999 ? `${(views / 1000).toFixed(1)}k` : views.toString();
       parts.push(`${formatted} readers`);
     }
-    
+
     if (likes && likes > 0) {
       parts.push(`${likes} likes`);
     }
-    
+
     if (comments && comments > 0) {
       parts.push(`${comments} comments`);
     }
-    
+
     return parts.length > 0 ? parts[0] : null; // Only show first metric like LinkedIn
   };
 
@@ -54,7 +55,7 @@ export function NewsHeadlineItem({ item }: NewsHeadlineItemProps) {
           </h3>
           <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
         </div>
-        
+
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span>{timeAgo} ago</span>
           {engagement && (

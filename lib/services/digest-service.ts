@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { DailyDigestEmail } from '@/emails/daily-digest';
+import { NewsSummaryService } from './news-summary-service';
 
 // Lazy initialize Resend client to avoid build-time errors
 let resend: Resend | null = null;
@@ -77,9 +78,7 @@ export class DigestService {
    * Get news content for digest (max 5 items from last 24 hours)
    * Only includes content from creators marked as 'news' type
    */
-  static async getNewsContent(
-    limit: number = 5
-  ): Promise<ContentForDigest[]> {
+  static async getNewsContent(limit: number = 5): Promise<ContentForDigest[]> {
     const supabase = getSupabaseClient();
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -93,7 +92,7 @@ export class DigestService {
       return [];
     }
 
-    const newsCreatorIds = newsCreators.map(c => c.id);
+    const newsCreatorIds = newsCreators.map((c) => c.id);
 
     // Get news content from last 24 hours
     const { data: newsContent } = await supabase
@@ -124,7 +123,7 @@ export class DigestService {
       .order('published_at', { ascending: false })
       .limit(limit);
 
-    return (newsContent || []).map(content => ({
+    return (newsContent || []).map((content) => ({
       ...content,
       creator: (content as any).creators,
     })) as ContentForDigest[];
@@ -171,7 +170,8 @@ export class DigestService {
 
     // Filter for social creators only (or creators without a type, defaulting to social)
     const socialCreators = creatorLounges.filter(
-      (cl: any) => cl.creators?.content_type === 'social' || !cl.creators?.content_type
+      (cl: any) =>
+        cl.creators?.content_type === 'social' || !cl.creators?.content_type
     );
 
     if (socialCreators.length === 0) {
@@ -309,19 +309,32 @@ export class DigestService {
     unsubscribeToken?: string
   ): Promise<void> {
     try {
-      // Get news content (same for all users)
-      const newsContent = await this.getNewsContent(5);
-      
+      // Get AI-generated news summary for this lounge
+      let aiNewsSummary = null;
+      try {
+        const summaryService = new NewsSummaryService();
+        aiNewsSummary = await summaryService.getLatestSummary(lounge.id);
+      } catch (summaryError) {
+        console.error('Error fetching AI news summary:', summaryError);
+      }
+
+      // Get news content (same for all users) - fallback if no AI summary
+      const newsContent = aiNewsSummary ? [] : await this.getNewsContent(5);
+
       // Get social content for this lounge
       const socialContent = await this.getSocialContentForLounge(lounge.id, 10);
 
-      if (newsContent.length === 0 && socialContent.length === 0) {
+      if (
+        !aiNewsSummary &&
+        newsContent.length === 0 &&
+        socialContent.length === 0
+      ) {
         console.log(
           `No content available for ${lounge.name} lounge, skipping digest`
         );
         return;
       }
-      
+
       // Combine content with news first, then social
       const content = [...newsContent, ...socialContent];
 
@@ -368,6 +381,7 @@ export class DigestService {
           recipientEmail,
           unsubscribeUrl,
           date,
+          aiNewsSummary,
         }),
       });
 

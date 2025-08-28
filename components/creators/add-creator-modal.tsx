@@ -406,8 +406,8 @@ export function AddCreatorModal({
 
         if (!loungeId) {
           toast({
-            title: 'No lounge selected',
-            description: 'Please select at least one lounge for this creator',
+            title: 'No topic selected',
+            description: 'Please select at least one topic for this creator',
             variant: 'destructive',
           });
           setIsSubmitting(false);
@@ -647,7 +647,8 @@ export function AddCreatorModal({
                           <div>
                             <div className="font-medium">Social Content</div>
                             <div className="text-sm text-muted-foreground">
-                              Individual creators, thought leaders, YouTube channels
+                              Individual creators, thought leaders, YouTube
+                              channels
                             </div>
                           </div>
                         </label>
@@ -951,19 +952,19 @@ export function AddCreatorModal({
               name="topics"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Lounges</FormLabel>
+                  <FormLabel>Topics</FormLabel>
                   <FormControl>
                     <LoungeSelector
                       key={`${mode}-${creator?.id || 'new'}-${selectedLoungeId || 'none'}`}
                       selectedLounges={field.value || []}
                       onChange={field.onChange}
-                      placeholder="Select lounges..."
+                      placeholder="Select topics..."
                       allowCreate={true}
                       disabled={isSubmitting}
                     />
                   </FormControl>
                   <FormDescription>
-                    Select or create lounges to categorize this creator
+                    Select or create topics to categorize this creator
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

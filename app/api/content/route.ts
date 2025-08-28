@@ -259,31 +259,54 @@ export async function GET(request: NextRequest) {
 
     // Get deleted content IDs first (before fetching content)
     const deletedContentMap = new Map<string, boolean>();
+    const deletedContentIds = new Set<string>();
 
     if (!isPrivilegedUser) {
       if (creatorIds.length > 0) {
         // For viewers with specific creators, get deleted content IDs using the database function
-        const { data: deletedContentIds, error: rpcError } =
-          (await supabase.rpc('get_deleted_content_for_filtering', {
+        const { data: deletedIds, error: rpcError } = (await supabase.rpc(
+          'get_deleted_content_for_filtering',
+          {
             creator_ids: creatorIds,
-          })) as { data: { content_id: string }[] | null; error: any };
+          }
+        )) as { data: { content_id: string }[] | null; error: any };
 
         console.log('Deleted content IDs from RPC for viewer:', {
-          count: deletedContentIds?.length || 0,
+          count: deletedIds?.length || 0,
           error: rpcError,
-          ids: deletedContentIds?.map((d) => d.content_id),
+          ids: deletedIds?.map((d) => d.content_id),
         });
 
-        if (deletedContentIds && deletedContentIds.length > 0) {
-          deletedContentIds.forEach((item) => {
+        if (deletedIds && deletedIds.length > 0) {
+          deletedIds.forEach((item) => {
             deletedContentMap.set(item.content_id, true);
+            deletedContentIds.add(item.content_id);
           });
         }
       } else {
-        // For viewers seeing all content, we'll handle deleted content filtering after fetching
-        // This is because we need to match by platform_content_id, platform, and creator_id
+        // For viewers seeing all content, use the database function to efficiently get deleted content IDs
+        // This handles large datasets better than IN clauses
+        const { data: deletedIds, error: deletedError } = (await supabase.rpc(
+          'get_all_deleted_content_ids',
+          {
+            excluded_creator_ids:
+              excludedCreatorIds.length > 0 ? excludedCreatorIds : null,
+          }
+        )) as { data: { content_id: string }[] | null; error: any };
+
+        if (deletedError) {
+          console.error('Error fetching deleted content IDs:', deletedError);
+        }
+
+        if (deletedIds && deletedIds.length > 0) {
+          deletedIds.forEach((item) => {
+            deletedContentIds.add(item.content_id);
+            deletedContentMap.set(item.content_id, true);
+          });
+        }
+
         console.log(
-          'Will filter deleted content after fetching for viewer seeing all content'
+          `Pre-fetched ${deletedContentIds.size} deleted content IDs for viewer seeing all content (excluded ${excludedCreatorIds.length} creators)`
         );
       }
     }
@@ -320,6 +343,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // For non-privileged users, exclude deleted content at query level for proper pagination
+    if (!isPrivilegedUser && deletedContentIds.size > 0) {
+      contentQuery = contentQuery.filter(
+        'id',
+        'not.in',
+        `(${Array.from(deletedContentIds)
+          .map((id) => `"${id}"`)
+          .join(',')})`
+      );
+    }
+
     // IMPORTANT: For regular users, only show content that has been scored
     // This prevents unscored (potentially off-topic) content from appearing
     if (!isPrivilegedUser) {
@@ -339,12 +373,14 @@ export async function GET(request: NextRequest) {
         .from('creators')
         .select('id')
         .eq('content_type', query.content_type);
-      
+
       if (typedCreators && typedCreators.length > 0) {
-        const typedCreatorIds = typedCreators.map(c => c.id);
+        const typedCreatorIds = typedCreators.map((c) => c.id);
         if (creatorIds.length > 0) {
           // If we already have creator filtering, intersect with typed creators
-          const intersection = creatorIds.filter(id => typedCreatorIds.includes(id));
+          const intersection = creatorIds.filter((id) =>
+            typedCreatorIds.includes(id)
+          );
           contentQuery = contentQuery.in('creator_id', intersection);
         } else {
           // Apply content type filtering
@@ -462,31 +498,26 @@ export async function GET(request: NextRequest) {
     // For privileged users, get deleted content data after fetching content
     const deletionReasonMap = new Map<string, string>();
     if (isPrivilegedUser && content && content.length > 0) {
-      let deletedContentQuery = supabase
+      // Extract unique combinations of platform_content_id, platform, and creator_id from current page
+      const contentIdentifiers = content.map((c) => ({
+        platform_content_id: c.platform_content_id,
+        platform: String(c.platform),
+        creator_id: c.creator_id,
+      }));
+
+      // Fetch deletion data for all items on the current page in a single query
+      // We'll use multiple OR conditions to match each content item
+      const { data: deletedContent, error: deletedError } = await supabase
         .from('deleted_content')
-        .select('platform_content_id, platform, creator_id, deletion_reason');
-
-      // Only filter by creator_id if we have specific creators
-      if (creatorIds.length > 0) {
-        deletedContentQuery = deletedContentQuery.in('creator_id', creatorIds);
-      }
-
-      const { data: deletedContent, error: deletedError } =
-        (await deletedContentQuery) as {
-          data:
-            | {
-                platform_content_id: string;
-                platform: string;
-                creator_id: string;
-                deletion_reason: string | null;
-              }[]
-            | null;
-          error: any;
-        };
+        .select('platform_content_id, platform, creator_id, deletion_reason')
+        .in(
+          'platform_content_id',
+          contentIdentifiers.map((c) => c.platform_content_id)
+        );
 
       console.log('Deleted content query result:', {
-        found: deletedContent?.length || 0,
-        data: deletedContent,
+        contentOnPage: content.length,
+        deletedItemsFound: deletedContent?.length || 0,
         error: deletedError,
       });
 
@@ -515,6 +546,7 @@ export async function GET(request: NextRequest) {
                 content_id: matchingContent.id,
                 deletion_reason: dc.deletion_reason,
                 title: matchingContent.title,
+                platform_content_id: dc.platform_content_id,
               });
             }
           }
@@ -522,55 +554,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Filter out deleted content for regular users
-    let filteredContent = content || [];
+    // For privileged users, content is not filtered. For non-privileged users,
+    // deleted content was already filtered at the query level for proper pagination
+    const filteredContent = content || [];
+
     if (!isPrivilegedUser) {
-      // If we didn't pre-fetch deleted content (because we're showing all content),
-      // we need to fetch it now based on the actual content we retrieved
-      if (creatorIds.length === 0 && filteredContent.length > 0) {
-        const contentCreatorIds = [
-          ...new Set(filteredContent.map((c) => c.creator_id).filter(Boolean)),
-        ];
-        const { data: deletedContent, error: deletedError } = await supabase
-          .from('deleted_content')
-          .select('platform_content_id, platform, creator_id')
-          .in('creator_id', contentCreatorIds);
-
-        if (deletedContent && deletedContent.length > 0) {
-          deletedContent.forEach((dc) => {
-            const matchingContent = filteredContent.find(
-              (c) =>
-                c.platform_content_id === dc.platform_content_id &&
-                String(c.platform) === dc.platform &&
-                c.creator_id === dc.creator_id
-            );
-            if (matchingContent) {
-              deletedContentMap.set(matchingContent.id, true);
-            }
-          });
-        }
-      }
-
-      const beforeCount = filteredContent.length;
-      const deletedCount = Array.from(deletedContentMap.keys()).length;
-      console.log(`Filtering deleted content for viewer ${user.email}:`, {
-        isPrivilegedUser,
-        userRole: userData?.role || 'unknown',
-        contentBeforeFilter: beforeCount,
-        deletedContentCount: deletedCount,
-        deletedContentIds: Array.from(deletedContentMap.keys()),
-      });
-
-      filteredContent = filteredContent.filter(
-        (item) => !deletedContentMap.has(item.id)
-      );
-      const afterCount = filteredContent.length;
       console.log(
-        `Filtered content for non-privileged user: ${beforeCount} -> ${afterCount} items (removed ${beforeCount - afterCount})`
+        `Content already filtered at query level for non-privileged user ${user.email}`
       );
     } else {
       console.log(
-        `Not filtering content for privileged user ${user.email} (role: ${userData?.role})`
+        `Showing all content including deleted for privileged user ${user.email} (role: ${userData?.role})`
       );
     }
 

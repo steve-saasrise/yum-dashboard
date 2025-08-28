@@ -14,9 +14,9 @@ interface MobileNewsSectionProps {
   initialLimit?: number;
 }
 
-export function MobileNewsSection({ 
+export function MobileNewsSection({
   className,
-  initialLimit = 3
+  initialLimit = 3,
 }: MobileNewsSectionProps) {
   const [news, setNews] = useState<NewsItemData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +27,7 @@ export function MobileNewsSection({
       try {
         const response = await fetch('/api/content/news?limit=10&hours_ago=24');
         if (!response.ok) throw new Error('Failed to fetch news');
-        
+
         const data = await response.json();
         setNews(data.news || []);
       } catch (error) {
@@ -45,7 +45,7 @@ export function MobileNewsSection({
 
   if (loading) {
     return (
-      <Card className={cn("mb-4", className)}>
+      <Card className={cn('mb-4', className)}>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Newspaper className="h-4 w-4" />
@@ -69,8 +69,8 @@ export function MobileNewsSection({
   }
 
   return (
-    <Card className={cn("mb-4", className)}>
-      <CardHeader 
+    <Card className={cn('mb-4', className)}>
+      <CardHeader
         className="pb-3 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
@@ -96,13 +96,13 @@ export function MobileNewsSection({
           </Button>
         </div>
       </CardHeader>
-      
+
       {(expanded || news.length <= initialLimit) && (
         <CardContent className="space-y-1 pb-2">
           {displayedNews.map((item) => (
             <NewsHeadlineItem key={item.id} item={item} />
           ))}
-          
+
           {hasMore && !expanded && (
             <Button
               variant="ghost"

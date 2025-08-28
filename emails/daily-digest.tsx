@@ -63,6 +63,13 @@ interface DailyDigestEmailProps {
   recipientEmail: string;
   unsubscribeUrl: string;
   date: string;
+  aiNewsSummary?: {
+    bullets: Array<{
+      text: string;
+      sourceUrl?: string;
+    }>;
+    generatedAt: string;
+  };
 }
 
 // Platform icon images - using hosted PNGs for email compatibility
@@ -105,6 +112,7 @@ export const DailyDigestEmail = ({
   recipientEmail,
   unsubscribeUrl,
   date,
+  aiNewsSummary,
 }: DailyDigestEmailProps) => {
   const previewText = `Your ${loungeName} Daily Digest - ${content.length} updates`;
 
@@ -142,6 +150,46 @@ export const DailyDigestEmail = ({
           <Section style={{ padding: '0 10px' }}>
             <Hr style={divider} />
           </Section>
+
+          {/* AI News Summary */}
+          {aiNewsSummary && aiNewsSummary.bullets.length > 0 && (
+            <>
+              <Section style={newsSummarySection}>
+                <table style={newsSummaryHeader}>
+                  <tr>
+                    <td style={{ paddingRight: '8px' }}>
+                      <Text style={{ fontSize: '16px', margin: 0 }}>✨</Text>
+                    </td>
+                    <td>
+                      <Heading as="h3" style={newsSummaryTitle}>
+                        Today's Top News
+                      </Heading>
+                    </td>
+                  </tr>
+                </table>
+                <ul style={summaryBulletList}>
+                  {aiNewsSummary.bullets.map((bullet, index) => (
+                    <li key={index} style={summaryBulletItem}>
+                      <Text style={summaryBulletText}>
+                        {bullet.text}
+                        {bullet.sourceUrl && (
+                          <>
+                            {' '}
+                            <Link href={bullet.sourceUrl} style={summaryLink}>
+                              →
+                            </Link>
+                          </>
+                        )}
+                      </Text>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+              <Section style={{ padding: '0 10px' }}>
+                <Hr style={divider} />
+              </Section>
+            </>
+          )}
 
           {/* Content Items */}
           <Section style={contentSection}>
@@ -472,6 +520,48 @@ const loungeDesc = {
 const divider = {
   borderColor: '#e6ebf1',
   margin: '15px 0',
+};
+
+const newsSummarySection = {
+  padding: '20px 10px',
+  backgroundColor: '#f8fafc',
+  borderRadius: '8px',
+  marginBottom: '20px',
+};
+
+const newsSummaryHeader = {
+  width: '100%',
+  marginBottom: '12px',
+};
+
+const newsSummaryTitle = {
+  color: '#1a1a1a',
+  fontSize: '18px',
+  fontWeight: '600',
+  margin: '0',
+};
+
+const summaryBulletList = {
+  margin: '0',
+  padding: '0 0 0 20px',
+  color: '#4a5568',
+};
+
+const summaryBulletItem = {
+  marginBottom: '8px',
+  fontSize: '14px',
+  lineHeight: '1.5',
+};
+
+const summaryBulletText = {
+  margin: '0',
+  color: '#4a5568',
+};
+
+const summaryLink = {
+  color: '#2563eb',
+  textDecoration: 'none',
+  fontWeight: '500',
 };
 
 const contentSection = {

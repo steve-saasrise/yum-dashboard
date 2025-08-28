@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const newsCreatorIds = newsCreators.map(c => c.id);
+    const newsCreatorIds = newsCreators.map((c) => c.id);
 
     // Calculate cutoff date
     const cutoffDate = new Date();
@@ -91,16 +91,15 @@ export async function GET(request: NextRequest) {
 
     let excludedCreatorIds: string[] = [];
     if (unsubscribedLounges && unsubscribedLounges.length > 0) {
-      const unsubscribedLoungeIds = unsubscribedLounges.map(s => s.lounge_id);
-      
+      const unsubscribedLoungeIds = unsubscribedLounges.map((s) => s.lounge_id);
+
       // Get all lounges the user is subscribed to
-      const { data: allLounges } = await supabase
-        .from('lounges')
-        .select('id');
-      
-      const subscribedLoungeIds = allLounges
-        ?.filter(l => !unsubscribedLoungeIds.includes(l.id))
-        .map(l => l.id) || [];
+      const { data: allLounges } = await supabase.from('lounges').select('id');
+
+      const subscribedLoungeIds =
+        allLounges
+          ?.filter((l) => !unsubscribedLoungeIds.includes(l.id))
+          .map((l) => l.id) || [];
 
       // Get creators from unsubscribed lounges
       const { data: creatorsInUnsubscribed } = await supabase
@@ -120,19 +119,21 @@ export async function GET(request: NextRequest) {
 
       if (creatorsInUnsubscribed) {
         const subscribedCreatorSet = new Set(
-          creatorsInSubscribed?.map(cl => cl.creator_id) || []
+          creatorsInSubscribed?.map((cl) => cl.creator_id) || []
         );
-        
-        const unsubscribedCreatorIds = creatorsInUnsubscribed.map(cl => cl.creator_id);
+
+        const unsubscribedCreatorIds = creatorsInUnsubscribed.map(
+          (cl) => cl.creator_id
+        );
         excludedCreatorIds = unsubscribedCreatorIds.filter(
-          id => !subscribedCreatorSet.has(id)
+          (id) => !subscribedCreatorSet.has(id)
         );
       }
     }
 
     // Filter news creators to exclude unsubscribed ones
     const filteredNewsCreatorIds = newsCreatorIds.filter(
-      id => !excludedCreatorIds.includes(id)
+      (id) => !excludedCreatorIds.includes(id)
     );
 
     if (filteredNewsCreatorIds.length === 0) {
@@ -143,9 +144,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query for news content
-    const { data: newsContent, error: contentError, count } = await supabase
+    const {
+      data: newsContent,
+      error: contentError,
+      count,
+    } = await supabase
       .from('content')
-      .select(`
+      .select(
+        `
         id,
         title,
         url,
@@ -156,7 +162,9 @@ export async function GET(request: NextRequest) {
           display_name,
           avatar_url
         )
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .in('creator_id', filteredNewsCreatorIds)
       .gte('published_at', cutoffDate.toISOString())
       .eq('processing_status', 'processed')
@@ -174,7 +182,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform to NewsItem format
-    const newsItems: NewsItem[] = (newsContent || []).map(item => ({
+    const newsItems: NewsItem[] = (newsContent || []).map((item) => ({
       id: item.id,
       title: item.title || 'Untitled',
       url: item.url,
