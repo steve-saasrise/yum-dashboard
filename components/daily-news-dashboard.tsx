@@ -2314,12 +2314,12 @@ export function DailyNewsDashboard() {
               <MobileNewsSection className="mb-4" />
             </div>
 
-            <div className="max-w-7xl mx-auto">
-              <div className="lg:flex lg:gap-6 lg:px-8">
+            <div className="max-w-7xl mx-auto lg:pr-4">
+              <div className="lg:flex lg:gap-4 lg:justify-center">
                 {/* Main content area */}
-                <div className="flex-1 max-w-3xl mx-auto lg:mx-0">
-                  <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center mb-6">
+                <div className="w-full max-w-2xl">
+                  <div className="px-4 sm:px-6 lg:pl-4 lg:pr-0">
+                    <div className="flex justify-between items-center mb-4">
                       <div className="flex-1">
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                           {searchQuery
@@ -2520,7 +2520,7 @@ export function DailyNewsDashboard() {
                   </div>
                   {filteredContent.length === 0 && !isLoadingContent ? (
                     // Empty state
-                    <div className="flex flex-col items-center justify-center py-16 px-4 max-w-3xl mx-auto">
+                    <div className="flex flex-col items-center justify-center py-16 px-4">
                       <div className="max-w-md text-center space-y-6">
                         <div className="w-20 h-20 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
                           <Rss className="w-10 h-10 text-gray-400" />

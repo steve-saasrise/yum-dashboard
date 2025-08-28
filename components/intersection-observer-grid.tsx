@@ -208,7 +208,7 @@ export function IntersectionObserverGrid({
 
   // Single column feed layout with better width utilization
   return (
-    <div className="max-w-3xl mx-auto space-y-4 px-4 sm:px-6 lg:px-8">
+    <div className="space-y-4 px-4 sm:px-6 lg:pl-4 lg:pr-0">
       {displayItems.map((item) => (
         <ContentCard
           key={item.id}
