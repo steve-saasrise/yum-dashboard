@@ -124,8 +124,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { urls, display_name, description, topics, lounge_id, avatar_url, content_type } =
-      validation.data;
+    const {
+      urls,
+      display_name,
+      description,
+      topics,
+      lounge_id,
+      avatar_url,
+      content_type,
+    } = validation.data;
 
     // Validate and detect platforms for all URLs
     const urlsWithPlatforms = [];

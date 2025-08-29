@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, Newspaper, Sparkles, ExternalLink } from 'lucide-react';
+import { Newspaper, Sparkles, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NewsItem {
@@ -26,12 +25,9 @@ interface NewsWidgetProps {
 export function NewsWidget({ className, loungeId }: NewsWidgetProps) {
   const [aiNews, setAiNews] = useState<AINewsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const fetchNews = async () => {
     try {
-      setRefreshing(true);
-
       // Fetch AI-generated news
       const url = loungeId
         ? `/api/content/news-summary?loungeId=${loungeId}`
@@ -46,7 +42,6 @@ export function NewsWidget({ className, loungeId }: NewsWidgetProps) {
       console.error('Error fetching AI news:', error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -95,24 +90,11 @@ export function NewsWidget({ className, loungeId }: NewsWidgetProps) {
   return (
     <Card className={cn('h-fit', className)}>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Newspaper className="h-4 w-4" />
-            Daily News
-            <Sparkles className="h-3 w-3 text-muted-foreground" />
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={fetchNews}
-            disabled={refreshing}
-          >
-            <RefreshCw
-              className={cn('h-3 w-3', refreshing && 'animate-spin')}
-            />
-          </Button>
-        </div>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Newspaper className="h-4 w-4" />
+          Daily News
+          <Sparkles className="h-3 w-3 text-muted-foreground" />
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 pb-3">
         <div className="space-y-2">

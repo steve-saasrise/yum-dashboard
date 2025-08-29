@@ -51,7 +51,7 @@ export class AINewsService {
     const topic = this.getCleanTopic(loungeName, loungeDescription);
 
     // Build the prompt for web search
-    const prompt = `Please create a short bulleted summary of the top news and takeaways from the last 24 hours in the field of ${topic}. Limit to six bullet points and a total of 70 words max. Return ONLY 6 bullet points, no introduction or summary text. This is meant to introduce a daily digest newsletter covering the top news from the last 24 hours in this sector. You are creating a quickly scannable morning must-know summary for professionals who work in the field. If there was a large round of funding or an exit/sale/IPO of a well known firm within the SaaS sector, be sure to mention that. Include source URLs when available.`;
+    const prompt = `Please create a short bulleted summary of the top news and takeaways from the last 24 hours in the field of ${topic}, focusing primarily on US, European, and major global tech markets (Silicon Valley, NYC, London, etc). Prioritize news from Western tech hubs and avoid regional/local news from India unless it involves major global companies. Limit to six bullet points and a total of 70 words max. Return ONLY 6 bullet points, no introduction or summary text. This is meant to introduce a daily digest newsletter covering the top news from the last 24 hours in this sector. You are creating a quickly scannable morning must-know summary for professionals who work in the field. If there was a large round of funding or an exit/sale/IPO of a well known firm within the SaaS sector, be sure to mention that. Include source URLs when available.`;
 
     try {
       // Try to use the Responses API with web search

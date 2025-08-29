@@ -605,7 +605,9 @@ export class BrightDataFetcher {
           referenced_content: referencedContent,
         };
       })
-      .filter((item): item is NonNullable<typeof item> => item !== null) as CreateContentInput[];
+      .filter(
+        (item): item is NonNullable<typeof item> => item !== null
+      ) as CreateContentInput[];
 
     const validCount = transformed.length;
     console.log(
