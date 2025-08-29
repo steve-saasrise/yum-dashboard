@@ -54,7 +54,11 @@ export class NewsAggregationService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map((lounge) => ({
+      ...lounge,
+      description: lounge.description || undefined,
+      theme_description: lounge.theme_description || undefined,
+    }));
   }
 
   /**
@@ -119,11 +123,11 @@ export class NewsAggregationService {
       id: item.id,
       title: item.title || 'Untitled',
       url: item.url,
-      published_at: item.published_at,
+      published_at: item.published_at || new Date().toISOString(),
       platform: item.platform,
       creator_name: item.creator?.display_name || 'Unknown',
       engagement_metrics: item.engagement_metrics,
-      content_body: item.content_body,
+      content_body: item.content_body || undefined,
     }));
   }
 
@@ -189,11 +193,11 @@ export class NewsAggregationService {
       id: item.id,
       title: item.title || 'Untitled',
       url: item.url,
-      published_at: item.published_at,
+      published_at: item.published_at || new Date().toISOString(),
       platform: item.platform,
       creator_name: item.creator?.display_name || 'Unknown',
       engagement_metrics: item.engagement_metrics,
-      content_body: item.content_body,
+      content_body: item.content_body || undefined,
     }));
   }
 

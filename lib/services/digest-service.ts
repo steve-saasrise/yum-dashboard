@@ -310,10 +310,18 @@ export class DigestService {
   ): Promise<void> {
     try {
       // Get AI-generated news summary for this lounge
-      let aiNewsSummary = null;
+      let aiNewsSummary:
+        | {
+            bullets: { text: string; sourceUrl?: string }[];
+            generatedAt: string;
+          }
+        | undefined = undefined;
       try {
         const summaryService = new NewsSummaryService();
-        aiNewsSummary = await summaryService.getLatestSummary(lounge.id);
+        const summary = await summaryService.getLatestSummary(lounge.id);
+        if (summary) {
+          aiNewsSummary = summary;
+        }
       } catch (summaryError) {
         console.error('Error fetching AI news summary:', summaryError);
       }

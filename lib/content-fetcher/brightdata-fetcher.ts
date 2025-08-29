@@ -392,7 +392,7 @@ export class BrightDataFetcher {
   /**
    * Get snapshot status
    */
-  private async getSnapshotStatus(
+  async getSnapshotStatus(
     snapshotId: string
   ): Promise<BrightDataSnapshotStatus> {
     const endpoint = `${this.baseUrl}/datasets/v3/progress/${snapshotId}`;
@@ -605,7 +605,7 @@ export class BrightDataFetcher {
           referenced_content: referencedContent,
         };
       })
-      .filter((item): item is CreateContentInput => item !== null);
+      .filter((item): item is NonNullable<typeof item> => item !== null) as CreateContentInput[];
 
     const validCount = transformed.length;
     console.log(

@@ -174,7 +174,7 @@ async function processBrightDataSnapshot(job: Job<BrightDataSnapshotJob>) {
           if (newContent && newContent.length > 0) {
             // Import queue function
             const { queueContentForSummaries } = await import(
-              '@/lib/queue/queue-helpers'
+              '@/lib/queue/queue-service'
             );
             const contentIds = newContent.map(
               (item: { id: string }) => item.id
@@ -269,13 +269,6 @@ export function createBrightDataProcessorWorker() {
         duration: 60000, // Max 5 snapshots per minute
       },
       // Retry settings for snapshots that aren't ready yet
-      defaultJobOptions: {
-        attempts: 10, // Retry up to 10 times
-        backoff: {
-          type: 'exponential',
-          delay: 30000, // Start with 30 second delay
-        },
-      },
     }
   );
 

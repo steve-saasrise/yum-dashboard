@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { urls, display_name, description, topics, lounge_id, avatar_url } =
+    const { urls, display_name, description, topics, lounge_id, avatar_url, content_type } =
       validation.data;
 
     // Validate and detect platforms for all URLs
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
       display_name,
       bio: description,
       avatar_url: avatar_url || null,
-      content_type: validatedData.content_type,
+      content_type: content_type,
       status: 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

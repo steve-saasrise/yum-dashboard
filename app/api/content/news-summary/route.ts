@@ -78,9 +78,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if summary is recent (within last 25 hours)
-    const summaryAge =
-      Date.now() -
-      new Date(summary.generated_at || summary.created_at).getTime();
+    const summaryDate =
+      summary.generated_at || summary.created_at || new Date().toISOString();
+    const summaryAge = Date.now() - new Date(summaryDate).getTime();
     const maxAge = 25 * 60 * 60 * 1000; // 25 hours in milliseconds
 
     if (summaryAge > maxAge) {
@@ -88,17 +88,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         items: [],
         topic: summary.topic,
-        generatedAt: summary.generated_at || summary.created_at,
+        generatedAt:
+          summary.generated_at ||
+          summary.created_at ||
+          new Date().toISOString(),
         message:
           'Summary is outdated. Please wait for the next scheduled update.',
       });
     }
 
     // Format the response
+    const summaryBullets = summary.summary_bullets as unknown as NewsItem[];
     const newsResult = {
-      items: (summary.summary_bullets as NewsItem[]) || [],
+      items: summaryBullets || [],
       topic: summary.topic,
-      generatedAt: summary.generated_at || summary.created_at,
+      generatedAt:
+        summary.generated_at || summary.created_at || new Date().toISOString(),
     };
 
     // Set cache headers for better performance (30 minutes cache)

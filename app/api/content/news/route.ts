@@ -186,11 +186,11 @@ export async function GET(request: NextRequest) {
       id: item.id,
       title: item.title || 'Untitled',
       url: item.url,
-      published_at: item.published_at,
+      published_at: item.published_at || new Date().toISOString(),
       creator: {
         id: item.creator?.id || '',
         name: item.creator?.display_name || 'Unknown',
-        avatar_url: item.creator?.avatar_url,
+        avatar_url: item.creator?.avatar_url || undefined,
       },
       engagement_metrics: item.engagement_metrics as any,
     }));

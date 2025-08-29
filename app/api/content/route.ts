@@ -290,7 +290,7 @@ export async function GET(request: NextRequest) {
           'get_all_deleted_content_ids',
           {
             excluded_creator_ids:
-              excludedCreatorIds.length > 0 ? excludedCreatorIds : null,
+              excludedCreatorIds.length > 0 ? excludedCreatorIds : undefined,
           }
         )) as { data: { content_id: string }[] | null; error: any };
 

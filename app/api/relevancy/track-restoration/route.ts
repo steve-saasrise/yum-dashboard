@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     if (
       userError ||
       !userData ||
+      !userData.role ||
       !['admin', 'curator'].includes(userData.role)
     ) {
       return NextResponse.json(
@@ -49,9 +50,7 @@ export async function POST(request: NextRequest) {
         `
         *,
         creators (
-          display_name,
-          username,
-          platform
+          display_name
         )
       `
       )
@@ -68,8 +67,7 @@ export async function POST(request: NextRequest) {
       description: content.description,
       url: content.url,
       platform: content.platform,
-      creator_name:
-        content.creators?.display_name || content.creators?.username,
+      creator_name: content.creators?.display_name || 'Unknown',
       published_at: content.published_at,
       reference_type: content.reference_type,
       referenced_content: content.referenced_content,

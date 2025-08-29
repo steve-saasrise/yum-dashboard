@@ -15,7 +15,7 @@ export async function GET() {
       apiKey: process.env.BRIGHTDATA_API_KEY,
     });
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get historical snapshots
     console.log('Fetching historical snapshots...');

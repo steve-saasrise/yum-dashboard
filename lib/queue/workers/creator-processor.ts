@@ -226,7 +226,7 @@ async function processCreator(job: Job) {
 
                 // Don't wait for results - they'll be processed by separate worker
                 platformStats.fetched = 0;
-                platformStats.status = 'collection_triggered';
+                (platformStats as any).status = 'collection_triggered';
               } catch (error) {
                 console.error(
                   `[LinkedIn] Failed to trigger collection for ${creatorName}:`,
