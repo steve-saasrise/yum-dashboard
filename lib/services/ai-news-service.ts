@@ -68,6 +68,7 @@ export class AINewsService {
               },
             ],
             input: prompt,
+            max_completion_tokens: 2000,
           });
 
           // Extract items from the response
@@ -161,6 +162,7 @@ export class AINewsService {
           model: 'gpt-5',
           tools: [{ type: 'web_search' }],
           input: prompt,
+          max_completion_tokens: 2000,
         });
 
         // Parse the response similar to above
@@ -184,51 +186,10 @@ export class AINewsService {
         };
       } catch (error: any) {
         console.error('GPT-5 web search error:', error.message);
+        throw new Error(
+          `Failed to generate news with web search: ${error.message}`
+        );
       }
-
-      // Final fallback: Standard chat completion (will generate synthetic news)
-      console.log(
-        `WARNING: Falling back to GPT-5-mini without web search for ${topic} - results may not be current`
-      );
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a news curator. Create plausible news summaries for the given topic. Since you cannot search the web, create realistic but hypothetical news items that would be typical for this industry.',
-          },
-          {
-            role: 'user',
-            content: `Create 6 brief bullet points (70 words total) about typical recent developments in ${topic}. Format as JSON with "items" array containing objects with "text" field.`,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 400,
-        response_format: { type: 'json_object' },
-      });
-
-      const response = completion.choices[0].message.content;
-      if (!response) {
-        throw new Error('No response from OpenAI');
-      }
-
-      let items: NewsItem[] = [];
-      try {
-        const parsed = JSON.parse(response);
-        items = Array.isArray(parsed)
-          ? parsed
-          : parsed.items || parsed.news || parsed.bullets || [];
-      } catch (parseError) {
-        console.error('Error parsing OpenAI response:', parseError);
-        items = this.extractItemsFromText(response);
-      }
-
-      return {
-        items: this.validateAndTrimItems(items),
-        topic,
-        generatedAt: new Date().toISOString(),
-      };
     } catch (error) {
       console.error('Error generating news:', error);
       throw error;

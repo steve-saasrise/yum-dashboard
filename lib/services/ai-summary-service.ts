@@ -287,7 +287,8 @@ export class AISummaryService {
     // Check rate limits before making request
     await this.checkRateLimit(model);
 
-    const response = await this.openai.chat.completions.create({
+    // Use appropriate parameter based on model
+    const completionParams: any = {
       model,
       messages: [
         {
@@ -301,8 +302,16 @@ export class AISummaryService {
         },
       ],
       temperature: 0.5,
-      max_tokens: 60,
-    });
+    };
+
+    // GPT-5 models use max_completion_tokens instead of max_tokens
+    if (model.includes('gpt-5')) {
+      completionParams.max_completion_tokens = 60;
+    } else {
+      completionParams.max_tokens = 60;
+    }
+
+    const response = await this.openai.chat.completions.create(completionParams);
 
     const summary = response.choices[0]?.message?.content?.trim();
     if (!summary) {
@@ -344,7 +353,8 @@ export class AISummaryService {
     // Check rate limits before making request
     await this.checkRateLimit(model);
 
-    const response = await this.openai.chat.completions.create({
+    // Use appropriate parameter based on model
+    const completionParams: any = {
       model,
       messages: [
         {
@@ -358,8 +368,16 @@ export class AISummaryService {
         },
       ],
       temperature: 0.5,
-      max_tokens: 200,
-    });
+    };
+
+    // GPT-5 models use max_completion_tokens instead of max_tokens
+    if (model.includes('gpt-5')) {
+      completionParams.max_completion_tokens = 200;
+    } else {
+      completionParams.max_tokens = 200;
+    }
+
+    const response = await this.openai.chat.completions.create(completionParams);
 
     const summary = response.choices[0]?.message?.content?.trim();
     if (!summary) {

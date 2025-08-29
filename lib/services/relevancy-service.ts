@@ -152,10 +152,52 @@ ${baseBorderline.join('\n')}
 
 FILTER OUT (Score <40):
 ${baseFilter.join('\n')}`;
+    } else if (loungeName === 'B2B Growth' || loungeName === 'Growth Coffee') {
+      // B2B Growth specific context
+      const baseKeep = [
+        '- B2B sales techniques, strategies, and methodologies',
+        '- Account-based marketing (ABM) and enterprise sales',
+        '- Lead generation, nurturing, and conversion strategies',
+        '- B2B content marketing and thought leadership',
+        '- Sales enablement tools and processes',
+        '- Customer acquisition strategies for B2B',
+        '- Revenue operations and growth metrics',
+        '- B2B pricing strategies and models',
+        '- Partnership and channel strategies',
+        '- B2B customer success and retention',
+        '- Marketing automation for B2B',
+        '- LinkedIn and B2B social selling strategies',
+        '- Case studies of B2B growth',
+        '- SaaS growth tactics and metrics',
+        '- Professional insights about growing B2B companies',
+        ...keepAdjustments,
+      ];
+
+      const baseFilter = [
+        '- Personal life events (engagements, birthdays, vacations)',
+        '- Sports news or entertainment gossip',
+        '- Celebrity news or pop culture references',
+        '- Personal relationship updates',
+        '- Food, fashion, or lifestyle content without B2B angle',
+        '- Motivational quotes without specific B2B context',
+        '- Political content unrelated to B2B business',
+        '- Consumer product reviews (B2C focus)',
+        '- Personal hobbies or interests unrelated to B2B',
+        '- General news without B2B business impact',
+        '- Jokes or memes without B2B relevance',
+        '- Weather, travel, or local news',
+        ...filterAdjustments,
+      ];
+
+      baseContext = `
+KEEP (Score 60+):
+${baseKeep.join('\n')}
+
+FILTER OUT (Score <60):
+${baseFilter.join('\n')}`;
     } else if (
       loungeName === 'AI' ||
       loungeName === 'Venture' ||
-      loungeName === 'B2B Growth' ||
       loungeName === 'Crypto'
     ) {
       // Other Business/Tech lounges
