@@ -51,7 +51,7 @@ export class AINewsService {
     const topic = this.getCleanTopic(loungeName, loungeDescription);
 
     // Build the prompt for web search
-    const prompt = `Search for and summarize the top news and takeaways from the last 24 hours in the field of ${topic}. Focus on the most important and impactful news, including any major funding rounds, acquisitions, or IPOs. Create exactly 6 bullet points with a total of 70 words maximum. Include source URLs.`;
+    const prompt = `Search for and summarize the top news and takeaways from the last 24 hours in the field of ${topic}. Focus on the most important and impactful news, including any major funding rounds, acquisitions, or IPOs. Return ONLY 6 bullet points, no introduction or summary text. Create exactly 6 bullet points with a total of 70 words maximum. Include source URLs.`;
 
     try {
       // Try to use the Responses API with web search
@@ -73,29 +73,64 @@ export class AINewsService {
           // Extract items from the response
           let items: NewsItem[] = [];
           
-          // The response will have citations in annotations
           if (response.output_text) {
-            // Parse the structured response
-            const lines = response.output_text.split('\n').filter((line: string) => line.trim());
-            const annotations = response.content?.[0]?.annotations || [];
+            console.log(`Raw response for ${topic}:`, response.output_text.substring(0, 500));
+            
+            // Split by newlines and filter out empty lines and introduction text
+            const lines = response.output_text
+              .split('\n')
+              .map((line: string) => line.trim())
+              .filter((line: string) => {
+                // Skip empty lines
+                if (!line) return false;
+                // Skip introduction lines
+                if (line.toLowerCase().includes('here are') || 
+                    line.toLowerCase().includes('top news') ||
+                    line.toLowerCase().includes('developments from') ||
+                    line.toLowerCase().includes('latest news') ||
+                    line.toLowerCase().includes('summary of')) {
+                  return false;
+                }
+                return true;
+              });
+            
+            // Extract URLs from the text using regex
+            const urlRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
             
             for (let i = 0; i < Math.min(6, lines.length); i++) {
               const line = lines[i];
-              const cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
+              // Remove bullet points, numbers, etc.
+              let cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
               
-              // Try to find a matching citation
-              const citation = annotations.find((ann: any) => 
-                ann.type === 'url_citation' && 
-                response.output_text.substring(ann.start_index, ann.end_index).includes(cleanText.substring(0, 20))
-              );
+              // Extract URL if it's embedded in markdown format
+              let sourceUrl: string | undefined;
+              const urlMatch = urlRegex.exec(line);
+              if (urlMatch) {
+                sourceUrl = urlMatch[2];
+                // Remove the markdown link from the text
+                cleanText = line.replace(urlRegex, '$1').replace(/^[\s•\-\*\d\.]+/, '').trim();
+              }
               
-              if (cleanText) {
+              // Also check if there's a plain URL at the end
+              const plainUrlMatch = cleanText.match(/\s+(https?:\/\/[^\s]+)$/);
+              if (plainUrlMatch) {
+                sourceUrl = plainUrlMatch[1];
+                cleanText = cleanText.replace(plainUrlMatch[0], '').trim();
+              }
+              
+              if (cleanText && cleanText.length > 10) { // Only add substantial text
                 items.push({ 
                   text: cleanText,
-                  sourceUrl: citation?.url
+                  sourceUrl
                 });
               }
+              
+              // Reset regex lastIndex for next iteration
+              urlRegex.lastIndex = 0;
             }
+            
+            // Log what we extracted
+            console.log(`Extracted ${items.length} items for ${topic}`);
           }
 
           return {
