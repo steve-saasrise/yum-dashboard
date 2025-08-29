@@ -102,7 +102,7 @@ Remember: Maximum 6 bullets, 70 words total across all bullets. Focus on the mos
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -150,7 +150,7 @@ Remember: Maximum 6 bullets, 70 words total across all bullets. Focus on the mos
         bullets,
         topic,
         loungeId,
-        modelUsed: 'gpt-5-mini',
+        modelUsed: 'gpt-4o-mini',
         tokenCount,
         generationTimeMs,
         sourceContentIds: sortedContent.map((c) => c.id),
