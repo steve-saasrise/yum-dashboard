@@ -57,10 +57,10 @@ export class AINewsService {
       // Try to use the Responses API with web search
       if ((this.openai as any).responses?.create) {
         try {
-          console.log(`Using gpt-4o with web search for ${topic} news...`);
+          console.log(`Using gpt-5 with web search for ${topic} news...`);
 
           const response = await (this.openai as any).responses.create({
-            model: 'gpt-4o',
+            model: 'gpt-5',
             tools: [
               {
                 type: 'web_search',
@@ -153,12 +153,12 @@ export class AINewsService {
         }
       }
 
-      // Alternative: Try gpt-4o with web search if available
-      console.log(`Attempting GPT-4o with web search for ${topic} news...`);
+      // Alternative: Try gpt-5 with web search if available
+      console.log(`Attempting GPT-5 with web search for ${topic} news...`);
 
       try {
         const response = await (this.openai as any).responses.create({
-          model: 'gpt-4o',
+          model: 'gpt-5',
           tools: [{ type: 'web_search' }],
           input: prompt,
         });
@@ -183,15 +183,15 @@ export class AINewsService {
           generatedAt: new Date().toISOString(),
         };
       } catch (error: any) {
-        console.error('GPT-4o web search error:', error.message);
+        console.error('GPT-5 web search error:', error.message);
       }
 
       // Final fallback: Standard chat completion (will generate synthetic news)
       console.log(
-        `WARNING: Falling back to GPT-4o-mini without web search for ${topic} - results may not be current`
+        `WARNING: Falling back to GPT-5-mini without web search for ${topic} - results may not be current`
       );
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
           {
             role: 'system',
