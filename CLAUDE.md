@@ -19,7 +19,7 @@ Daily News is a content aggregation platform that unifies content from multiple 
 - **Authentication**: Supabase Auth (magic links, OAuth, email/password)
 - **Database**: Supabase PostgreSQL with Row Level Security
 - **Caching**: Upstash Redis for session management
-- **AI Integration**: OpenAI for content summarization
+- **AI Integration**: OpenAI for content summarization (GPT-5 models including gpt-5-mini are available)
 - **Content Fetching**: Apify for social media, YouTube Data API, RSS Parser
 - **Deployment**: Railway with automated deployments
 

@@ -1,6 +1,6 @@
 import { OpenAI } from 'openai';
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database.types';
+import type { Database, Json } from '@/types/database.types';
 
 interface BulletPoint {
   text: string;
@@ -210,41 +210,106 @@ Remember: Maximum 6 bullets, 70 words total across all bullets. Focus on the mos
   }
 
   /**
-   * Save generated summary to database (placeholder for future implementation)
+   * Save generated summary to database
    */
   async saveSummary(summary: GenerateSummaryResult): Promise<string> {
-    // For now, we're not persisting summaries to database
-    // They are generated fresh each time for the digest
-    console.log('Summary generated:', {
+    if (!this.supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
+    const { data, error } = await this.supabase
+      .from('daily_news_summaries')
+      .insert({
+        lounge_id: summary.loungeId || null,
+        topic: summary.topic,
+        summary_bullets: summary.bullets as unknown as Json,
+        model_used: summary.modelUsed,
+        token_count: summary.tokenCount,
+        generation_time_ms: summary.generationTimeMs,
+        source_content_ids: summary.sourceContentIds,
+        metadata: {
+          generatedAt: new Date().toISOString(),
+        },
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error saving summary to database:', error);
+      throw error;
+    }
+
+    console.log('Summary saved to database:', {
+      id: data.id,
       topic: summary.topic,
       loungeId: summary.loungeId,
       bulletCount: summary.bullets.length,
       tokenCount: summary.tokenCount,
     });
-    return 'temp-' + Date.now();
+
+    return data.id;
   }
 
   /**
-   * Get the most recent summary for a lounge (placeholder for future implementation)
+   * Get the most recent summary for a lounge
    */
   async getLatestSummary(loungeId: string): Promise<{
     bullets: BulletPoint[];
     generatedAt: string;
   } | null> {
-    // For now, return null to trigger fresh generation
-    // In future, could cache in Redis or database
-    return null;
+    if (!this.supabase) {
+      console.error('Supabase client not initialized');
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .from('daily_news_summaries')
+      .select('summary_bullets, generated_at')
+      .eq('lounge_id', loungeId)
+      .order('generated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      console.log('No summary found for lounge:', loungeId);
+      return null;
+    }
+
+    return {
+      bullets: data.summary_bullets as unknown as BulletPoint[],
+      generatedAt: data.generated_at || new Date().toISOString(),
+    };
   }
 
   /**
-   * Get summary by topic (placeholder for future implementation)
+   * Get summary by topic
    */
   async getLatestSummaryByTopic(topic: string): Promise<{
     bullets: BulletPoint[];
     generatedAt: string;
   } | null> {
-    // For now, return null to trigger fresh generation
-    // In future, could cache in Redis or database
-    return null;
+    if (!this.supabase) {
+      console.error('Supabase client not initialized');
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .from('daily_news_summaries')
+      .select('summary_bullets, generated_at')
+      .eq('topic', topic)
+      .is('lounge_id', null) // Get general summaries (not lounge-specific)
+      .order('generated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      console.log('No summary found for topic:', topic);
+      return null;
+    }
+
+    return {
+      bullets: data.summary_bullets as unknown as BulletPoint[],
+      generatedAt: data.generated_at || new Date().toISOString(),
+    };
   }
 }

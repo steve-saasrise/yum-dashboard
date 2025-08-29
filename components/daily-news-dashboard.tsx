@@ -2326,8 +2326,8 @@ export function DailyNewsDashboard() {
                             ? `Search results for "${searchQuery}"`
                             : lounges.find((l) => l.id === selectedLoungeId)
                                   ?.name
-                              ? `${lounges.find((l) => l.id === selectedLoungeId)?.name} Lounge`
-                              : 'Your Lounge'}
+                              ? `${lounges.find((l) => l.id === selectedLoungeId)?.name}`
+                              : 'Your Feed'}
                         </h1>
                         {(searchQuery || selectedPlatforms.length > 0) && (
                           <div className="flex items-center gap-2 mt-2">
