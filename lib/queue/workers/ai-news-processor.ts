@@ -126,4 +126,3 @@ export function createAINewsProcessorWorker() {
 
   return worker;
 }
-
