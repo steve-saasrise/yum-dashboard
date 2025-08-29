@@ -57,18 +57,18 @@ export class AINewsService {
       // Try to use the Responses API with web search
       if ((this.openai as any).responses?.create) {
         try {
-          console.log(`Using gpt-5 with web search for ${topic} news...`);
+          console.log(`Using gpt-5-mini with web search for ${topic} news...`);
 
           const response = await (this.openai as any).responses.create({
-            model: 'gpt-5',
+            model: 'gpt-5-mini',
             tools: [
               {
                 type: 'web_search',
-                search_context_size: 'medium',
+                search_context_size: 'small',
               },
             ],
             input: prompt,
-            max_output_tokens: 2000,
+            max_output_tokens: 500,
           });
 
           // Extract items from the response
@@ -154,15 +154,15 @@ export class AINewsService {
         }
       }
 
-      // Alternative: Try gpt-5 with web search if available
-      console.log(`Attempting GPT-5 with web search for ${topic} news...`);
+      // Alternative: Try gpt-5-mini with web search if available
+      console.log(`Attempting GPT-5-mini with web search for ${topic} news...`);
 
       try {
         const response = await (this.openai as any).responses.create({
-          model: 'gpt-5',
+          model: 'gpt-5-mini',
           tools: [{ type: 'web_search' }],
           input: prompt,
-          max_output_tokens: 2000,
+          max_output_tokens: 500,
         });
 
         // Parse the response similar to above
@@ -185,7 +185,7 @@ export class AINewsService {
           generatedAt: new Date().toISOString(),
         };
       } catch (error: any) {
-        console.error('GPT-5 web search error:', error.message);
+        console.error('GPT-5-mini web search error:', error.message);
         throw new Error(
           `Failed to generate news with web search: ${error.message}`
         );
