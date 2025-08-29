@@ -68,7 +68,7 @@ export class AINewsService {
               },
             ],
             input: prompt,
-            max_output_tokens: 2000,
+            max_output_tokens: 10000,
           });
 
           // Extract items from the response
@@ -79,8 +79,8 @@ export class AINewsService {
           let annotations: any[] = [];
 
           // Check if response has an output property (new API format)
-          let outputArray = response.output || response;
-          
+          const outputArray = response.output || response;
+
           if (Array.isArray(outputArray)) {
             // Find the message item in the output array
             const messageItem = outputArray.find(
@@ -98,8 +98,13 @@ export class AINewsService {
             } else {
               console.log(`No message item in output array for ${topic}`);
               // Check if response is incomplete (hit token limit)
-              if (response.status === 'incomplete' && response.incomplete_details) {
-                console.log(`Response incomplete for ${topic}: ${response.incomplete_details.reason}`);
+              if (
+                response.status === 'incomplete' &&
+                response.incomplete_details
+              ) {
+                console.log(
+                  `Response incomplete for ${topic}: ${response.incomplete_details.reason}`
+                );
               }
             }
           } else if (response.output_text) {
@@ -215,7 +220,7 @@ export class AINewsService {
           model: 'gpt-5-mini',
           tools: [{ type: 'web_search' }],
           input: prompt,
-          max_output_tokens: 2000,
+          max_output_tokens: 10000,
         });
 
         // Parse the response similar to above
@@ -225,8 +230,8 @@ export class AINewsService {
         let outputText: string | undefined;
 
         // Check if response has an output property (new API format)
-        let outputArray = response.output || response;
-        
+        const outputArray = response.output || response;
+
         if (Array.isArray(outputArray)) {
           const messageItem = outputArray.find(
             (item: any) => item.type === 'message'
