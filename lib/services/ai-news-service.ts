@@ -68,19 +68,22 @@ export class AINewsService {
               },
             ],
             input: prompt,
-            max_output_tokens: 500,
+            max_output_tokens: 2000,
           });
 
           // Extract items from the response
           const items: NewsItem[] = [];
 
-          // Handle new response format - response is an array
+          // Handle new response format - response can be an object with output array or just an array
           let outputText: string | undefined;
           let annotations: any[] = [];
 
-          if (Array.isArray(response)) {
-            // Find the message item in the response array
-            const messageItem = response.find(
+          // Check if response has an output property (new API format)
+          let outputArray = response.output || response;
+          
+          if (Array.isArray(outputArray)) {
+            // Find the message item in the output array
+            const messageItem = outputArray.find(
               (item: any) => item.type === 'message'
             );
 
@@ -93,10 +96,14 @@ export class AINewsService {
                 outputText ? outputText.substring(0, 500) : 'No text content'
               );
             } else {
-              console.log(`No message item in response array for ${topic}`);
+              console.log(`No message item in output array for ${topic}`);
+              // Check if response is incomplete (hit token limit)
+              if (response.status === 'incomplete' && response.incomplete_details) {
+                console.log(`Response incomplete for ${topic}: ${response.incomplete_details.reason}`);
+              }
             }
           } else if (response.output_text) {
-            // Fallback to old format if response is not an array
+            // Fallback to old format if response has output_text directly
             outputText = response.output_text;
             console.log(
               `Raw response for ${topic} (old format):`,
@@ -208,7 +215,7 @@ export class AINewsService {
           model: 'gpt-5-mini',
           tools: [{ type: 'web_search' }],
           input: prompt,
-          max_output_tokens: 500,
+          max_output_tokens: 2000,
         });
 
         // Parse the response similar to above
@@ -217,8 +224,11 @@ export class AINewsService {
         // Handle new response format
         let outputText: string | undefined;
 
-        if (Array.isArray(response)) {
-          const messageItem = response.find(
+        // Check if response has an output property (new API format)
+        let outputArray = response.output || response;
+        
+        if (Array.isArray(outputArray)) {
+          const messageItem = outputArray.find(
             (item: any) => item.type === 'message'
           );
           if (messageItem && messageItem.content && messageItem.content[0]) {
