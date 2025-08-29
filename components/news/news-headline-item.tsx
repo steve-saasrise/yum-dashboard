@@ -3,7 +3,7 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ExternalLink } from 'lucide-react';
-import type { NewsItemData } from './news-widget';
+import type { NewsItemData } from './mobile-news-section';
 
 interface NewsHeadlineItemProps {
   item: NewsItemData;

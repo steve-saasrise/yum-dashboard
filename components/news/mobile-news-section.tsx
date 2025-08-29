@@ -7,7 +7,23 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Newspaper } from 'lucide-react';
 import { NewsHeadlineItem } from './news-headline-item';
 import { cn } from '@/lib/utils';
-import type { NewsItemData } from './news-widget';
+// Define NewsItemData locally since news-widget no longer exports it
+export interface NewsItemData {
+  id: string;
+  title: string;
+  url: string;
+  published_at: string;
+  creator: {
+    id: string;
+    name: string;
+    avatar_url?: string;
+  };
+  engagement_metrics?: {
+    views?: number;
+    likes?: number;
+    comments?: number;
+  };
+}
 
 interface MobileNewsSectionProps {
   className?: string;

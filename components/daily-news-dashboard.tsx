@@ -2604,7 +2604,6 @@ export function DailyNewsDashboard() {
                     <NewsWidget
                       className="shadow-sm"
                       loungeId={selectedLoungeId || undefined}
-                      showAISummary={true}
                     />
                   </div>
                 </div>

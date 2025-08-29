@@ -2,29 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
-import { NewsSummaryService } from '@/lib/services/news-summary-service';
-import { NewsAggregationService } from '@/lib/services/news-aggregation-service';
 import type { Database } from '@/types/database.types';
 
 // Query parameters schema
 const querySchema = z.object({
   loungeId: z.string().uuid().optional(),
-  topic: z.string().optional(),
-  fallbackToManual: z.coerce.boolean().default(true),
 });
 
-export interface NewsSummaryResponse {
-  summary: {
-    bullets: Array<{
-      text: string;
-      sourceUrl?: string;
-    }>;
-    generatedAt: string;
-    topic: string;
-    loungeId?: string;
-  } | null;
-  fallbackContent?: any[];
-  source: 'ai' | 'manual' | 'none';
+interface NewsItem {
+  text: string;
+  sourceUrl?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -62,109 +49,66 @@ export async function GET(request: NextRequest) {
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = querySchema.parse(searchParams);
 
-    const summaryService = new NewsSummaryService();
-    let summary = null;
+    // Fetch the most recent AI-generated summary from database
+    let summaryQuery = supabase
+      .from('daily_news_summaries')
+      .select('*')
+      .order('generated_at', { ascending: false })
+      .limit(1);
 
-    // Try to get AI-generated summary
     if (query.loungeId) {
       // Get summary for specific lounge
-      summary = await summaryService.getLatestSummary(query.loungeId);
-    } else if (query.topic) {
-      // Get summary by topic
-      summary = await summaryService.getLatestSummaryByTopic(query.topic);
+      summaryQuery = summaryQuery.eq('lounge_id', query.loungeId);
     } else {
-      // Get general news summary
-      summary = await summaryService.getLatestSummaryByTopic(
-        'Technology and Business'
-      );
+      // Get general summary (no lounge_id)
+      summaryQuery = summaryQuery.is('lounge_id', null);
+    }
+
+    const { data: summary, error: summaryError } = await summaryQuery.single();
+
+    if (summaryError || !summary) {
+      console.log('No AI summary found in database');
+      return NextResponse.json({
+        items: [],
+        topic: 'Technology and Business',
+        generatedAt: new Date().toISOString(),
+        message:
+          'No AI summary available. Please wait for the next scheduled update.',
+      });
     }
 
     // Check if summary is recent (within last 25 hours)
-    if (summary) {
-      const summaryAge = Date.now() - new Date(summary.generatedAt).getTime();
-      const maxAge = 25 * 60 * 60 * 1000; // 25 hours in milliseconds
+    const summaryAge =
+      Date.now() -
+      new Date(summary.generated_at || summary.created_at).getTime();
+    const maxAge = 25 * 60 * 60 * 1000; // 25 hours in milliseconds
 
-      if (summaryAge > maxAge) {
-        console.log('AI summary is too old, will fallback if enabled');
-        summary = null;
-      }
+    if (summaryAge > maxAge) {
+      console.log('AI summary is too old');
+      return NextResponse.json({
+        items: [],
+        topic: summary.topic,
+        generatedAt: summary.generated_at || summary.created_at,
+        message:
+          'Summary is outdated. Please wait for the next scheduled update.',
+      });
     }
 
-    // If no AI summary and fallback is enabled, get manual news
-    let fallbackContent = null;
-    if (!summary && query.fallbackToManual) {
-      console.log('No AI summary found, falling back to manual news content');
-
-      // Fetch recent news content as fallback
-      const aggregationService = new NewsAggregationService();
-
-      if (query.loungeId) {
-        // Get lounge-specific content
-        const newsContent = await aggregationService.getNewsContentForLounge(
-          query.loungeId
-        );
-        fallbackContent = newsContent.slice(0, 6).map((item) => ({
-          id: item.id,
-          text: item.title,
-          url: item.url,
-          publishedAt: item.published_at,
-          creator: item.creator_name,
-        }));
-      } else {
-        // Get general news content
-        const { data: newsContent } = await supabase
-          .from('content')
-          .select(
-            `
-            id,
-            title,
-            url,
-            published_at,
-            creator:creators(
-              display_name
-            )
-          `
-          )
-          .eq('processing_status', 'processed')
-          .eq('is_primary', true)
-          .gte(
-            'published_at',
-            new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-          )
-          .order('published_at', { ascending: false })
-          .limit(6);
-
-        fallbackContent = (newsContent || []).map((item) => ({
-          id: item.id,
-          text: item.title || 'Untitled',
-          url: item.url,
-          publishedAt: item.published_at,
-          creator: item.creator?.display_name || 'Unknown',
-        }));
-      }
-    }
-
-    const response: NewsSummaryResponse = {
-      summary: summary
-        ? {
-            bullets: summary.bullets,
-            generatedAt: summary.generatedAt,
-            topic: query.topic || 'Technology and Business',
-            loungeId: query.loungeId,
-          }
-        : null,
-      fallbackContent,
-      source: summary ? 'ai' : fallbackContent ? 'manual' : 'none',
+    // Format the response
+    const newsResult = {
+      items: (summary.summary_bullets as NewsItem[]) || [],
+      topic: summary.topic,
+      generatedAt: summary.generated_at || summary.created_at,
     };
 
-    // Set cache headers for better performance
+    // Set cache headers for better performance (30 minutes cache)
     const headers = new Headers();
     headers.set(
       'Cache-Control',
-      'public, s-maxage=300, stale-while-revalidate=600'
-    ); // Cache for 5 minutes
+      'public, s-maxage=1800, stale-while-revalidate=3600'
+    );
 
-    return NextResponse.json(response, { headers });
+    return NextResponse.json(newsResult, { headers });
   } catch (error) {
     console.error('Error in news summary API:', error);
 
