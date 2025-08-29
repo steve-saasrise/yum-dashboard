@@ -74,14 +74,44 @@ export class AINewsService {
           // Extract items from the response
           const items: NewsItem[] = [];
 
-          if (response.output_text) {
-            console.log(
-              `Raw response for ${topic}:`,
-              response.output_text.substring(0, 500)
+          // Handle new response format - response is an array
+          let outputText: string | undefined;
+          let annotations: any[] = [];
+
+          if (Array.isArray(response)) {
+            // Find the message item in the response array
+            const messageItem = response.find(
+              (item: any) => item.type === 'message'
             );
 
+            if (messageItem && messageItem.content && messageItem.content[0]) {
+              outputText = messageItem.content[0].text;
+              annotations = messageItem.content[0].annotations || [];
+
+              console.log(
+                `Raw response for ${topic} (new format):`,
+                outputText ? outputText.substring(0, 500) : 'No text content'
+              );
+            } else {
+              console.log(`No message item in response array for ${topic}`);
+            }
+          } else if (response.output_text) {
+            // Fallback to old format if response is not an array
+            outputText = response.output_text;
+            console.log(
+              `Raw response for ${topic} (old format):`,
+              outputText ? outputText.substring(0, 500) : 'No text content'
+            );
+          } else {
+            console.log(
+              `Unexpected response format for ${topic}:`,
+              JSON.stringify(response).substring(0, 500)
+            );
+          }
+
+          if (outputText) {
             // Split by newlines and filter out empty lines and introduction text
-            const lines = response.output_text
+            const lines = outputText
               .split('\n')
               .map((line: string) => line.trim())
               .filter((line: string) => {
@@ -127,6 +157,22 @@ export class AINewsService {
                 cleanText = cleanText.replace(plainUrlMatch[0], '').trim();
               }
 
+              // Try to find URL from annotations if not found inline
+              if (!sourceUrl && annotations.length > 0) {
+                // Find annotation that might correspond to this line
+                const annotation = annotations.find(
+                  (ann: any) =>
+                    ann.type === 'url_citation' &&
+                    outputText &&
+                    outputText
+                      .substring(ann.start_index, ann.end_index)
+                      .includes(cleanText.substring(0, 20))
+                );
+                if (annotation) {
+                  sourceUrl = annotation.url;
+                }
+              }
+
               if (cleanText && cleanText.length > 10) {
                 // Only add substantial text
                 items.push({
@@ -167,8 +213,23 @@ export class AINewsService {
 
         // Parse the response similar to above
         const items: NewsItem[] = [];
-        if (response.output_text) {
-          const lines = response.output_text
+
+        // Handle new response format
+        let outputText: string | undefined;
+
+        if (Array.isArray(response)) {
+          const messageItem = response.find(
+            (item: any) => item.type === 'message'
+          );
+          if (messageItem && messageItem.content && messageItem.content[0]) {
+            outputText = messageItem.content[0].text;
+          }
+        } else if (response.output_text) {
+          outputText = response.output_text;
+        }
+
+        if (outputText) {
+          const lines = outputText
             .split('\n')
             .filter((line: string) => line.trim());
           for (const line of lines.slice(0, 6)) {
