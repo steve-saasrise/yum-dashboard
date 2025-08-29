@@ -64,7 +64,7 @@ export class AINewsService {
             tools: [
               {
                 type: 'web_search',
-                search_context_size: 'small',
+                search_context_size: 'medium',
               },
             ],
             input: prompt,
