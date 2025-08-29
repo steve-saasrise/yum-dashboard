@@ -8,6 +8,7 @@ if (process.env.NODE_ENV !== 'production') {
 import { createCreatorProcessorWorker } from '@/lib/queue/workers/creator-processor';
 import { createSummaryProcessorWorker } from '@/lib/queue/workers/summary-processor';
 import { createBrightDataProcessorWorker } from '@/lib/queue/workers/brightdata-processor';
+import { createAINewsProcessorWorker } from '@/lib/queue/workers/ai-news-processor';
 
 console.log('Starting queue workers...');
 console.log('NODE_ENV:', process.env.NODE_ENV);
@@ -38,6 +39,7 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
 const creatorWorker = createCreatorProcessorWorker();
 const summaryWorker = createSummaryProcessorWorker();
 const brightdataWorker = createBrightDataProcessorWorker();
+const aiNewsWorker = createAINewsProcessorWorker();
 
 console.log('Workers started successfully!');
 console.log(
@@ -46,6 +48,9 @@ console.log(
 console.log('- Summary processor worker: Generating summaries for new content');
 console.log(
   '- BrightData processor worker: Processing LinkedIn snapshots asynchronously'
+);
+console.log(
+  '- AI News processor worker: Generating AI news summaries for lounges (3 concurrent)'
 );
 
 // Error handling
@@ -68,6 +73,7 @@ process.on('SIGTERM', async () => {
   await creatorWorker.close();
   await summaryWorker.close();
   await brightdataWorker.close();
+  await aiNewsWorker.close();
   process.exit(0);
 });
 
@@ -76,5 +82,6 @@ process.on('SIGINT', async () => {
   await creatorWorker.close();
   await summaryWorker.close();
   await brightdataWorker.close();
+  await aiNewsWorker.close();
   process.exit(0);
 });

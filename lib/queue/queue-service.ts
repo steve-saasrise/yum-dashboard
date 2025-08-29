@@ -31,6 +31,13 @@ export function getQueues() {
         connection,
         defaultJobOptions: DEFAULT_JOB_OPTIONS,
       }),
+      [QUEUE_NAMES.AI_NEWS_GENERATION]: new Queue(
+        QUEUE_NAMES.AI_NEWS_GENERATION,
+        {
+          connection,
+          defaultJobOptions: DEFAULT_JOB_OPTIONS,
+        }
+      ),
     };
   }
 
@@ -126,6 +133,127 @@ export async function queueContentForSummaries(
   return {
     jobId: job.id,
     queued: contentIds.length,
+  };
+}
+
+// Add AI news generation jobs for lounges
+export async function queueAINewsGeneration(
+  lounges: Array<{
+    id: string;
+    name: string;
+    description?: string | null;
+  }>,
+  includeGeneral: boolean = true
+) {
+  const queues = getQueues();
+  const newsQueue = queues[QUEUE_NAMES.AI_NEWS_GENERATION];
+
+  const jobsToAdd = [];
+  let skipped = 0;
+
+  // Queue jobs for each lounge
+  for (const lounge of lounges) {
+    const jobId = `news-lounge-${lounge.id}-${new Date().toISOString().split('T')[0]}`;
+    const existingJob = await newsQueue.getJob(jobId);
+
+    // Only add if no existing job or previous job is completed/failed
+    if (!existingJob) {
+      jobsToAdd.push({
+        name: JOB_NAMES.GENERATE_AI_NEWS,
+        data: {
+          loungeId: lounge.id,
+          loungeName: lounge.name,
+          loungeDescription: lounge.description || undefined,
+          isGeneral: false,
+          timestamp: new Date().toISOString(),
+        },
+        opts: {
+          jobId,
+          priority: 1,
+          delay: 0,
+        },
+      });
+    } else {
+      const state = await existingJob.getState();
+      if (state === 'completed' || state === 'failed') {
+        await existingJob.remove();
+        jobsToAdd.push({
+          name: JOB_NAMES.GENERATE_AI_NEWS,
+          data: {
+            loungeId: lounge.id,
+            loungeName: lounge.name,
+            loungeDescription: lounge.description || undefined,
+            isGeneral: false,
+            timestamp: new Date().toISOString(),
+          },
+          opts: {
+            jobId,
+            priority: 1,
+            delay: 0,
+          },
+        });
+      } else {
+        skipped++;
+      }
+    }
+  }
+
+  // Add general news job if requested
+  if (includeGeneral) {
+    const generalJobId = `news-general-${new Date().toISOString().split('T')[0]}`;
+    const existingGeneralJob = await newsQueue.getJob(generalJobId);
+
+    if (!existingGeneralJob) {
+      jobsToAdd.push({
+        name: JOB_NAMES.GENERATE_AI_NEWS,
+        data: {
+          loungeId: 'general',
+          loungeName: 'Technology and Business',
+          isGeneral: true,
+          timestamp: new Date().toISOString(),
+        },
+        opts: {
+          jobId: generalJobId,
+          priority: 1,
+          delay: 0,
+        },
+      });
+    } else {
+      const state = await existingGeneralJob.getState();
+      if (state === 'completed' || state === 'failed') {
+        await existingGeneralJob.remove();
+        jobsToAdd.push({
+          name: JOB_NAMES.GENERATE_AI_NEWS,
+          data: {
+            loungeId: 'general',
+            loungeName: 'Technology and Business',
+            isGeneral: true,
+            timestamp: new Date().toISOString(),
+          },
+          opts: {
+            jobId: generalJobId,
+            priority: 1,
+            delay: 0,
+          },
+        });
+      } else {
+        skipped++;
+      }
+    }
+  }
+
+  // Add all jobs in bulk
+  const results =
+    jobsToAdd.length > 0 ? await newsQueue.addBulk(jobsToAdd) : [];
+
+  return {
+    queued: results.length,
+    skipped,
+    jobs: results.map((job) => ({
+      id: job.id,
+      name: job.name,
+      data: job.data,
+    })),
   };
 }
 

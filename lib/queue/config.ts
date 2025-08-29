@@ -6,6 +6,7 @@ export const QUEUE_NAMES = {
   AI_SUMMARY: 'ai-summary',
   CREATOR_PROCESSING: 'creator-processing',
   BRIGHTDATA_PROCESSING: 'brightdata-processing',
+  AI_NEWS_GENERATION: 'ai-news-generation',
 } as const;
 
 // Job names
@@ -13,6 +14,7 @@ export const JOB_NAMES = {
   FETCH_CREATOR_CONTENT: 'fetch-creator-content',
   GENERATE_SUMMARIES: 'generate-summaries',
   PROCESS_SINGLE_CREATOR: 'process-single-creator',
+  GENERATE_AI_NEWS: 'generate-ai-news',
 } as const;
 
 // Redis connection configuration for BullMQ with optimizations
@@ -73,4 +75,5 @@ export const WORKER_CONCURRENCY = {
   AI_SUMMARY: 3, // Generate 3 summaries concurrently
   CREATOR_PROCESSING: 3, // Process 3 individual creators (reduced from 10 to prevent lock issues)
   BRIGHTDATA_PROCESSING: 2, // Process 2 BrightData snapshots concurrently
+  AI_NEWS_GENERATION: 3, // Process 3 news generation jobs concurrently
 };
