@@ -68,7 +68,7 @@ export class AINewsService {
               },
             ],
             input: prompt,
-            max_completion_tokens: 2000,
+            max_output_tokens: 2000,
           });
 
           // Extract items from the response
@@ -162,7 +162,7 @@ export class AINewsService {
           model: 'gpt-5',
           tools: [{ type: 'web_search' }],
           input: prompt,
-          max_completion_tokens: 2000,
+          max_output_tokens: 2000,
         });
 
         // Parse the response similar to above

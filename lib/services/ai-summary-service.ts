@@ -311,7 +311,8 @@ export class AISummaryService {
       completionParams.max_tokens = 60;
     }
 
-    const response = await this.openai.chat.completions.create(completionParams);
+    const response =
+      await this.openai.chat.completions.create(completionParams);
 
     const summary = response.choices[0]?.message?.content?.trim();
     if (!summary) {
@@ -377,7 +378,8 @@ export class AISummaryService {
       completionParams.max_tokens = 200;
     }
 
-    const response = await this.openai.chat.completions.create(completionParams);
+    const response =
+      await this.openai.chat.completions.create(completionParams);
 
     const summary = response.choices[0]?.message?.content?.trim();
     if (!summary) {
