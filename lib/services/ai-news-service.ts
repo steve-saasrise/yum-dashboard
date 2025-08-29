@@ -51,31 +51,34 @@ export class AINewsService {
     const topic = this.getCleanTopic(loungeName, loungeDescription);
 
     // Build the prompt for web search
-    const prompt = `Search for and summarize the top news and takeaways from the last 24 hours in the field of ${topic}. Focus on the most important and impactful news, including any major funding rounds, acquisitions, or IPOs. Return ONLY 6 bullet points, no introduction or summary text. Create exactly 6 bullet points with a total of 70 words maximum. Include source URLs.`;
+    const prompt = `Please create a short bulleted summary of the top news and takeaways from the last 24 hours in the field of ${topic}. Limit to six bullet points and a total of 70 words max. Return ONLY 6 bullet points, no introduction or summary text. This is meant to introduce a daily digest newsletter covering the top news from the last 24 hours in this sector. You are creating a quickly scannable morning must-know summary for professionals who work in the field. If there was a large round of funding or an exit/sale/IPO of a well known firm within the SaaS sector, be sure to mention that. Include source URLs when available.`;
 
     try {
       // Try to use the Responses API with web search
       if ((this.openai as any).responses?.create) {
         try {
-          console.log(
-            `Using gpt-4o-mini with web search for ${topic} news...`
-          );
+          console.log(`Using gpt-4o with web search for ${topic} news...`);
 
           const response = await (this.openai as any).responses.create({
-            model: 'gpt-4o-mini',
-            tools: [{ 
-              type: 'web_search',
-              search_context_size: 'medium'
-            }],
+            model: 'gpt-4o',
+            tools: [
+              {
+                type: 'web_search',
+                search_context_size: 'medium',
+              },
+            ],
             input: prompt,
           });
 
           // Extract items from the response
-          let items: NewsItem[] = [];
-          
+          const items: NewsItem[] = [];
+
           if (response.output_text) {
-            console.log(`Raw response for ${topic}:`, response.output_text.substring(0, 500));
-            
+            console.log(
+              `Raw response for ${topic}:`,
+              response.output_text.substring(0, 500)
+            );
+
             // Split by newlines and filter out empty lines and introduction text
             const lines = response.output_text
               .split('\n')
@@ -84,51 +87,57 @@ export class AINewsService {
                 // Skip empty lines
                 if (!line) return false;
                 // Skip introduction lines
-                if (line.toLowerCase().includes('here are') || 
-                    line.toLowerCase().includes('top news') ||
-                    line.toLowerCase().includes('developments from') ||
-                    line.toLowerCase().includes('latest news') ||
-                    line.toLowerCase().includes('summary of')) {
+                if (
+                  line.toLowerCase().includes('here are') ||
+                  line.toLowerCase().includes('top news') ||
+                  line.toLowerCase().includes('developments from') ||
+                  line.toLowerCase().includes('latest news') ||
+                  line.toLowerCase().includes('summary of')
+                ) {
                   return false;
                 }
                 return true;
               });
-            
+
             // Extract URLs from the text using regex
             const urlRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
-            
+
             for (let i = 0; i < Math.min(6, lines.length); i++) {
               const line = lines[i];
               // Remove bullet points, numbers, etc.
               let cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
-              
+
               // Extract URL if it's embedded in markdown format
               let sourceUrl: string | undefined;
               const urlMatch = urlRegex.exec(line);
               if (urlMatch) {
                 sourceUrl = urlMatch[2];
                 // Remove the markdown link from the text
-                cleanText = line.replace(urlRegex, '$1').replace(/^[\s•\-\*\d\.]+/, '').trim();
+                cleanText = line
+                  .replace(urlRegex, '$1')
+                  .replace(/^[\s•\-\*\d\.]+/, '')
+                  .trim();
               }
-              
+
               // Also check if there's a plain URL at the end
               const plainUrlMatch = cleanText.match(/\s+(https?:\/\/[^\s]+)$/);
               if (plainUrlMatch) {
                 sourceUrl = plainUrlMatch[1];
                 cleanText = cleanText.replace(plainUrlMatch[0], '').trim();
               }
-              
-              if (cleanText && cleanText.length > 10) { // Only add substantial text
-                items.push({ 
+
+              if (cleanText && cleanText.length > 10) {
+                // Only add substantial text
+                items.push({
                   text: cleanText,
-                  sourceUrl
+                  sourceUrl,
                 });
               }
-              
+
               // Reset regex lastIndex for next iteration
               urlRegex.lastIndex = 0;
             }
-            
+
             // Log what we extracted
             console.log(`Extracted ${items.length} items for ${topic}`);
           }
@@ -145,10 +154,8 @@ export class AINewsService {
       }
 
       // Alternative: Try gpt-4o with web search if available
-      console.log(
-        `Attempting GPT-4o with web search for ${topic} news...`
-      );
-      
+      console.log(`Attempting GPT-4o with web search for ${topic} news...`);
+
       try {
         const response = await (this.openai as any).responses.create({
           model: 'gpt-4o',
@@ -157,9 +164,11 @@ export class AINewsService {
         });
 
         // Parse the response similar to above
-        let items: NewsItem[] = [];
+        const items: NewsItem[] = [];
         if (response.output_text) {
-          const lines = response.output_text.split('\n').filter((line: string) => line.trim());
+          const lines = response.output_text
+            .split('\n')
+            .filter((line: string) => line.trim());
           for (const line of lines.slice(0, 6)) {
             const cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
             if (cleanText) {
