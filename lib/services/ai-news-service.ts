@@ -52,65 +52,66 @@ export class AINewsService {
       'i can do that',
       'do you want me to',
       'would you like',
-      'i\'ll help you',
+      "i'll help you",
       'let me',
       'i can help',
       'shall i',
       'should i',
-      '?'
+      '?',
     ];
-
-    // Check for proper news format
-    let hasProperFormat = 0;
-    const domainPattern = /\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/;
 
     for (const item of items) {
       const lowerText = item.text.toLowerCase();
-      
+
       // Check for conversational phrases
       for (const phrase of conversationalPhrases) {
         if (lowerText.includes(phrase)) {
-          console.log(`Invalid response detected - conversational phrase found: "${phrase}" in "${item.text}"`);
+          console.log(
+            `Invalid response detected - conversational phrase found: "${phrase}" in "${item.text}"`
+          );
           return false;
         }
       }
 
       // Check if the text looks like malformed JSON
-      if (item.text.startsWith('{') || item.text.includes('\\"') || item.text.includes('"summary"')) {
-        console.log(`Invalid response detected - malformed JSON in: "${item.text}"`);
-        return false;
-      }
-
-      // Check for duplicate URL formats (both full URL and domain)
-      const hasFullUrl = item.text.includes('(http://') || item.text.includes('(https://');
-      const hasDomainAtEnd = domainPattern.test(item.text);
-      if (hasFullUrl && hasDomainAtEnd) {
-        console.log(`Invalid response detected - duplicate URL formats in: "${item.text}"`);
+      if (
+        item.text.startsWith('{') ||
+        item.text.includes('\\"') ||
+        item.text.includes('"summary"')
+      ) {
+        console.log(
+          `Invalid response detected - malformed JSON in: "${item.text}"`
+        );
         return false;
       }
 
       // Full URLs should not be in the text itself
+      const hasFullUrl =
+        item.text.includes('http://') || item.text.includes('https://');
       if (hasFullUrl) {
-        console.log(`Invalid response detected - full URL in text instead of domain: "${item.text}"`);
+        console.log(
+          `Invalid response detected - full URL in text: "${item.text}"`
+        );
         return false;
       }
 
       // Each item should be at least 10 characters and not too long
-      if (item.text.length < 10 || item.text.length > 250) {
-        console.log(`Invalid response detected - inappropriate length: ${item.text.length} characters`);
+      if (item.text.length < 10 || item.text.length > 200) {
+        console.log(
+          `Invalid response detected - inappropriate length: ${item.text.length} characters`
+        );
         return false;
       }
 
-      // Check if it has the proper format with domain at the end
-      if (domainPattern.test(item.text) || item.sourceUrl) {
-        hasProperFormat++;
+      // Text should look like a news headline (contains some key indicators)
+      const hasNewsIndicators = 
+        /\b(raises?|secures?|closes?|announces?|launches?|acquires?|buys?|sells?|partners?|reports?|reveals?|shows?|introduces?|expands?|opens?|shuts?|files?|sues?|wins?|loses?|gains?|drops?|surges?|falls?|jumps?|climbs?|plunges?|soars?|\$|€|£|¥|billion|million|funding|round|series|ipo|merger|acquisition|deal)\b/i.test(item.text);
+      
+      if (!hasNewsIndicators && !item.text.includes(':')) {
+        console.log(
+          `Invalid response detected - doesn't look like news: "${item.text}"`
+        );
       }
-    }
-
-    // At least 4 out of 6 items should have proper format (domain or sourceUrl)
-    if (hasProperFormat < 4) {
-      console.log(`Invalid format detected - only ${hasProperFormat} items have proper news format with sources`);
-      return false;
     }
 
     return true;
@@ -136,20 +137,21 @@ export class AINewsService {
 
 Requirements:
 - Focus on US, European, and major global tech markets
-- Each bullet must be a factual news item with source
+- Each bullet must be a factual news item
 - NO conversational text or questions
 - NO introductions or explanations
-- Include source URLs in format: "News item text. (domain.com)"
+- NO domain names in the text itself
 - Maximum 70 words total across all bullets
 - Prioritize major funding rounds, exits, IPOs, and significant industry developments
+- Include source URLs when available but NOT in the text
 
-Output format:
-• [News item 1 with source]
-• [News item 2 with source]
-• [News item 3 with source]
-• [News item 4 with source]
-• [News item 5 with source]
-• [News item 6 with source]`;
+Output format (DO NOT include domains in the text):
+• Commonwealth Fusion raises $863M; Nvidia, Google join round
+• Framer secures $100M Series D at ~$2B valuation
+• Rain closes $58M Series B for stablecoin payments
+• VCs racing to back AI companies in summer deal frenzy
+• Thoma Bravo to buy Verint for ~$2B
+• SEC moves toward generic ETF listing rules`;
 
     try {
       // Try to use the Responses API with web search
@@ -267,6 +269,12 @@ Output format:
                 cleanText = cleanText.replace(plainUrlMatch[0], '').trim();
               }
 
+              // Remove domain references from the text (e.g., "(domain.com)" or ". (domain.com)")
+              cleanText = cleanText.replace(/\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g, '').trim();
+              
+              // Also remove any trailing periods followed by domains
+              cleanText = cleanText.replace(/\.\s*\([^)]+\)$/g, '').trim();
+
               // Try to find URL from annotations if not found inline
               if (!sourceUrl && annotations.length > 0) {
                 // Find annotation that might correspond to this line
@@ -301,18 +309,26 @@ Output format:
 
           // Validate the response
           if (!this.isValidNewsResponse(items)) {
-            console.log(`Invalid response for ${topic}, retry ${retryCount + 1}/${maxRetries}`);
-            
+            console.log(
+              `Invalid response for ${topic}, retry ${retryCount + 1}/${maxRetries}`
+            );
+
             if (retryCount < maxRetries) {
               // Wait before retrying (exponential backoff)
               const delay = Math.min(1000 * Math.pow(2, retryCount), 60000); // Max 1 minute
               console.log(`Waiting ${delay}ms before retry...`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-              
+              await new Promise((resolve) => setTimeout(resolve, delay));
+
               // Retry with incremented count
-              return this.generateNews(loungeName, loungeDescription, retryCount + 1);
+              return this.generateNews(
+                loungeName,
+                loungeDescription,
+                retryCount + 1
+              );
             } else {
-              throw new Error(`Failed to get valid news response after ${maxRetries} retries`);
+              throw new Error(
+                `Failed to get valid news response after ${maxRetries} retries`
+              );
             }
           }
 
@@ -363,7 +379,12 @@ Output format:
             .split('\n')
             .filter((line: string) => line.trim());
           for (const line of lines.slice(0, 6)) {
-            const cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
+            let cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
+            
+            // Remove domain references from the text
+            cleanText = cleanText.replace(/\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g, '').trim();
+            cleanText = cleanText.replace(/\.\s*\([^)]+\)$/g, '').trim();
+            
             if (cleanText) {
               items.push({ text: cleanText });
             }
@@ -372,18 +393,26 @@ Output format:
 
         // Validate the response
         if (!this.isValidNewsResponse(items)) {
-          console.log(`Invalid fallback response for ${topic}, retry ${retryCount + 1}/${maxRetries}`);
-          
+          console.log(
+            `Invalid fallback response for ${topic}, retry ${retryCount + 1}/${maxRetries}`
+          );
+
           if (retryCount < maxRetries) {
             // Wait before retrying
             const delay = Math.min(1000 * Math.pow(2, retryCount), 60000);
             console.log(`Waiting ${delay}ms before retry...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            
+            await new Promise((resolve) => setTimeout(resolve, delay));
+
             // Retry with incremented count
-            return this.generateNews(loungeName, loungeDescription, retryCount + 1);
+            return this.generateNews(
+              loungeName,
+              loungeDescription,
+              retryCount + 1
+            );
           } else {
-            throw new Error(`Failed to get valid news response after ${maxRetries} retries`);
+            throw new Error(
+              `Failed to get valid news response after ${maxRetries} retries`
+            );
           }
         }
 
