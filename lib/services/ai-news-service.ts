@@ -38,20 +38,118 @@ export class AINewsService {
   }
 
   /**
+   * Validate that the response contains actual news items, not a conversational response
+   */
+  private isValidNewsResponse(items: NewsItem[]): boolean {
+    // Must have at least 3 items to be considered valid
+    if (items.length < 3) {
+      console.log(`Invalid response: Only ${items.length} items found`);
+      return false;
+    }
+
+    // Check if any item looks like a conversational response
+    const conversationalPhrases = [
+      'i can do that',
+      'do you want me to',
+      'would you like',
+      'i\'ll help you',
+      'let me',
+      'i can help',
+      'shall i',
+      'should i',
+      '?'
+    ];
+
+    // Check for proper news format
+    let hasProperFormat = 0;
+    const domainPattern = /\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/;
+
+    for (const item of items) {
+      const lowerText = item.text.toLowerCase();
+      
+      // Check for conversational phrases
+      for (const phrase of conversationalPhrases) {
+        if (lowerText.includes(phrase)) {
+          console.log(`Invalid response detected - conversational phrase found: "${phrase}" in "${item.text}"`);
+          return false;
+        }
+      }
+
+      // Check if the text looks like malformed JSON
+      if (item.text.startsWith('{') || item.text.includes('\\"') || item.text.includes('"summary"')) {
+        console.log(`Invalid response detected - malformed JSON in: "${item.text}"`);
+        return false;
+      }
+
+      // Check for duplicate URL formats (both full URL and domain)
+      const hasFullUrl = item.text.includes('(http://') || item.text.includes('(https://');
+      const hasDomainAtEnd = domainPattern.test(item.text);
+      if (hasFullUrl && hasDomainAtEnd) {
+        console.log(`Invalid response detected - duplicate URL formats in: "${item.text}"`);
+        return false;
+      }
+
+      // Full URLs should not be in the text itself
+      if (hasFullUrl) {
+        console.log(`Invalid response detected - full URL in text instead of domain: "${item.text}"`);
+        return false;
+      }
+
+      // Each item should be at least 10 characters and not too long
+      if (item.text.length < 10 || item.text.length > 250) {
+        console.log(`Invalid response detected - inappropriate length: ${item.text.length} characters`);
+        return false;
+      }
+
+      // Check if it has the proper format with domain at the end
+      if (domainPattern.test(item.text) || item.sourceUrl) {
+        hasProperFormat++;
+      }
+    }
+
+    // At least 4 out of 6 items should have proper format (domain or sourceUrl)
+    if (hasProperFormat < 4) {
+      console.log(`Invalid format detected - only ${hasProperFormat} items have proper news format with sources`);
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Generate news summary for a specific topic using AI with web search
    */
   async generateNews(
     loungeName: string,
-    loungeDescription?: string
+    loungeDescription?: string,
+    retryCount: number = 0
   ): Promise<GenerateNewsResult> {
     if (!this.openai) {
       throw new Error('OpenAI API key not configured');
     }
 
+    const maxRetries = 3;
     const topic = this.getCleanTopic(loungeName, loungeDescription);
 
-    // Build the prompt for web search
-    const prompt = `Please create a short bulleted summary of the top news and takeaways from the last 24 hours in the field of ${topic}, focusing primarily on US, European, and major global tech markets (Silicon Valley, NYC, London, etc). Prioritize news from Western tech hubs and avoid regional/local news from India unless it involves major global companies. Limit to six bullet points and a total of 70 words max. Return ONLY 6 bullet points, no introduction or summary text. This is meant to introduce a daily digest newsletter covering the top news from the last 24 hours in this sector. You are creating a quickly scannable morning must-know summary for professionals who work in the field. If there was a large round of funding or an exit/sale/IPO of a well known firm within the SaaS sector, be sure to mention that. Include source URLs when available.`;
+    // Build the prompt for web search - more directive to avoid conversational responses
+    const prompt = `Generate exactly 6 bullet points summarizing the top news from the last 24 hours in ${topic}.
+
+Requirements:
+- Focus on US, European, and major global tech markets
+- Each bullet must be a factual news item with source
+- NO conversational text or questions
+- NO introductions or explanations
+- Include source URLs in format: "News item text. (domain.com)"
+- Maximum 70 words total across all bullets
+- Prioritize major funding rounds, exits, IPOs, and significant industry developments
+
+Output format:
+• [News item 1 with source]
+• [News item 2 with source]
+• [News item 3 with source]
+• [News item 4 with source]
+• [News item 5 with source]
+• [News item 6 with source]`;
 
     try {
       // Try to use the Responses API with web search
@@ -201,6 +299,23 @@ export class AINewsService {
             console.log(`Extracted ${items.length} items for ${topic}`);
           }
 
+          // Validate the response
+          if (!this.isValidNewsResponse(items)) {
+            console.log(`Invalid response for ${topic}, retry ${retryCount + 1}/${maxRetries}`);
+            
+            if (retryCount < maxRetries) {
+              // Wait before retrying (exponential backoff)
+              const delay = Math.min(1000 * Math.pow(2, retryCount), 60000); // Max 1 minute
+              console.log(`Waiting ${delay}ms before retry...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              
+              // Retry with incremented count
+              return this.generateNews(loungeName, loungeDescription, retryCount + 1);
+            } else {
+              throw new Error(`Failed to get valid news response after ${maxRetries} retries`);
+            }
+          }
+
           return {
             items: this.validateAndTrimItems(items),
             topic,
@@ -252,6 +367,23 @@ export class AINewsService {
             if (cleanText) {
               items.push({ text: cleanText });
             }
+          }
+        }
+
+        // Validate the response
+        if (!this.isValidNewsResponse(items)) {
+          console.log(`Invalid fallback response for ${topic}, retry ${retryCount + 1}/${maxRetries}`);
+          
+          if (retryCount < maxRetries) {
+            // Wait before retrying
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 60000);
+            console.log(`Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Retry with incremented count
+            return this.generateNews(loungeName, loungeDescription, retryCount + 1);
+          } else {
+            throw new Error(`Failed to get valid news response after ${maxRetries} retries`);
           }
         }
 
