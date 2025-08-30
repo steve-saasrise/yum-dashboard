@@ -6,7 +6,7 @@ export const maxDuration = 30;
 
 export async function GET(request: NextRequest) {
   console.log('[Queue Cleanup] Starting cleanup process');
-  
+
   // Verify cron secret
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
@@ -34,13 +34,15 @@ export async function GET(request: NextRequest) {
 
       // Get initial counts
       const beforeCounts = await queue.getJobCounts();
-      console.log(`[Queue Cleanup] ${queueName} - Before: failed=${beforeCounts.failed}, completed=${beforeCounts.completed}`);
+      console.log(
+        `[Queue Cleanup] ${queueName} - Before: failed=${beforeCounts.failed}, completed=${beforeCounts.completed}`
+      );
 
       // Use BullMQ's built-in clean method
-      // Clean failed jobs older than 24 hours (in milliseconds)
+      // Clean ALL failed jobs (grace period of 0 means immediate)
       const failedCleaned = await queue.clean(
-        24 * 60 * 60 * 1000, // grace period: 24 hours
-        500, // limit: max 500 jobs per clean
+        0, // grace period: 0 milliseconds (clean all failed jobs)
+        5000, // limit: max 5000 jobs per clean
         'failed'
       );
 
@@ -51,23 +53,25 @@ export async function GET(request: NextRequest) {
         'completed'
       );
 
-      // Also clean waiting jobs that are stuck (older than 24 hours)
+      // Clean ALL waiting jobs (these are stuck retries)
       const waitingCleaned = await queue.clean(
-        24 * 60 * 60 * 1000,
-        100,
+        0, // grace period: 0 milliseconds (clean all waiting jobs)
+        5000,
         'wait'
       );
 
-      // Clean delayed jobs that are stuck (older than 24 hours)
+      // Clean ALL delayed jobs (these are scheduled retries)
       const delayedCleaned = await queue.clean(
-        24 * 60 * 60 * 1000,
-        100,
+        0, // grace period: 0 milliseconds (clean all delayed jobs)
+        5000,
         'delayed'
       );
 
       // Get final counts
       const afterCounts = await queue.getJobCounts();
-      console.log(`[Queue Cleanup] ${queueName} - After: failed=${afterCounts.failed}, completed=${afterCounts.completed}`);
+      console.log(
+        `[Queue Cleanup] ${queueName} - After: failed=${afterCounts.failed}, completed=${afterCounts.completed}`
+      );
 
       results[queueName] = {
         cleaned: {
@@ -82,13 +86,16 @@ export async function GET(request: NextRequest) {
 
       await queue.close();
     } catch (error) {
-      console.error(`[Queue Cleanup] Error cleaning queue ${queueName}:`, error);
+      console.error(
+        `[Queue Cleanup] Error cleaning queue ${queueName}:`,
+        error
+      );
       results[queueName] = { error: String(error) };
     }
   }
 
   console.log('[Queue Cleanup] Cleanup completed', results);
-  
+
   return NextResponse.json({
     message: 'Queue cleanup completed',
     results,
