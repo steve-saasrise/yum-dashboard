@@ -59,7 +59,7 @@ export const DEFAULT_JOB_OPTIONS = {
     count: 100, // Keep last 100 failed jobs for debugging
     age: 86400, // Remove failed jobs older than 24 hours
   },
-  attempts: 3, // Standard retry count
+  attempts: 1, // DISABLED RETRIES - fail immediately to prevent infinite loops
   backoff: {
     type: 'exponential' as const,
     delay: 5000, // Increased backoff delay for API rate limits
