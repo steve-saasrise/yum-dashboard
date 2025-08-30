@@ -104,9 +104,11 @@ export class AINewsService {
       }
 
       // Text should look like a news headline (contains some key indicators)
-      const hasNewsIndicators = 
-        /\b(raises?|secures?|closes?|announces?|launches?|acquires?|buys?|sells?|partners?|reports?|reveals?|shows?|introduces?|expands?|opens?|shuts?|files?|sues?|wins?|loses?|gains?|drops?|surges?|falls?|jumps?|climbs?|plunges?|soars?|\$|€|£|¥|billion|million|funding|round|series|ipo|merger|acquisition|deal)\b/i.test(item.text);
-      
+      const hasNewsIndicators =
+        /\b(raises?|secures?|closes?|announces?|launches?|acquires?|buys?|sells?|partners?|reports?|reveals?|shows?|introduces?|expands?|opens?|shuts?|files?|sues?|wins?|loses?|gains?|drops?|surges?|falls?|jumps?|climbs?|plunges?|soars?|\$|€|£|¥|billion|million|funding|round|series|ipo|merger|acquisition|deal)\b/i.test(
+          item.text
+        );
+
       if (!hasNewsIndicators && !item.text.includes(':')) {
         console.log(
           `Invalid response detected - doesn't look like news: "${item.text}"`
@@ -270,8 +272,13 @@ Output format (DO NOT include domains in the text):
               }
 
               // Remove domain references from the text (e.g., "(domain.com)" or ". (domain.com)")
-              cleanText = cleanText.replace(/\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g, '').trim();
-              
+              cleanText = cleanText
+                .replace(
+                  /\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g,
+                  ''
+                )
+                .trim();
+
               // Also remove any trailing periods followed by domains
               cleanText = cleanText.replace(/\.\s*\([^)]+\)$/g, '').trim();
 
@@ -380,11 +387,16 @@ Output format (DO NOT include domains in the text):
             .filter((line: string) => line.trim());
           for (const line of lines.slice(0, 6)) {
             let cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
-            
+
             // Remove domain references from the text
-            cleanText = cleanText.replace(/\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g, '').trim();
+            cleanText = cleanText
+              .replace(
+                /\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g,
+                ''
+              )
+              .trim();
             cleanText = cleanText.replace(/\.\s*\([^)]+\)$/g, '').trim();
-            
+
             if (cleanText) {
               items.push({ text: cleanText });
             }
