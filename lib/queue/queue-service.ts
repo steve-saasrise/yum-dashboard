@@ -46,7 +46,8 @@ export function getQueues() {
 
 // Add creators to processing queue with deduplication
 export async function queueCreatorsForProcessing(
-  creators: Array<{ id: string; display_name: string }>
+  creators: Array<{ id: string; display_name: string }>,
+  options?: { skipLinkedIn?: boolean }
 ) {
   const queues = getQueues();
   const creatorQueue = queues[QUEUE_NAMES.CREATOR_PROCESSING];
@@ -68,6 +69,7 @@ export async function queueCreatorsForProcessing(
           creatorId: creator.id,
           creatorName: creator.display_name,
           timestamp: new Date().toISOString(),
+          skipLinkedIn: options?.skipLinkedIn || false,
         },
         opts: {
           jobId, // Set job ID for deduplication
@@ -86,6 +88,7 @@ export async function queueCreatorsForProcessing(
             creatorId: creator.id,
             creatorName: creator.display_name,
             timestamp: new Date().toISOString(),
+            skipLinkedIn: options?.skipLinkedIn || false,
           },
           opts: {
             jobId, // Set job ID for deduplication

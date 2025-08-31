@@ -47,7 +47,7 @@ async function processCreator(job: Job) {
   // Initialize services on first use
   initializeServices();
 
-  const { creatorId, creatorName } = job.data;
+  const { creatorId, creatorName, skipLinkedIn = false } = job.data;
   const stats = {
     processed: 0,
     new: 0,
@@ -182,6 +182,14 @@ async function processCreator(job: Job) {
             break;
 
           case 'linkedin':
+            // Skip LinkedIn if flag is set (when called from queue-creators)
+            if (skipLinkedIn) {
+              console.log(
+                `[LinkedIn] Skipping LinkedIn for ${creatorName} (skipLinkedIn flag set)`
+              );
+              break;
+            }
+
             // Use BrightData for LinkedIn - now with two-phase approach
             if (brightDataFetcher) {
               console.log(

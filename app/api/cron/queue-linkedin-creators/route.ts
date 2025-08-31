@@ -56,11 +56,13 @@ export async function GET(request: NextRequest) {
     // Get all active creators with LinkedIn URLs only
     const { data: linkedinCreators, error: creatorsError } = await supabase
       .from('creators')
-      .select(`
+      .select(
+        `
         id, 
         display_name,
         creator_urls!inner(platform)
-      `)
+      `
+      )
       .eq('status', 'active')
       .eq('creator_urls.platform', 'linkedin')
       .order('updated_at', { ascending: true }); // Process oldest first
@@ -86,7 +88,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`[LinkedIn Cron] Found ${uniqueCreators.length} LinkedIn creators to process`);
+    console.log(
+      `[LinkedIn Cron] Found ${uniqueCreators.length} LinkedIn creators to process`
+    );
 
     // Queue all LinkedIn creators for processing
     const queueResult = await queueCreatorsForProcessing(uniqueCreators);

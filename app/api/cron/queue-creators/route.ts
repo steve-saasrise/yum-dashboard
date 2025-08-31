@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
     // Find creators that have at least one non-LinkedIn platform
     const creatorPlatforms = new Map<string, Set<string>>();
-    linkedinOnlyUrls?.forEach(url => {
+    linkedinOnlyUrls?.forEach((url) => {
       if (!creatorPlatforms.has(url.creator_id)) {
         creatorPlatforms.set(url.creator_id, new Set());
       }
@@ -89,10 +89,11 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter out creators that ONLY have LinkedIn
-    const creators = allCreators?.filter(creator => {
-      const platforms = creatorPlatforms.get(creator.id);
-      return platforms && Array.from(platforms).some(p => p !== 'linkedin');
-    }) || [];
+    const creators =
+      allCreators?.filter((creator) => {
+        const platforms = creatorPlatforms.get(creator.id);
+        return platforms && Array.from(platforms).some((p) => p !== 'linkedin');
+      }) || [];
 
     if (!creators || creators.length === 0) {
       return NextResponse.json({
@@ -101,20 +102,22 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Queue all creators for processing
-    const queueResult = await queueCreatorsForProcessing(creators);
+    // Queue all creators for processing, skipping LinkedIn
+    const queueResult = await queueCreatorsForProcessing(creators, {
+      skipLinkedIn: true,
+    });
 
     // Get current queue statistics
     const queueStats = await getQueueStats();
 
     return NextResponse.json({
       success: true,
-      message: `Queued ${queueResult.queued} non-LinkedIn creators for processing (${queueResult.skipped} skipped)`,
+      message: `Queued ${queueResult.queued} creators for non-LinkedIn processing (${queueResult.skipped} skipped)`,
       stats: {
         creatorsQueued: queueResult.queued,
         creatorsSkipped: queueResult.skipped,
         totalCreators: creators.length,
-        platforms: 'RSS, YouTube, Twitter, Threads (excluding LinkedIn)',
+        platforms: 'RSS, YouTube, Twitter, Threads (LinkedIn skipped)',
         queueStatus: queueStats,
       },
       timestamp: new Date().toISOString(),
