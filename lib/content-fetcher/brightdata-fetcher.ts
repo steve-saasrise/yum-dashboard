@@ -302,8 +302,8 @@ export class BrightDataFetcher {
     // Note: limit is NOT supported for profile_url endpoint
     // Default to last 48 hours if no date range specified
     const now = new Date();
-    const twoDaysAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000));
-    
+    const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+
     const body = [
       {
         url: profileUrl,
@@ -643,7 +643,7 @@ export class BrightDataFetcher {
 
     // Default to last 48 hours if no date range specified
     const now = new Date();
-    const twoDaysAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+    const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
     const body = profileUrls.map((url) => ({
       url,

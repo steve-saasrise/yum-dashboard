@@ -33,11 +33,18 @@ async function stopAllBrightDataRetries() {
 
     // Step 2: Remove ALL jobs from the queue
     console.log('🗑️  Removing all jobs from queue...');
-    
+
     // Remove all job types
-    const jobTypes = ['completed', 'failed', 'delayed', 'active', 'wait', 'paused'];
+    const jobTypes = [
+      'completed',
+      'failed',
+      'delayed',
+      'active',
+      'wait',
+      'paused',
+    ];
     let totalRemoved = 0;
-    
+
     for (const type of jobTypes) {
       const removed = await queue.clean(0, 10000, type as any);
       if (removed.length > 0) {
@@ -52,7 +59,7 @@ async function stopAllBrightDataRetries() {
 
     // Step 3: Update database - mark all non-processed snapshots as failed
     console.log('📝 Updating database snapshots...');
-    
+
     // Get count of affected snapshots
     const { count: pendingCount } = await supabase
       .from('brightdata_snapshots')
@@ -82,7 +89,7 @@ async function stopAllBrightDataRetries() {
     console.log('📊 Final queue status:');
     console.log(finalCounts);
 
-    if (Object.values(finalCounts).every(v => v === 0)) {
+    if (Object.values(finalCounts).every((v) => v === 0)) {
       console.log('\n✅ SUCCESS: All BrightData retries have been stopped!');
       console.log('📌 Next steps:');
       console.log('  1. Fix your BrightData account issue');
@@ -90,7 +97,6 @@ async function stopAllBrightDataRetries() {
     } else {
       console.log('\n⚠️  WARNING: Some jobs may still be in the queue');
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {

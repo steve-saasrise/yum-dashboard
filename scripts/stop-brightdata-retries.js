@@ -13,10 +13,13 @@ async function stopAllBrightDataRetries() {
   console.log('🛑 Stopping all BrightData retries...\n');
 
   // Initialize Redis connection
-  const connection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-    maxRetriesPerRequest: null,
-    enableOfflineQueue: false,
-  });
+  const connection = new Redis(
+    process.env.REDIS_URL || 'redis://localhost:6379',
+    {
+      maxRetriesPerRequest: null,
+      enableOfflineQueue: false,
+    }
+  );
 
   // Initialize queue
   const queue = new Queue(QUEUE_NAME, { connection });
@@ -41,7 +44,7 @@ async function stopAllBrightDataRetries() {
 
     // Step 3: Update database - mark all non-processed snapshots as failed
     console.log('📝 Updating database snapshots...');
-    
+
     // Get count of affected snapshots from Aug 28
     const { count: pendingCount } = await supabase
       .from('brightdata_snapshots')
@@ -73,15 +76,16 @@ async function stopAllBrightDataRetries() {
     console.log('📊 Final queue status:');
     console.log(finalCounts);
 
-    if (Object.values(finalCounts).every(v => v === 0)) {
+    if (Object.values(finalCounts).every((v) => v === 0)) {
       console.log('\n✅ SUCCESS: All BrightData retries have been stopped!');
       console.log('📌 Next steps:');
       console.log('  1. Fix your BrightData account issue');
-      console.log('  2. New snapshots from Aug 30 will be processed when cron runs');
+      console.log(
+        '  2. New snapshots from Aug 30 will be processed when cron runs'
+      );
     } else {
       console.log('\n⚠️  WARNING: Some jobs may still be in the queue');
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {

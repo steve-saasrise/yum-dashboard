@@ -53,74 +53,60 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get all active creators
-    const { data: allCreators, error: creatorsError } = await supabase
+    // Get all active creators with LinkedIn URLs only
+    const { data: linkedinCreators, error: creatorsError } = await supabase
       .from('creators')
-      .select('id, display_name')
+      .select(`
+        id, 
+        display_name,
+        creator_urls!inner(platform)
+      `)
       .eq('status', 'active')
+      .eq('creator_urls.platform', 'linkedin')
       .order('updated_at', { ascending: true }); // Process oldest first
 
     if (creatorsError) {
       return NextResponse.json(
-        { error: 'Failed to fetch creators', details: creatorsError },
+        { error: 'Failed to fetch LinkedIn creators', details: creatorsError },
         { status: 500 }
       );
     }
 
-    // Get creators that ONLY have LinkedIn URLs (to exclude them)
-    const { data: linkedinOnlyUrls, error: urlsError } = await supabase
-      .from('creator_urls')
-      .select('creator_id, platform');
+    // Get unique creator IDs (since a creator might have multiple LinkedIn URLs)
+    const uniqueCreators = Array.from(
+      new Map(
+        linkedinCreators?.map((creator) => [creator.id, creator]) || []
+      ).values()
+    );
 
-    if (urlsError) {
-      return NextResponse.json(
-        { error: 'Failed to fetch creator URLs', details: urlsError },
-        { status: 500 }
-      );
-    }
-
-    // Find creators that have at least one non-LinkedIn platform
-    const creatorPlatforms = new Map<string, Set<string>>();
-    linkedinOnlyUrls?.forEach(url => {
-      if (!creatorPlatforms.has(url.creator_id)) {
-        creatorPlatforms.set(url.creator_id, new Set());
-      }
-      creatorPlatforms.get(url.creator_id)?.add(url.platform);
-    });
-
-    // Filter out creators that ONLY have LinkedIn
-    const creators = allCreators?.filter(creator => {
-      const platforms = creatorPlatforms.get(creator.id);
-      return platforms && Array.from(platforms).some(p => p !== 'linkedin');
-    }) || [];
-
-    if (!creators || creators.length === 0) {
+    if (!uniqueCreators || uniqueCreators.length === 0) {
       return NextResponse.json({
-        message: 'No active creators with non-LinkedIn platforms found',
+        message: 'No active LinkedIn creators found',
         queued: 0,
       });
     }
 
-    // Queue all creators for processing
-    const queueResult = await queueCreatorsForProcessing(creators);
+    console.log(`[LinkedIn Cron] Found ${uniqueCreators.length} LinkedIn creators to process`);
+
+    // Queue all LinkedIn creators for processing
+    const queueResult = await queueCreatorsForProcessing(uniqueCreators);
 
     // Get current queue statistics
     const queueStats = await getQueueStats();
 
     return NextResponse.json({
       success: true,
-      message: `Queued ${queueResult.queued} non-LinkedIn creators for processing (${queueResult.skipped} skipped)`,
+      message: `Queued ${queueResult.queued} LinkedIn creators for processing (${queueResult.skipped} skipped)`,
       stats: {
         creatorsQueued: queueResult.queued,
         creatorsSkipped: queueResult.skipped,
-        totalCreators: creators.length,
-        platforms: 'RSS, YouTube, Twitter, Threads (excluding LinkedIn)',
+        totalLinkedInCreators: uniqueCreators.length,
         queueStatus: queueStats,
       },
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Cron queue error:', error);
+    console.error('LinkedIn cron queue error:', error);
     return NextResponse.json(
       {
         error: 'Internal server error',
