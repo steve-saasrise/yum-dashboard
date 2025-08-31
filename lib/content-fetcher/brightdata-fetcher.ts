@@ -300,11 +300,15 @@ export class BrightDataFetcher {
 
     // Build the request body - profile_url endpoint only accepts url, start_date, and end_date
     // Note: limit is NOT supported for profile_url endpoint
+    // Default to last 48 hours if no date range specified
+    const now = new Date();
+    const twoDaysAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+    
     const body = [
       {
         url: profileUrl,
-        ...(options?.startDate && { start_date: options.startDate }),
-        ...(options?.endDate && { end_date: options.endDate }),
+        start_date: options?.startDate || twoDaysAgo.toISOString(),
+        end_date: options?.endDate || now.toISOString(),
       },
     ];
 
@@ -315,6 +319,7 @@ export class BrightDataFetcher {
       include_errors: 'true',
       type: 'discover_new', // Required for discovery phase
       discover_by: 'profile_url', // Required to accept profile URLs instead of post URLs
+      limit_per_input: '5', // Limit to 5 posts per profile (enough for 48 hours)
     });
 
     const fullUrl = `${endpoint}?${queryParams.toString()}`;
@@ -636,10 +641,14 @@ export class BrightDataFetcher {
     // BrightData can handle multiple URLs in a single snapshot
     const endpoint = `${this.baseUrl}/datasets/v3/trigger`;
 
+    // Default to last 48 hours if no date range specified
+    const now = new Date();
+    const twoDaysAgo = new Date(now.getTime() - (48 * 60 * 60 * 1000));
+
     const body = profileUrls.map((url) => ({
       url,
-      ...(options?.startDate && { start_date: options.startDate }),
-      ...(options?.endDate && { end_date: options.endDate }),
+      start_date: options?.startDate || twoDaysAgo.toISOString(),
+      end_date: options?.endDate || now.toISOString(),
     }));
 
     const queryParams = new URLSearchParams({
@@ -647,6 +656,7 @@ export class BrightDataFetcher {
       include_errors: 'true',
       type: 'discover_new',
       discover_by: 'profile_url',
+      limit_per_input: '5', // Limit to 5 posts per profile
     });
 
     const fullUrl = `${endpoint}?${queryParams.toString()}`;
