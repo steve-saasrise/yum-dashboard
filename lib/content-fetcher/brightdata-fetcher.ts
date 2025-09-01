@@ -442,6 +442,14 @@ export class BrightDataFetcher {
     });
 
     if (!response.ok) {
+      // Handle 400 errors (empty snapshots) gracefully
+      if (response.status === 400) {
+        console.log(
+          `[BrightDataFetcher] Snapshot ${snapshotId} returned 400 - likely empty/no posts`
+        );
+        return [];
+      }
+      
       const errorText = await response.text();
       console.error(
         `[BrightDataFetcher] Failed to get data: ${response.status} - ${errorText.substring(0, 500)}`
