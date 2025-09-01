@@ -64,9 +64,18 @@ interface DailyDigestEmailProps {
   unsubscribeUrl: string;
   date: string;
   aiNewsSummary?: {
+    bigStory?: {
+      title: string;
+      summary: string;
+      source?: string;
+      sourceUrl?: string;
+      imageUrl?: string;
+    };
     bullets: Array<{
       text: string;
       sourceUrl?: string;
+      imageUrl?: string;
+      source?: string;
     }>;
     generatedAt: string;
   };
@@ -151,39 +160,118 @@ export const DailyDigestEmail = ({
             <Hr style={divider} />
           </Section>
 
-          {/* AI News Summary */}
+          {/* Big Story of the Day */}
+          {aiNewsSummary?.bigStory && (
+            <>
+              <Section style={bigStorySection}>
+                <table style={newsSummaryHeader}>
+                  <tr>
+                    <td style={{ paddingRight: '8px' }}>
+                      <Text style={{ fontSize: '16px', margin: 0 }}>⭐</Text>
+                    </td>
+                    <td>
+                      <Heading as="h3" style={bigStoryTitle}>
+                        Big Story of the Day
+                      </Heading>
+                    </td>
+                  </tr>
+                </table>
+                {aiNewsSummary.bigStory.imageUrl && (
+                  <Img
+                    src={aiNewsSummary.bigStory.imageUrl}
+                    width="560"
+                    height="280"
+                    alt={aiNewsSummary.bigStory.title}
+                    style={bigStoryImage}
+                  />
+                )}
+                <Heading as="h3" style={bigStoryHeadline}>
+                  {aiNewsSummary.bigStory.title}
+                </Heading>
+                <Text style={bigStorySummaryText}>
+                  {aiNewsSummary.bigStory.summary}
+                  {aiNewsSummary.bigStory.source && (
+                    <>
+                      {' '}
+                      <span style={{ fontStyle: 'italic', color: '#6b7280' }}>
+                        Source: {aiNewsSummary.bigStory.source}
+                      </span>
+                    </>
+                  )}
+                </Text>
+                {aiNewsSummary.bigStory.sourceUrl && (
+                  <Link
+                    href={aiNewsSummary.bigStory.sourceUrl}
+                    style={summaryLink}
+                  >
+                    Read more →
+                  </Link>
+                )}
+              </Section>
+              <Section style={{ padding: '0 10px' }}>
+                <Hr style={divider} />
+              </Section>
+            </>
+          )}
+
+          {/* AI News Summary with Images */}
           {aiNewsSummary && aiNewsSummary.bullets.length > 0 && (
             <>
               <Section style={newsSummarySection}>
                 <table style={newsSummaryHeader}>
                   <tr>
                     <td style={{ paddingRight: '8px' }}>
-                      <Text style={{ fontSize: '16px', margin: 0 }}>✨</Text>
+                      <Text style={{ fontSize: '16px', margin: 0 }}>🚀</Text>
                     </td>
                     <td>
                       <Heading as="h3" style={newsSummaryTitle}>
-                        Today's Top News
+                        Today's SaaS Headlines
                       </Heading>
                     </td>
                   </tr>
                 </table>
-                <ul style={summaryBulletList}>
-                  {aiNewsSummary.bullets.map((bullet, index) => (
-                    <li key={index} style={summaryBulletItem}>
-                      <Text style={summaryBulletText}>
-                        {bullet.text}
-                        {bullet.sourceUrl && (
-                          <>
-                            {' '}
-                            <Link href={bullet.sourceUrl} style={summaryLink}>
-                              →
+                <div style={{ marginTop: '16px' }}>
+                  {aiNewsSummary.bullets.slice(0, 5).map((bullet, index) => (
+                    <div key={index} style={newsItemContainer}>
+                      {bullet.imageUrl && (
+                        <div style={newsItemImageContainer}>
+                          <Img
+                            src={bullet.imageUrl}
+                            width="120"
+                            height="80"
+                            alt=""
+                            style={newsItemImage}
+                          />
+                        </div>
+                      )}
+                      <div style={newsItemContent}>
+                        <Text style={newsItemNumber}>{index + 1}.</Text>
+                        <Text style={newsItemText}>
+                          {bullet.sourceUrl ? (
+                            <Link href={bullet.sourceUrl} style={newsItemLink}>
+                              {bullet.text}
                             </Link>
-                          </>
-                        )}
-                      </Text>
-                    </li>
+                          ) : (
+                            bullet.text
+                          )}
+                        </Text>
+                        <Text style={newsItemDescription}>
+                          {bullet.source && (
+                            <span
+                              style={{
+                                fontSize: '12px',
+                                color: '#9ca3af',
+                                fontStyle: 'italic',
+                              }}
+                            >
+                              {bullet.source}
+                            </span>
+                          )}
+                        </Text>
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </Section>
               <Section style={{ padding: '0 10px' }}>
                 <Hr style={divider} />
@@ -383,6 +471,52 @@ DailyDigestEmail.PreviewProps = {
   }),
   recipientEmail: 'user@example.com',
   unsubscribeUrl: 'https://lounge.ai/settings/account',
+  aiNewsSummary: {
+    bigStory: {
+      title: 'Salesforce announces new AI-powered CRM features',
+      summary:
+        'Salesforce unveils Einstein GPT integration for advanced automation and customer relationship management. Why it matters: Salesforce is doubling down on AI to defend CRM dominance. Competitors like HubSpot and Zoho will need to move faster or risk losing enterprise clients.',
+      source: 'TechCrunch',
+      sourceUrl: 'https://example.com/salesforce-ai',
+      imageUrl:
+        'https://via.placeholder.com/560x280/e0e7ff/4338ca?text=Salesforce+AI',
+    },
+    bullets: [
+      {
+        text: 'Notion launches AI-powered workspace automation',
+        sourceUrl: 'https://example.com/notion',
+        source: 'The Verge',
+        imageUrl:
+          'https://via.placeholder.com/120x80/ddd6fe/5b21b6?text=Notion',
+      },
+      {
+        text: 'Microsoft Teams Premium adds advanced meeting analytics',
+        sourceUrl: 'https://example.com/teams',
+        source: 'The Verge',
+        imageUrl: 'https://via.placeholder.com/120x80/dbeafe/3730a3?text=Teams',
+      },
+      {
+        text: 'Slack introduces workflow automation for enterprise customers',
+        sourceUrl: 'https://example.com/slack',
+        source: 'Forbes',
+        imageUrl: 'https://via.placeholder.com/120x80/e0e7ff/4338ca?text=Slack',
+      },
+      {
+        text: 'Zoom launches new developer platform for SaaS integrations',
+        sourceUrl: 'https://example.com/zoom',
+        source: 'VentureBeat',
+        imageUrl: 'https://via.placeholder.com/120x80/ede9fe/6d28d9?text=Zoom',
+      },
+      {
+        text: 'Stripe unveils embedded finance tools for SaaS platforms',
+        sourceUrl: 'https://example.com/stripe',
+        source: 'TechCrunch',
+        imageUrl:
+          'https://via.placeholder.com/120x80/f3e8ff/7c3aed?text=Stripe',
+      },
+    ],
+    generatedAt: new Date().toISOString(),
+  },
   content: [
     {
       id: '1',
@@ -753,4 +887,92 @@ const engagementMetrics = {
   marginTop: '8px',
   marginBottom: '0',
   display: 'block',
+};
+
+// Big Story styles
+const bigStorySection = {
+  padding: '20px 10px',
+  backgroundColor: '#e0e7ff',
+  borderRadius: '8px',
+  marginBottom: '20px',
+};
+
+const bigStoryTitle = {
+  color: '#1a1a1a',
+  fontSize: '18px',
+  fontWeight: '600',
+  margin: '0',
+};
+
+const bigStoryImage = {
+  width: '100%',
+  height: 'auto',
+  borderRadius: '6px',
+  marginTop: '16px',
+  marginBottom: '16px',
+  objectFit: 'cover' as const,
+};
+
+const bigStoryHeadline = {
+  color: '#1a1a1a',
+  fontSize: '20px',
+  fontWeight: '600',
+  lineHeight: '1.3',
+  margin: '12px 0',
+};
+
+const bigStorySummaryText = {
+  color: '#525f7f',
+  fontSize: '14px',
+  lineHeight: '1.5',
+  margin: '12px 0',
+};
+
+// News item styles
+const newsItemContainer = {
+  display: 'flex',
+  marginBottom: '20px',
+  alignItems: 'flex-start',
+};
+
+const newsItemImageContainer = {
+  flexShrink: 0,
+  marginRight: '16px',
+};
+
+const newsItemImage = {
+  borderRadius: '6px',
+  objectFit: 'cover' as const,
+  display: 'block',
+};
+
+const newsItemContent = {
+  flex: 1,
+};
+
+const newsItemNumber = {
+  color: '#6b7280',
+  fontSize: '14px',
+  fontWeight: '600',
+  marginRight: '8px',
+  display: 'inline',
+};
+
+const newsItemText = {
+  color: '#4a5568',
+  fontSize: '14px',
+  lineHeight: '1.5',
+  margin: '0',
+  display: 'inline',
+};
+
+const newsItemLink = {
+  color: '#2563eb',
+  textDecoration: 'none',
+  fontWeight: '500',
+};
+
+const newsItemDescription = {
+  marginTop: '4px',
+  marginBottom: '0',
 };

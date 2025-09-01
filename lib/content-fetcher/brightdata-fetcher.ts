@@ -449,7 +449,7 @@ export class BrightDataFetcher {
         );
         return [];
       }
-      
+
       const errorText = await response.text();
       console.error(
         `[BrightDataFetcher] Failed to get data: ${response.status} - ${errorText.substring(0, 500)}`

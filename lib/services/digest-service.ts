@@ -312,7 +312,19 @@ export class DigestService {
       // Get AI-generated news summary for this lounge
       let aiNewsSummary:
         | {
-            bullets: { text: string; sourceUrl?: string }[];
+            bigStory?: {
+              title: string;
+              summary: string;
+              source?: string;
+              sourceUrl?: string;
+              imageUrl?: string;
+            };
+            bullets: Array<{
+              text: string;
+              sourceUrl?: string;
+              imageUrl?: string;
+              source?: string;
+            }>;
             generatedAt: string;
           }
         | undefined = undefined;
@@ -320,7 +332,13 @@ export class DigestService {
         const summaryService = new NewsSummaryService();
         const summary = await summaryService.getLatestSummary(lounge.id);
         if (summary) {
-          aiNewsSummary = summary;
+          // Enhance with images for email
+          const enhanced =
+            await summaryService.enhanceSummaryWithImages(summary);
+          aiNewsSummary = {
+            ...enhanced,
+            generatedAt: summary.generatedAt,
+          };
         }
       } catch (summaryError) {
         console.error('Error fetching AI news summary:', summaryError);

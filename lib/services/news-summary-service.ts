@@ -1,10 +1,21 @@
 import { OpenAI } from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import type { Database, Json } from '@/types/database.types';
+import { OpenGraphService } from './opengraph-service';
 
 interface BulletPoint {
   text: string;
   sourceUrl?: string;
+  imageUrl?: string;
+  source?: string;
+}
+
+interface BigStory {
+  title: string;
+  summary: string;
+  source?: string;
+  sourceUrl?: string;
+  imageUrl?: string;
 }
 
 interface NewsContent {
@@ -18,6 +29,7 @@ interface NewsContent {
 }
 
 interface GenerateSummaryResult {
+  bigStory?: BigStory;
   bullets: BulletPoint[];
   topic: string;
   loungeId?: string;
@@ -87,18 +99,37 @@ export class NewsSummaryService {
       .join('\n');
 
     // Build the prompt
-    const prompt = `Please create a short bulleted summary of the top news and takeaways from the last 24 hours in the field of ${topic}. Limit to six bullet points and a total of 70 words max. This is meant to introduce a daily digest newsletter covering the top news from the last 24 hours in this sector. You are creating a quickly scannable morning must-know summary for professionals who work in the field. If there was a large round of funding or an exit/sale/IPO of a well known firm within the SaaS sector, be sure to mention that.
+    const prompt = `Please create a news digest summary for ${topic} with two sections:
+
+1. BIG STORY OF THE DAY: Select the single most important/impactful news item and provide:
+   - title: The headline (keep original if good, or write a better one)
+   - summary: 2-3 sentence summary explaining what happened and why it matters
+   - source: The source publication name
+   - sourceUrl: The URL of the article
+
+2. TODAY'S HEADLINES: Create 5 bullet points of other important news. For each:
+   - text: Brief headline/summary (10-15 words max)
+   - sourceUrl: The URL of the article
+   - source: The publication name
 
 Context - Recent news items from the last 24 hours:
 ${newsContext}
 
-Format your response as a JSON array of bullet points, where each bullet has "text" and optionally "sourceUrl" if you reference a specific news item from the context. Example:
-[
-  {"text": "Major funding round announced...", "sourceUrl": "https://..."},
-  {"text": "Industry trend emerging...", "sourceUrl": "https://..."}
-]
+Format your response as a JSON object:
+{
+  "bigStory": {
+    "title": "...",
+    "summary": "...",
+    "source": "...",
+    "sourceUrl": "..."
+  },
+  "bullets": [
+    {"text": "...", "sourceUrl": "...", "source": "..."},
+    ...
+  ]
+}
 
-Remember: Maximum 6 bullets, 70 words total across all bullets. Focus on the most important and impactful news.`;
+Focus on the most important and impactful news for ${topic} professionals.`;
 
     try {
       const completion = await this.openai.chat.completions.create({
@@ -127,26 +158,27 @@ Remember: Maximum 6 bullets, 70 words total across all bullets. Focus on the mos
       }
 
       // Parse the JSON response
+      let bigStory: BigStory | undefined;
       let bullets: BulletPoint[] = [];
+
       try {
         const parsed = JSON.parse(response);
-        // Handle both array and object with array property
-        bullets = Array.isArray(parsed)
-          ? parsed
-          : parsed.bullets || parsed.summary || [];
+        bigStory = parsed.bigStory;
+        bullets = parsed.bullets || [];
       } catch (parseError) {
         console.error('Error parsing OpenAI response:', parseError);
         // Fallback: try to extract bullet points from text
         bullets = this.extractBulletsFromText(response);
       }
 
-      // Validate bullet points
-      bullets = this.validateAndTrimBullets(bullets);
+      // Limit bullets to 5 for the email format
+      bullets = bullets.slice(0, 5);
 
       // Get token usage
       const tokenCount = completion.usage?.total_tokens || 0;
 
       return {
+        bigStory,
         bullets,
         topic,
         loungeId,
@@ -229,7 +261,8 @@ Remember: Maximum 6 bullets, 70 words total across all bullets. Focus on the mos
         source_content_ids: summary.sourceContentIds,
         metadata: {
           generatedAt: new Date().toISOString(),
-        },
+          bigStory: summary.bigStory || null,
+        } as unknown as Json,
       })
       .select('id')
       .single();
@@ -251,9 +284,72 @@ Remember: Maximum 6 bullets, 70 words total across all bullets. Focus on the mos
   }
 
   /**
+   * Enhance a summary with OpenGraph images
+   */
+  async enhanceSummaryWithImages(summary: {
+    bigStory?: BigStory;
+    bullets: BulletPoint[];
+  }): Promise<{
+    bigStory?: BigStory;
+    bullets: BulletPoint[];
+  }> {
+    try {
+      const urlsToFetch: string[] = [];
+
+      // Collect URLs
+      if (summary.bigStory?.sourceUrl) {
+        urlsToFetch.push(summary.bigStory.sourceUrl);
+      }
+      summary.bullets.forEach((bullet) => {
+        if (bullet.sourceUrl) {
+          urlsToFetch.push(bullet.sourceUrl);
+        }
+      });
+
+      // Fetch OpenGraph images in parallel
+      const imageMap = await OpenGraphService.fetchBulkImages(
+        urlsToFetch.map((url) => ({ url }))
+      );
+
+      // Add images to big story
+      let enhancedBigStory = summary.bigStory;
+      if (enhancedBigStory?.sourceUrl) {
+        enhancedBigStory = {
+          ...enhancedBigStory,
+          imageUrl:
+            imageMap.get(enhancedBigStory.sourceUrl) ||
+            OpenGraphService.getFallbackImage(enhancedBigStory.sourceUrl) ||
+            undefined,
+        };
+      }
+
+      // Add images to bullets
+      const enhancedBullets = summary.bullets.map((bullet) => {
+        if (bullet.sourceUrl) {
+          const imageUrl =
+            imageMap.get(bullet.sourceUrl) ||
+            OpenGraphService.getFallbackImage(bullet.sourceUrl);
+          return { ...bullet, imageUrl: imageUrl || undefined };
+        }
+        return bullet;
+      });
+
+      return {
+        bigStory: enhancedBigStory,
+        bullets: enhancedBullets,
+      };
+    } catch (error) {
+      console.error('Error enhancing summary with images:', error);
+      // Return original summary if enhancement fails
+      return summary;
+    }
+  }
+
+  /**
    * Get the most recent summary for a lounge
    */
   async getLatestSummary(loungeId: string): Promise<{
+    bigStory?: BigStory;
     bullets: BulletPoint[];
     generatedAt: string;
   } | null> {
@@ -264,7 +360,7 @@ Remember: Maximum 6 bullets, 70 words total across all bullets. Focus on the mos
 
     const { data, error } = await this.supabase
       .from('daily_news_summaries')
-      .select('summary_bullets, generated_at')
+      .select('summary_bullets, generated_at, metadata')
       .eq('lounge_id', loungeId)
       .order('generated_at', { ascending: false })
       .limit(1)
@@ -275,7 +371,12 @@ Remember: Maximum 6 bullets, 70 words total across all bullets. Focus on the mos
       return null;
     }
 
+    // Check if we have the new format with bigStory in metadata
+    const metadata = data.metadata as any;
+    const bigStory = metadata?.bigStory as BigStory | undefined;
+
     return {
+      bigStory,
       bullets: data.summary_bullets as unknown as BulletPoint[],
       generatedAt: data.generated_at || new Date().toISOString(),
     };
