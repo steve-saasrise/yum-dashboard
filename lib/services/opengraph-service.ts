@@ -1,4 +1,5 @@
 // OpenGraph service for fetching metadata from URLs
+import { fetchOpenGraphMetadata } from './opengraph-fetcher';
 
 interface OpenGraphData {
   title?: string;
@@ -11,31 +12,14 @@ interface OpenGraphData {
 export class OpenGraphService {
   /**
    * Fetch OpenGraph metadata from a URL
+   * Now uses direct function call instead of HTTP request for better performance
+   * and reliability in server-side contexts
    */
   static async fetchMetadata(url: string): Promise<OpenGraphData | null> {
     try {
-      // Use the news endpoint for fetching metadata from news/blog sites
-      // This handles regular websites that don't require special authentication
-      // Use absolute URL for server-side calls
-      const apiUrl = process.env.NEXT_PUBLIC_APP_URL 
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/fetch-metadata/news`
-        : '/api/fetch-metadata/news';
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-
-      if (!response.ok) {
-        console.error(
-          `Failed to fetch metadata for ${url}: ${response.status}`
-        );
-        return null;
-      }
-
-      const data = await response.json();
-      return data;
+      // Direct function call - no HTTP request needed
+      const metadata = await fetchOpenGraphMetadata(url);
+      return metadata;
     } catch (error) {
       console.error(`Error fetching OpenGraph data for ${url}:`, error);
       return null;
