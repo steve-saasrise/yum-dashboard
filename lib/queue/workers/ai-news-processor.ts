@@ -64,7 +64,8 @@ export function createAINewsProcessorWorker() {
               generated_at: new Date().toISOString(),
               job_id: job.id,
               queue_generated: true,
-            },
+              bigStory: newsResult.bigStory || null,
+            } as any,
           })
           .select('id')
           .single();

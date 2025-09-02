@@ -656,12 +656,7 @@ const divider = {
   margin: '15px 0',
 };
 
-const newsSummarySection = {
-  padding: '20px 10px',
-  backgroundColor: '#f8fafc',
-  borderRadius: '8px',
-  marginBottom: '20px',
-};
+const newsSummarySection = {};
 
 const newsSummaryHeader = {
   width: '100%',

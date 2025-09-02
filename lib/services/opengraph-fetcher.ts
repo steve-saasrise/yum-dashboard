@@ -15,7 +15,9 @@ interface OpenGraphData {
  * Fetch OpenGraph metadata directly from a URL
  * This is the core logic that both the API endpoint and server-side code can use
  */
-export async function fetchOpenGraphMetadata(url: string): Promise<OpenGraphData> {
+export async function fetchOpenGraphMetadata(
+  url: string
+): Promise<OpenGraphData> {
   try {
     // Add timeout to prevent hanging
     const controller = new AbortController();

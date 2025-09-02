@@ -3,10 +3,19 @@ import OpenAI from 'openai';
 interface NewsItem {
   text: string;
   sourceUrl?: string;
+  source?: string;
+}
+
+interface BigStory {
+  title: string;
+  summary: string;
+  source?: string;
+  sourceUrl?: string;
 }
 
 interface GenerateNewsResult {
   items: NewsItem[];
+  bigStory?: BigStory;
   topic: string;
   generatedAt: string;
 }
@@ -135,25 +144,41 @@ export class AINewsService {
     const topic = this.getCleanTopic(loungeName, loungeDescription);
 
     // Build the prompt for web search - more directive to avoid conversational responses
-    const prompt = `Generate exactly 6 bullet points summarizing the top news from the last 24 hours in ${topic}.
+    const prompt = `Generate a news digest for ${topic} with ONLY news from the LAST 24 HOURS. ALL items must be from TODAY or YESTERDAY, not older.
 
-Requirements:
+Create two sections:
+
+1. BIG STORY OF THE DAY: Select the single most impactful news from the LAST 24 HOURS:
+   - title: The headline (keep original if good, or write a better one)
+   - summary: 2-3 sentence summary explaining what happened and why it matters
+   - source: The source publication name
+   - sourceUrl: The URL of the article
+
+2. TODAY'S HEADLINES: Exactly 5 bullet points of other important news from the LAST 24 HOURS:
+   - text: Brief headline/summary (10-15 words max)
+   - sourceUrl: The URL of the article
+   - source: The publication name
+
+IMPORTANT: 
+- ALL news MUST be from the last 24 hours only
 - Focus on US, European, and major global tech markets
-- Each bullet must be a factual news item
-- NO conversational text or questions
-- NO introductions or explanations
-- NO domain names in the text itself
-- Maximum 70 words total across all bullets
 - Prioritize major funding rounds, exits, IPOs, and significant industry developments
-- Include source URLs when available but NOT in the text
+- NO conversational text, questions, or explanations
+- NO domain names in the text itself
 
-Output format (DO NOT include domains in the text):
-• Commonwealth Fusion raises $863M; Nvidia, Google join round
-• Framer secures $100M Series D at ~$2B valuation
-• Rain closes $58M Series B for stablecoin payments
-• VCs racing to back AI companies in summer deal frenzy
-• Thoma Bravo to buy Verint for ~$2B
-• SEC moves toward generic ETF listing rules`;
+Format your response as JSON:
+{
+  "bigStory": {
+    "title": "...",
+    "summary": "...",
+    "source": "...",
+    "sourceUrl": "..."
+  },
+  "bullets": [
+    {"text": "...", "sourceUrl": "...", "source": "..."},
+    ...
+  ]
+}`;
 
     try {
       // Try to use the Responses API with web search
@@ -173,8 +198,9 @@ Output format (DO NOT include domains in the text):
             max_output_tokens: 10000,
           });
 
-          // Extract items from the response
+          // Extract items and bigStory from the response
           const items: NewsItem[] = [];
+          let bigStory: BigStory | undefined;
 
           // Handle new response format - response can be an object with output array or just an array
           let outputText: string | undefined;
@@ -224,31 +250,56 @@ Output format (DO NOT include domains in the text):
           }
 
           if (outputText) {
-            // Split by newlines and filter out empty lines and introduction text
-            const lines = outputText
-              .split('\n')
-              .map((line: string) => line.trim())
-              .filter((line: string) => {
-                // Skip empty lines
-                if (!line) return false;
-                // Skip introduction lines
-                if (
-                  line.toLowerCase().includes('here are') ||
-                  line.toLowerCase().includes('top news') ||
-                  line.toLowerCase().includes('developments from') ||
-                  line.toLowerCase().includes('latest news') ||
-                  line.toLowerCase().includes('summary of')
-                ) {
-                  return false;
+            // Try to parse as JSON first
+            try {
+              const parsed = JSON.parse(outputText);
+              
+              // Extract bigStory if present
+              if (parsed.bigStory) {
+                bigStory = parsed.bigStory;
+              }
+              
+              // Extract bullets
+              if (parsed.bullets && Array.isArray(parsed.bullets)) {
+                for (const bullet of parsed.bullets.slice(0, 5)) {
+                  if (bullet.text) {
+                    items.push({
+                      text: bullet.text,
+                      sourceUrl: bullet.sourceUrl,
+                      source: bullet.source,
+                    });
+                  }
                 }
-                return true;
-              });
+              }
+            } catch (parseError) {
+              // Fallback to line-by-line parsing if not valid JSON
+              console.log(`Failed to parse as JSON for ${topic}, falling back to line parsing`);
+              
+              // Split by newlines and filter out empty lines and introduction text
+              const lines = outputText
+                .split('\n')
+                .map((line: string) => line.trim())
+                .filter((line: string) => {
+                  // Skip empty lines
+                  if (!line) return false;
+                  // Skip introduction lines
+                  if (
+                    line.toLowerCase().includes('here are') ||
+                    line.toLowerCase().includes('top news') ||
+                    line.toLowerCase().includes('developments from') ||
+                    line.toLowerCase().includes('latest news') ||
+                    line.toLowerCase().includes('summary of')
+                  ) {
+                    return false;
+                  }
+                  return true;
+                });
 
-            // Extract URLs from the text using regex
-            const urlRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
+              // Extract URLs from the text using regex
+              const urlRegex = /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g;
 
-            for (let i = 0; i < Math.min(6, lines.length); i++) {
-              const line = lines[i];
+              for (let i = 0; i < Math.min(5, lines.length); i++) {
+                const line = lines[i];
               // Remove bullet points, numbers, etc.
               let cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
 
@@ -309,10 +360,11 @@ Output format (DO NOT include domains in the text):
               // Reset regex lastIndex for next iteration
               urlRegex.lastIndex = 0;
             }
-
-            // Log what we extracted
-            console.log(`Extracted ${items.length} items for ${topic}`);
           }
+
+          // Log what we extracted
+          console.log(`Extracted ${items.length} items for ${topic}`);
+        }
 
           // Validate the response
           if (!this.isValidNewsResponse(items)) {
@@ -341,6 +393,7 @@ Output format (DO NOT include domains in the text):
 
           return {
             items: this.validateAndTrimItems(items),
+            bigStory,
             topic,
             generatedAt: new Date().toISOString(),
           };
@@ -363,6 +416,7 @@ Output format (DO NOT include domains in the text):
 
         // Parse the response similar to above
         const items: NewsItem[] = [];
+        let bigStory: BigStory | undefined;
 
         // Handle new response format
         let outputText: string | undefined;
@@ -382,23 +436,47 @@ Output format (DO NOT include domains in the text):
         }
 
         if (outputText) {
-          const lines = outputText
-            .split('\n')
-            .filter((line: string) => line.trim());
-          for (const line of lines.slice(0, 6)) {
-            let cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
+          // Try to parse as JSON first
+          try {
+            const parsed = JSON.parse(outputText);
+            
+            // Extract bigStory if present
+            if (parsed.bigStory) {
+              bigStory = parsed.bigStory;
+            }
+            
+            // Extract bullets
+            if (parsed.bullets && Array.isArray(parsed.bullets)) {
+              for (const bullet of parsed.bullets.slice(0, 5)) {
+                if (bullet.text) {
+                  items.push({
+                    text: bullet.text,
+                    sourceUrl: bullet.sourceUrl,
+                    source: bullet.source,
+                  });
+                }
+              }
+            }
+          } catch (parseError) {
+            // Fallback to line-by-line parsing if not valid JSON
+            const lines = outputText
+              .split('\n')
+              .filter((line: string) => line.trim());
+            for (const line of lines.slice(0, 5)) {
+              let cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
 
-            // Remove domain references from the text
-            cleanText = cleanText
-              .replace(
-                /\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g,
-                ''
-              )
-              .trim();
-            cleanText = cleanText.replace(/\.\s*\([^)]+\)$/g, '').trim();
+              // Remove domain references from the text
+              cleanText = cleanText
+                .replace(
+                  /\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g,
+                  ''
+                )
+                .trim();
+              cleanText = cleanText.replace(/\.\s*\([^)]+\)$/g, '').trim();
 
-            if (cleanText) {
-              items.push({ text: cleanText });
+              if (cleanText) {
+                items.push({ text: cleanText });
+              }
             }
           }
         }
@@ -430,6 +508,7 @@ Output format (DO NOT include domains in the text):
 
         return {
           items: this.validateAndTrimItems(items),
+          bigStory,
           topic,
           generatedAt: new Date().toISOString(),
         };
@@ -467,8 +546,8 @@ Output format (DO NOT include domains in the text):
    * Validate and ensure items meet requirements
    */
   private validateAndTrimItems(items: NewsItem[]): NewsItem[] {
-    // Limit to 6 items
-    const trimmedItems = items.slice(0, 6);
+    // Limit to 5 items (since we now have bigStory separately)
+    const trimmedItems = items.slice(0, 5);
 
     // Count total words
     let totalWords = 0;
