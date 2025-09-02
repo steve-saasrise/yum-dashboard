@@ -14,8 +14,9 @@ export class OpenGraphService {
    */
   static async fetchMetadata(url: string): Promise<OpenGraphData | null> {
     try {
-      // Use Bright Data to fetch the page and extract metadata
-      const response = await fetch('/api/fetch-metadata', {
+      // Use the news endpoint for fetching metadata from news/blog sites
+      // This handles regular websites that don't require special authentication
+      const response = await fetch('/api/fetch-metadata/news', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
