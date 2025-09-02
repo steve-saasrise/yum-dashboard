@@ -16,7 +16,12 @@ export class OpenGraphService {
     try {
       // Use the news endpoint for fetching metadata from news/blog sites
       // This handles regular websites that don't require special authentication
-      const response = await fetch('/api/fetch-metadata/news', {
+      // Use absolute URL for server-side calls
+      const apiUrl = process.env.NEXT_PUBLIC_APP_URL 
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/fetch-metadata/news`
+        : '/api/fetch-metadata/news';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
