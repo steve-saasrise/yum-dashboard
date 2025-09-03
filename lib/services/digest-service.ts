@@ -34,6 +34,7 @@ interface Lounge {
   id: string;
   name: string;
   description: string;
+  theme_description?: string;
 }
 
 interface ContentForDigest {
@@ -332,9 +333,9 @@ export class DigestService {
         const summaryService = new NewsSummaryService();
         const summary = await summaryService.getLatestSummary(lounge.id);
         if (summary) {
-          // Enhance with images for email
+          // Enhance with images for email, passing lounge theme for AI fallback
           const enhanced =
-            await summaryService.enhanceSummaryWithImages(summary);
+            await summaryService.enhanceSummaryWithImages(summary, lounge.theme_description || lounge.name);
           aiNewsSummary = {
             ...enhanced,
             generatedAt: summary.generatedAt,
@@ -470,7 +471,7 @@ export class DigestService {
     const loungeIds = subscriptions.map((s) => s.lounge_id);
     const { data: lounges, error: loungeError } = await supabase
       .from('lounges')
-      .select('id, name, description')
+      .select('id, name, description, theme_description')
       .in('id', loungeIds);
 
     if (loungeError || !lounges) {

@@ -32,7 +32,8 @@ export class OpenGraphService {
    * Fetch OpenGraph images for multiple URLs in parallel with AI fallback
    */
   static async fetchBulkImages(
-    items: Array<{ url: string; id?: string; title?: string; source?: string }>
+    items: Array<{ url: string; id?: string; title?: string; source?: string }>,
+    category?: string
   ): Promise<Map<string, string | null>> {
     const results = new Map<string, string | null>();
     const aiImageService = AIImageService.getInstance();
@@ -75,7 +76,7 @@ export class OpenGraphService {
           url: item.url,
           title: item.title,
           source: item.source,
-          category: 'SaaS', // Default category, could be made dynamic
+          category: category || 'Technology', // Use provided category or default to Technology
         }))
       );
 

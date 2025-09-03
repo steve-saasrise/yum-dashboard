@@ -286,10 +286,13 @@ Focus on the most important and impactful news for ${topic} professionals.`;
   /**
    * Enhance a summary with OpenGraph images (now includes AI fallback)
    */
-  async enhanceSummaryWithImages(summary: {
-    bigStory?: BigStory;
-    bullets: BulletPoint[];
-  }): Promise<{
+  async enhanceSummaryWithImages(
+    summary: {
+      bigStory?: BigStory;
+      bullets: BulletPoint[];
+    },
+    category?: string
+  ): Promise<{
     bigStory?: BigStory;
     bullets: BulletPoint[];
   }> {
@@ -324,7 +327,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
       });
 
       // Fetch OpenGraph images in parallel (now with AI fallback built-in)
-      const imageMap = await OpenGraphService.fetchBulkImages(itemsToFetch);
+      const imageMap = await OpenGraphService.fetchBulkImages(itemsToFetch, category);
 
       // Add images to big story
       let enhancedBigStory = summary.bigStory;
