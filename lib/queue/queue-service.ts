@@ -38,6 +38,10 @@ export function getQueues() {
           defaultJobOptions: DEFAULT_JOB_OPTIONS,
         }
       ),
+      [QUEUE_NAMES.EMAIL_DIGEST]: new Queue(QUEUE_NAMES.EMAIL_DIGEST, {
+        connection,
+        defaultJobOptions: DEFAULT_JOB_OPTIONS,
+      }),
     };
   }
 
@@ -256,6 +260,66 @@ export async function queueAINewsGeneration(
       id: job.id,
       name: job.name,
       data: job.data,
+    })),
+  };
+}
+
+// Queue email digests for users - highly scalable
+export async function queueEmailDigests(
+  users: Array<{ email: string; userId: string }>
+) {
+  const queues = getQueues();
+  const digestQueue = queues[QUEUE_NAMES.EMAIL_DIGEST];
+  
+  const jobsToAdd = [];
+  let skipped = 0;
+  
+  // Create date string for job IDs (one digest per user per day)
+  const dateStr = new Date().toISOString().split('T')[0];
+  
+  for (const user of users) {
+    // Use email and date as job ID for deduplication
+    const jobId = `digest-${user.userId}-${dateStr}`;
+    const existingJob = await digestQueue.getJob(jobId);
+    
+    // Skip if job already exists and is not completed/failed
+    if (existingJob) {
+      const state = await existingJob.getState();
+      if (state !== 'completed' && state !== 'failed') {
+        skipped++;
+        continue;
+      }
+      // Remove old completed/failed job
+      await existingJob.remove();
+    }
+    
+    jobsToAdd.push({
+      name: JOB_NAMES.SEND_USER_DIGEST,
+      data: {
+        userEmail: user.email,
+        userId: user.userId,
+        timestamp: new Date().toISOString(),
+        dateStr,
+      },
+      opts: {
+        jobId,
+        priority: 1,
+        // Spread jobs over 5 minutes to avoid bursts
+        delay: Math.floor(Math.random() * 300000), 
+      },
+    });
+  }
+  
+  // Add jobs in bulk for efficiency
+  const results = jobsToAdd.length > 0 ? await digestQueue.addBulk(jobsToAdd) : [];
+  
+  return {
+    queued: results.length,
+    skipped,
+    totalUsers: users.length,
+    jobs: results.map(job => ({
+      id: job.id,
+      email: job.data.userEmail,
     })),
   };
 }

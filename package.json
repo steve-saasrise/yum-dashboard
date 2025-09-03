@@ -24,6 +24,7 @@
     "init-lounges": "node scripts/init-system-lounges.js",
     "workers": "tsx workers.ts",
     "workers:dev": "tsx watch workers.ts",
+    "worker:digest": "tsx scripts/start-digest-worker.ts",
     "email": "email dev --dir emails --port 3001"
   },
   "dependencies": {

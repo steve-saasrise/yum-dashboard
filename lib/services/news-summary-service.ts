@@ -284,7 +284,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
   }
 
   /**
-   * Enhance a summary with OpenGraph images
+   * Enhance a summary with OpenGraph images (now includes AI fallback)
    */
   async enhanceSummaryWithImages(summary: {
     bigStory?: BigStory;
@@ -294,49 +294,55 @@ Focus on the most important and impactful news for ${topic} professionals.`;
     bullets: BulletPoint[];
   }> {
     try {
-      const urlsToFetch: string[] = [];
+      const itemsToFetch: Array<{ url: string; title?: string; source?: string }> = [];
 
-      // Collect URLs
+      // Collect URLs with metadata for AI generation if needed
       if (summary.bigStory?.sourceUrl) {
-        console.log('BigStory URL to fetch image for:', summary.bigStory.sourceUrl);
-        urlsToFetch.push(summary.bigStory.sourceUrl);
+        console.log(
+          'BigStory URL to fetch image for:',
+          summary.bigStory.sourceUrl
+        );
+        itemsToFetch.push({
+          url: summary.bigStory.sourceUrl,
+          title: summary.bigStory.title,
+          source: summary.bigStory.source,
+        });
       }
+      
       summary.bullets.forEach((bullet) => {
         if (bullet.sourceUrl) {
-          urlsToFetch.push(bullet.sourceUrl);
+          itemsToFetch.push({
+            url: bullet.sourceUrl,
+            title: bullet.text,
+            source: bullet.source,
+          });
         }
       });
 
-      // Fetch OpenGraph images in parallel
-      const imageMap = await OpenGraphService.fetchBulkImages(
-        urlsToFetch.map((url) => ({ url }))
-      );
+      // Fetch OpenGraph images in parallel (now with AI fallback built-in)
+      const imageMap = await OpenGraphService.fetchBulkImages(itemsToFetch);
 
       // Add images to big story
       let enhancedBigStory = summary.bigStory;
       if (enhancedBigStory?.sourceUrl) {
         const fetchedImage = imageMap.get(enhancedBigStory.sourceUrl);
-        const fallbackImage = OpenGraphService.getFallbackImage(enhancedBigStory.sourceUrl);
         
+        // No need for domain fallback anymore - AI handles it
         console.log('BigStory image results:', {
           sourceUrl: enhancedBigStory.sourceUrl,
-          fetchedImage,
-          fallbackImage,
-          finalImage: fetchedImage || fallbackImage || undefined
+          imageUrl: fetchedImage || 'AI generation pending',
         });
-        
+
         enhancedBigStory = {
           ...enhancedBigStory,
-          imageUrl: fetchedImage || fallbackImage || undefined,
+          imageUrl: fetchedImage || undefined,
         };
       }
 
       // Add images to bullets
       const enhancedBullets = summary.bullets.map((bullet) => {
         if (bullet.sourceUrl) {
-          const imageUrl =
-            imageMap.get(bullet.sourceUrl) ||
-            OpenGraphService.getFallbackImage(bullet.sourceUrl);
+          const imageUrl = imageMap.get(bullet.sourceUrl);
           return { ...bullet, imageUrl: imageUrl || undefined };
         }
         return bullet;
@@ -382,13 +388,13 @@ Focus on the most important and impactful news for ${topic} professionals.`;
     // Check if we have the new format with bigStory in metadata
     const metadata = data.metadata as any;
     const bigStory = metadata?.bigStory as BigStory | undefined;
-    
+
     console.log('Retrieved summary from DB:', {
       loungeId,
       hasBigStory: !!bigStory,
       bigStoryTitle: bigStory?.title,
       bigStoryUrl: bigStory?.sourceUrl,
-      bulletCount: (data.summary_bullets as any[])?.length || 0
+      bulletCount: (data.summary_bullets as any[])?.length || 0,
     });
 
     return {

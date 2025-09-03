@@ -1,5 +1,6 @@
 // OpenGraph service for fetching metadata from URLs
 import { fetchOpenGraphMetadata } from './opengraph-fetcher';
+import { AIImageService } from './ai-image-service';
 
 interface OpenGraphData {
   title?: string;
@@ -7,6 +8,7 @@ interface OpenGraphData {
   imageUrl?: string;
   siteName?: string;
   url: string;
+  aiGenerated?: boolean;
 }
 
 export class OpenGraphService {
@@ -27,12 +29,14 @@ export class OpenGraphService {
   }
 
   /**
-   * Fetch OpenGraph images for multiple URLs in parallel
+   * Fetch OpenGraph images for multiple URLs in parallel with AI fallback
    */
   static async fetchBulkImages(
-    items: Array<{ url: string; id?: string }>
+    items: Array<{ url: string; id?: string; title?: string; source?: string }>
   ): Promise<Map<string, string | null>> {
     const results = new Map<string, string | null>();
+    const aiImageService = AIImageService.getInstance();
+    const failedItems: Array<{ url: string; title?: string; source?: string }> = [];
 
     // Process in batches to avoid overwhelming the service
     const batchSize = 5;
@@ -40,12 +44,39 @@ export class OpenGraphService {
       const batch = items.slice(i, i + batchSize);
       const promises = batch.map(async (item) => {
         const metadata = await this.fetchMetadata(item.url);
-        return { url: item.url, imageUrl: metadata?.imageUrl || null };
+        if (metadata?.imageUrl) {
+          return { url: item.url, imageUrl: metadata.imageUrl };
+        } else {
+          // Track items that need AI fallback
+          failedItems.push({ url: item.url, title: item.title, source: item.source });
+          return { url: item.url, imageUrl: null };
+        }
       });
 
       const batchResults = await Promise.all(promises);
       batchResults.forEach((result) => {
         results.set(result.url, result.imageUrl);
+      });
+    }
+
+    // Generate AI images for failed items
+    if (failedItems.length > 0 && process.env.OPENAI_API_KEY) {
+      console.log(`Generating AI fallback images for ${failedItems.length} articles`);
+      
+      const aiImages = await aiImageService.generateBulkFallbackImages(
+        failedItems.map(item => ({
+          url: item.url,
+          title: item.title,
+          source: item.source,
+          category: 'SaaS', // Default category, could be made dynamic
+        }))
+      );
+
+      // Update results with AI-generated images
+      aiImages.forEach((image, url) => {
+        if (image) {
+          results.set(url, image.imageUrl);
+        }
       });
     }
 
