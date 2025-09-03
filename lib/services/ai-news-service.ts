@@ -253,12 +253,12 @@ Format your response as JSON:
             // Try to parse as JSON first
             try {
               const parsed = JSON.parse(outputText);
-              
+
               // Extract bigStory if present
               if (parsed.bigStory) {
                 bigStory = parsed.bigStory;
               }
-              
+
               // Extract bullets
               if (parsed.bullets && Array.isArray(parsed.bullets)) {
                 for (const bullet of parsed.bullets.slice(0, 5)) {
@@ -273,8 +273,10 @@ Format your response as JSON:
               }
             } catch (parseError) {
               // Fallback to line-by-line parsing if not valid JSON
-              console.log(`Failed to parse as JSON for ${topic}, falling back to line parsing`);
-              
+              console.log(
+                `Failed to parse as JSON for ${topic}, falling back to line parsing`
+              );
+
               // Split by newlines and filter out empty lines and introduction text
               const lines = outputText
                 .split('\n')
@@ -300,71 +302,73 @@ Format your response as JSON:
 
               for (let i = 0; i < Math.min(5, lines.length); i++) {
                 const line = lines[i];
-              // Remove bullet points, numbers, etc.
-              let cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
+                // Remove bullet points, numbers, etc.
+                let cleanText = line.replace(/^[\s•\-\*\d\.]+/, '').trim();
 
-              // Extract URL if it's embedded in markdown format
-              let sourceUrl: string | undefined;
-              const urlMatch = urlRegex.exec(line);
-              if (urlMatch) {
-                sourceUrl = urlMatch[2];
-                // Remove the markdown link from the text
-                cleanText = line
-                  .replace(urlRegex, '$1')
-                  .replace(/^[\s•\-\*\d\.]+/, '')
-                  .trim();
-              }
-
-              // Also check if there's a plain URL at the end
-              const plainUrlMatch = cleanText.match(/\s+(https?:\/\/[^\s]+)$/);
-              if (plainUrlMatch) {
-                sourceUrl = plainUrlMatch[1];
-                cleanText = cleanText.replace(plainUrlMatch[0], '').trim();
-              }
-
-              // Remove domain references from the text (e.g., "(domain.com)" or ". (domain.com)")
-              cleanText = cleanText
-                .replace(
-                  /\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g,
-                  ''
-                )
-                .trim();
-
-              // Also remove any trailing periods followed by domains
-              cleanText = cleanText.replace(/\.\s*\([^)]+\)$/g, '').trim();
-
-              // Try to find URL from annotations if not found inline
-              if (!sourceUrl && annotations.length > 0) {
-                // Find annotation that might correspond to this line
-                const annotation = annotations.find(
-                  (ann: any) =>
-                    ann.type === 'url_citation' &&
-                    outputText &&
-                    outputText
-                      .substring(ann.start_index, ann.end_index)
-                      .includes(cleanText.substring(0, 20))
-                );
-                if (annotation) {
-                  sourceUrl = annotation.url;
+                // Extract URL if it's embedded in markdown format
+                let sourceUrl: string | undefined;
+                const urlMatch = urlRegex.exec(line);
+                if (urlMatch) {
+                  sourceUrl = urlMatch[2];
+                  // Remove the markdown link from the text
+                  cleanText = line
+                    .replace(urlRegex, '$1')
+                    .replace(/^[\s•\-\*\d\.]+/, '')
+                    .trim();
                 }
-              }
 
-              if (cleanText && cleanText.length > 10) {
-                // Only add substantial text
-                items.push({
-                  text: cleanText,
-                  sourceUrl,
-                });
-              }
+                // Also check if there's a plain URL at the end
+                const plainUrlMatch = cleanText.match(
+                  /\s+(https?:\/\/[^\s]+)$/
+                );
+                if (plainUrlMatch) {
+                  sourceUrl = plainUrlMatch[1];
+                  cleanText = cleanText.replace(plainUrlMatch[0], '').trim();
+                }
 
-              // Reset regex lastIndex for next iteration
-              urlRegex.lastIndex = 0;
+                // Remove domain references from the text (e.g., "(domain.com)" or ". (domain.com)")
+                cleanText = cleanText
+                  .replace(
+                    /\.?\s*\([a-zA-Z0-9.-]+\.(com|org|net|io|co|uk|eu|gov|edu|tv|news|app|dev|ai|tech|biz|info)\)$/g,
+                    ''
+                  )
+                  .trim();
+
+                // Also remove any trailing periods followed by domains
+                cleanText = cleanText.replace(/\.\s*\([^)]+\)$/g, '').trim();
+
+                // Try to find URL from annotations if not found inline
+                if (!sourceUrl && annotations.length > 0) {
+                  // Find annotation that might correspond to this line
+                  const annotation = annotations.find(
+                    (ann: any) =>
+                      ann.type === 'url_citation' &&
+                      outputText &&
+                      outputText
+                        .substring(ann.start_index, ann.end_index)
+                        .includes(cleanText.substring(0, 20))
+                  );
+                  if (annotation) {
+                    sourceUrl = annotation.url;
+                  }
+                }
+
+                if (cleanText && cleanText.length > 10) {
+                  // Only add substantial text
+                  items.push({
+                    text: cleanText,
+                    sourceUrl,
+                  });
+                }
+
+                // Reset regex lastIndex for next iteration
+                urlRegex.lastIndex = 0;
+              }
             }
-          }
 
-          // Log what we extracted
-          console.log(`Extracted ${items.length} items for ${topic}`);
-        }
+            // Log what we extracted
+            console.log(`Extracted ${items.length} items for ${topic}`);
+          }
 
           // Validate the response
           if (!this.isValidNewsResponse(items)) {
@@ -439,12 +443,12 @@ Format your response as JSON:
           // Try to parse as JSON first
           try {
             const parsed = JSON.parse(outputText);
-            
+
             // Extract bigStory if present
             if (parsed.bigStory) {
               bigStory = parsed.bigStory;
             }
-            
+
             // Extract bullets
             if (parsed.bullets && Array.isArray(parsed.bullets)) {
               for (const bullet of parsed.bullets.slice(0, 5)) {

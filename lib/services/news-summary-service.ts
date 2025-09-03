@@ -298,6 +298,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
 
       // Collect URLs
       if (summary.bigStory?.sourceUrl) {
+        console.log('BigStory URL to fetch image for:', summary.bigStory.sourceUrl);
         urlsToFetch.push(summary.bigStory.sourceUrl);
       }
       summary.bullets.forEach((bullet) => {
@@ -314,12 +315,19 @@ Focus on the most important and impactful news for ${topic} professionals.`;
       // Add images to big story
       let enhancedBigStory = summary.bigStory;
       if (enhancedBigStory?.sourceUrl) {
+        const fetchedImage = imageMap.get(enhancedBigStory.sourceUrl);
+        const fallbackImage = OpenGraphService.getFallbackImage(enhancedBigStory.sourceUrl);
+        
+        console.log('BigStory image results:', {
+          sourceUrl: enhancedBigStory.sourceUrl,
+          fetchedImage,
+          fallbackImage,
+          finalImage: fetchedImage || fallbackImage || undefined
+        });
+        
         enhancedBigStory = {
           ...enhancedBigStory,
-          imageUrl:
-            imageMap.get(enhancedBigStory.sourceUrl) ||
-            OpenGraphService.getFallbackImage(enhancedBigStory.sourceUrl) ||
-            undefined,
+          imageUrl: fetchedImage || fallbackImage || undefined,
         };
       }
 
@@ -374,6 +382,14 @@ Focus on the most important and impactful news for ${topic} professionals.`;
     // Check if we have the new format with bigStory in metadata
     const metadata = data.metadata as any;
     const bigStory = metadata?.bigStory as BigStory | undefined;
+    
+    console.log('Retrieved summary from DB:', {
+      loungeId,
+      hasBigStory: !!bigStory,
+      bigStoryTitle: bigStory?.title,
+      bigStoryUrl: bigStory?.sourceUrl,
+      bulletCount: (data.summary_bullets as any[])?.length || 0
+    });
 
     return {
       bigStory,
