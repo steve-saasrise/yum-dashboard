@@ -327,7 +327,10 @@ Focus on the most important and impactful news for ${topic} professionals.`;
       });
 
       // Fetch OpenGraph images in parallel (now with AI fallback built-in)
-      const imageMap = await OpenGraphService.fetchBulkImages(itemsToFetch, category);
+      const imageMap = await OpenGraphService.fetchBulkImages(
+        itemsToFetch,
+        category
+      );
 
       // Add images to big story
       let enhancedBigStory = summary.bigStory;

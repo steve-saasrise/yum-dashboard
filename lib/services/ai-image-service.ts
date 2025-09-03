@@ -1,6 +1,8 @@
 import { OpenAI } from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import fetch from 'node-fetch';
+import sharp from 'sharp';
 
 interface GenerateImageOptions {
   url: string;
@@ -225,7 +227,7 @@ export class AIImageService {
   }
 
   /**
-   * Get cached image from database
+   * Get cached image from database (with 30-day expiration check)
    */
   private async getCachedImage(urlHash: string): Promise<any | null> {
     if (!this.supabase) {
@@ -243,11 +245,207 @@ export class AIImageService {
         return null;
       }
 
-      // Check if image is still valid (optional: add expiration logic)
-      // For now, we'll keep images indefinitely
+      // Check if image is expired (older than 30 days)
+      const createdAt = new Date(data.created_at as string);
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() - 30);
+
+      if (createdAt < expirationDate) {
+        console.log(`Image expired for hash ${urlHash}, will regenerate`);
+        // Delete the expired record
+        await this.supabase
+          .from('generated_images')
+          .delete()
+          .eq('url_hash', urlHash);
+
+        // Delete from storage if it exists
+        const imageUrl = data.generated_image_url as string;
+        const fileName = imageUrl.includes('.jpg')
+          ? `${urlHash}.jpg`
+          : `${urlHash}.png`;
+        await this.supabase.storage.from('ai-images').remove([fileName]);
+
+        return null;
+      }
+
       return data;
     } catch (error) {
       console.error('Error fetching cached image:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Clean up expired images (run via cron job)
+   * Removes images older than 30 days to save storage space
+   */
+  async cleanupExpiredImages(): Promise<{
+    deleted: number;
+    freedBytes: number;
+  }> {
+    if (!this.supabase) {
+      return { deleted: 0, freedBytes: 0 };
+    }
+
+    try {
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() - 30);
+
+      // Find expired images
+      const { data: expiredImages, error: fetchError } = await this.supabase
+        .from('generated_images')
+        .select('url_hash, generated_image_url')
+        .lt('created_at', expirationDate.toISOString());
+
+      if (fetchError || !expiredImages || expiredImages.length === 0) {
+        console.log('No expired images to clean up');
+        return { deleted: 0, freedBytes: 0 };
+      }
+
+      console.log(`Found ${expiredImages.length} expired images to clean up`);
+
+      let deletedCount = 0;
+      let totalFreedBytes = 0;
+
+      // Delete from storage and database
+      for (const image of expiredImages) {
+        try {
+          // Extract filename from URL
+          const imageUrl = image.generated_image_url as string;
+          const fileName = imageUrl.includes('.jpg')
+            ? `${image.url_hash}.jpg`
+            : `${image.url_hash}.png`;
+
+          // Get file size before deletion (optional)
+          const { data: fileData } = await this.supabase.storage
+            .from('ai-images')
+            .list('', {
+              limit: 1,
+              search: fileName,
+            });
+
+          const fileSize = fileData?.[0]?.metadata?.size || 0;
+
+          // Delete from storage
+          const { error: storageError } = await this.supabase.storage
+            .from('ai-images')
+            .remove([fileName]);
+
+          if (!storageError) {
+            totalFreedBytes += fileSize;
+            deletedCount++;
+          }
+        } catch (err) {
+          console.error(`Error deleting file for hash ${image.url_hash}:`, err);
+        }
+      }
+
+      // Batch delete from database
+      const { error: deleteError } = await this.supabase
+        .from('generated_images')
+        .delete()
+        .lt('created_at', expirationDate.toISOString());
+
+      if (deleteError) {
+        console.error(
+          'Error deleting expired images from database:',
+          deleteError
+        );
+      }
+
+      console.log(
+        `Cleanup complete: deleted ${deletedCount} images, freed ${(totalFreedBytes / 1024 / 1024).toFixed(2)} MB`
+      );
+
+      return {
+        deleted: deletedCount,
+        freedBytes: totalFreedBytes,
+      };
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      return { deleted: 0, freedBytes: 0 };
+    }
+  }
+
+  /**
+   * Download and store image permanently in Supabase Storage with compression
+   */
+  private async storePermanentImage(
+    temporaryUrl: string,
+    urlHash: string
+  ): Promise<string | null> {
+    if (!this.supabase) {
+      return null;
+    }
+
+    try {
+      // First, ensure the ai-images bucket exists
+      const { data: buckets } = await this.supabase.storage.listBuckets();
+      const bucketExists = buckets?.some((b) => b.name === 'ai-images');
+
+      if (!bucketExists) {
+        const { error: createError } = await this.supabase.storage.createBucket(
+          'ai-images',
+          {
+            public: true,
+            allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+          }
+        );
+        if (createError) {
+          console.error('Error creating ai-images bucket:', createError);
+          return null;
+        }
+      }
+
+      // Download the image from the temporary URL
+      const response = await fetch(temporaryUrl);
+      if (!response.ok) {
+        console.error('Failed to download image from temporary URL');
+        return null;
+      }
+
+      const imageBuffer = await response.buffer();
+
+      // Compress the image using sharp
+      // Reduce to 800px width for email use, convert to JPEG for smaller size
+      const compressedBuffer = await sharp(imageBuffer)
+        .resize(800, null, {
+          withoutEnlargement: true,
+          fit: 'inside',
+        })
+        .jpeg({
+          quality: 85, // Good quality/size balance
+          progressive: true,
+        })
+        .toBuffer();
+
+      const fileName = `${urlHash}.jpg`;
+
+      console.log(
+        `Compressed image from ${imageBuffer.length} to ${compressedBuffer.length} bytes (${Math.round((1 - compressedBuffer.length / imageBuffer.length) * 100)}% reduction)`
+      );
+
+      // Upload to Supabase Storage
+      const { data, error } = await this.supabase.storage
+        .from('ai-images')
+        .upload(fileName, compressedBuffer, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
+
+      if (error) {
+        console.error('Error uploading image to storage:', error);
+        return null;
+      }
+
+      // Get the public URL for the stored image
+      const {
+        data: { publicUrl },
+      } = this.supabase.storage.from('ai-images').getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error storing permanent image:', error);
       return null;
     }
   }
@@ -266,10 +464,17 @@ export class AIImageService {
     }
 
     try {
+      // First, store the image permanently
+      const permanentUrl = await this.storePermanentImage(imageUrl, urlHash);
+
+      if (!permanentUrl) {
+        console.error('Failed to store image permanently, using temporary URL');
+      }
+
       const { error } = await this.supabase.from('generated_images').insert({
         url_hash: urlHash,
         original_url: originalUrl,
-        generated_image_url: imageUrl,
+        generated_image_url: permanentUrl || imageUrl, // Use permanent URL if available
         prompt_used: prompt,
         created_at: new Date().toISOString(),
       });

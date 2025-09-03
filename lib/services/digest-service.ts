@@ -334,8 +334,10 @@ export class DigestService {
         const summary = await summaryService.getLatestSummary(lounge.id);
         if (summary) {
           // Enhance with images for email, passing lounge theme for AI fallback
-          const enhanced =
-            await summaryService.enhanceSummaryWithImages(summary, lounge.theme_description || lounge.name);
+          const enhanced = await summaryService.enhanceSummaryWithImages(
+            summary,
+            lounge.theme_description || lounge.name
+          );
           aiNewsSummary = {
             ...enhanced,
             generatedAt: summary.generatedAt,
