@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     // Deduplicate users (they might be subscribed to multiple lounges)
     const uniqueUsersMap = new Map<string, { email: string; userId: string }>();
-    
+
     for (const sub of subscriptions || []) {
       const user = (sub as any).users;
       if (user && !uniqueUsersMap.has(user.id)) {
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         });
       }
     }
-    
+
     const uniqueUsers = Array.from(uniqueUsersMap.values());
 
     if (uniqueUsers.length === 0) {
@@ -77,7 +77,8 @@ export async function GET(request: NextRequest) {
         skipped: queueResult.skipped,
       },
       // Return immediately - workers will process in background
-      processingNote: 'Digests are being processed in the background by workers',
+      processingNote:
+        'Digests are being processed in the background by workers',
     });
   } catch (error) {
     console.error('Error in daily digest cron job:', error);

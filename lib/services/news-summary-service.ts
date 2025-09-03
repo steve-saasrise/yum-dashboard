@@ -294,7 +294,11 @@ Focus on the most important and impactful news for ${topic} professionals.`;
     bullets: BulletPoint[];
   }> {
     try {
-      const itemsToFetch: Array<{ url: string; title?: string; source?: string }> = [];
+      const itemsToFetch: Array<{
+        url: string;
+        title?: string;
+        source?: string;
+      }> = [];
 
       // Collect URLs with metadata for AI generation if needed
       if (summary.bigStory?.sourceUrl) {
@@ -308,7 +312,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
           source: summary.bigStory.source,
         });
       }
-      
+
       summary.bullets.forEach((bullet) => {
         if (bullet.sourceUrl) {
           itemsToFetch.push({
@@ -326,7 +330,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
       let enhancedBigStory = summary.bigStory;
       if (enhancedBigStory?.sourceUrl) {
         const fetchedImage = imageMap.get(enhancedBigStory.sourceUrl);
-        
+
         // No need for domain fallback anymore - AI handles it
         console.log('BigStory image results:', {
           sourceUrl: enhancedBigStory.sourceUrl,

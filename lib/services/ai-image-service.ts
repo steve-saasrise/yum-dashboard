@@ -49,7 +49,9 @@ export class AIImageService {
   /**
    * Generate a contextual image for an article using DALL-E 3
    */
-  async generateFallbackImage(options: GenerateImageOptions): Promise<GeneratedImage | null> {
+  async generateFallbackImage(
+    options: GenerateImageOptions
+  ): Promise<GeneratedImage | null> {
     if (!this.openai) {
       console.error('OpenAI API key not configured');
       return null;
@@ -57,7 +59,10 @@ export class AIImageService {
 
     try {
       // Create a hash of the URL for caching
-      const urlHash = crypto.createHash('sha256').update(options.url).digest('hex');
+      const urlHash = crypto
+        .createHash('sha256')
+        .update(options.url)
+        .digest('hex');
 
       // Check if we already have a generated image for this URL
       const cachedImage = await this.getCachedImage(urlHash);
@@ -86,14 +91,19 @@ export class AIImageService {
         style: 'natural', // Natural style for news articles
       });
 
-      const generatedImageUrl = response.data[0]?.url;
+      const generatedImageUrl = response.data?.[0]?.url;
       if (!generatedImageUrl) {
         console.error('No image URL returned from DALL-E 3');
         return null;
       }
 
       // Store the generated image URL in our cache
-      await this.cacheGeneratedImage(urlHash, options.url, generatedImageUrl, prompt);
+      await this.cacheGeneratedImage(
+        urlHash,
+        options.url,
+        generatedImageUrl,
+        prompt
+      );
 
       return {
         imageUrl: generatedImageUrl,
@@ -113,21 +123,22 @@ export class AIImageService {
     const { title, source, category, description } = options;
 
     // Build a contextual prompt
-    let prompt = 'Create a professional, editorial-style image for a news article';
+    let prompt =
+      'Create a professional, editorial-style image for a news article';
 
     // Add category context if available
     if (category) {
       const categoryPrompts: Record<string, string> = {
-        'SaaS': 'about SaaS software and cloud technology',
-        'AI': 'about artificial intelligence and machine learning',
-        'Security': 'about cybersecurity and data protection',
-        'Startup': 'about startups and entrepreneurship',
-        'Finance': 'about financial technology and markets',
-        'Developer': 'about software development and programming',
-        'Product': 'about product management and design',
-        'Marketing': 'about digital marketing and growth',
+        SaaS: 'about SaaS software and cloud technology',
+        AI: 'about artificial intelligence and machine learning',
+        Security: 'about cybersecurity and data protection',
+        Startup: 'about startups and entrepreneurship',
+        Finance: 'about financial technology and markets',
+        Developer: 'about software development and programming',
+        Product: 'about product management and design',
+        Marketing: 'about digital marketing and growth',
       };
-      
+
       const categoryContext = categoryPrompts[category] || `about ${category}`;
       prompt += ` ${categoryContext}`;
     }
@@ -144,11 +155,11 @@ export class AIImageService {
     // Add source context for style
     if (source) {
       const sourceStyles: Record<string, string> = {
-        'TechCrunch': 'Use modern, tech-forward visuals',
-        'Reuters': 'Use professional, journalistic style',
+        TechCrunch: 'Use modern, tech-forward visuals',
+        Reuters: 'Use professional, journalistic style',
         'The Verge': 'Use contemporary, digital aesthetic',
-        'Forbes': 'Use business-professional imagery',
-        'VentureBeat': 'Use startup and innovation themes',
+        Forbes: 'Use business-professional imagery',
+        VentureBeat: 'Use startup and innovation themes',
       };
 
       const styleHint = sourceStyles[source];
@@ -158,7 +169,8 @@ export class AIImageService {
     }
 
     // Add universal requirements
-    prompt += '. Use abstract or conceptual imagery, no text or logos, professional color palette, suitable for email newsletter header. Modern, clean, minimalist style.';
+    prompt +=
+      '. Use abstract or conceptual imagery, no text or logos, professional color palette, suitable for email newsletter header. Modern, clean, minimalist style.';
 
     return prompt;
   }
@@ -168,11 +180,31 @@ export class AIImageService {
    */
   private extractKeywords(title: string): string[] {
     const techTerms = [
-      'AI', 'API', 'cloud', 'data', 'security', 'automation',
-      'platform', 'integration', 'analytics', 'infrastructure',
-      'blockchain', 'crypto', 'machine learning', 'neural',
-      'quantum', 'robotics', 'IoT', '5G', 'AR', 'VR',
-      'funding', 'acquisition', 'IPO', 'valuation', 'growth'
+      'AI',
+      'API',
+      'cloud',
+      'data',
+      'security',
+      'automation',
+      'platform',
+      'integration',
+      'analytics',
+      'infrastructure',
+      'blockchain',
+      'crypto',
+      'machine learning',
+      'neural',
+      'quantum',
+      'robotics',
+      'IoT',
+      '5G',
+      'AR',
+      'VR',
+      'funding',
+      'acquisition',
+      'IPO',
+      'valuation',
+      'growth',
     ];
 
     const words = title.toLowerCase().split(/\s+/);
@@ -185,7 +217,8 @@ export class AIImageService {
     }
 
     // Also extract company names (capitalized words)
-    const properNouns = title.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+    const properNouns =
+      title.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
     keywords.push(...properNouns.slice(0, 2)); // Limit to 2 company names
 
     return keywords.slice(0, 5); // Return top 5 keywords
@@ -233,15 +266,13 @@ export class AIImageService {
     }
 
     try {
-      const { error } = await this.supabase
-        .from('generated_images')
-        .insert({
-          url_hash: urlHash,
-          original_url: originalUrl,
-          generated_image_url: imageUrl,
-          prompt_used: prompt,
-          created_at: new Date().toISOString(),
-        });
+      const { error } = await this.supabase.from('generated_images').insert({
+        url_hash: urlHash,
+        original_url: originalUrl,
+        generated_image_url: imageUrl,
+        prompt_used: prompt,
+        created_at: new Date().toISOString(),
+      });
 
       if (error) {
         console.error('Error caching generated image:', error);
@@ -265,7 +296,7 @@ export class AIImageService {
     const batchSize = 3;
     for (let i = 0; i < articles.length; i += batchSize) {
       const batch = articles.slice(i, i + batchSize);
-      
+
       const promises = batch.map(async (article) => {
         const image = await this.generateFallbackImage(article);
         return { url: article.url, image };
@@ -278,7 +309,7 @@ export class AIImageService {
 
       // Add delay between batches to respect rate limits
       if (i + batchSize < articles.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 

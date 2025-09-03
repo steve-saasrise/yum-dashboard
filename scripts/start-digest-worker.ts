@@ -3,12 +3,12 @@
 /**
  * Start the Email Digest Worker
  * This worker processes queued email digest jobs from BullMQ
- * 
+ *
  * Usage:
  *   npm run worker:digest
  *   or
  *   npx tsx scripts/start-digest-worker.ts
- * 
+ *
  * Deploy on Railway:
  *   Create a new service with this as the start command
  */
@@ -23,10 +23,18 @@ console.log('===========================================');
 console.log('🚀 Starting Email Digest Worker');
 console.log('===========================================');
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-console.log(`Redis URL: ${process.env.UPSTASH_REDIS_REST_URL ? 'Configured ✓' : 'Missing ✗'}`);
-console.log(`Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Configured ✓' : 'Missing ✗'}`);
-console.log(`Resend API: ${process.env.RESEND_API_KEY ? 'Configured ✓' : 'Missing ✗'}`);
-console.log(`OpenAI API: ${process.env.OPENAI_API_KEY ? 'Configured ✓' : 'Missing ✗'}`);
+console.log(
+  `Redis URL: ${process.env.UPSTASH_REDIS_REST_URL ? 'Configured ✓' : 'Missing ✗'}`
+);
+console.log(
+  `Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Configured ✓' : 'Missing ✗'}`
+);
+console.log(
+  `Resend API: ${process.env.RESEND_API_KEY ? 'Configured ✓' : 'Missing ✗'}`
+);
+console.log(
+  `OpenAI API: ${process.env.OPENAI_API_KEY ? 'Configured ✓' : 'Missing ✗'}`
+);
 console.log('===========================================\n');
 
 // Check required environment variables
@@ -39,11 +47,11 @@ const requiredEnvVars = [
   'OPENAI_API_KEY', // For AI image generation
 ];
 
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingVars.length > 0) {
   console.error('❌ Missing required environment variables:');
-  missingVars.forEach(varName => {
+  missingVars.forEach((varName) => {
     console.error(`   - ${varName}`);
   });
   console.error('\nPlease ensure all required environment variables are set.');

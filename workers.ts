@@ -9,6 +9,7 @@ import { createCreatorProcessorWorker } from '@/lib/queue/workers/creator-proces
 import { createSummaryProcessorWorker } from '@/lib/queue/workers/summary-processor';
 import { createBrightDataProcessorWorker } from '@/lib/queue/workers/brightdata-processor';
 import { createAINewsProcessorWorker } from '@/lib/queue/workers/ai-news-processor';
+import { createDigestWorker } from '@/lib/queue/workers/digest-processor';
 
 console.log('Starting queue workers...');
 console.log('NODE_ENV:', process.env.NODE_ENV);
@@ -16,6 +17,7 @@ console.log('Redis URL available:', !!process.env.UPSTASH_REDIS_REST_URL);
 console.log('Redis token available:', !!process.env.UPSTASH_REDIS_REST_TOKEN);
 console.log('Supabase key available:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 console.log('OpenAI key available:', !!process.env.OPENAI_API_KEY);
+console.log('Resend key available:', !!process.env.RESEND_API_KEY);
 
 // Check Redis configuration
 if (
@@ -35,11 +37,18 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
+if (!process.env.RESEND_API_KEY) {
+  console.error('ERROR: RESEND_API_KEY not configured!');
+  console.error('This is required for the email digest worker');
+  process.exit(1);
+}
+
 // Start workers
 const creatorWorker = createCreatorProcessorWorker();
 const summaryWorker = createSummaryProcessorWorker();
 const brightdataWorker = createBrightDataProcessorWorker();
 const aiNewsWorker = createAINewsProcessorWorker();
+const digestWorker = createDigestWorker();
 
 console.log('Workers started successfully!');
 console.log(
@@ -51,6 +60,9 @@ console.log(
 );
 console.log(
   '- AI News processor worker: Generating AI news summaries for lounges (3 concurrent)'
+);
+console.log(
+  '- Email Digest worker: Processing daily email digests (5 concurrent)'
 );
 
 // Error handling
@@ -74,6 +86,7 @@ process.on('SIGTERM', async () => {
   await summaryWorker.close();
   await brightdataWorker.close();
   await aiNewsWorker.close();
+  await digestWorker.close();
   process.exit(0);
 });
 
@@ -83,5 +96,6 @@ process.on('SIGINT', async () => {
   await summaryWorker.close();
   await brightdataWorker.close();
   await aiNewsWorker.close();
+  await digestWorker.close();
   process.exit(0);
 });

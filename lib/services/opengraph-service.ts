@@ -36,7 +36,8 @@ export class OpenGraphService {
   ): Promise<Map<string, string | null>> {
     const results = new Map<string, string | null>();
     const aiImageService = AIImageService.getInstance();
-    const failedItems: Array<{ url: string; title?: string; source?: string }> = [];
+    const failedItems: Array<{ url: string; title?: string; source?: string }> =
+      [];
 
     // Process in batches to avoid overwhelming the service
     const batchSize = 5;
@@ -48,7 +49,11 @@ export class OpenGraphService {
           return { url: item.url, imageUrl: metadata.imageUrl };
         } else {
           // Track items that need AI fallback
-          failedItems.push({ url: item.url, title: item.title, source: item.source });
+          failedItems.push({
+            url: item.url,
+            title: item.title,
+            source: item.source,
+          });
           return { url: item.url, imageUrl: null };
         }
       });
@@ -61,10 +66,12 @@ export class OpenGraphService {
 
     // Generate AI images for failed items
     if (failedItems.length > 0 && process.env.OPENAI_API_KEY) {
-      console.log(`Generating AI fallback images for ${failedItems.length} articles`);
-      
+      console.log(
+        `Generating AI fallback images for ${failedItems.length} articles`
+      );
+
       const aiImages = await aiImageService.generateBulkFallbackImages(
-        failedItems.map(item => ({
+        failedItems.map((item) => ({
           url: item.url,
           title: item.title,
           source: item.source,
