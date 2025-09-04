@@ -182,17 +182,18 @@ export class DigestService {
           'Update by @',
           'Update by ',
         ];
-        
+
         for (const prefix of platformPrefixes) {
           if (cleanedTitle.toLowerCase().startsWith(prefix.toLowerCase())) {
             cleanedTitle = ''; // Don't use platform-specific titles for image generation
             break;
           }
         }
-        
+
         // If title was a platform prefix, use description or summary instead
-        const titleForImage = cleanedTitle || post.description || post.ai_summary_short || '';
-        
+        const titleForImage =
+          cleanedTitle || post.description || post.ai_summary_short || '';
+
         const generatedImage = await aiImageService.generateFallbackImage({
           url: post.url,
           title: titleForImage,

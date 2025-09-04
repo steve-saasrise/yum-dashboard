@@ -187,13 +187,15 @@ export const DailyDigestEmail = ({
                   </Heading>
                 </div>
                 {aiNewsSummary.bigStory.imageUrl && (
-                  <Img
-                    src={aiNewsSummary.bigStory.imageUrl}
-                    width="560"
-                    height="280"
-                    alt={aiNewsSummary.bigStory.title}
-                    style={bigStoryImage}
-                  />
+                  <div style={{ width: '100%', maxWidth: '560px', margin: '16px 0' }}>
+                    <Img
+                      src={aiNewsSummary.bigStory.imageUrl}
+                      width="560"
+                      height="280"
+                      alt={aiNewsSummary.bigStory.title}
+                      style={bigStoryImage}
+                    />
+                  </div>
                 )}
                 <Heading as="h3" style={bigStoryHeadline}>
                   {aiNewsSummary.bigStory.title}
@@ -1101,9 +1103,8 @@ const bigStoryImage = {
   width: '100%',
   height: 'auto',
   borderRadius: '6px',
-  marginTop: '16px',
-  marginBottom: '16px',
   objectFit: 'cover' as const,
+  display: 'block',
 };
 
 const bigStoryHeadline = {
