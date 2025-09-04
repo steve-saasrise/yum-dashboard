@@ -144,7 +144,7 @@ export class DigestService {
   ): Promise<ContentForDigest[]> {
     // Get all available social content (more than needed for selection)
     const allSocialContent = await this.getSocialContentForLounge(loungeId, 20);
-    
+
     if (allSocialContent.length === 0) {
       return [];
     }
@@ -158,31 +158,58 @@ export class DigestService {
     );
 
     // Process selected posts for image generation if needed
-    const postsNeedingImages = selectedPosts.filter(post => !post.thumbnail_url);
-    
+    const postsNeedingImages = selectedPosts.filter(
+      (post) => !post.thumbnail_url
+    );
+
     if (postsNeedingImages.length > 0) {
-      console.log(`Generating AI images for ${postsNeedingImages.length} social posts`);
-      
+      console.log(
+        `Generating AI images for ${postsNeedingImages.length} social posts`
+      );
+
       // Generate AI images for posts without thumbnails
       const aiImageService = AIImageService.getInstance();
       const imagePromises = postsNeedingImages.map(async (post) => {
+        // Clean the title by removing platform-specific prefixes
+        let cleanedTitle = post.title;
+        const platformPrefixes = [
+          'Tweet by @',
+          'Tweet by ',
+          'Thread by @',
+          'Thread by ',
+          'Post by @',
+          'Post by ',
+          'Update by @',
+          'Update by ',
+        ];
+        
+        for (const prefix of platformPrefixes) {
+          if (cleanedTitle.toLowerCase().startsWith(prefix.toLowerCase())) {
+            cleanedTitle = ''; // Don't use platform-specific titles for image generation
+            break;
+          }
+        }
+        
+        // If title was a platform prefix, use description or summary instead
+        const titleForImage = cleanedTitle || post.description || post.ai_summary_short || '';
+        
         const generatedImage = await aiImageService.generateFallbackImage({
           url: post.url,
-          title: post.title,
+          title: titleForImage,
           source: post.creator.display_name,
           category: loungeTheme,
           description: post.description || post.ai_summary_short || undefined,
           isBigStory: false, // Square images for social posts
         });
-        
+
         if (generatedImage) {
           post.thumbnail_url = generatedImage.imageUrl;
           (post as any).aiGeneratedImage = true;
         }
-        
+
         return post;
       });
-      
+
       await Promise.all(imagePromises);
     }
 
@@ -411,7 +438,7 @@ export class DigestService {
 
       // Get AI-selected top social posts for this lounge
       const topSocialPosts = await this.getTopSocialPosts(
-        lounge.id, 
+        lounge.id,
         lounge.theme_description || lounge.name,
         5
       );

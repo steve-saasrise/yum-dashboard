@@ -62,7 +62,9 @@ export class SocialPostSelector {
     targetCount: number = 5
   ): Promise<SelectedPost[]> {
     if (!this.openai) {
-      console.error('OpenAI API not configured, falling back to basic selection');
+      console.error(
+        'OpenAI API not configured, falling back to basic selection'
+      );
       return this.fallbackSelection(posts, targetCount);
     }
 
@@ -81,7 +83,10 @@ export class SocialPostSelector {
         index,
         platform: post.platform,
         title: post.title,
-        description: post.description?.substring(0, 100) || post.ai_summary_short?.substring(0, 100) || '',
+        description:
+          post.description?.substring(0, 100) ||
+          post.ai_summary_short?.substring(0, 100) ||
+          '',
         creator: post.creator.display_name,
         relevancy: post.relevancy_score || 0,
         engagement: this.calculateEngagementScore(post.engagement_metrics),
@@ -90,10 +95,13 @@ export class SocialPostSelector {
       }));
 
       // Create platform distribution summary
-      const platformCounts = posts.reduce((acc, post) => {
-        acc[post.platform] = (acc[post.platform] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const platformCounts = posts.reduce(
+        (acc, post) => {
+          acc[post.platform] = (acc[post.platform] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const prompt = `You are curating social media posts for a ${loungeTheme} email digest. Select the ${targetCount} MOST RELEVANT and ENGAGING posts that would interest ${loungeTheme} professionals.
 
@@ -105,7 +113,9 @@ SELECTION CRITERIA:
 5. Quality: Choose posts with substantive content over simple reactions
 
 AVAILABLE PLATFORMS & COUNTS:
-${Object.entries(platformCounts).map(([platform, count]) => `${platform}: ${count} posts`).join('\n')}
+${Object.entries(platformCounts)
+  .map(([platform, count]) => `${platform}: ${count} posts`)
+  .join('\n')}
 
 POSTS DATA:
 ${JSON.stringify(postsData, null, 2)}
@@ -127,7 +137,8 @@ IMPORTANT:
         messages: [
           {
             role: 'system',
-            content: 'You are an expert social media curator for professional email digests. Always return valid JSON.',
+            content:
+              'You are an expert social media curator for professional email digests. Always return valid JSON.',
           },
           {
             role: 'user',
@@ -187,7 +198,10 @@ IMPORTANT:
   /**
    * Fallback selection logic when AI is not available
    */
-  private fallbackSelection(posts: SocialPost[], targetCount: number): SelectedPost[] {
+  private fallbackSelection(
+    posts: SocialPost[],
+    targetCount: number
+  ): SelectedPost[] {
     // Group posts by platform
     const platformGroups = new Map<string, SocialPost[]>();
     posts.forEach((post) => {
@@ -199,12 +213,19 @@ IMPORTANT:
     });
 
     const selected: SelectedPost[] = [];
-    const platforms = ['youtube', 'twitter', 'linkedin', 'threads', 'rss', 'website'];
+    const platforms = [
+      'youtube',
+      'twitter',
+      'linkedin',
+      'threads',
+      'rss',
+      'website',
+    ];
 
     // First pass: Get one from each platform
     for (const platform of platforms) {
       if (selected.length >= targetCount) break;
-      
+
       const platformPosts = platformGroups.get(platform) || [];
       if (platformPosts.length > 0) {
         // Sort by engagement and relevancy
@@ -239,7 +260,7 @@ IMPORTANT:
    */
   private calculateEngagementScore(metrics?: any): number {
     if (!metrics) return 0;
-    
+
     const likes = metrics.likes || 0;
     const views = metrics.views || 0;
     const shares = metrics.shares || 0;
@@ -253,11 +274,14 @@ IMPORTANT:
    * Calculate overall score for fallback selection
    */
   private calculateOverallScore(post: SocialPost): number {
-    const engagementScore = this.calculateEngagementScore(post.engagement_metrics);
+    const engagementScore = this.calculateEngagementScore(
+      post.engagement_metrics
+    );
     const relevancyScore = (post.relevancy_score || 0) * 10;
-    
+
     // Time decay factor (newer posts get higher score)
-    const hoursAgo = (Date.now() - new Date(post.published_at).getTime()) / (1000 * 60 * 60);
+    const hoursAgo =
+      (Date.now() - new Date(post.published_at).getTime()) / (1000 * 60 * 60);
     const recencyScore = Math.max(0, 100 - hoursAgo * 2);
 
     return engagementScore + relevancyScore + recencyScore;

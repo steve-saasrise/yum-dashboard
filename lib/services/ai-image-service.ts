@@ -317,7 +317,7 @@ export class AIImageService {
     }
 
     // Extract significant capitalized words (company names, products)
-    // But filter out common words and articles
+    // But filter out common words, articles, and platform-specific terms
     const properNouns = title.match(/\b[A-Z][a-z]+\b/g) || [];
     const filteredProperNouns = properNouns.filter(
       (word) =>
@@ -330,6 +330,13 @@ export class AIImageService {
           'Update',
           'Report',
           'Critical',
+          'Tweet',
+          'Thread',
+          'Post',
+          'Story',
+          'Share',
+          'Retweet',
+          'Reply',
         ].includes(word)
     );
     keywords.push(...filteredProperNouns.slice(0, 2)); // Limit to 2 company/product names

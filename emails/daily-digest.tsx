@@ -172,8 +172,16 @@ export const DailyDigestEmail = ({
           {aiNewsSummary?.bigStory && (
             <>
               <Section style={bigStorySection}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>⭐</Text>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
+                    ⭐
+                  </Text>
                   <Heading as="h3" style={bigStoryTitle}>
                     Big Story of the Day
                   </Heading>
@@ -220,8 +228,16 @@ export const DailyDigestEmail = ({
           {aiNewsSummary && aiNewsSummary.bullets.length > 0 && (
             <>
               <Section style={newsSummarySection}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>🚀</Text>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
+                    🚀
+                  </Text>
                   <Heading as="h3" style={newsSummaryTitle}>
                     Today's SaaS Headlines
                   </Heading>
@@ -279,8 +295,16 @@ export const DailyDigestEmail = ({
           {topSocialPosts && topSocialPosts.length > 0 && (
             <>
               <Section style={socialPostsSection}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>💬</Text>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
+                    💬
+                  </Text>
                   <Heading as="h3" style={socialPostsTitle}>
                     Top SaaS Social Posts
                   </Heading>
@@ -293,7 +317,7 @@ export const DailyDigestEmail = ({
                           <Img
                             src={post.thumbnail_url}
                             width="120"
-                            height="120"
+                            height="80"
                             alt=""
                             style={socialPostImage}
                           />
@@ -314,11 +338,15 @@ export const DailyDigestEmail = ({
                         </Link>
                         <Text style={socialPostDescription}>
                           {(() => {
-                            const description = post.ai_summary_short || 
-                                                post.description || 
-                                                post.content_body || '';
-                            const wordCount = description.trim().split(/\s+/).length;
-                            
+                            const description =
+                              post.ai_summary_short ||
+                              post.description ||
+                              post.content_body ||
+                              '';
+                            const wordCount = description
+                              .trim()
+                              .split(/\s+/).length;
+
                             if (wordCount > 30) {
                               return description.substring(0, 150) + '...';
                             }
@@ -326,7 +354,9 @@ export const DailyDigestEmail = ({
                           })()}
                         </Text>
                         <div style={socialPostMeta}>
-                          <table style={{ borderSpacing: 0, marginBottom: '4px' }}>
+                          <table
+                            style={{ borderSpacing: 0, marginBottom: '4px' }}
+                          >
                             <tr>
                               <td style={{ paddingRight: '6px' }}>
                                 <Img
@@ -352,11 +382,11 @@ export const DailyDigestEmail = ({
                           </table>
                           {post.engagement_metrics && (
                             <Text style={socialPostEngagement}>
-                              {post.engagement_metrics.likes && 
+                              {post.engagement_metrics.likes &&
                                 `❤️ ${post.engagement_metrics.likes.toLocaleString()}`}
-                              {post.engagement_metrics.views && 
+                              {post.engagement_metrics.views &&
                                 ` · ${post.engagement_metrics.views.toLocaleString()} views`}
-                              {post.engagement_metrics.comments && 
+                              {post.engagement_metrics.comments &&
                                 ` · 💬 ${post.engagement_metrics.comments.toLocaleString()}`}
                             </Text>
                           )}
@@ -568,13 +598,16 @@ DailyDigestEmail.PreviewProps = {
     {
       id: 'sp1',
       title: 'Why SaaS pricing is broken and how to fix it',
-      description: 'Most SaaS companies are pricing wrong and leaving millions on the table. Here\'s a comprehensive 10-point framework that increased our ARR by 300% in just 18 months...',
+      description:
+        "Most SaaS companies are pricing wrong and leaving millions on the table. Here's a comprehensive 10-point framework that increased our ARR by 300% in just 18 months...",
       url: 'https://example.com/post1',
       creator_name: 'Sarah Chen (@sarahchen)',
       platform: 'linkedin' as const,
-      thumbnail_url: 'https://via.placeholder.com/120x120/8b5cf6/ffffff?text=SaaS+Pricing',
+      thumbnail_url:
+        'https://via.placeholder.com/120x80/8b5cf6/ffffff?text=SaaS+Pricing',
       published_at: new Date().toISOString(),
-      ai_summary_short: 'A data-driven pricing framework that helped increase ARR by 300%',
+      ai_summary_short:
+        'A data-driven pricing framework that helped increase ARR by 300%',
       engagement_metrics: {
         likes: 1247,
         views: 45000,
@@ -583,12 +616,14 @@ DailyDigestEmail.PreviewProps = {
     {
       id: 'sp2',
       title: 'The Complete Guide to SaaS Metrics in 2025',
-      description: 'Everything you need to know about CAC, LTV, churn, and the advanced metrics that actually matter for scaling SaaS businesses profitably in today\'s competitive market',
+      description:
+        "Everything you need to know about CAC, LTV, churn, and the advanced metrics that actually matter for scaling SaaS businesses profitably in today's competitive market",
       url: 'https://example.com/post2',
       creator_name: 'Ryan Allis (@ryanallis)',
       platform: 'twitter' as const,
       published_at: new Date().toISOString(),
-      ai_summary_short: 'Advanced SaaS metrics guide focusing on profitability over growth',
+      ai_summary_short:
+        'Advanced SaaS metrics guide focusing on profitability over growth',
       engagement_metrics: {
         likes: 892,
         views: 23400,
@@ -602,7 +637,8 @@ DailyDigestEmail.PreviewProps = {
       creator_name: 'Alex Rodriguez (@alexrod)',
       platform: 'threads' as const,
       published_at: new Date().toISOString(),
-      description: 'Product-led growth worked in 2020-2022, but the market has fundamentally shifted and buyers expect human interaction. Sales-led motion is making a strong comeback. Here\'s the data...',
+      description:
+        "Product-led growth worked in 2020-2022, but the market has fundamentally shifted and buyers expect human interaction. Sales-led motion is making a strong comeback. Here's the data...",
       engagement_metrics: {
         likes: 2341,
         views: 67800,
@@ -614,9 +650,11 @@ DailyDigestEmail.PreviewProps = {
       url: 'https://youtube.com/watch?v=example',
       creator_name: 'Maria Santos (@mariasantos)',
       platform: 'youtube' as const,
-      thumbnail_url: 'https://via.placeholder.com/120x120/10b981/ffffff?text=SaaS+Growth',
+      thumbnail_url:
+        'https://via.placeholder.com/120x80/10b981/ffffff?text=SaaS+Growth',
       published_at: new Date().toISOString(),
-      ai_summary_short: 'How to build a profitable SaaS without any marketing or PR',
+      ai_summary_short:
+        'How to build a profitable SaaS without any marketing or PR',
       engagement_metrics: {
         likes: 3456,
         views: 89000,
@@ -629,7 +667,8 @@ DailyDigestEmail.PreviewProps = {
       creator_name: 'Jason Fried (@jasonfried)',
       platform: 'rss' as const,
       published_at: new Date().toISOString(),
-      description: 'Latest trends reshaping SaaS: AI integration becoming table stakes, vertical solutions dominating horizontals, and the accelerating shift to consumption-based pricing models across all segments',
+      description:
+        'Latest trends reshaping SaaS: AI integration becoming table stakes, vertical solutions dominating horizontals, and the accelerating shift to consumption-based pricing models across all segments',
       engagement_metrics: {
         views: 12300,
       },
@@ -1153,7 +1192,7 @@ const socialPostImageContainer = {
   flexShrink: 0,
   marginRight: '16px',
   width: '120px',
-  height: '120px',
+  height: '80px',
 };
 
 const socialPostImage = {
@@ -1161,12 +1200,12 @@ const socialPostImage = {
   objectFit: 'cover' as const,
   display: 'block',
   width: '120px',
-  height: '120px',
+  height: '80px',
 };
 
 const socialPostPlaceholder = {
   width: '120px',
-  height: '120px',
+  height: '80px',
   backgroundColor: '#f3f4f6',
   borderRadius: '8px',
   display: 'flex',
