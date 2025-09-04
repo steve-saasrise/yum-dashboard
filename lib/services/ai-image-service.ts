@@ -88,12 +88,10 @@ export class AIImageService {
         model: 'gemini-2.5-flash-image-preview',
         contents: prompt,
         config: {
-          generationConfig: {
-            responseModalities: ['TEXT', 'IMAGE'],
-            temperature: 0.4,
-            topK: 32,
-            topP: 1,
-          },
+          responseModalities: ['TEXT', 'IMAGE'],
+          temperature: 0.4,
+          topK: 32,
+          topP: 1,
         },
       });
 
@@ -123,16 +121,21 @@ export class AIImageService {
       // Convert base64 to a data URL for temporary storage
       const generatedImageUrl = `data:image/png;base64,${base64Image}`;
 
-      // Store the generated image URL in our cache
-      await this.cacheGeneratedImage(
+      // Store the generated image URL in our cache and get permanent URL
+      const permanentUrl = await this.cacheGeneratedImage(
         urlHash,
         options.url,
         generatedImageUrl,
         prompt
       );
 
+      if (!permanentUrl) {
+        console.error('Failed to store generated image - returning null');
+        return null;
+      }
+
       return {
-        imageUrl: generatedImageUrl,
+        imageUrl: permanentUrl, // Return the permanent URL, not the base64
         prompt,
         cached: false,
       };
@@ -460,15 +463,24 @@ export class AIImageService {
     urlHash: string
   ): Promise<string | null> {
     if (!this.supabase) {
+      console.error('Supabase client not initialized');
       return null;
     }
 
     try {
       // First, ensure the ai-images bucket exists
-      const { data: buckets } = await this.supabase.storage.listBuckets();
+      const { data: buckets, error: listError } =
+        await this.supabase.storage.listBuckets();
+
+      if (listError) {
+        console.error('Error listing buckets:', listError);
+        return null;
+      }
+
       const bucketExists = buckets?.some((b) => b.name === 'ai-images');
 
       if (!bucketExists) {
+        console.log('Creating ai-images bucket...');
         const { error: createError } = await this.supabase.storage.createBucket(
           'ai-images',
           {
@@ -478,7 +490,12 @@ export class AIImageService {
         );
         if (createError) {
           console.error('Error creating ai-images bucket:', createError);
-          return null;
+          // If bucket creation fails, it might already exist
+          if (!createError.message?.includes('already exists')) {
+            return null;
+          }
+        } else {
+          console.log('ai-images bucket created successfully');
         }
       }
 
@@ -527,13 +544,18 @@ export class AIImageService {
 
       if (error) {
         console.error('Error uploading image to storage:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
         return null;
       }
+
+      console.log('Image uploaded successfully:', fileName);
 
       // Get the public URL for the stored image
       const {
         data: { publicUrl },
       } = this.supabase.storage.from('ai-images').getPublicUrl(fileName);
+
+      console.log('Public URL generated:', publicUrl);
 
       return publicUrl;
     } catch (error) {
@@ -550,9 +572,9 @@ export class AIImageService {
     originalUrl: string,
     imageUrl: string,
     prompt: string
-  ): Promise<void> {
+  ): Promise<string | null> {
     if (!this.supabase) {
-      return;
+      return null;
     }
 
     try {
@@ -560,24 +582,31 @@ export class AIImageService {
       const permanentUrl = await this.storePermanentImage(imageUrl, urlHash);
 
       if (!permanentUrl) {
-        console.error('Failed to store image permanently, using temporary URL');
+        console.error(
+          'Failed to store image permanently - cannot cache without proper URL'
+        );
+        // Return null to indicate failure - we don't want to cache base64 URLs
+        return null;
       }
 
       const { error } = await this.supabase.from('generated_images').insert({
         url_hash: urlHash,
         original_url: originalUrl,
-        generated_image_url: permanentUrl || imageUrl, // Use permanent URL if available
+        generated_image_url: permanentUrl, // Only store permanent URL
         prompt_used: prompt,
         created_at: new Date().toISOString(),
       });
 
       if (error) {
         console.error('Error caching generated image:', error);
+        return null;
       } else {
         console.log(`Cached AI-generated image for: ${originalUrl}`);
+        return permanentUrl;
       }
     } catch (error) {
       console.error('Error in cacheGeneratedImage:', error);
+      return null;
     }
   }
 
