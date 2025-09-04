@@ -122,7 +122,7 @@ export class AIImageService {
       const generatedImageUrl = `data:image/png;base64,${base64Image}`;
 
       // Store the generated image URL in our cache and get permanent URL
-      const permanentUrl = await this.cacheGeneratedImage(
+      let permanentUrl = await this.cacheGeneratedImage(
         urlHash,
         options.url,
         generatedImageUrl,
@@ -130,12 +130,19 @@ export class AIImageService {
       );
 
       if (!permanentUrl) {
-        console.error('Failed to store generated image - returning null');
-        return null;
+        console.error('Warning: First storage attempt failed, retrying...');
+        // Retry with longer timeout
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        permanentUrl = await this.storePermanentImage(generatedImageUrl, urlHash);
+        
+        if (!permanentUrl) {
+          console.error('Error: Storage failed after retry.');
+          return null;
+        }
       }
 
       return {
-        imageUrl: permanentUrl, // Return the permanent URL, not the base64
+        imageUrl: permanentUrl,
         prompt,
         cached: false,
       };
@@ -534,21 +541,43 @@ export class AIImageService {
         `Compressed image from ${imageBuffer.length} to ${compressedBuffer.length} bytes (${Math.round((1 - compressedBuffer.length / imageBuffer.length) * 100)}% reduction)`
       );
 
-      // Upload to Supabase Storage
-      const { data, error } = await this.supabase.storage
-        .from('ai-images')
-        .upload(fileName, compressedBuffer, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
+      // Upload to Supabase Storage with retry logic
+      let uploadError = null;
+      let uploadAttempts = 0;
+      const maxAttempts = 3;
+      
+      while (uploadAttempts < maxAttempts) {
+        uploadAttempts++;
+        const { data, error } = await this.supabase.storage
+          .from('ai-images')
+          .upload(fileName, compressedBuffer, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
 
-      if (error) {
-        console.error('Error uploading image to storage:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        return null;
+        if (!error) {
+          console.log(`Image uploaded successfully on attempt ${uploadAttempts}:`, fileName);
+          uploadError = null;
+          break;
+        }
+        
+        uploadError = error;
+        console.error(`Upload attempt ${uploadAttempts} failed:`, error);
+        
+        if (uploadAttempts < maxAttempts) {
+          // Wait before retry with exponential backoff
+          const waitTime = Math.pow(2, uploadAttempts) * 1000;
+          console.log(`Retrying upload in ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
 
-      console.log('Image uploaded successfully:', fileName);
+      if (uploadError) {
+        console.error('Failed to upload after all retries:', uploadError);
+        console.error('Error details:', JSON.stringify(uploadError, null, 2));
+        // Don't throw - return null so fallback can be used
+        return null;
+      }
 
       // Get the public URL for the stored image
       const {

@@ -79,13 +79,13 @@ export class OpenGraphService {
           url: item.url,
           title: item.title,
           source: item.source,
-          category: category || 'Technology', // Use provided category or default to Technology
+          category: category || 'Technology',
         }))
       );
 
       // Update results with AI-generated images
       aiImages.forEach((image, url) => {
-        if (image) {
+        if (image && image.imageUrl) {
           results.set(url, image.imageUrl);
         }
       });
