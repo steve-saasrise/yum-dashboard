@@ -1,4 +1,4 @@
-import { OpenAI } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import fetch from 'node-fetch';
@@ -19,7 +19,7 @@ interface GeneratedImage {
 }
 
 export class AIImageService {
-  private openai: OpenAI | null = null;
+  private genAI: GoogleGenerativeAI | null = null;
   private supabase: ReturnType<typeof createClient> | null = null;
   private static instance: AIImageService | null = null;
 
@@ -28,9 +28,9 @@ export class AIImageService {
   }
 
   private initializeServices() {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (apiKey && !this.openai) {
-      this.openai = new OpenAI({ apiKey });
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+    if (apiKey && !this.genAI) {
+      this.genAI = new GoogleGenerativeAI(apiKey);
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -49,13 +49,13 @@ export class AIImageService {
   }
 
   /**
-   * Generate a contextual image for an article using DALL-E 3
+   * Generate a contextual image for an article using Google Gemini 2.5 Flash
    */
   async generateFallbackImage(
     options: GenerateImageOptions
   ): Promise<GeneratedImage | null> {
-    if (!this.openai) {
-      console.error('OpenAI API key not configured');
+    if (!this.genAI) {
+      console.error('Google API key not configured');
       return null;
     }
 
@@ -83,21 +83,39 @@ export class AIImageService {
       console.log(`Generating AI image for: ${options.url}`);
       console.log(`Prompt: ${prompt}`);
 
-      // Call DALL-E 3 to generate the image
-      const response = await this.openai.images.generate({
-        model: 'dall-e-3',
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        quality: 'standard', // Use 'standard' for cost efficiency
-        style: 'natural', // Natural style for news articles
+      // Call Gemini 2.5 Flash Image Preview model (aka "Nano Banana")
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash-image-preview',
       });
 
-      const generatedImageUrl = response.data?.[0]?.url;
-      if (!generatedImageUrl) {
-        console.error('No image URL returned from DALL-E 3');
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+
+      console.log(
+        'Raw response structure:',
+        JSON.stringify(response, null, 2).substring(0, 1000)
+      );
+
+      // Extract the base64 image from the response
+      let base64Image: string | null = null;
+      if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          console.log('Part type:', part);
+          if (part.inlineData?.data) {
+            base64Image = part.inlineData.data;
+            break;
+          }
+        }
+      }
+
+      if (!base64Image) {
+        console.error('No image generated from Gemini 2.5 Flash');
+        console.log('Full response:', JSON.stringify(response, null, 2));
         return null;
       }
+
+      // Convert base64 to a data URL for temporary storage
+      const generatedImageUrl = `data:image/png;base64,${base64Image}`;
 
       // Store the generated image URL in our cache
       await this.cacheGeneratedImage(
@@ -112,67 +130,113 @@ export class AIImageService {
         prompt,
         cached: false,
       };
-    } catch (error) {
-      console.error('Error generating AI image:', error);
+    } catch (error: any) {
+      // Handle specific error types
+      if (error.status === 429) {
+        console.error(
+          'Gemini API quota exceeded. Please wait or upgrade your plan.'
+        );
+        console.error('Details:', error.message);
+      } else {
+        console.error('Error generating AI image:', error);
+        console.error('Full error details:', JSON.stringify(error, null, 2));
+      }
       return null;
     }
   }
 
   /**
    * Generate a smart prompt based on article metadata
+   * Using descriptive sentences instead of keywords for better Gemini results
    */
   private generatePrompt(options: GenerateImageOptions): string {
     const { title, source, category, description } = options;
 
-    // Build a contextual prompt
+    // Build a descriptive prompt using natural language
     let prompt =
-      'Create a professional, editorial-style image for a news article';
+      'Please generate a professional and visually appealing editorial image ';
 
-    // Add category context if available
+    // Add category context with descriptive sentences
     if (category) {
-      const categoryPrompts: Record<string, string> = {
-        SaaS: 'about SaaS software and cloud technology',
-        AI: 'about artificial intelligence and machine learning',
-        Security: 'about cybersecurity and data protection',
-        Startup: 'about startups and entrepreneurship',
-        Finance: 'about financial technology and markets',
-        Developer: 'about software development and programming',
-        Product: 'about product management and design',
-        Marketing: 'about digital marketing and growth',
+      // Clean up category name by removing "Coffee" and similar suffixes
+      const cleanCategory = category
+        .replace(/\s*(Coffee|Lounge|Room|Hub)$/i, '')
+        .trim();
+
+      const categoryDescriptions: Record<string, string> = {
+        SaaS: 'that represents cloud-based software services with modern technology elements and digital transformation themes',
+        AI: 'that illustrates artificial intelligence concepts with neural networks, data patterns, or futuristic technology visualizations',
+        Security:
+          'that conveys cybersecurity and data protection through visual metaphors of shields, locks, or secure digital environments',
+        Startup:
+          'that captures the entrepreneurial spirit with imagery of innovation, growth, and dynamic business environments',
+        Finance:
+          'that depicts financial technology and markets through abstract representations of data, charts, or digital currency',
+        Developer:
+          'that represents software development and programming with clean code aesthetics or abstract technology patterns',
+        Product:
+          'that illustrates product management and design thinking through visual representations of user interfaces or product workflows',
+        Marketing:
+          'that shows digital marketing and growth strategies through creative visual metaphors of audience engagement and brand reach',
+        Venture:
+          'that captures venture capital and startup ecosystem with imagery of innovation, investment, and growth',
+        Crypto:
+          'that depicts cryptocurrency and blockchain technology through abstract representations of decentralized networks and digital assets',
+        Growth:
+          'that shows B2B growth strategies and marketing through visual metaphors of scaling, expansion, and business development',
       };
 
-      const categoryContext = categoryPrompts[category] || `about ${category}`;
-      prompt += ` ${categoryContext}`;
+      // Check if this is a theme description (longer text about content)
+      if (category.toLowerCase().includes('content about')) {
+        // This is already a theme description, use it directly
+        prompt += `for ${category}`;
+      } else {
+        // Try to match with predefined categories
+        const categoryDescription = categoryDescriptions[cleanCategory];
+        if (categoryDescription) {
+          prompt += categoryDescription;
+        } else {
+          // Use the cleaned category name
+          prompt += `related to ${cleanCategory} topics`;
+        }
+      }
     }
 
-    // Add title context if available
+    // Add title context with natural language
     if (title) {
-      // Extract key themes from the title
       const keywords = this.extractKeywords(title);
       if (keywords.length > 0) {
-        prompt += `. The article discusses ${keywords.join(', ')}`;
+        prompt += `. The image should subtly reference themes related to ${keywords.join(' and ')}`;
       }
     }
 
-    // Add source context for style
+    // Add source-based style guidance
     if (source) {
       const sourceStyles: Record<string, string> = {
-        TechCrunch: 'Use modern, tech-forward visuals',
-        Reuters: 'Use professional, journalistic style',
-        'The Verge': 'Use contemporary, digital aesthetic',
-        Forbes: 'Use business-professional imagery',
-        VentureBeat: 'Use startup and innovation themes',
+        TechCrunch:
+          'The visual style should be modern and tech-forward with bold colors and innovative design',
+        Reuters:
+          'The image should have a professional and journalistic quality with authoritative visual elements',
+        'The Verge':
+          'The aesthetic should be contemporary and digital with cutting-edge design sensibilities',
+        Forbes:
+          'The imagery should convey business professionalism and corporate sophistication',
+        VentureBeat:
+          'The visual should capture startup energy and innovation themes',
       };
 
-      const styleHint = sourceStyles[source];
-      if (styleHint) {
-        prompt += `. ${styleHint}`;
+      const styleDescription = sourceStyles[source];
+      if (styleDescription) {
+        prompt += `. ${styleDescription}`;
       }
     }
 
-    // Add universal requirements
+    // Add detailed requirements in natural language
     prompt +=
-      '. Use abstract or conceptual imagery, no text or logos, professional color palette, suitable for email newsletter header. Modern, clean, minimalist style.';
+      '. The image must be abstract or conceptual without any text, words, or logos. ' +
+      'It should use a professional color palette that works well in email newsletters. ' +
+      'The overall design should be modern, clean, and minimalist while being visually engaging. ' +
+      'The composition should be balanced and suitable as a header image for a professional news article.';
 
     return prompt;
   }
@@ -209,19 +273,34 @@ export class AIImageService {
       'growth',
     ];
 
-    const words = title.toLowerCase().split(/\s+/);
     const keywords: string[] = [];
+    const titleLower = title.toLowerCase();
 
+    // Use word boundary matching for tech terms
     for (const term of techTerms) {
-      if (title.toLowerCase().includes(term.toLowerCase())) {
+      const regex = new RegExp(`\\b${term.toLowerCase()}\\b`, 'i');
+      if (regex.test(title)) {
         keywords.push(term);
       }
     }
 
-    // Also extract company names (capitalized words)
-    const properNouns =
-      title.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
-    keywords.push(...properNouns.slice(0, 2)); // Limit to 2 company names
+    // Extract significant capitalized words (company names, products)
+    // But filter out common words and articles
+    const properNouns = title.match(/\b[A-Z][a-z]+\b/g) || [];
+    const filteredProperNouns = properNouns.filter(
+      (word) =>
+        ![
+          'The',
+          'New',
+          'Latest',
+          'Breaking',
+          'Exclusive',
+          'Update',
+          'Report',
+          'Critical',
+        ].includes(word)
+    );
+    keywords.push(...filteredProperNouns.slice(0, 2)); // Limit to 2 company/product names
 
     return keywords.slice(0, 5); // Return top 5 keywords
   }
@@ -397,24 +476,31 @@ export class AIImageService {
         }
       }
 
-      // Download the image from the temporary URL
-      const response = await fetch(temporaryUrl);
-      if (!response.ok) {
-        console.error('Failed to download image from temporary URL');
-        return null;
+      // Handle base64 data URL or regular URL
+      let imageBuffer: Buffer;
+      if (temporaryUrl.startsWith('data:image')) {
+        // Extract base64 data from data URL
+        const base64Data = temporaryUrl.split(',')[1];
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      } else {
+        // Download from regular URL
+        const response = await fetch(temporaryUrl);
+        if (!response.ok) {
+          console.error('Failed to download image from temporary URL');
+          return null;
+        }
+        imageBuffer = await response.buffer();
       }
 
-      const imageBuffer = await response.buffer();
-
-      // Compress the image using sharp
-      // Reduce to 800px width for email use, convert to JPEG for smaller size
+      // Gemini outputs are already optimized, but ensure consistent format and size
+      // Reduce to 800px width for email use, convert to JPEG for consistency
       const compressedBuffer = await sharp(imageBuffer)
         .resize(800, null, {
           withoutEnlargement: true,
           fit: 'inside',
         })
         .jpeg({
-          quality: 85, // Good quality/size balance
+          quality: 90, // Higher quality since Gemini outputs are pre-optimized
           progressive: true,
         })
         .toBuffer();
@@ -512,9 +598,9 @@ export class AIImageService {
         results.set(url, image);
       });
 
-      // Add delay between batches to respect rate limits
+      // Add delay between batches to respect rate limits (10 RPM for free tier)
       if (i + batchSize < articles.length) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 7000)); // 7 seconds ensures < 10 RPM
       }
     }
 

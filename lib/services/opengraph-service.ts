@@ -66,7 +66,10 @@ export class OpenGraphService {
     }
 
     // Generate AI images for failed items
-    if (failedItems.length > 0 && process.env.OPENAI_API_KEY) {
+    if (
+      failedItems.length > 0 &&
+      (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)
+    ) {
       console.log(
         `Generating AI fallback images for ${failedItems.length} articles`
       );
