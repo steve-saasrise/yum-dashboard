@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import fetch from 'node-fetch';
@@ -19,7 +19,7 @@ interface GeneratedImage {
 }
 
 export class AIImageService {
-  private genAI: GoogleGenerativeAI | null = null;
+  private genAI: GoogleGenAI | null = null;
   private supabase: ReturnType<typeof createClient> | null = null;
   private static instance: AIImageService | null = null;
 
@@ -30,7 +30,7 @@ export class AIImageService {
   private initializeServices() {
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
     if (apiKey && !this.genAI) {
-      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.genAI = new GoogleGenAI({ apiKey });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -84,12 +84,18 @@ export class AIImageService {
       console.log(`Prompt: ${prompt}`);
 
       // Call Gemini 2.5 Flash Image Preview model (aka "Nano Banana")
-      const model = this.genAI.getGenerativeModel({
+      const response = await this.genAI.models.generateContent({
         model: 'gemini-2.5-flash-image-preview',
+        contents: prompt,
+        config: {
+          generationConfig: {
+            responseModalities: ['TEXT', 'IMAGE'],
+            temperature: 0.4,
+            topK: 32,
+            topP: 1,
+          },
+        },
       });
-
-      const result = await model.generateContent(prompt);
-      const response = result.response;
 
       console.log(
         'Raw response structure:',
