@@ -2,6 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { DailyDigestEmail } from '@/emails/daily-digest';
 import { NewsSummaryService } from './news-summary-service';
+import { SocialPostSelector } from './social-post-selector';
+import { OpenGraphService } from './opengraph-service';
+import { AIImageService } from './ai-image-service';
 
 // Lazy initialize Resend client to avoid build-time errors
 let resend: Resend | null = null;
@@ -128,6 +131,62 @@ export class DigestService {
       ...content,
       creator: (content as any).creators,
     })) as ContentForDigest[];
+  }
+
+  /**
+   * Get AI-selected top social posts for the email digest
+   * Prioritizes platform diversity and relevance
+   */
+  static async getTopSocialPosts(
+    loungeId: string,
+    loungeTheme: string,
+    limit: number = 5
+  ): Promise<ContentForDigest[]> {
+    // Get all available social content (more than needed for selection)
+    const allSocialContent = await this.getSocialContentForLounge(loungeId, 20);
+    
+    if (allSocialContent.length === 0) {
+      return [];
+    }
+
+    // Use AI to select the top posts
+    const selector = new SocialPostSelector();
+    const selectedPosts = await selector.selectTopPosts(
+      allSocialContent as any,
+      loungeTheme,
+      limit
+    );
+
+    // Process selected posts for image generation if needed
+    const postsNeedingImages = selectedPosts.filter(post => !post.thumbnail_url);
+    
+    if (postsNeedingImages.length > 0) {
+      console.log(`Generating AI images for ${postsNeedingImages.length} social posts`);
+      
+      // Generate AI images for posts without thumbnails
+      const aiImageService = AIImageService.getInstance();
+      const imagePromises = postsNeedingImages.map(async (post) => {
+        const generatedImage = await aiImageService.generateFallbackImage({
+          url: post.url,
+          title: post.title,
+          source: post.creator.display_name,
+          category: loungeTheme,
+          description: post.description || post.ai_summary_short || undefined,
+          isBigStory: false, // Square images for social posts
+        });
+        
+        if (generatedImage) {
+          post.thumbnail_url = generatedImage.imageUrl;
+          (post as any).aiGeneratedImage = true;
+        }
+        
+        return post;
+      });
+      
+      await Promise.all(imagePromises);
+    }
+
+    return selectedPosts as ContentForDigest[];
   }
 
   /**
@@ -350,7 +409,14 @@ export class DigestService {
       // Get news content (same for all users) - fallback if no AI summary
       const newsContent = aiNewsSummary ? [] : await this.getNewsContent(5);
 
-      // Get social content for this lounge
+      // Get AI-selected top social posts for this lounge
+      const topSocialPosts = await this.getTopSocialPosts(
+        lounge.id, 
+        lounge.theme_description || lounge.name,
+        5
+      );
+
+      // Get additional social content for the regular feed section
       const socialContent = await this.getSocialContentForLounge(lounge.id, 10);
 
       if (
@@ -398,6 +464,27 @@ export class DigestService {
         referenced_content: item.referenced_content || undefined,
       }));
 
+      // Format top social posts for email
+      const formattedTopPosts = topSocialPosts.map((item) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description || undefined,
+        url: item.url,
+        creator_name: item.creator.display_name,
+        platform: item.platform,
+        thumbnail_url: item.thumbnail_url || undefined,
+        published_at: item.published_at,
+        ai_summary_short: item.ai_summary_short || undefined,
+        content_body: item.content_body || undefined,
+        reference_type: item.reference_type as
+          | 'quote'
+          | 'retweet'
+          | 'reply'
+          | undefined,
+        referenced_content: item.referenced_content || undefined,
+        engagement_metrics: (item as any).engagement_metrics || undefined,
+      }));
+
       // Send email
       const { error } = await getResendClient().emails.send({
         from: FROM_EMAIL,
@@ -407,6 +494,7 @@ export class DigestService {
           loungeName: lounge.name,
           loungeDescription: lounge.description,
           content: emailContent,
+          topSocialPosts: formattedTopPosts,
           recipientEmail,
           unsubscribeUrl,
           date,

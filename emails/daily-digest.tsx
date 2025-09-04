@@ -27,6 +27,12 @@ interface ContentItem {
   published_at: string;
   ai_summary_short?: string;
   content_body?: string;
+  engagement_metrics?: {
+    likes?: number;
+    views?: number;
+    shares?: number;
+    comments?: number;
+  };
   reference_type?: 'quote' | 'retweet' | 'reply';
   referenced_content?: {
     id?: string;
@@ -60,6 +66,7 @@ interface DailyDigestEmailProps {
   loungeName: string;
   loungeDescription: string;
   content: ContentItem[];
+  topSocialPosts?: ContentItem[];
   recipientEmail: string;
   unsubscribeUrl: string;
   date: string;
@@ -118,6 +125,7 @@ export const DailyDigestEmail = ({
   loungeName,
   loungeDescription,
   content,
+  topSocialPosts,
   recipientEmail,
   unsubscribeUrl,
   date,
@@ -164,18 +172,12 @@ export const DailyDigestEmail = ({
           {aiNewsSummary?.bigStory && (
             <>
               <Section style={bigStorySection}>
-                <table style={newsSummaryHeader}>
-                  <tr>
-                    <td style={{ paddingRight: '8px' }}>
-                      <Text style={{ fontSize: '16px', margin: 0 }}>⭐</Text>
-                    </td>
-                    <td>
-                      <Heading as="h3" style={bigStoryTitle}>
-                        Big Story of the Day
-                      </Heading>
-                    </td>
-                  </tr>
-                </table>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>⭐</Text>
+                  <Heading as="h3" style={bigStoryTitle}>
+                    Big Story of the Day
+                  </Heading>
+                </div>
                 {aiNewsSummary.bigStory.imageUrl && (
                   <Img
                     src={aiNewsSummary.bigStory.imageUrl}
@@ -218,18 +220,12 @@ export const DailyDigestEmail = ({
           {aiNewsSummary && aiNewsSummary.bullets.length > 0 && (
             <>
               <Section style={newsSummarySection}>
-                <table style={newsSummaryHeader}>
-                  <tr>
-                    <td style={{ paddingRight: '8px' }}>
-                      <Text style={{ fontSize: '16px', margin: 0 }}>🚀</Text>
-                    </td>
-                    <td>
-                      <Heading as="h3" style={newsSummaryTitle}>
-                        Today's SaaS Headlines
-                      </Heading>
-                    </td>
-                  </tr>
-                </table>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>🚀</Text>
+                  <Heading as="h3" style={newsSummaryTitle}>
+                    Today's SaaS Headlines
+                  </Heading>
+                </div>
                 <div style={{ marginTop: '16px' }}>
                   {aiNewsSummary.bullets.slice(0, 5).map((bullet, index) => (
                     <div key={index} style={newsItemContainer}>
@@ -268,6 +264,103 @@ export const DailyDigestEmail = ({
                             </span>
                           )}
                         </Text>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+              <Section style={{ padding: '0 10px' }}>
+                <Hr style={divider} />
+              </Section>
+            </>
+          )}
+
+          {/* Top SaaS Social Posts */}
+          {topSocialPosts && topSocialPosts.length > 0 && (
+            <>
+              <Section style={socialPostsSection}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>💬</Text>
+                  <Heading as="h3" style={socialPostsTitle}>
+                    Top SaaS Social Posts
+                  </Heading>
+                </div>
+                <div style={{ marginTop: '16px' }}>
+                  {topSocialPosts.slice(0, 5).map((post, index) => (
+                    <div key={post.id} style={socialPostContainer}>
+                      <div style={socialPostImageContainer}>
+                        {post.thumbnail_url ? (
+                          <Img
+                            src={post.thumbnail_url}
+                            width="120"
+                            height="120"
+                            alt=""
+                            style={socialPostImage}
+                          />
+                        ) : (
+                          <div style={socialPostPlaceholder}>
+                            <Text style={socialPostPlaceholderText}>
+                              {platformIcons[post.platform]?.alt || 'Post'}
+                            </Text>
+                          </div>
+                        )}
+                      </div>
+                      <div style={socialPostContent}>
+                        <Text style={socialPostNumber}>{index + 1}.</Text>
+                        <Link href={post.url} style={socialPostTitle}>
+                          {post.title.length > 80
+                            ? post.title.substring(0, 80) + '...'
+                            : post.title}
+                        </Link>
+                        <Text style={socialPostDescription}>
+                          {(() => {
+                            const description = post.ai_summary_short || 
+                                                post.description || 
+                                                post.content_body || '';
+                            const wordCount = description.trim().split(/\s+/).length;
+                            
+                            if (wordCount > 30) {
+                              return description.substring(0, 150) + '...';
+                            }
+                            return description;
+                          })()}
+                        </Text>
+                        <div style={socialPostMeta}>
+                          <table style={{ borderSpacing: 0, marginBottom: '4px' }}>
+                            <tr>
+                              <td style={{ paddingRight: '6px' }}>
+                                <Img
+                                  src={
+                                    platformIcons[post.platform]?.src ||
+                                    platformIcons.website.src
+                                  }
+                                  alt={
+                                    platformIcons[post.platform]?.alt ||
+                                    platformIcons.website.alt
+                                  }
+                                  width="14"
+                                  height="14"
+                                  style={platformIconImg}
+                                />
+                              </td>
+                              <td>
+                                <Text style={socialPostCreator}>
+                                  by {post.creator_name}
+                                </Text>
+                              </td>
+                            </tr>
+                          </table>
+                          {post.engagement_metrics && (
+                            <Text style={socialPostEngagement}>
+                              {post.engagement_metrics.likes && 
+                                `❤️ ${post.engagement_metrics.likes.toLocaleString()}`}
+                              {post.engagement_metrics.views && 
+                                ` · ${post.engagement_metrics.views.toLocaleString()} views`}
+                              {post.engagement_metrics.comments && 
+                                ` · 💬 ${post.engagement_metrics.comments.toLocaleString()}`}
+                            </Text>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -461,8 +554,8 @@ export const DailyDigestEmail = ({
 };
 
 DailyDigestEmail.PreviewProps = {
-  loungeName: 'AI',
-  loungeDescription: 'Artificial Intelligence and machine learning',
+  loungeName: 'SaaS',
+  loungeDescription: 'Software as a Service industry news and insights',
   date: new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -471,6 +564,77 @@ DailyDigestEmail.PreviewProps = {
   }),
   recipientEmail: 'user@example.com',
   unsubscribeUrl: 'https://lounge.ai/settings/account',
+  topSocialPosts: [
+    {
+      id: 'sp1',
+      title: 'Why SaaS pricing is broken and how to fix it',
+      description: 'Most SaaS companies are pricing wrong and leaving millions on the table. Here\'s a comprehensive 10-point framework that increased our ARR by 300% in just 18 months...',
+      url: 'https://example.com/post1',
+      creator_name: 'Sarah Chen (@sarahchen)',
+      platform: 'linkedin' as const,
+      thumbnail_url: 'https://via.placeholder.com/120x120/8b5cf6/ffffff?text=SaaS+Pricing',
+      published_at: new Date().toISOString(),
+      ai_summary_short: 'A data-driven pricing framework that helped increase ARR by 300%',
+      engagement_metrics: {
+        likes: 1247,
+        views: 45000,
+      },
+    },
+    {
+      id: 'sp2',
+      title: 'The Complete Guide to SaaS Metrics in 2025',
+      description: 'Everything you need to know about CAC, LTV, churn, and the advanced metrics that actually matter for scaling SaaS businesses profitably in today\'s competitive market',
+      url: 'https://example.com/post2',
+      creator_name: 'Ryan Allis (@ryanallis)',
+      platform: 'twitter' as const,
+      published_at: new Date().toISOString(),
+      ai_summary_short: 'Advanced SaaS metrics guide focusing on profitability over growth',
+      engagement_metrics: {
+        likes: 892,
+        views: 23400,
+        comments: 45,
+      },
+    },
+    {
+      id: 'sp3',
+      title: 'Hot take: PLG is dead for B2B SaaS',
+      url: 'https://example.com/post3',
+      creator_name: 'Alex Rodriguez (@alexrod)',
+      platform: 'threads' as const,
+      published_at: new Date().toISOString(),
+      description: 'Product-led growth worked in 2020-2022, but the market has fundamentally shifted and buyers expect human interaction. Sales-led motion is making a strong comeback. Here\'s the data...',
+      engagement_metrics: {
+        likes: 2341,
+        views: 67800,
+      },
+    },
+    {
+      id: 'sp4',
+      title: 'Building a $10M ARR SaaS in stealth mode',
+      url: 'https://youtube.com/watch?v=example',
+      creator_name: 'Maria Santos (@mariasantos)',
+      platform: 'youtube' as const,
+      thumbnail_url: 'https://via.placeholder.com/120x120/10b981/ffffff?text=SaaS+Growth',
+      published_at: new Date().toISOString(),
+      ai_summary_short: 'How to build a profitable SaaS without any marketing or PR',
+      engagement_metrics: {
+        likes: 3456,
+        views: 89000,
+      },
+    },
+    {
+      id: 'sp5',
+      title: 'SaaS Trends Report Q3 2025',
+      url: 'https://example.com/blog/trends',
+      creator_name: 'Jason Fried (@jasonfried)',
+      platform: 'rss' as const,
+      published_at: new Date().toISOString(),
+      description: 'Latest trends reshaping SaaS: AI integration becoming table stakes, vertical solutions dominating horizontals, and the accelerating shift to consumption-based pricing models across all segments',
+      engagement_metrics: {
+        views: 12300,
+      },
+    },
+  ],
   aiNewsSummary: {
     bigStory: {
       title: 'Salesforce announces new AI-powered CRM features',
@@ -657,11 +821,6 @@ const divider = {
 };
 
 const newsSummarySection = {};
-
-const newsSummaryHeader = {
-  width: '100%',
-  marginBottom: '12px',
-};
 
 const newsSummaryTitle = {
   color: '#1a1a1a',
@@ -970,4 +1129,99 @@ const newsItemLink = {
 const newsItemDescription = {
   marginTop: '4px',
   marginBottom: '0',
+};
+
+// Social Posts Section styles
+const socialPostsSection = {
+  padding: '20px 10px',
+};
+
+const socialPostsTitle = {
+  color: '#1a1a1a',
+  fontSize: '18px',
+  fontWeight: '600',
+  margin: '0',
+};
+
+const socialPostContainer = {
+  display: 'flex',
+  marginBottom: '24px',
+  alignItems: 'flex-start',
+};
+
+const socialPostImageContainer = {
+  flexShrink: 0,
+  marginRight: '16px',
+  width: '120px',
+  height: '120px',
+};
+
+const socialPostImage = {
+  borderRadius: '8px',
+  objectFit: 'cover' as const,
+  display: 'block',
+  width: '120px',
+  height: '120px',
+};
+
+const socialPostPlaceholder = {
+  width: '120px',
+  height: '120px',
+  backgroundColor: '#f3f4f6',
+  borderRadius: '8px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const socialPostPlaceholderText = {
+  color: '#9ca3af',
+  fontSize: '12px',
+  margin: '0',
+};
+
+const socialPostContent = {
+  flex: 1,
+};
+
+const socialPostNumber = {
+  color: '#6b7280',
+  fontSize: '14px',
+  fontWeight: '600',
+  marginRight: '8px',
+  display: 'inline',
+};
+
+const socialPostTitle = {
+  color: '#1a1a1a',
+  fontSize: '15px',
+  fontWeight: '600',
+  textDecoration: 'none',
+  lineHeight: '1.4',
+};
+
+const socialPostDescription = {
+  color: '#525f7f',
+  fontSize: '13px',
+  lineHeight: '1.5',
+  margin: '6px 0 8px 0',
+  display: 'block',
+};
+
+const socialPostMeta = {
+  marginTop: '8px',
+};
+
+const socialPostCreator = {
+  color: '#6b7280',
+  fontSize: '12px',
+  margin: '0',
+  display: 'inline',
+};
+
+const socialPostEngagement = {
+  color: '#6b7280',
+  fontSize: '11px',
+  margin: '4px 0 0 0',
+  display: 'block',
 };
