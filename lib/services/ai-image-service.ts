@@ -132,9 +132,12 @@ export class AIImageService {
       if (!permanentUrl) {
         console.error('Warning: First storage attempt failed, retrying...');
         // Retry with longer timeout
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        permanentUrl = await this.storePermanentImage(generatedImageUrl, urlHash);
-        
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        permanentUrl = await this.storePermanentImage(
+          generatedImageUrl,
+          urlHash
+        );
+
         if (!permanentUrl) {
           console.error('Error: Storage failed after retry.');
           return null;
@@ -545,7 +548,7 @@ export class AIImageService {
       let uploadError = null;
       let uploadAttempts = 0;
       const maxAttempts = 3;
-      
+
       while (uploadAttempts < maxAttempts) {
         uploadAttempts++;
         const { data, error } = await this.supabase.storage
@@ -556,19 +559,22 @@ export class AIImageService {
           });
 
         if (!error) {
-          console.log(`Image uploaded successfully on attempt ${uploadAttempts}:`, fileName);
+          console.log(
+            `Image uploaded successfully on attempt ${uploadAttempts}:`,
+            fileName
+          );
           uploadError = null;
           break;
         }
-        
+
         uploadError = error;
         console.error(`Upload attempt ${uploadAttempts} failed:`, error);
-        
+
         if (uploadAttempts < maxAttempts) {
           // Wait before retry with exponential backoff
           const waitTime = Math.pow(2, uploadAttempts) * 1000;
           console.log(`Retrying upload in ${waitTime}ms...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
       }
 
