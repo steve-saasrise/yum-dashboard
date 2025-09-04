@@ -10,6 +10,7 @@ interface GenerateImageOptions {
   source?: string;
   category?: string;
   description?: string;
+  isBigStory?: boolean; // Flag to indicate if this is for the big story hero image
 }
 
 interface GeneratedImage {
@@ -254,8 +255,20 @@ export class AIImageService {
     prompt +=
       '. The image must be abstract or conceptual without any text, words, or logos. ' +
       'It should use a professional color palette that works well in email newsletters. ' +
-      'The overall design should be modern, clean, and minimalist while being visually engaging. ' +
-      'The composition should be balanced and suitable as a header image for a professional news article.';
+      'The overall design should be modern, clean, and minimalist while being visually engaging. ';
+
+    // Add aspect ratio specification based on use case
+    if (options.isBigStory) {
+      // 16:9 landscape for big story hero images (better for email headers)
+      prompt +=
+        'The image should be in a 16:9 landscape aspect ratio, perfectly suited as a hero banner image for the main story in an email newsletter. ' +
+        'The composition should be horizontally balanced with visual weight distributed across the wide frame.';
+    } else {
+      // Square for regular article thumbnails
+      prompt +=
+        'The image should be in a square 1:1 aspect ratio, suitable as a thumbnail for article listings. ' +
+        'The composition should be centered and balanced within the square frame.';
+    }
 
     return prompt;
   }

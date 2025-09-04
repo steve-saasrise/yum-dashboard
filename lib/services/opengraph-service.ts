@@ -32,12 +32,12 @@ export class OpenGraphService {
    * Fetch OpenGraph images for multiple URLs in parallel with AI fallback
    */
   static async fetchBulkImages(
-    items: Array<{ url: string; id?: string; title?: string; source?: string }>,
+    items: Array<{ url: string; id?: string; title?: string; source?: string; isBigStory?: boolean }>,
     category?: string
   ): Promise<Map<string, string | null>> {
     const results = new Map<string, string | null>();
     const aiImageService = AIImageService.getInstance();
-    const failedItems: Array<{ url: string; title?: string; source?: string }> =
+    const failedItems: Array<{ url: string; title?: string; source?: string; isBigStory?: boolean }> =
       [];
 
     // Process in batches to avoid overwhelming the service
@@ -54,6 +54,7 @@ export class OpenGraphService {
             url: item.url,
             title: item.title,
             source: item.source,
+            isBigStory: item.isBigStory,
           });
           return { url: item.url, imageUrl: null };
         }
@@ -80,6 +81,7 @@ export class OpenGraphService {
           title: item.title,
           source: item.source,
           category: category || 'Technology',
+          isBigStory: item.isBigStory,
         }))
       );
 
@@ -93,5 +95,4 @@ export class OpenGraphService {
 
     return results;
   }
-
 }

@@ -301,6 +301,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
         url: string;
         title?: string;
         source?: string;
+        isBigStory?: boolean;
       }> = [];
 
       // Collect URLs with metadata for AI generation if needed
@@ -313,6 +314,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
           url: summary.bigStory.sourceUrl,
           title: summary.bigStory.title,
           source: summary.bigStory.source,
+          isBigStory: true, // Mark this as the big story for 16:9 aspect ratio
         });
       }
 
@@ -322,6 +324,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
             url: bullet.sourceUrl,
             title: bullet.text,
             source: bullet.source,
+            isBigStory: false, // Regular bullets get square images
           });
         }
       });
