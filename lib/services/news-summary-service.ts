@@ -31,6 +31,7 @@ interface NewsContent {
 interface GenerateSummaryResult {
   bigStory?: BigStory;
   bullets: BulletPoint[];
+  specialSection?: BulletPoint[];
   topic: string;
   loungeId?: string;
   modelUsed: string;
@@ -98,8 +99,13 @@ export class NewsSummaryService {
       })
       .join('\n');
 
+    // Determine special section type based on topic
+    const isGrowthTopic = topic.toLowerCase().includes('growth');
+    const specialSectionType = isGrowthTopic ? 'growth experiments' : 'fundraising';
+    const specialSectionTitle = isGrowthTopic ? 'Growth Experiments & Results' : 'Fundraising Announcements';
+    
     // Build the prompt
-    const prompt = `Please create a news digest summary for ${topic} with two sections:
+    const prompt = `Please create a news digest summary for ${topic} with three sections:
 
 1. BIG STORY OF THE DAY: Select the single most important/impactful news item and provide:
    - title: The headline (keep original if good, or write a better one)
@@ -107,10 +113,18 @@ export class NewsSummaryService {
    - source: The source publication name
    - sourceUrl: The URL of the article
 
-2. TODAY'S HEADLINES: Create 5 bullet points of other important news. For each:
+2. TODAY'S HEADLINES: Create 5 bullet points of other important news (EXCLUDING ${specialSectionType} news). For each:
    - text: Brief headline/summary (10-15 words max)
    - sourceUrl: The URL of the article
    - source: The publication name
+
+3. ${specialSectionTitle.toUpperCase()}: Create 3-5 bullet points specifically about ${specialSectionType}. For each:
+   - text: Brief headline/summary (10-15 words max)
+   - sourceUrl: The URL of the article
+   - source: The publication name
+   ${isGrowthTopic ? 
+     '- Focus on: A/B tests, conversion rates, growth metrics, campaign results' : 
+     '- Focus on: funding rounds, Series A/B/C/D, acquisitions, valuations, investor names'}
 
 Context - Recent news items from the last 24 hours:
 ${newsContext}
@@ -126,10 +140,17 @@ Format your response as a JSON object:
   "bullets": [
     {"text": "...", "sourceUrl": "...", "source": "..."},
     ...
+  ],
+  "specialSection": [
+    {"text": "...", "sourceUrl": "...", "source": "..."},
+    ...
   ]
 }
 
-Focus on the most important and impactful news for ${topic} professionals.`;
+IMPORTANT: 
+- Headlines should NOT include ${specialSectionType} news
+- Special section should ONLY include ${specialSectionType} news
+- Focus on the most important and impactful news for ${topic} professionals.`;
 
     try {
       const completion = await this.openai.chat.completions.create({
@@ -146,7 +167,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
           },
         ],
         temperature: 0.7,
-        max_tokens: 200,
+        max_tokens: 300,  // Increased to accommodate special section
         response_format: { type: 'json_object' },
       });
 
@@ -160,11 +181,13 @@ Focus on the most important and impactful news for ${topic} professionals.`;
       // Parse the JSON response
       let bigStory: BigStory | undefined;
       let bullets: BulletPoint[] = [];
+      let specialSection: BulletPoint[] = [];
 
       try {
         const parsed = JSON.parse(response);
         bigStory = parsed.bigStory;
         bullets = parsed.bullets || [];
+        specialSection = parsed.specialSection || [];
       } catch (parseError) {
         console.error('Error parsing OpenAI response:', parseError);
         // Fallback: try to extract bullet points from text
@@ -173,6 +196,8 @@ Focus on the most important and impactful news for ${topic} professionals.`;
 
       // Limit bullets to 5 for the email format
       bullets = bullets.slice(0, 5);
+      // Limit special section to 5 items
+      specialSection = specialSection.slice(0, 5);
 
       // Get token usage
       const tokenCount = completion.usage?.total_tokens || 0;
@@ -180,6 +205,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
       return {
         bigStory,
         bullets,
+        specialSection,
         topic,
         loungeId,
         modelUsed: 'gpt-4o-mini',
@@ -249,12 +275,17 @@ Focus on the most important and impactful news for ${topic} professionals.`;
       throw new Error('Supabase client not initialized');
     }
 
+    // Determine special section title based on topic
+    const isGrowthTopic = summary.topic.toLowerCase().includes('growth');
+    const specialSectionTitle = isGrowthTopic ? 'Growth Experiments & Results' : 'Fundraising Announcements';
+
     const { data, error } = await this.supabase
       .from('daily_news_summaries')
       .insert({
         lounge_id: summary.loungeId || null,
         topic: summary.topic,
         summary_bullets: summary.bullets as unknown as Json,
+        special_section: summary.specialSection as unknown as Json,
         model_used: summary.modelUsed,
         token_count: summary.tokenCount,
         generation_time_ms: summary.generationTimeMs,
@@ -262,6 +293,8 @@ Focus on the most important and impactful news for ${topic} professionals.`;
         metadata: {
           generatedAt: new Date().toISOString(),
           bigStory: summary.bigStory || null,
+          special_section_type: isGrowthTopic ? 'growth_experiments' : 'fundraising',
+          special_section_title: specialSectionTitle,
         } as unknown as Json,
       })
       .select('id')
@@ -290,11 +323,13 @@ Focus on the most important and impactful news for ${topic} professionals.`;
     summary: {
       bigStory?: BigStory;
       bullets: BulletPoint[];
+      specialSection?: BulletPoint[];
     },
     category?: string
   ): Promise<{
     bigStory?: BigStory;
     bullets: BulletPoint[];
+    specialSection?: BulletPoint[];
   }> {
     try {
       const itemsToFetch: Array<{
@@ -325,6 +360,18 @@ Focus on the most important and impactful news for ${topic} professionals.`;
             title: bullet.text,
             source: bullet.source,
             isBigStory: false, // Regular bullets get square images
+          });
+        }
+      });
+
+      // Add special section items
+      summary.specialSection?.forEach((item) => {
+        if (item.sourceUrl) {
+          itemsToFetch.push({
+            url: item.sourceUrl,
+            title: item.text,
+            source: item.source,
+            isBigStory: false, // Special section items get square images
           });
         }
       });
@@ -361,9 +408,19 @@ Focus on the most important and impactful news for ${topic} professionals.`;
         return bullet;
       });
 
+      // Add images to special section
+      const enhancedSpecialSection = summary.specialSection?.map((item) => {
+        if (item.sourceUrl) {
+          const imageUrl = imageMap.get(item.sourceUrl);
+          return { ...item, imageUrl: imageUrl || undefined };
+        }
+        return item;
+      });
+
       return {
         bigStory: enhancedBigStory,
         bullets: enhancedBullets,
+        specialSection: enhancedSpecialSection,
       };
     } catch (error) {
       console.error('Error enhancing summary with images:', error);
@@ -378,6 +435,8 @@ Focus on the most important and impactful news for ${topic} professionals.`;
   async getLatestSummary(loungeId: string): Promise<{
     bigStory?: BigStory;
     bullets: BulletPoint[];
+    specialSection?: BulletPoint[];
+    specialSectionTitle?: string;
     generatedAt: string;
   } | null> {
     if (!this.supabase) {
@@ -387,7 +446,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
 
     const { data, error } = await this.supabase
       .from('daily_news_summaries')
-      .select('summary_bullets, generated_at, metadata')
+      .select('summary_bullets, special_section, generated_at, metadata')
       .eq('lounge_id', loungeId)
       .order('generated_at', { ascending: false })
       .limit(1)
@@ -401,6 +460,7 @@ Focus on the most important and impactful news for ${topic} professionals.`;
     // Check if we have the new format with bigStory in metadata
     const metadata = data.metadata as any;
     const bigStory = metadata?.bigStory as BigStory | undefined;
+    const specialSectionTitle = metadata?.special_section_title as string | undefined;
 
     console.log('Retrieved summary from DB:', {
       loungeId,
@@ -408,11 +468,15 @@ Focus on the most important and impactful news for ${topic} professionals.`;
       bigStoryTitle: bigStory?.title,
       bigStoryUrl: bigStory?.sourceUrl,
       bulletCount: (data.summary_bullets as any[])?.length || 0,
+      specialSectionCount: (data.special_section as any[])?.length || 0,
+      specialSectionTitle,
     });
 
     return {
       bigStory,
       bullets: data.summary_bullets as unknown as BulletPoint[],
+      specialSection: data.special_section as unknown as BulletPoint[] | undefined,
+      specialSectionTitle,
       generatedAt: data.generated_at || new Date().toISOString(),
     };
   }

@@ -45,18 +45,20 @@ export class AINewsService {
    */
   private parseRateLimitError(errorMessage: string): RateLimitInfo | null {
     // Pattern: "Rate limit reached for gpt-5-mini... Limit 200000, Used 158615, Requested 49168. Please try again in 2.334s"
-    const limitMatch = errorMessage.match(/Limit\s+(\d+),\s*Used\s+(\d+),\s*Requested\s+(\d+)/);
+    const limitMatch = errorMessage.match(
+      /Limit\s+(\d+),\s*Used\s+(\d+),\s*Requested\s+(\d+)/
+    );
     const retryMatch = errorMessage.match(/try again in ([\d.]+)s/);
-    
+
     if (limitMatch && retryMatch) {
       return {
         limit: parseInt(limitMatch[1]),
         used: parseInt(limitMatch[2]),
         requested: parseInt(limitMatch[3]),
-        retryAfter: Math.ceil(parseFloat(retryMatch[1]) * 1000) // Convert to ms and round up
+        retryAfter: Math.ceil(parseFloat(retryMatch[1]) * 1000), // Convert to ms and round up
       };
     }
-    
+
     return null;
   }
 
@@ -65,17 +67,19 @@ export class AINewsService {
    */
   private isRateLimitError(error: any): boolean {
     if (!error) return false;
-    
+
     // Check for 429 status code
     if (error.status === 429 || error.response?.status === 429) {
       return true;
     }
-    
+
     // Check for rate limit message in error text
     const errorMessage = error.message || error.toString();
-    return errorMessage.includes('429') || 
-           errorMessage.includes('Rate limit') ||
-           errorMessage.includes('rate limit');
+    return (
+      errorMessage.includes('429') ||
+      errorMessage.includes('Rate limit') ||
+      errorMessage.includes('rate limit')
+    );
   }
 
   /**
@@ -88,7 +92,7 @@ export class AINewsService {
       const jitter = baseDelay * (0.1 + Math.random() * 0.1);
       return Math.ceil(baseDelay + jitter);
     }
-    
+
     // Otherwise use exponential backoff with jitter
     const exponentialDelay = Math.min(1000 * Math.pow(2, retryCount), 60000);
     const jitter = exponentialDelay * Math.random() * 0.3; // Up to 30% jitter
@@ -100,28 +104,28 @@ export class AINewsService {
    */
   private async throttleRequest(topic: string): Promise<void> {
     const now = Date.now();
-    
+
     // Global throttling
     const timeSinceLastGlobal = now - AINewsService.globalLastRequest;
     if (timeSinceLastGlobal < AINewsService.MIN_REQUEST_INTERVAL) {
       const waitTime = AINewsService.MIN_REQUEST_INTERVAL - timeSinceLastGlobal;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
-    
+
     // Per-topic throttling (prevent rapid retries for same topic)
     const lastTopicRequest = AINewsService.requestQueue.get(topic) || 0;
     const timeSinceLastTopic = now - lastTopicRequest;
     const minTopicInterval = 1000; // At least 1 second between same topic requests
-    
+
     if (timeSinceLastTopic < minTopicInterval) {
       const waitTime = minTopicInterval - timeSinceLastTopic;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
-    
+
     // Update timestamps
     AINewsService.globalLastRequest = Date.now();
     AINewsService.requestQueue.set(topic, Date.now());
-    
+
     // Clean up old entries to prevent memory leak
     if (AINewsService.requestQueue.size > 1000) {
       const cutoff = Date.now() - 300000; // 5 minutes
@@ -382,7 +386,7 @@ Return ONLY the JSON response with no additional text.`;
     try {
       // Apply throttling before making request
       await this.throttleRequest(topic);
-      
+
       // Try to use the Responses API with web search
       if ((this.openai as any).responses?.create) {
         try {
@@ -605,25 +609,38 @@ Return ONLY the JSON response with no additional text.`;
           };
         } catch (searchError: any) {
           console.error('Responses API error:', searchError.message);
-          
+
           // Check if it's a rate limit error
           if (this.isRateLimitError(searchError)) {
             const rateLimitInfo = this.parseRateLimitError(searchError.message);
-            const backoffDelay = this.calculateBackoff(retryCount, rateLimitInfo?.retryAfter);
-            
-            console.log(`Rate limit hit for ${topic}. Waiting ${backoffDelay}ms before retry...`);
+            const backoffDelay = this.calculateBackoff(
+              retryCount,
+              rateLimitInfo?.retryAfter
+            );
+
+            console.log(
+              `Rate limit hit for ${topic}. Waiting ${backoffDelay}ms before retry...`
+            );
             if (rateLimitInfo) {
-              console.log(`  Limit: ${rateLimitInfo.limit}, Used: ${rateLimitInfo.used}, Requested: ${rateLimitInfo.requested}`);
+              console.log(
+                `  Limit: ${rateLimitInfo.limit}, Used: ${rateLimitInfo.used}, Requested: ${rateLimitInfo.requested}`
+              );
             }
-            
+
             if (retryCount < maxRetries) {
-              await new Promise(resolve => setTimeout(resolve, backoffDelay));
-              return this.generateNews(loungeName, loungeDescription, retryCount + 1);
+              await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+              return this.generateNews(
+                loungeName,
+                loungeDescription,
+                retryCount + 1
+              );
             } else {
-              throw new Error(`Rate limit exceeded after ${maxRetries} retries for ${topic}`);
+              throw new Error(
+                `Rate limit exceeded after ${maxRetries} retries for ${topic}`
+              );
             }
           }
-          
+
           console.log('Trying alternative web search approach...');
         }
       }
@@ -634,7 +651,7 @@ Return ONLY the JSON response with no additional text.`;
       try {
         // Apply throttling before fallback request
         await this.throttleRequest(topic);
-        
+
         const response = await (this.openai as any).responses.create({
           model: 'gpt-5-mini',
           tools: [{ type: 'web_search' }],
@@ -742,25 +759,38 @@ Return ONLY the JSON response with no additional text.`;
         };
       } catch (error: any) {
         console.error('GPT-5-mini web search error:', error.message);
-        
+
         // Check if it's a rate limit error
         if (this.isRateLimitError(error)) {
           const rateLimitInfo = this.parseRateLimitError(error.message);
-          const backoffDelay = this.calculateBackoff(retryCount, rateLimitInfo?.retryAfter);
-          
-          console.log(`Rate limit hit for ${topic} (fallback). Waiting ${backoffDelay}ms before retry...`);
+          const backoffDelay = this.calculateBackoff(
+            retryCount,
+            rateLimitInfo?.retryAfter
+          );
+
+          console.log(
+            `Rate limit hit for ${topic} (fallback). Waiting ${backoffDelay}ms before retry...`
+          );
           if (rateLimitInfo) {
-            console.log(`  Limit: ${rateLimitInfo.limit}, Used: ${rateLimitInfo.used}, Requested: ${rateLimitInfo.requested}`);
+            console.log(
+              `  Limit: ${rateLimitInfo.limit}, Used: ${rateLimitInfo.used}, Requested: ${rateLimitInfo.requested}`
+            );
           }
-          
+
           if (retryCount < maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, backoffDelay));
-            return this.generateNews(loungeName, loungeDescription, retryCount + 1);
+            await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+            return this.generateNews(
+              loungeName,
+              loungeDescription,
+              retryCount + 1
+            );
           } else {
-            throw new Error(`Rate limit exceeded after ${maxRetries} retries for ${topic}`);
+            throw new Error(
+              `Rate limit exceeded after ${maxRetries} retries for ${topic}`
+            );
           }
         }
-        
+
         throw new Error(
           `Failed to generate news with web search: ${error.message}`
         );

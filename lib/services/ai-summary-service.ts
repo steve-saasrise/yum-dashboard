@@ -293,35 +293,43 @@ export class AISummaryService {
       messages: [
         {
           role: 'system',
-          content: JSON.stringify({
-            role: 'concise content summarizer',
-            task: 'create brief summary',
-            requirements: {
-              wordCount: { max: 30, strict: true },
-              focus: ['key point', 'main idea', 'core message'],
-              style: ['direct', 'informative', 'clear', 'factual']
+          content: JSON.stringify(
+            {
+              role: 'concise content summarizer',
+              task: 'create brief summary',
+              requirements: {
+                wordCount: { max: 30, strict: true },
+                focus: ['key point', 'main idea', 'core message'],
+                style: ['direct', 'informative', 'clear', 'factual'],
+              },
+              format: {
+                type: 'plain text',
+                structure: 'single paragraph',
+                grammar: 'complete sentences',
+              },
+              constraints: [
+                'NO introductory phrases like "This article discusses"',
+                'NO unnecessary adjectives or filler words',
+                'FOCUS on the most important information',
+                'BE factual and accurate',
+                'START directly with the subject matter',
+              ],
             },
-            format: {
-              type: 'plain text',
-              structure: 'single paragraph',
-              grammar: 'complete sentences'
-            },
-            constraints: [
-              'NO introductory phrases like "This article discusses"',
-              'NO unnecessary adjectives or filler words',
-              'FOCUS on the most important information',
-              'BE factual and accurate',
-              'START directly with the subject matter'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         },
         {
           role: 'user',
-          content: JSON.stringify({
-            instruction: 'Summarize this content in exactly 30 words or less',
-            maxWords: 30,
-            content: text.substring(0, 2000)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              instruction: 'Summarize this content in exactly 30 words or less',
+              maxWords: 30,
+              content: text.substring(0, 2000),
+            },
+            null,
+            2
+          ),
         },
       ],
       temperature: 0.5,
@@ -383,49 +391,57 @@ export class AISummaryService {
       messages: [
         {
           role: 'system',
-          content: JSON.stringify({
-            role: 'comprehensive content summarizer',
-            task: 'create detailed summary',
-            requirements: {
-              wordCount: { max: 100, target: '80-100' },
-              coverage: [
-                'main points and arguments',
-                'key details and data',
-                'important context',
-                'implications or conclusions'
+          content: JSON.stringify(
+            {
+              role: 'comprehensive content summarizer',
+              task: 'create detailed summary',
+              requirements: {
+                wordCount: { max: 100, target: '80-100' },
+                coverage: [
+                  'main points and arguments',
+                  'key details and data',
+                  'important context',
+                  'implications or conclusions',
+                ],
+                style: ['informative', 'clear', 'structured', 'professional'],
+              },
+              format: {
+                type: 'plain text',
+                structure: 'coherent narrative with logical flow',
+                grammar: 'complete sentences with proper transitions',
+              },
+              priorities: [
+                'accuracy over brevity',
+                'completeness of key information',
+                'logical progression of ideas',
+                'actionable insights when relevant',
+                'preserve important numbers/statistics',
               ],
-              style: ['informative', 'clear', 'structured', 'professional']
+              constraints: [
+                'NO conversational language or questions',
+                'NO redundant information',
+                'NO introductory phrases',
+                'MAINTAIN factual accuracy',
+                'PRESERVE important data points',
+                'START with the main point',
+              ],
             },
-            format: {
-              type: 'plain text',
-              structure: 'coherent narrative with logical flow',
-              grammar: 'complete sentences with proper transitions'
-            },
-            priorities: [
-              'accuracy over brevity',
-              'completeness of key information',
-              'logical progression of ideas',
-              'actionable insights when relevant',
-              'preserve important numbers/statistics'
-            ],
-            constraints: [
-              'NO conversational language or questions',
-              'NO redundant information',
-              'NO introductory phrases',
-              'MAINTAIN factual accuracy',
-              'PRESERVE important data points',
-              'START with the main point'
-            ]
-          }, null, 2)
+            null,
+            2
+          ),
         },
         {
           role: 'user',
-          content: JSON.stringify({
-            instruction: 'Create comprehensive summary in 100 words or less',
-            maxWords: 100,
-            targetLength: '80-100 words for completeness',
-            content: text.substring(0, 4000)
-          }, null, 2)
+          content: JSON.stringify(
+            {
+              instruction: 'Create comprehensive summary in 100 words or less',
+              maxWords: 100,
+              targetLength: '80-100 words for completeness',
+              content: text.substring(0, 4000),
+            },
+            null,
+            2
+          ),
         },
       ],
       temperature: 0.5,

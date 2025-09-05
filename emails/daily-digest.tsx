@@ -84,6 +84,13 @@ interface DailyDigestEmailProps {
       imageUrl?: string;
       source?: string;
     }>;
+    specialSection?: Array<{
+      text: string;
+      sourceUrl?: string;
+      imageUrl?: string;
+      source?: string;
+    }>;
+    specialSectionTitle?: string;
     generatedAt: string;
   };
 }
@@ -285,6 +292,73 @@ export const DailyDigestEmail = ({
                               }}
                             >
                               {bullet.source}
+                            </span>
+                          )}
+                        </Text>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+              <Section style={{ padding: '0 10px' }}>
+                <Hr style={divider} />
+              </Section>
+            </>
+          )}
+
+          {/* Special Section (Fundraising or Growth Experiments) */}
+          {aiNewsSummary?.specialSection && aiNewsSummary.specialSection.length > 0 && (
+            <>
+              <Section style={newsSummarySection}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
+                    {aiNewsSummary.specialSectionTitle?.includes('Growth') ? '📊' : '💰'}
+                  </Text>
+                  <Heading as="h3" style={newsSummaryTitle}>
+                    {aiNewsSummary.specialSectionTitle || 'Special Announcements'}
+                  </Heading>
+                </div>
+                <div style={{ marginTop: '16px' }}>
+                  {aiNewsSummary.specialSection.slice(0, 5).map((item, index) => (
+                    <div key={index} style={newsItemContainer}>
+                      {item.imageUrl && (
+                        <div style={newsItemImageContainer}>
+                          <Img
+                            src={item.imageUrl}
+                            width="120"
+                            height="80"
+                            alt=""
+                            style={newsItemImage}
+                          />
+                        </div>
+                      )}
+                      <div style={newsItemContent}>
+                        <Text style={newsItemNumber}>{index + 1}.</Text>
+                        <Text style={newsItemText}>
+                          {item.sourceUrl ? (
+                            <Link href={item.sourceUrl} style={newsItemLink}>
+                              {item.text}
+                            </Link>
+                          ) : (
+                            item.text
+                          )}
+                        </Text>
+                        <Text style={newsItemDescription}>
+                          {item.source && (
+                            <span
+                              style={{
+                                fontSize: '12px',
+                                color: '#9ca3af',
+                                fontStyle: 'italic',
+                              }}
+                            >
+                              {item.source}
                             </span>
                           )}
                         </Text>
