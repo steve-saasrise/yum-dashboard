@@ -101,9 +101,13 @@ export class NewsSummaryService {
 
     // Determine special section type based on topic
     const isGrowthTopic = topic.toLowerCase().includes('growth');
-    const specialSectionType = isGrowthTopic ? 'growth experiments' : 'fundraising';
-    const specialSectionTitle = isGrowthTopic ? 'Growth Experiments & Results' : 'Fundraising Announcements';
-    
+    const specialSectionType = isGrowthTopic
+      ? 'growth experiments'
+      : 'fundraising';
+    const specialSectionTitle = isGrowthTopic
+      ? 'Growth Experiments & Results'
+      : 'Fundraising Announcements';
+
     // Build the prompt
     const prompt = `Please create a news digest summary for ${topic} with three sections:
 
@@ -122,9 +126,11 @@ export class NewsSummaryService {
    - text: Brief headline/summary (10-15 words max)
    - sourceUrl: The URL of the article
    - source: The publication name
-   ${isGrowthTopic ? 
-     '- Focus on: A/B tests, conversion rates, growth metrics, campaign results' : 
-     '- Focus on: funding rounds, Series A/B/C/D, acquisitions, valuations, investor names'}
+   ${
+     isGrowthTopic
+       ? '- Focus on: A/B tests, conversion rates, growth metrics, campaign results'
+       : '- Focus on: funding rounds, Series A/B/C/D, acquisitions, valuations, investor names'
+   }
 
 Context - Recent news items from the last 24 hours:
 ${newsContext}
@@ -167,7 +173,7 @@ IMPORTANT:
           },
         ],
         temperature: 0.7,
-        max_tokens: 300,  // Increased to accommodate special section
+        max_tokens: 300, // Increased to accommodate special section
         response_format: { type: 'json_object' },
       });
 
@@ -277,7 +283,9 @@ IMPORTANT:
 
     // Determine special section title based on topic
     const isGrowthTopic = summary.topic.toLowerCase().includes('growth');
-    const specialSectionTitle = isGrowthTopic ? 'Growth Experiments & Results' : 'Fundraising Announcements';
+    const specialSectionTitle = isGrowthTopic
+      ? 'Growth Experiments & Results'
+      : 'Fundraising Announcements';
 
     const { data, error } = await this.supabase
       .from('daily_news_summaries')
@@ -293,7 +301,9 @@ IMPORTANT:
         metadata: {
           generatedAt: new Date().toISOString(),
           bigStory: summary.bigStory || null,
-          special_section_type: isGrowthTopic ? 'growth_experiments' : 'fundraising',
+          special_section_type: isGrowthTopic
+            ? 'growth_experiments'
+            : 'fundraising',
           special_section_title: specialSectionTitle,
         } as unknown as Json,
       })
@@ -460,7 +470,9 @@ IMPORTANT:
     // Check if we have the new format with bigStory in metadata
     const metadata = data.metadata as any;
     const bigStory = metadata?.bigStory as BigStory | undefined;
-    const specialSectionTitle = metadata?.special_section_title as string | undefined;
+    const specialSectionTitle = metadata?.special_section_title as
+      | string
+      | undefined;
 
     console.log('Retrieved summary from DB:', {
       loungeId,
@@ -475,7 +487,9 @@ IMPORTANT:
     return {
       bigStory,
       bullets: data.summary_bullets as unknown as BulletPoint[],
-      specialSection: data.special_section as unknown as BulletPoint[] | undefined,
+      specialSection: data.special_section as unknown as
+        | BulletPoint[]
+        | undefined,
       specialSectionTitle,
       generatedAt: data.generated_at || new Date().toISOString(),
     };

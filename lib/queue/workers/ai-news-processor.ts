@@ -53,6 +53,7 @@ export function createAINewsProcessorWorker() {
             lounge_id: isGeneral ? null : loungeId,
             topic: newsResult.topic,
             summary_bullets: newsResult.items as any,
+            special_section: (newsResult.specialSection || []) as any,
             generated_at: new Date().toISOString(),
             model_used: 'gpt-4o-mini',
             token_count: 0, // Can be calculated if needed
@@ -65,6 +66,8 @@ export function createAINewsProcessorWorker() {
               job_id: job.id,
               queue_generated: true,
               bigStory: newsResult.bigStory || null,
+              special_section_title: newsResult.specialSectionTitle || null,
+              special_section_type: newsResult.topic.toLowerCase().includes('growth') ? 'growth_experiments' : 'fundraising',
             } as any,
           })
           .select('id')

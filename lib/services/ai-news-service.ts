@@ -16,6 +16,8 @@ interface BigStory {
 interface GenerateNewsResult {
   items: NewsItem[];
   bigStory?: BigStory;
+  specialSection?: NewsItem[];
+  specialSectionTitle?: string;
   topic: string;
   generatedAt: string;
 }
@@ -249,6 +251,14 @@ export class AINewsService {
 
     const maxRetries = 3;
     const topic = this.getCleanTopic(loungeName, loungeDescription);
+    
+    // Determine special section type based on topic
+    const isGrowthTopic = topic.toLowerCase().includes('growth');
+    const specialSectionType = isGrowthTopic ? 'growth experiments' : 'fundraising';
+    const specialSectionTitle = isGrowthTopic ? 'Growth Experiments & Results' : 'Fundraising Announcements';
+    const specialSectionFocus = isGrowthTopic 
+      ? 'A/B tests, conversion rates, growth metrics, campaign results'
+      : 'funding rounds, Series A/B/C/D, acquisitions, valuations, investor names';
 
     // Build structured JSON prompt for better AI understanding
     const promptSpec = {
@@ -293,13 +303,37 @@ export class AINewsService {
           {
             name: 'bullets',
             description:
-              'Exactly 5 other important news items from the last 24 hours',
+              `Exactly 5 other important news items from the last 24 hours (EXCLUDING ${specialSectionType} news)`,
             type: 'array',
             count: 5,
             itemFields: {
               text: {
                 type: 'string',
                 description: 'Brief headline/summary',
+                wordCount: '10-15 words max',
+                maxLength: 150,
+              },
+              sourceUrl: {
+                type: 'string',
+                description: 'The URL of the article',
+                format: 'url',
+              },
+              source: {
+                type: 'string',
+                description: 'The publication name',
+              },
+            },
+          },
+          {
+            name: 'specialSection',
+            description: `3-5 bullet points specifically about ${specialSectionType} from the last 24 hours`,
+            type: 'array',
+            count: '3-5',
+            focus: specialSectionFocus,
+            itemFields: {
+              text: {
+                type: 'string',
+                description: 'Brief headline/summary about ' + specialSectionType,
                 wordCount: '10-15 words max',
                 maxLength: 150,
               },
@@ -407,6 +441,7 @@ Return ONLY the JSON response with no additional text.`;
           // Extract items and bigStory from the response
           const items: NewsItem[] = [];
           let bigStory: BigStory | undefined;
+          let specialItems: NewsItem[] = [];
 
           // Handle new response format - response can be an object with output array or just an array
           let outputText: string | undefined;
@@ -473,6 +508,19 @@ Return ONLY the JSON response with no additional text.`;
                       text: bullet.text,
                       sourceUrl: bullet.sourceUrl,
                       source: bullet.source,
+                    });
+                  }
+                }
+              }
+
+              // Extract special section
+              if (parsed.specialSection && Array.isArray(parsed.specialSection)) {
+                for (const item of parsed.specialSection.slice(0, 5)) {
+                  if (item.text) {
+                    specialItems.push({
+                      text: item.text,
+                      sourceUrl: item.sourceUrl,
+                      source: item.source,
                     });
                   }
                 }
@@ -604,6 +652,8 @@ Return ONLY the JSON response with no additional text.`;
           return {
             items: this.validateAndTrimItems(items),
             bigStory,
+            specialSection: specialItems.length > 0 ? specialItems : undefined,
+            specialSectionTitle: specialItems.length > 0 ? specialSectionTitle : undefined,
             topic,
             generatedAt: new Date().toISOString(),
           };
@@ -662,6 +712,7 @@ Return ONLY the JSON response with no additional text.`;
         // Parse the response similar to above
         const items: NewsItem[] = [];
         let bigStory: BigStory | undefined;
+        let specialItems: NewsItem[] = [];
 
         // Handle new response format
         let outputText: string | undefined;
@@ -698,6 +749,19 @@ Return ONLY the JSON response with no additional text.`;
                     text: bullet.text,
                     sourceUrl: bullet.sourceUrl,
                     source: bullet.source,
+                  });
+                }
+              }
+            }
+
+            // Extract special section  
+            if (parsed.specialSection && Array.isArray(parsed.specialSection)) {
+              for (const item of parsed.specialSection.slice(0, 5)) {
+                if (item.text) {
+                  specialItems.push({
+                    text: item.text,
+                    sourceUrl: item.sourceUrl,
+                    source: item.source,
                   });
                 }
               }
@@ -754,6 +818,8 @@ Return ONLY the JSON response with no additional text.`;
         return {
           items: this.validateAndTrimItems(items),
           bigStory,
+          specialSection: specialItems.length > 0 ? specialItems : undefined,
+          specialSectionTitle: specialItems.length > 0 ? specialSectionTitle : undefined,
           topic,
           generatedAt: new Date().toISOString(),
         };

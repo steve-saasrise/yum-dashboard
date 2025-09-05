@@ -307,71 +307,80 @@ export const DailyDigestEmail = ({
           )}
 
           {/* Special Section (Fundraising or Growth Experiments) */}
-          {aiNewsSummary?.specialSection && aiNewsSummary.specialSection.length > 0 && (
-            <>
-              <Section style={newsSummarySection}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
-                    {aiNewsSummary.specialSectionTitle?.includes('Growth') ? '📊' : '💰'}
-                  </Text>
-                  <Heading as="h3" style={newsSummaryTitle}>
-                    {aiNewsSummary.specialSectionTitle || 'Special Announcements'}
-                  </Heading>
-                </div>
-                <div style={{ marginTop: '16px' }}>
-                  {aiNewsSummary.specialSection.slice(0, 5).map((item, index) => (
-                    <div key={index} style={newsItemContainer}>
-                      {item.imageUrl && (
-                        <div style={newsItemImageContainer}>
-                          <Img
-                            src={item.imageUrl}
-                            width="120"
-                            height="80"
-                            alt=""
-                            style={newsItemImage}
-                          />
+          {aiNewsSummary?.specialSection &&
+            aiNewsSummary.specialSection.length > 0 && (
+              <>
+                <Section style={newsSummarySection}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
+                      {aiNewsSummary.specialSectionTitle?.includes('Growth')
+                        ? '📊'
+                        : '💰'}
+                    </Text>
+                    <Heading as="h3" style={newsSummaryTitle}>
+                      {aiNewsSummary.specialSectionTitle ||
+                        'Special Announcements'}
+                    </Heading>
+                  </div>
+                  <div style={{ marginTop: '16px' }}>
+                    {aiNewsSummary.specialSection
+                      .slice(0, 5)
+                      .map((item, index) => (
+                        <div key={index} style={newsItemContainer}>
+                          {item.imageUrl && (
+                            <div style={newsItemImageContainer}>
+                              <Img
+                                src={item.imageUrl}
+                                width="120"
+                                height="80"
+                                alt=""
+                                style={newsItemImage}
+                              />
+                            </div>
+                          )}
+                          <div style={newsItemContent}>
+                            <Text style={newsItemNumber}>{index + 1}.</Text>
+                            <Text style={newsItemText}>
+                              {item.sourceUrl ? (
+                                <Link
+                                  href={item.sourceUrl}
+                                  style={newsItemLink}
+                                >
+                                  {item.text}
+                                </Link>
+                              ) : (
+                                item.text
+                              )}
+                            </Text>
+                            <Text style={newsItemDescription}>
+                              {item.source && (
+                                <span
+                                  style={{
+                                    fontSize: '12px',
+                                    color: '#9ca3af',
+                                    fontStyle: 'italic',
+                                  }}
+                                >
+                                  {item.source}
+                                </span>
+                              )}
+                            </Text>
+                          </div>
                         </div>
-                      )}
-                      <div style={newsItemContent}>
-                        <Text style={newsItemNumber}>{index + 1}.</Text>
-                        <Text style={newsItemText}>
-                          {item.sourceUrl ? (
-                            <Link href={item.sourceUrl} style={newsItemLink}>
-                              {item.text}
-                            </Link>
-                          ) : (
-                            item.text
-                          )}
-                        </Text>
-                        <Text style={newsItemDescription}>
-                          {item.source && (
-                            <span
-                              style={{
-                                fontSize: '12px',
-                                color: '#9ca3af',
-                                fontStyle: 'italic',
-                              }}
-                            >
-                              {item.source}
-                            </span>
-                          )}
-                        </Text>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-              <Section style={{ padding: '0 10px' }}>
-                <Hr style={divider} />
-              </Section>
-            </>
-          )}
+                      ))}
+                  </div>
+                </Section>
+                <Section style={{ padding: '0 10px' }}>
+                  <Hr style={divider} />
+                </Section>
+              </>
+            )}
 
           {/* Top SaaS Social Posts */}
           {topSocialPosts && topSocialPosts.length > 0 && (
@@ -800,6 +809,33 @@ DailyDigestEmail.PreviewProps = {
           'https://via.placeholder.com/120x80/f3e8ff/7c3aed?text=Stripe',
       },
     ],
+    specialSection: [
+      {
+        text: 'Canva raises $1.5B at $40B valuation from Franklin Templeton',
+        sourceUrl: 'https://example.com/canva-funding',
+        source: 'TechCrunch',
+        imageUrl: 'https://via.placeholder.com/120x80/fef3c7/f59e0b?text=Canva',
+      },
+      {
+        text: 'Miro closes $400M Series D led by ICONIQ Growth',
+        sourceUrl: 'https://example.com/miro-funding',
+        source: 'Forbes',
+        imageUrl: 'https://via.placeholder.com/120x80/fed7aa/fb923c?text=Miro',
+      },
+      {
+        text: 'Figma founder on $20B Adobe deal collapse and new funding',
+        sourceUrl: 'https://example.com/figma-adobe',
+        source: 'The Information',
+        imageUrl: 'https://via.placeholder.com/120x80/fde68a/fbbf24?text=Figma',
+      },
+      {
+        text: 'Airtable secures $735M at $11.7B valuation for expansion',
+        sourceUrl: 'https://example.com/airtable-funding',
+        source: 'VentureBeat',
+        imageUrl: 'https://via.placeholder.com/120x80/fef3c7/fcd34d?text=Airtable',
+      },
+    ],
+    specialSectionTitle: 'Fundraising Announcements',
     generatedAt: new Date().toISOString(),
   },
   content: [
