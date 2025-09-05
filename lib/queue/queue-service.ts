@@ -4,6 +4,7 @@ import {
   QUEUE_NAMES,
   JOB_NAMES,
   DEFAULT_JOB_OPTIONS,
+  AI_NEWS_JOB_OPTIONS,
   WORKER_CONCURRENCY,
 } from './config';
 
@@ -35,7 +36,7 @@ export function getQueues() {
         QUEUE_NAMES.AI_NEWS_GENERATION,
         {
           connection,
-          defaultJobOptions: DEFAULT_JOB_OPTIONS,
+          defaultJobOptions: AI_NEWS_JOB_OPTIONS,
         }
       ),
       [QUEUE_NAMES.EMAIL_DIGEST]: new Queue(QUEUE_NAMES.EMAIL_DIGEST, {

@@ -87,12 +87,29 @@ export function createAINewsProcessorWorker() {
           itemCount: newsResult.items.length,
           processingTime,
         };
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage = error.message || error.toString();
+        
+        // Check if it's a rate limit error that should trigger retry
+        const isRateLimitError = 
+          errorMessage.includes('429') || 
+          errorMessage.includes('Rate limit') ||
+          errorMessage.includes('rate limit');
+        
         console.error(
           `[AI News Worker] Error generating news for ${loungeName}:`,
-          error
+          errorMessage
         );
-        throw error; // Re-throw to trigger retry
+        
+        // Log additional details for rate limit errors
+        if (isRateLimitError) {
+          console.log(
+            `[AI News Worker] Rate limit detected. Job will be retried with backoff.`
+          );
+        }
+        
+        // Re-throw to trigger BullMQ retry mechanism
+        throw error;
       }
     },
     {

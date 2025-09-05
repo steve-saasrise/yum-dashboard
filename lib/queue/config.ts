@@ -71,6 +71,21 @@ export const DEFAULT_JOB_OPTIONS = {
   stalledInterval: 300000, // 5 minutes check interval
 };
 
+// Specific job options for AI news generation with rate limit handling
+export const AI_NEWS_JOB_OPTIONS = {
+  ...DEFAULT_JOB_OPTIONS,
+  attempts: 5, // Allow up to 5 retries for rate limit errors
+  backoff: {
+    type: 'exponential' as const,
+    delay: 2000, // Start with 2 second delay
+  },
+  // Add rate limiting to prevent overwhelming the API
+  limiter: {
+    max: 100, // Maximum 100 jobs
+    duration: 60000, // per 60 seconds
+  },
+};
+
 // Worker concurrency settings - Reduced to prevent lock contention
 export const WORKER_CONCURRENCY = {
   CONTENT_FETCH: 2, // Process 2 creators concurrently (reduced from 5)

@@ -20,13 +20,116 @@ interface GenerateNewsResult {
   generatedAt: string;
 }
 
+interface RateLimitInfo {
+  limit: number;
+  used: number;
+  requested: number;
+  retryAfter: number; // in milliseconds
+}
+
 export class AINewsService {
   private openai: OpenAI | null = null;
+  private static requestQueue: Map<string, number> = new Map(); // Track last request time per topic
+  private static globalLastRequest: number = 0;
+  private static MIN_REQUEST_INTERVAL = 300; // Minimum 300ms between any requests
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       this.openai = new OpenAI({ apiKey });
+    }
+  }
+
+  /**
+   * Parse rate limit information from OpenAI error message
+   */
+  private parseRateLimitError(errorMessage: string): RateLimitInfo | null {
+    // Pattern: "Rate limit reached for gpt-5-mini... Limit 200000, Used 158615, Requested 49168. Please try again in 2.334s"
+    const limitMatch = errorMessage.match(/Limit\s+(\d+),\s*Used\s+(\d+),\s*Requested\s+(\d+)/);
+    const retryMatch = errorMessage.match(/try again in ([\d.]+)s/);
+    
+    if (limitMatch && retryMatch) {
+      return {
+        limit: parseInt(limitMatch[1]),
+        used: parseInt(limitMatch[2]),
+        requested: parseInt(limitMatch[3]),
+        retryAfter: Math.ceil(parseFloat(retryMatch[1]) * 1000) // Convert to ms and round up
+      };
+    }
+    
+    return null;
+  }
+
+  /**
+   * Check if an error is a rate limit error
+   */
+  private isRateLimitError(error: any): boolean {
+    if (!error) return false;
+    
+    // Check for 429 status code
+    if (error.status === 429 || error.response?.status === 429) {
+      return true;
+    }
+    
+    // Check for rate limit message in error text
+    const errorMessage = error.message || error.toString();
+    return errorMessage.includes('429') || 
+           errorMessage.includes('Rate limit') ||
+           errorMessage.includes('rate limit');
+  }
+
+  /**
+   * Calculate backoff with jitter for scalability
+   */
+  private calculateBackoff(retryCount: number, baseDelay?: number): number {
+    // If we have a specific retry-after from the API, use it
+    if (baseDelay) {
+      // Add 10-20% jitter to prevent thundering herd
+      const jitter = baseDelay * (0.1 + Math.random() * 0.1);
+      return Math.ceil(baseDelay + jitter);
+    }
+    
+    // Otherwise use exponential backoff with jitter
+    const exponentialDelay = Math.min(1000 * Math.pow(2, retryCount), 60000);
+    const jitter = exponentialDelay * Math.random() * 0.3; // Up to 30% jitter
+    return Math.ceil(exponentialDelay + jitter);
+  }
+
+  /**
+   * Rate limit requests to prevent hitting API limits
+   */
+  private async throttleRequest(topic: string): Promise<void> {
+    const now = Date.now();
+    
+    // Global throttling
+    const timeSinceLastGlobal = now - AINewsService.globalLastRequest;
+    if (timeSinceLastGlobal < AINewsService.MIN_REQUEST_INTERVAL) {
+      const waitTime = AINewsService.MIN_REQUEST_INTERVAL - timeSinceLastGlobal;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    // Per-topic throttling (prevent rapid retries for same topic)
+    const lastTopicRequest = AINewsService.requestQueue.get(topic) || 0;
+    const timeSinceLastTopic = now - lastTopicRequest;
+    const minTopicInterval = 1000; // At least 1 second between same topic requests
+    
+    if (timeSinceLastTopic < minTopicInterval) {
+      const waitTime = minTopicInterval - timeSinceLastTopic;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    // Update timestamps
+    AINewsService.globalLastRequest = Date.now();
+    AINewsService.requestQueue.set(topic, Date.now());
+    
+    // Clean up old entries to prevent memory leak
+    if (AINewsService.requestQueue.size > 1000) {
+      const cutoff = Date.now() - 300000; // 5 minutes
+      for (const [key, timestamp] of AINewsService.requestQueue.entries()) {
+        if (timestamp < cutoff) {
+          AINewsService.requestQueue.delete(key);
+        }
+      }
     }
   }
 
@@ -145,122 +248,130 @@ export class AINewsService {
 
     // Build structured JSON prompt for better AI understanding
     const promptSpec = {
-      task: "Generate a news digest with web search",
+      task: 'Generate a news digest with web search',
       topic: topic,
       timeframe: {
-        requirement: "LAST 24 HOURS ONLY",
-        emphasis: "ALL items must be from TODAY or YESTERDAY",
-        restriction: "NO older news allowed"
+        requirement: 'LAST 24 HOURS ONLY',
+        emphasis: 'ALL items must be from TODAY or YESTERDAY',
+        restriction: 'NO older news allowed',
       },
       output: {
-        format: "JSON",
+        format: 'JSON',
         sections: [
           {
-            name: "bigStory",
-            description: "The single most impactful news from the last 24 hours",
+            name: 'bigStory',
+            description:
+              'The single most impactful news from the last 24 hours',
             fields: {
               title: {
-                type: "string",
-                description: "The headline (keep original if good, or write a better one)",
-                maxLength: 100
+                type: 'string',
+                description:
+                  'The headline (keep original if good, or write a better one)',
+                maxLength: 100,
               },
               summary: {
-                type: "string", 
-                description: "2-3 sentence summary explaining what happened and why it matters",
-                maxLength: 300
+                type: 'string',
+                description:
+                  '2-3 sentence summary explaining what happened and why it matters',
+                maxLength: 300,
               },
               source: {
-                type: "string",
-                description: "The source publication name"
+                type: 'string',
+                description: 'The source publication name',
               },
               sourceUrl: {
-                type: "string",
-                description: "The URL of the article",
-                format: "url"
-              }
-            }
+                type: 'string',
+                description: 'The URL of the article',
+                format: 'url',
+              },
+            },
           },
           {
-            name: "bullets",
-            description: "Exactly 5 other important news items from the last 24 hours",
-            type: "array",
+            name: 'bullets',
+            description:
+              'Exactly 5 other important news items from the last 24 hours',
+            type: 'array',
             count: 5,
             itemFields: {
               text: {
-                type: "string",
-                description: "Brief headline/summary",
-                wordCount: "10-15 words max",
-                maxLength: 150
+                type: 'string',
+                description: 'Brief headline/summary',
+                wordCount: '10-15 words max',
+                maxLength: 150,
               },
               sourceUrl: {
-                type: "string",
-                description: "The URL of the article",
-                format: "url"
+                type: 'string',
+                description: 'The URL of the article',
+                format: 'url',
               },
               source: {
-                type: "string",
-                description: "The publication name"
-              }
-            }
-          }
-        ]
+                type: 'string',
+                description: 'The publication name',
+              },
+            },
+          },
+        ],
       },
       focus: {
-        regions: ["United States", "Europe", "Major global tech markets"],
+        regions: ['United States', 'Europe', 'Major global tech markets'],
         priorities: [
-          "Major funding rounds (Series A and above)",
-          "Exits and acquisitions",
-          "IPOs and public offerings",
-          "Significant product launches",
-          "Industry-changing developments",
-          "Regulatory changes affecting the industry"
+          'Major funding rounds (Series A and above)',
+          'Exits and acquisitions',
+          'IPOs and public offerings',
+          'Significant product launches',
+          'Industry-changing developments',
+          'Regulatory changes affecting the industry',
         ],
-        topics: topic.includes("AI") ? [
-          "AI model releases",
-          "AI regulations",
-          "AI company funding",
-          "AI research breakthroughs",
-          "AI ethics and safety"
-        ] : topic.includes("SaaS") ? [
-          "SaaS company funding",
-          "SaaS acquisitions",
-          "Enterprise software deals",
-          "Cloud infrastructure news",
-          "SaaS metrics and trends"
-        ] : [
-          "Industry-specific developments",
-          "Major company news",
-          "Technology breakthroughs",
-          "Market movements",
-          "Strategic partnerships"
-        ]
+        topics: topic.includes('AI')
+          ? [
+              'AI model releases',
+              'AI regulations',
+              'AI company funding',
+              'AI research breakthroughs',
+              'AI ethics and safety',
+            ]
+          : topic.includes('SaaS')
+            ? [
+                'SaaS company funding',
+                'SaaS acquisitions',
+                'Enterprise software deals',
+                'Cloud infrastructure news',
+                'SaaS metrics and trends',
+              ]
+            : [
+                'Industry-specific developments',
+                'Major company news',
+                'Technology breakthroughs',
+                'Market movements',
+                'Strategic partnerships',
+              ],
       },
       constraints: [
-        "NO conversational text or explanations",
-        "NO questions or prompts",
-        "NO domain names in the text field",
-        "NO duplicate stories",
-        "MUST be factual news from credible sources",
-        "MUST include source attribution"
+        'NO conversational text or explanations',
+        'NO questions or prompts',
+        'NO domain names in the text field',
+        'NO duplicate stories',
+        'MUST be factual news from credible sources',
+        'MUST include source attribution',
       ],
       responseFormat: {
-        structure: "Pure JSON only",
+        structure: 'Pure JSON only',
         example: {
           bigStory: {
-            title: "Example headline here",
-            summary: "What happened and why it matters...",
-            source: "TechCrunch",
-            sourceUrl: "https://example.com/article"
+            title: 'Example headline here',
+            summary: 'What happened and why it matters...',
+            source: 'TechCrunch',
+            sourceUrl: 'https://example.com/article',
           },
           bullets: [
             {
-              text: "Brief news headline here",
-              sourceUrl: "https://example.com/news",
-              source: "Reuters"
-            }
-          ]
-        }
-      }
+              text: 'Brief news headline here',
+              sourceUrl: 'https://example.com/news',
+              source: 'Reuters',
+            },
+          ],
+        },
+      },
     };
 
     const prompt = `Execute this news generation task:
@@ -269,6 +380,9 @@ ${JSON.stringify(promptSpec, null, 2)}
 Return ONLY the JSON response with no additional text.`;
 
     try {
+      // Apply throttling before making request
+      await this.throttleRequest(topic);
+      
       // Try to use the Responses API with web search
       if ((this.openai as any).responses?.create) {
         try {
@@ -491,6 +605,25 @@ Return ONLY the JSON response with no additional text.`;
           };
         } catch (searchError: any) {
           console.error('Responses API error:', searchError.message);
+          
+          // Check if it's a rate limit error
+          if (this.isRateLimitError(searchError)) {
+            const rateLimitInfo = this.parseRateLimitError(searchError.message);
+            const backoffDelay = this.calculateBackoff(retryCount, rateLimitInfo?.retryAfter);
+            
+            console.log(`Rate limit hit for ${topic}. Waiting ${backoffDelay}ms before retry...`);
+            if (rateLimitInfo) {
+              console.log(`  Limit: ${rateLimitInfo.limit}, Used: ${rateLimitInfo.used}, Requested: ${rateLimitInfo.requested}`);
+            }
+            
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, backoffDelay));
+              return this.generateNews(loungeName, loungeDescription, retryCount + 1);
+            } else {
+              throw new Error(`Rate limit exceeded after ${maxRetries} retries for ${topic}`);
+            }
+          }
+          
           console.log('Trying alternative web search approach...');
         }
       }
@@ -499,6 +632,9 @@ Return ONLY the JSON response with no additional text.`;
       console.log(`Attempting GPT-5-mini with web search for ${topic} news...`);
 
       try {
+        // Apply throttling before fallback request
+        await this.throttleRequest(topic);
+        
         const response = await (this.openai as any).responses.create({
           model: 'gpt-5-mini',
           tools: [{ type: 'web_search' }],
@@ -606,6 +742,25 @@ Return ONLY the JSON response with no additional text.`;
         };
       } catch (error: any) {
         console.error('GPT-5-mini web search error:', error.message);
+        
+        // Check if it's a rate limit error
+        if (this.isRateLimitError(error)) {
+          const rateLimitInfo = this.parseRateLimitError(error.message);
+          const backoffDelay = this.calculateBackoff(retryCount, rateLimitInfo?.retryAfter);
+          
+          console.log(`Rate limit hit for ${topic} (fallback). Waiting ${backoffDelay}ms before retry...`);
+          if (rateLimitInfo) {
+            console.log(`  Limit: ${rateLimitInfo.limit}, Used: ${rateLimitInfo.used}, Requested: ${rateLimitInfo.requested}`);
+          }
+          
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, backoffDelay));
+            return this.generateNews(loungeName, loungeDescription, retryCount + 1);
+          } else {
+            throw new Error(`Rate limit exceeded after ${maxRetries} retries for ${topic}`);
+          }
+        }
+        
         throw new Error(
           `Failed to generate news with web search: ${error.message}`
         );
