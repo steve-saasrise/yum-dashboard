@@ -187,7 +187,13 @@ export const DailyDigestEmail = ({
                   </Heading>
                 </div>
                 {aiNewsSummary.bigStory.imageUrl && (
-                  <div style={{ width: '100%', maxWidth: '560px', margin: '16px 0' }}>
+                  <div
+                    style={{
+                      width: '100%',
+                      maxWidth: '560px',
+                      margin: '16px 0',
+                    }}
+                  >
                     <Img
                       src={aiNewsSummary.bigStory.imageUrl}
                       width="560"

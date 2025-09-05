@@ -167,110 +167,143 @@ export class AIImageService {
 
   /**
    * Generate a smart prompt based on article metadata
-   * Using descriptive sentences instead of keywords for better Gemini results
+   * Using JSON structure for better AI understanding and consistency
    */
   private generatePrompt(options: GenerateImageOptions): string {
     const { title, source, category, description } = options;
 
-    // Build a descriptive prompt using natural language
-    let prompt =
-      'Please generate a professional and visually appealing editorial image ';
+    // Clean up category name by removing "Coffee" and similar suffixes
+    const cleanCategory = category
+      ? category.replace(/\s*(Coffee|Lounge|Room|Hub)$/i, '').trim()
+      : '';
 
-    // Add category context with descriptive sentences
-    if (category) {
-      // Clean up category name by removing "Coffee" and similar suffixes
-      const cleanCategory = category
-        .replace(/\s*(Coffee|Lounge|Room|Hub)$/i, '')
-        .trim();
-
-      const categoryDescriptions: Record<string, string> = {
-        SaaS: 'that represents cloud-based software services with modern technology elements and digital transformation themes',
-        AI: 'that illustrates artificial intelligence concepts with neural networks, data patterns, or futuristic technology visualizations',
-        Security:
-          'that conveys cybersecurity and data protection through visual metaphors of shields, locks, or secure digital environments',
-        Startup:
-          'that captures the entrepreneurial spirit with imagery of innovation, growth, and dynamic business environments',
-        Finance:
-          'that depicts financial technology and markets through abstract representations of data, charts, or digital currency',
-        Developer:
-          'that represents software development and programming with clean code aesthetics or abstract technology patterns',
-        Product:
-          'that illustrates product management and design thinking through visual representations of user interfaces or product workflows',
-        Marketing:
-          'that shows digital marketing and growth strategies through creative visual metaphors of audience engagement and brand reach',
-        Venture:
-          'that captures venture capital and startup ecosystem with imagery of innovation, investment, and growth',
-        Crypto:
-          'that depicts cryptocurrency and blockchain technology through abstract representations of decentralized networks and digital assets',
-        Growth:
-          'that shows B2B growth strategies and marketing through visual metaphors of scaling, expansion, and business development',
-      };
-
-      // Check if this is a theme description (longer text about content)
-      if (category.toLowerCase().includes('content about')) {
-        // This is already a theme description, use it directly
-        prompt += `for ${category}`;
-      } else {
-        // Try to match with predefined categories
-        const categoryDescription = categoryDescriptions[cleanCategory];
-        if (categoryDescription) {
-          prompt += categoryDescription;
-        } else {
-          // Use the cleaned category name
-          prompt += `related to ${cleanCategory} topics`;
-        }
+    const categoryThemes: Record<string, any> = {
+      SaaS: {
+        theme: 'cloud-based software services',
+        elements: ['modern technology', 'digital transformation', 'cloud computing', 'software interfaces'],
+        mood: 'innovative and scalable'
+      },
+      AI: {
+        theme: 'artificial intelligence',
+        elements: ['neural networks', 'data patterns', 'machine learning', 'futuristic technology'],
+        mood: 'intelligent and futuristic'
+      },
+      Security: {
+        theme: 'cybersecurity and data protection',
+        elements: ['digital shields', 'encryption patterns', 'secure networks', 'protective barriers'],
+        mood: 'secure and trustworthy'
+      },
+      Startup: {
+        theme: 'entrepreneurship and innovation',
+        elements: ['growth curves', 'rocket launches', 'building blocks', 'collaborative spaces'],
+        mood: 'dynamic and ambitious'
+      },
+      Finance: {
+        theme: 'financial technology',
+        elements: ['data visualizations', 'market trends', 'digital currencies', 'financial flows'],
+        mood: 'professional and analytical'
+      },
+      Developer: {
+        theme: 'software development',
+        elements: ['code patterns', 'abstract algorithms', 'technical architectures', 'development workflows'],
+        mood: 'technical and creative'
+      },
+      Product: {
+        theme: 'product management',
+        elements: ['user interfaces', 'design thinking', 'product roadmaps', 'user journeys'],
+        mood: 'user-centric and strategic'
+      },
+      Marketing: {
+        theme: 'digital marketing',
+        elements: ['audience engagement', 'brand growth', 'social connections', 'campaign visuals'],
+        mood: 'engaging and persuasive'
+      },
+      Venture: {
+        theme: 'venture capital and investment',
+        elements: ['investment flows', 'portfolio growth', 'startup ecosystems', 'funding rounds'],
+        mood: 'ambitious and growth-oriented'
+      },
+      Crypto: {
+        theme: 'blockchain and cryptocurrency',
+        elements: ['blockchain networks', 'decentralized nodes', 'digital assets', 'cryptographic patterns'],
+        mood: 'decentralized and innovative'
+      },
+      Growth: {
+        theme: 'business growth and scaling',
+        elements: ['expansion patterns', 'upward trajectories', 'network effects', 'scaling metaphors'],
+        mood: 'expansive and strategic'
       }
-    }
+    };
 
-    // Add title context with natural language
-    if (title) {
-      const keywords = this.extractKeywords(title);
-      if (keywords.length > 0) {
-        prompt += `. The image should subtly reference themes related to ${keywords.join(' and ')}`;
-      }
-    }
+    // Build structured prompt
+    const imageSpec = {
+      request: "Generate a professional editorial image with the following specifications",
+      
+      theme: categoryThemes[cleanCategory] || {
+        theme: cleanCategory || 'technology and innovation',
+        elements: ['modern design', 'abstract patterns', 'professional imagery'],
+        mood: 'professional and engaging'
+      },
+      
+      keywords: title ? this.extractKeywords(title) : [],
+      
+      style: {
+        aesthetic: this.getSourceStyle(source),
+        colorScheme: "professional colors suitable for email newsletters",
+        composition: "modern, clean, and minimalist while visually engaging"
+      },
+      
+      technical: {
+        aspectRatio: options.isBigStory ? "16:9 landscape" : "1:1 square",
+        orientation: options.isBigStory ? "horizontal hero banner" : "centered thumbnail",
+        edgeToEdge: true,
+        noBorders: true,
+        fillCanvas: "completely fill the image area without any borders or margins"
+      },
+      
+      constraints: [
+        "NO text or typography",
+        "NO logos or branding",
+        "NO words or letters",
+        "NO borders or frames",
+        "NO white space or margins around edges",
+        "MUST fill entire canvas edge to edge",
+        "abstract or conceptual imagery only",
+        "suitable for professional email newsletter"
+      ],
+      
+      visualApproach: description ? 
+        `Create imagery inspired by: ${description.substring(0, 100)}` : 
+        "Create abstract visual metaphors for the theme"
+    };
 
-    // Add source-based style guidance
-    if (source) {
-      const sourceStyles: Record<string, string> = {
-        TechCrunch:
-          'The visual style should be modern and tech-forward with bold colors and innovative design',
-        Reuters:
-          'The image should have a professional and journalistic quality with authoritative visual elements',
-        'The Verge':
-          'The aesthetic should be contemporary and digital with cutting-edge design sensibilities',
-        Forbes:
-          'The imagery should convey business professionalism and corporate sophistication',
-        VentureBeat:
-          'The visual should capture startup energy and innovation themes',
-      };
+    // Convert to a clear JSON string for the AI
+    return `Generate an image based on these specifications:
+${JSON.stringify(imageSpec, null, 2)}
 
-      const styleDescription = sourceStyles[source];
-      if (styleDescription) {
-        prompt += `. ${styleDescription}`;
-      }
-    }
+CRITICAL: The image must fill the entire canvas from edge to edge with no borders, margins, or white space around the edges.`;
+  }
 
-    // Add detailed requirements in natural language
-    prompt +=
-      '. The image must be abstract or conceptual without any text, words, or logos. ' +
-      'It should use a professional color palette that works well in email newsletters. ' +
-      'The overall design should be modern, clean, and minimalist while being visually engaging. ';
+  /**
+   * Get style guidance based on content source
+   */
+  private getSourceStyle(source?: string): string {
+    if (!source) return 'modern and professional';
+    
+    const sourceStyles: Record<string, string> = {
+      TechCrunch: 'modern tech-forward with bold colors and innovative design',
+      Reuters: 'professional journalistic with authoritative visual elements',
+      'The Verge': 'contemporary digital with cutting-edge design sensibilities',
+      Forbes: 'business professional with corporate sophistication',
+      VentureBeat: 'startup energy with innovation themes',
+      'Wall Street Journal': 'financial professional with clean aesthetics',
+      Bloomberg: 'data-driven with financial market themes',
+      Wired: 'futuristic technology with bold visual style',
+      'Hacker News': 'developer-focused with technical aesthetics',
+      'Product Hunt': 'product-centric with modern UI patterns'
+    };
 
-    // Add aspect ratio specification based on use case
-    if (options.isBigStory) {
-      // 16:9 landscape for big story hero images (better for email headers)
-      prompt +=
-        'The image should be in a 16:9 landscape aspect ratio, perfectly suited as a hero banner image for the main story in an email newsletter. ' +
-        'The composition should be horizontally balanced with visual weight distributed across the wide frame.';
-    } else {
-      // Square for regular article thumbnails
-      prompt +=
-        'The image should be in a square 1:1 aspect ratio, suitable as a thumbnail for article listings. ' +
-        'The composition should be centered and balanced within the square frame.';
-    }
-
-    return prompt;
+    return sourceStyles[source] || 'modern and professional';
   }
 
   /**
