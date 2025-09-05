@@ -180,101 +180,164 @@ export class AIImageService {
     const categoryThemes: Record<string, any> = {
       SaaS: {
         theme: 'cloud-based software services',
-        elements: ['modern technology', 'digital transformation', 'cloud computing', 'software interfaces'],
-        mood: 'innovative and scalable'
+        elements: [
+          'modern technology',
+          'digital transformation',
+          'cloud computing',
+          'software interfaces',
+        ],
+        mood: 'innovative and scalable',
       },
       AI: {
         theme: 'artificial intelligence',
-        elements: ['neural networks', 'data patterns', 'machine learning', 'futuristic technology'],
-        mood: 'intelligent and futuristic'
+        elements: [
+          'neural networks',
+          'data patterns',
+          'machine learning',
+          'futuristic technology',
+        ],
+        mood: 'intelligent and futuristic',
       },
       Security: {
         theme: 'cybersecurity and data protection',
-        elements: ['digital shields', 'encryption patterns', 'secure networks', 'protective barriers'],
-        mood: 'secure and trustworthy'
+        elements: [
+          'digital shields',
+          'encryption patterns',
+          'secure networks',
+          'protective barriers',
+        ],
+        mood: 'secure and trustworthy',
       },
       Startup: {
         theme: 'entrepreneurship and innovation',
-        elements: ['growth curves', 'rocket launches', 'building blocks', 'collaborative spaces'],
-        mood: 'dynamic and ambitious'
+        elements: [
+          'growth curves',
+          'rocket launches',
+          'building blocks',
+          'collaborative spaces',
+        ],
+        mood: 'dynamic and ambitious',
       },
       Finance: {
         theme: 'financial technology',
-        elements: ['data visualizations', 'market trends', 'digital currencies', 'financial flows'],
-        mood: 'professional and analytical'
+        elements: [
+          'data visualizations',
+          'market trends',
+          'digital currencies',
+          'financial flows',
+        ],
+        mood: 'professional and analytical',
       },
       Developer: {
         theme: 'software development',
-        elements: ['code patterns', 'abstract algorithms', 'technical architectures', 'development workflows'],
-        mood: 'technical and creative'
+        elements: [
+          'code patterns',
+          'abstract algorithms',
+          'technical architectures',
+          'development workflows',
+        ],
+        mood: 'technical and creative',
       },
       Product: {
         theme: 'product management',
-        elements: ['user interfaces', 'design thinking', 'product roadmaps', 'user journeys'],
-        mood: 'user-centric and strategic'
+        elements: [
+          'user interfaces',
+          'design thinking',
+          'product roadmaps',
+          'user journeys',
+        ],
+        mood: 'user-centric and strategic',
       },
       Marketing: {
         theme: 'digital marketing',
-        elements: ['audience engagement', 'brand growth', 'social connections', 'campaign visuals'],
-        mood: 'engaging and persuasive'
+        elements: [
+          'audience engagement',
+          'brand growth',
+          'social connections',
+          'campaign visuals',
+        ],
+        mood: 'engaging and persuasive',
       },
       Venture: {
         theme: 'venture capital and investment',
-        elements: ['investment flows', 'portfolio growth', 'startup ecosystems', 'funding rounds'],
-        mood: 'ambitious and growth-oriented'
+        elements: [
+          'investment flows',
+          'portfolio growth',
+          'startup ecosystems',
+          'funding rounds',
+        ],
+        mood: 'ambitious and growth-oriented',
       },
       Crypto: {
         theme: 'blockchain and cryptocurrency',
-        elements: ['blockchain networks', 'decentralized nodes', 'digital assets', 'cryptographic patterns'],
-        mood: 'decentralized and innovative'
+        elements: [
+          'blockchain networks',
+          'decentralized nodes',
+          'digital assets',
+          'cryptographic patterns',
+        ],
+        mood: 'decentralized and innovative',
       },
       Growth: {
         theme: 'business growth and scaling',
-        elements: ['expansion patterns', 'upward trajectories', 'network effects', 'scaling metaphors'],
-        mood: 'expansive and strategic'
-      }
+        elements: [
+          'expansion patterns',
+          'upward trajectories',
+          'network effects',
+          'scaling metaphors',
+        ],
+        mood: 'expansive and strategic',
+      },
     };
 
     // Build structured prompt
     const imageSpec = {
-      request: "Generate a professional editorial image with the following specifications",
-      
+      request:
+        'Generate a professional editorial image with the following specifications',
+
       theme: categoryThemes[cleanCategory] || {
         theme: cleanCategory || 'technology and innovation',
-        elements: ['modern design', 'abstract patterns', 'professional imagery'],
-        mood: 'professional and engaging'
+        elements: [
+          'modern design',
+          'abstract patterns',
+          'professional imagery',
+        ],
+        mood: 'professional and engaging',
       },
-      
+
       keywords: title ? this.extractKeywords(title) : [],
-      
+
       style: {
         aesthetic: this.getSourceStyle(source),
-        colorScheme: "professional colors suitable for email newsletters",
-        composition: "modern, clean, and minimalist while visually engaging"
+        colorScheme: 'professional colors suitable for email newsletters',
+        composition: 'modern, clean, and minimalist while visually engaging',
       },
-      
+
       technical: {
-        aspectRatio: options.isBigStory ? "16:9 landscape" : "1:1 square",
-        orientation: options.isBigStory ? "horizontal hero banner" : "centered thumbnail",
+        aspectRatio: options.isBigStory ? '16:9 landscape' : '1:1 square',
+        orientation: options.isBigStory
+          ? 'horizontal hero banner'
+          : 'centered thumbnail',
         edgeToEdge: true,
         noBorders: true,
-        fillCanvas: "completely fill the image area without any borders or margins"
+        fillCanvas:
+          'completely fill the image area without any borders or margins',
       },
-      
+
       constraints: [
-        "NO text or typography",
-        "NO logos or branding",
-        "NO words or letters",
-        "NO borders or frames",
-        "NO white space or margins around edges",
-        "MUST fill entire canvas edge to edge",
-        "abstract or conceptual imagery only",
-        "suitable for professional email newsletter"
+        'NO text or typography',
+        'NO logos or branding',
+        'NO words or letters',
+        'NO borders or frames',
+        'NO white space or margins around edges',
+        'MUST fill entire canvas edge to edge',
+        'abstract or conceptual imagery only',
+        'suitable for professional email newsletter',
       ],
-      
-      visualApproach: description ? 
-        `Create imagery inspired by: ${description.substring(0, 100)}` : 
-        "Create abstract visual metaphors for the theme"
+
+      visualApproach: description
+        ? `Create imagery inspired by: ${description.substring(0, 100)}`
+        : 'Create abstract visual metaphors for the theme',
     };
 
     // Convert to a clear JSON string for the AI
@@ -289,18 +352,19 @@ CRITICAL: The image must fill the entire canvas from edge to edge with no border
    */
   private getSourceStyle(source?: string): string {
     if (!source) return 'modern and professional';
-    
+
     const sourceStyles: Record<string, string> = {
       TechCrunch: 'modern tech-forward with bold colors and innovative design',
       Reuters: 'professional journalistic with authoritative visual elements',
-      'The Verge': 'contemporary digital with cutting-edge design sensibilities',
+      'The Verge':
+        'contemporary digital with cutting-edge design sensibilities',
       Forbes: 'business professional with corporate sophistication',
       VentureBeat: 'startup energy with innovation themes',
       'Wall Street Journal': 'financial professional with clean aesthetics',
       Bloomberg: 'data-driven with financial market themes',
       Wired: 'futuristic technology with bold visual style',
       'Hacker News': 'developer-focused with technical aesthetics',
-      'Product Hunt': 'product-centric with modern UI patterns'
+      'Product Hunt': 'product-centric with modern UI patterns',
     };
 
     return sourceStyles[source] || 'modern and professional';

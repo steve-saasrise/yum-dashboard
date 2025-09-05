@@ -143,42 +143,130 @@ export class AINewsService {
     const maxRetries = 3;
     const topic = this.getCleanTopic(loungeName, loungeDescription);
 
-    // Build the prompt for web search - more directive to avoid conversational responses
-    const prompt = `Generate a news digest for ${topic} with ONLY news from the LAST 24 HOURS. ALL items must be from TODAY or YESTERDAY, not older.
+    // Build structured JSON prompt for better AI understanding
+    const promptSpec = {
+      task: "Generate a news digest with web search",
+      topic: topic,
+      timeframe: {
+        requirement: "LAST 24 HOURS ONLY",
+        emphasis: "ALL items must be from TODAY or YESTERDAY",
+        restriction: "NO older news allowed"
+      },
+      output: {
+        format: "JSON",
+        sections: [
+          {
+            name: "bigStory",
+            description: "The single most impactful news from the last 24 hours",
+            fields: {
+              title: {
+                type: "string",
+                description: "The headline (keep original if good, or write a better one)",
+                maxLength: 100
+              },
+              summary: {
+                type: "string", 
+                description: "2-3 sentence summary explaining what happened and why it matters",
+                maxLength: 300
+              },
+              source: {
+                type: "string",
+                description: "The source publication name"
+              },
+              sourceUrl: {
+                type: "string",
+                description: "The URL of the article",
+                format: "url"
+              }
+            }
+          },
+          {
+            name: "bullets",
+            description: "Exactly 5 other important news items from the last 24 hours",
+            type: "array",
+            count: 5,
+            itemFields: {
+              text: {
+                type: "string",
+                description: "Brief headline/summary",
+                wordCount: "10-15 words max",
+                maxLength: 150
+              },
+              sourceUrl: {
+                type: "string",
+                description: "The URL of the article",
+                format: "url"
+              },
+              source: {
+                type: "string",
+                description: "The publication name"
+              }
+            }
+          }
+        ]
+      },
+      focus: {
+        regions: ["United States", "Europe", "Major global tech markets"],
+        priorities: [
+          "Major funding rounds (Series A and above)",
+          "Exits and acquisitions",
+          "IPOs and public offerings",
+          "Significant product launches",
+          "Industry-changing developments",
+          "Regulatory changes affecting the industry"
+        ],
+        topics: topic.includes("AI") ? [
+          "AI model releases",
+          "AI regulations",
+          "AI company funding",
+          "AI research breakthroughs",
+          "AI ethics and safety"
+        ] : topic.includes("SaaS") ? [
+          "SaaS company funding",
+          "SaaS acquisitions",
+          "Enterprise software deals",
+          "Cloud infrastructure news",
+          "SaaS metrics and trends"
+        ] : [
+          "Industry-specific developments",
+          "Major company news",
+          "Technology breakthroughs",
+          "Market movements",
+          "Strategic partnerships"
+        ]
+      },
+      constraints: [
+        "NO conversational text or explanations",
+        "NO questions or prompts",
+        "NO domain names in the text field",
+        "NO duplicate stories",
+        "MUST be factual news from credible sources",
+        "MUST include source attribution"
+      ],
+      responseFormat: {
+        structure: "Pure JSON only",
+        example: {
+          bigStory: {
+            title: "Example headline here",
+            summary: "What happened and why it matters...",
+            source: "TechCrunch",
+            sourceUrl: "https://example.com/article"
+          },
+          bullets: [
+            {
+              text: "Brief news headline here",
+              sourceUrl: "https://example.com/news",
+              source: "Reuters"
+            }
+          ]
+        }
+      }
+    };
 
-Create two sections:
+    const prompt = `Execute this news generation task:
+${JSON.stringify(promptSpec, null, 2)}
 
-1. BIG STORY OF THE DAY: Select the single most impactful news from the LAST 24 HOURS:
-   - title: The headline (keep original if good, or write a better one)
-   - summary: 2-3 sentence summary explaining what happened and why it matters
-   - source: The source publication name
-   - sourceUrl: The URL of the article
-
-2. TODAY'S HEADLINES: Exactly 5 bullet points of other important news from the LAST 24 HOURS:
-   - text: Brief headline/summary (10-15 words max)
-   - sourceUrl: The URL of the article
-   - source: The publication name
-
-IMPORTANT: 
-- ALL news MUST be from the last 24 hours only
-- Focus on US, European, and major global tech markets
-- Prioritize major funding rounds, exits, IPOs, and significant industry developments
-- NO conversational text, questions, or explanations
-- NO domain names in the text itself
-
-Format your response as JSON:
-{
-  "bigStory": {
-    "title": "...",
-    "summary": "...",
-    "source": "...",
-    "sourceUrl": "..."
-  },
-  "bullets": [
-    {"text": "...", "sourceUrl": "...", "source": "..."},
-    ...
-  ]
-}`;
+Return ONLY the JSON response with no additional text.`;
 
     try {
       // Try to use the Responses API with web search

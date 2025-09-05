@@ -287,18 +287,41 @@ export class AISummaryService {
     // Check rate limits before making request
     await this.checkRateLimit(model);
 
-    // Use appropriate parameter based on model
+    // Use structured JSON prompt for better AI understanding
     const completionParams: any = {
       model,
       messages: [
         {
           role: 'system',
-          content:
-            'You are a concise summarizer. Create a brief summary in 30 words or less. Focus on the key point or main idea. Be direct and informative.',
+          content: JSON.stringify({
+            role: 'concise content summarizer',
+            task: 'create brief summary',
+            requirements: {
+              wordCount: { max: 30, strict: true },
+              focus: ['key point', 'main idea', 'core message'],
+              style: ['direct', 'informative', 'clear', 'factual']
+            },
+            format: {
+              type: 'plain text',
+              structure: 'single paragraph',
+              grammar: 'complete sentences'
+            },
+            constraints: [
+              'NO introductory phrases like "This article discusses"',
+              'NO unnecessary adjectives or filler words',
+              'FOCUS on the most important information',
+              'BE factual and accurate',
+              'START directly with the subject matter'
+            ]
+          }, null, 2)
         },
         {
           role: 'user',
-          content: `Summarize this content in 30 words or less:\n\n${text.substring(0, 2000)}`,
+          content: JSON.stringify({
+            instruction: 'Summarize this content in exactly 30 words or less',
+            maxWords: 30,
+            content: text.substring(0, 2000)
+          }, null, 2)
         },
       ],
       temperature: 0.5,
@@ -354,18 +377,55 @@ export class AISummaryService {
     // Check rate limits before making request
     await this.checkRateLimit(model);
 
-    // Use appropriate parameter based on model
+    // Use structured JSON prompt for comprehensive summary
     const completionParams: any = {
       model,
       messages: [
         {
           role: 'system',
-          content:
-            'You are a comprehensive summarizer. Create a detailed summary in 100 words or less. Cover the main points, key details, and important context. Be informative and clear.',
+          content: JSON.stringify({
+            role: 'comprehensive content summarizer',
+            task: 'create detailed summary',
+            requirements: {
+              wordCount: { max: 100, target: '80-100' },
+              coverage: [
+                'main points and arguments',
+                'key details and data',
+                'important context',
+                'implications or conclusions'
+              ],
+              style: ['informative', 'clear', 'structured', 'professional']
+            },
+            format: {
+              type: 'plain text',
+              structure: 'coherent narrative with logical flow',
+              grammar: 'complete sentences with proper transitions'
+            },
+            priorities: [
+              'accuracy over brevity',
+              'completeness of key information',
+              'logical progression of ideas',
+              'actionable insights when relevant',
+              'preserve important numbers/statistics'
+            ],
+            constraints: [
+              'NO conversational language or questions',
+              'NO redundant information',
+              'NO introductory phrases',
+              'MAINTAIN factual accuracy',
+              'PRESERVE important data points',
+              'START with the main point'
+            ]
+          }, null, 2)
         },
         {
           role: 'user',
-          content: `Summarize this content in 100 words or less:\n\n${text.substring(0, 4000)}`,
+          content: JSON.stringify({
+            instruction: 'Create comprehensive summary in 100 words or less',
+            maxWords: 100,
+            targetLength: '80-100 words for completeness',
+            content: text.substring(0, 4000)
+          }, null, 2)
         },
       ],
       temperature: 0.5,
