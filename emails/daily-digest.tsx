@@ -136,15 +136,15 @@ const platformIcons: Record<string, { src: string; alt: string }> = {
 const truncateToLines = (text: string, maxChars: number = 200): string => {
   if (!text) return '';
   if (text.length <= maxChars) return text;
-  
+
   // Find a good break point (end of word)
   const truncated = text.substring(0, maxChars);
   const lastSpace = truncated.lastIndexOf(' ');
-  
+
   if (lastSpace > maxChars * 0.8) {
     return truncated.substring(0, lastSpace) + '...';
   }
-  
+
   return truncated + '...';
 };
 
@@ -236,7 +236,6 @@ export const DailyDigestEmail = ({
                         height: '560px',
                         objectFit: 'cover' as const,
                         objectPosition: 'center' as const,
-                        marginTop: '-122.5px',
                       }}
                     />
                   </div>
