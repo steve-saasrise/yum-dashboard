@@ -9,8 +9,8 @@ interface BulletPoint {
   sourceUrl?: string;
   imageUrl?: string;
   source?: string;
-  amount?: string;  // For fundraising items
-  series?: string;  // For fundraising items
+  amount?: string; // For fundraising items
+  series?: string; // For fundraising items
 }
 
 interface BigStory {
@@ -106,11 +106,11 @@ export class NewsSummaryService {
     const topicLower = topic.toLowerCase();
     const isGrowthTopic = topicLower.includes('growth');
     const isVentureTopic = topicLower.includes('venture');
-    
+
     const specialSectionType = isGrowthTopic
       ? 'growth experiments'
       : 'fundraising';
-    
+
     // Generate topic-specific titles
     let specialSectionTitle: string;
     if (isGrowthTopic) {
@@ -309,7 +309,7 @@ IMPORTANT:
     const topicLower = summary.topic.toLowerCase();
     const isGrowthTopic = topicLower.includes('growth');
     const isVentureTopic = topicLower.includes('venture');
-    
+
     // Generate topic-specific titles
     let specialSectionTitle: string;
     if (isGrowthTopic) {

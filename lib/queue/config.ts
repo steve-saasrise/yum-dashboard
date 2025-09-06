@@ -79,9 +79,9 @@ export const AI_NEWS_JOB_OPTIONS = {
     type: 'exponential' as const,
     delay: 2000, // Start with 2 second delay
   },
-  // Add rate limiting to prevent overwhelming the API
+  // Add rate limiting to prevent overwhelming the GPT-5-mini API
   limiter: {
-    max: 100, // Maximum 100 jobs
+    max: 10, // Maximum 10 jobs (reduced from 100 to stay well under GPT-5-mini limits)
     duration: 60000, // per 60 seconds
   },
 };
@@ -92,6 +92,6 @@ export const WORKER_CONCURRENCY = {
   AI_SUMMARY: 3, // Generate 3 summaries concurrently
   CREATOR_PROCESSING: 3, // Process 3 individual creators (reduced from 10 to prevent lock issues)
   BRIGHTDATA_PROCESSING: 2, // Process 2 BrightData snapshots concurrently
-  AI_NEWS_GENERATION: 3, // Process 3 news generation jobs concurrently
+  AI_NEWS_GENERATION: 1, // Process only 1 news generation job at a time to prevent GPT-5-mini rate limits
   EMAIL_DIGEST: 10, // Process 10 user digests concurrently (emails are fast)
 };

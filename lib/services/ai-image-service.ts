@@ -320,7 +320,8 @@ export class AIImageService {
         noBorders: true,
         fillCanvas:
           'completely fill the entire image area from edge to edge without any borders, margins, or white space',
-        coverage: 'artwork must cover 100% of the canvas without any empty space',
+        coverage:
+          'artwork must cover 100% of the canvas without any empty space',
       },
 
       constraints: [

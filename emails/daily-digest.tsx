@@ -291,7 +291,10 @@ export const DailyDigestEmail = ({
                           <Text style={newsItemText}>
                             <span style={newsItemNumber}>{index + 1}.</span>{' '}
                             {bullet.sourceUrl ? (
-                              <Link href={bullet.sourceUrl} style={newsItemLink}>
+                              <Link
+                                href={bullet.sourceUrl}
+                                style={newsItemLink}
+                              >
                                 {bullet.text}
                               </Link>
                             ) : (
@@ -299,26 +302,30 @@ export const DailyDigestEmail = ({
                             )}
                           </Text>
                           {bullet.summary && (
-                            <Text style={{
-                              fontSize: '13px',
-                              color: '#6b7280',
-                              margin: '0',
-                              marginTop: '2px',
-                              lineHeight: '1.4',
-                              paddingLeft: '20px',
-                            }}>
+                            <Text
+                              style={{
+                                fontSize: '13px',
+                                color: '#6b7280',
+                                margin: '0',
+                                marginTop: '2px',
+                                lineHeight: '1.4',
+                                paddingLeft: '20px',
+                              }}
+                            >
                               {bullet.summary}
                             </Text>
                           )}
                           {bullet.source && (
-                            <Text style={{
-                              fontSize: '12px',
-                              color: '#9ca3af',
-                              fontStyle: 'italic',
-                              margin: '0',
-                              marginTop: '2px',
-                              paddingLeft: '20px',
-                            }}>
+                            <Text
+                              style={{
+                                fontSize: '12px',
+                                color: '#9ca3af',
+                                fontStyle: 'italic',
+                                margin: '0',
+                                marginTop: '2px',
+                                paddingLeft: '20px',
+                              }}
+                            >
                               {bullet.source}
                             </Text>
                           )}
@@ -388,56 +395,66 @@ export const DailyDigestEmail = ({
                                 )}
                               </Text>
                               {item.summary && (
-                                <Text style={{
-                                  fontSize: '13px',
-                                  color: '#6b7280',
-                                  margin: '0',
-                                  marginTop: '2px',
-                                  lineHeight: '1.4',
-                                  paddingLeft: '20px',
-                                }}>
+                                <Text
+                                  style={{
+                                    fontSize: '13px',
+                                    color: '#6b7280',
+                                    margin: '0',
+                                    marginTop: '2px',
+                                    lineHeight: '1.4',
+                                    paddingLeft: '20px',
+                                  }}
+                                >
                                   {item.summary}
                                 </Text>
                               )}
-                              <Text style={{
-                                margin: '0',
-                                marginTop: '4px',
-                                paddingLeft: '20px',
-                                fontSize: '12px',
-                              }}>
+                              <Text
+                                style={{
+                                  margin: '0',
+                                  marginTop: '4px',
+                                  paddingLeft: '20px',
+                                  fontSize: '12px',
+                                }}
+                              >
                                 {item.amount && (
-                                  <span style={{
-                                    display: 'inline-block',
-                                    padding: '3px 8px',
-                                    backgroundColor: '#d1fae5',
-                                    color: '#065f46',
-                                    borderRadius: '4px',
-                                    fontSize: '12px',
-                                    fontWeight: '600',
-                                    marginRight: '8px',
-                                  }}>
+                                  <span
+                                    style={{
+                                      display: 'inline-block',
+                                      padding: '3px 8px',
+                                      backgroundColor: '#d1fae5',
+                                      color: '#065f46',
+                                      borderRadius: '4px',
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      marginRight: '8px',
+                                    }}
+                                  >
                                     {item.amount}
                                   </span>
                                 )}
                                 {item.series && (
-                                  <span style={{
-                                    display: 'inline-block',
-                                    padding: '3px 8px',
-                                    backgroundColor: '#dbeafe',
-                                    color: '#1e40af',
-                                    borderRadius: '4px',
-                                    fontSize: '12px',
-                                    fontWeight: '600',
-                                    marginRight: '8px',
-                                  }}>
+                                  <span
+                                    style={{
+                                      display: 'inline-block',
+                                      padding: '3px 8px',
+                                      backgroundColor: '#dbeafe',
+                                      color: '#1e40af',
+                                      borderRadius: '4px',
+                                      fontSize: '12px',
+                                      fontWeight: '600',
+                                      marginRight: '8px',
+                                    }}
+                                  >
                                     {item.series}
                                   </span>
                                 )}
                                 {item.source && (
-                                  <span style={{
-                                    color: '#9ca3af',
-                                    fontStyle: 'italic',
-                                  }}>
+                                  <span
+                                    style={{
+                                      color: '#9ca3af',
+                                      fontStyle: 'italic',
+                                    }}
+                                  >
                                     • {item.source}
                                   </span>
                                 )}
@@ -503,11 +520,13 @@ export const DailyDigestEmail = ({
                             </Link>
                           </Text>
                           <div style={{ paddingLeft: '20px' }}>
-                            <Text style={{
-                              ...socialPostDescription,
-                              margin: '0',
-                              marginTop: '2px',
-                            }}>
+                            <Text
+                              style={{
+                                ...socialPostDescription,
+                                margin: '0',
+                                marginTop: '2px',
+                              }}
+                            >
                               {(() => {
                                 const description =
                                   post.ai_summary_short ||
@@ -524,12 +543,17 @@ export const DailyDigestEmail = ({
                                 return description;
                               })()}
                             </Text>
-                            <div style={{
-                              ...socialPostMeta,
-                              marginTop: '4px',
-                            }}>
+                            <div
+                              style={{
+                                ...socialPostMeta,
+                                marginTop: '4px',
+                              }}
+                            >
                               <table
-                                style={{ borderSpacing: 0, marginBottom: '4px' }}
+                                style={{
+                                  borderSpacing: 0,
+                                  marginBottom: '4px',
+                                }}
                               >
                                 <tr>
                                   <td style={{ paddingRight: '6px' }}>
@@ -863,7 +887,8 @@ DailyDigestEmail.PreviewProps = {
     bullets: [
       {
         text: 'Notion launches AI workspace',
-        summary: 'AI-powered automation features help teams create docs and workflows 10x faster with natural language commands',
+        summary:
+          'AI-powered automation features help teams create docs and workflows 10x faster with natural language commands',
         sourceUrl: 'https://example.com/notion',
         source: 'The Verge',
         imageUrl:
@@ -871,28 +896,34 @@ DailyDigestEmail.PreviewProps = {
       },
       {
         text: 'Microsoft Teams adds analytics',
-        summary: 'Premium tier now includes meeting insights, attendance tracking, and engagement metrics for enterprise customers',
+        summary:
+          'Premium tier now includes meeting insights, attendance tracking, and engagement metrics for enterprise customers',
         sourceUrl: 'https://example.com/teams',
         source: 'The Verge',
-        imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=120&h=120&fit=crop',
+        imageUrl:
+          'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=120&h=120&fit=crop',
       },
       {
         text: 'Slack automates enterprise workflows',
-        summary: 'New no-code builder lets teams create custom automations across 2,400+ integrated apps without developers',
+        summary:
+          'New no-code builder lets teams create custom automations across 2,400+ integrated apps without developers',
         sourceUrl: 'https://example.com/slack',
         source: 'Forbes',
-        imageUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=120&h=120&fit=crop',
+        imageUrl:
+          'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=120&h=120&fit=crop',
       },
       {
         text: 'Zoom launches developer platform',
-        summary: 'New APIs and SDKs enable deep SaaS integrations, custom video apps, and embedded collaboration features',
+        summary:
+          'New APIs and SDKs enable deep SaaS integrations, custom video apps, and embedded collaboration features',
         sourceUrl: 'https://example.com/zoom',
         source: 'VentureBeat',
         imageUrl: 'https://via.placeholder.com/120x80/ede9fe/6d28d9?text=Zoom',
       },
       {
         text: 'Stripe unveils embedded finance',
-        summary: 'SaaS platforms can now offer banking, cards, and lending directly to customers through new Treasury APIs',
+        summary:
+          'SaaS platforms can now offer banking, cards, and lending directly to customers through new Treasury APIs',
         sourceUrl: 'https://example.com/stripe',
         source: 'TechCrunch',
         imageUrl:
@@ -902,7 +933,8 @@ DailyDigestEmail.PreviewProps = {
     specialSection: [
       {
         text: 'Canva raises massive funding',
-        summary: 'Design platform secures funding from Franklin Templeton at $40B valuation to expand AI features globally',
+        summary:
+          'Design platform secures funding from Franklin Templeton at $40B valuation to expand AI features globally',
         amount: '$1.5B',
         series: 'Late Stage',
         sourceUrl: 'https://example.com/canva-funding',
@@ -911,7 +943,8 @@ DailyDigestEmail.PreviewProps = {
       },
       {
         text: 'Miro closes Series D',
-        summary: 'Collaboration platform raises capital led by ICONIQ Growth to accelerate enterprise sales and product development',
+        summary:
+          'Collaboration platform raises capital led by ICONIQ Growth to accelerate enterprise sales and product development',
         amount: '$400M',
         series: 'Series D',
         sourceUrl: 'https://example.com/miro-funding',
@@ -920,14 +953,16 @@ DailyDigestEmail.PreviewProps = {
       },
       {
         text: 'Figma explores new funding',
-        summary: 'After $20B Adobe deal collapse, design tool considers new investment round at higher valuation',
+        summary:
+          'After $20B Adobe deal collapse, design tool considers new investment round at higher valuation',
         sourceUrl: 'https://example.com/figma-adobe',
         source: 'The Information',
         imageUrl: 'https://via.placeholder.com/120x80/fde68a/fbbf24?text=Figma',
       },
       {
         text: 'Airtable secures growth capital',
-        summary: 'No-code database platform raises funds at $11.7B valuation for international expansion and enterprise features',
+        summary:
+          'No-code database platform raises funds at $11.7B valuation for international expansion and enterprise features',
         amount: '$735M',
         series: 'Series F',
         sourceUrl: 'https://example.com/airtable-funding',

@@ -5,8 +5,8 @@ interface NewsItem {
   summary?: string;
   sourceUrl?: string;
   source?: string;
-  amount?: string;  // For fundraising items (e.g., "$500M")
-  series?: string;  // For fundraising items (e.g., "Series H")
+  amount?: string; // For fundraising items (e.g., "$500M")
+  series?: string; // For fundraising items (e.g., "Series H")
 }
 
 interface BigStory {
@@ -36,7 +36,7 @@ export class AINewsService {
   private openai: OpenAI | null = null;
   private static requestQueue: Map<string, number> = new Map(); // Track last request time per topic
   private static globalLastRequest: number = 0;
-  private static MIN_REQUEST_INTERVAL = 300; // Minimum 300ms between any requests
+  private static MIN_REQUEST_INTERVAL = 6000; // Minimum 6 seconds between any requests to respect GPT-5-mini rate limits
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -259,11 +259,11 @@ export class AINewsService {
     const topicLower = topic.toLowerCase();
     const isGrowthTopic = topicLower.includes('growth');
     const isVentureTopic = topicLower.includes('venture');
-    
+
     const specialSectionType = isGrowthTopic
       ? 'growth experiments'
       : 'fundraising';
-    
+
     // Generate topic-specific titles
     let specialSectionTitle: string;
     if (isGrowthTopic) {
@@ -280,7 +280,7 @@ export class AINewsService {
       // Fallback for other topics
       specialSectionTitle = `${topic} Fundraising Announcements`;
     }
-    
+
     const specialSectionFocus = isGrowthTopic
       ? 'A/B tests, conversion rates, growth metrics, campaign results'
       : 'funding rounds, Series A/B/C/D/E/F, seed rounds, acquisitions, valuations, investor names, funding amounts';
@@ -375,13 +375,15 @@ export class AINewsService {
               },
               amount: {
                 type: 'string',
-                description: 'Funding amount if applicable (e.g., "$500M", "$1.2B")',
+                description:
+                  'Funding amount if applicable (e.g., "$500M", "$1.2B")',
                 optional: !isGrowthTopic,
                 format: 'currency',
               },
               series: {
                 type: 'string',
-                description: 'Funding round/series if applicable (e.g., "Series H", "Seed", "Series A")',
+                description:
+                  'Funding round/series if applicable (e.g., "Series H", "Seed", "Series A")',
                 optional: !isGrowthTopic,
               },
               sourceUrl: {
