@@ -132,6 +132,22 @@ const platformIcons: Record<string, { src: string; alt: string }> = {
   },
 };
 
+// Helper function to truncate text to approximately 3 lines
+const truncateToLines = (text: string, maxChars: number = 200): string => {
+  if (!text) return '';
+  if (text.length <= maxChars) return text;
+  
+  // Find a good break point (end of word)
+  const truncated = text.substring(0, maxChars);
+  const lastSpace = truncated.lastIndexOf(' ');
+  
+  if (lastSpace > maxChars * 0.8) {
+    return truncated.substring(0, lastSpace) + '...';
+  }
+  
+  return truncated + '...';
+};
+
 export const DailyDigestEmail = ({
   loungeName,
   loungeDescription,
@@ -527,21 +543,10 @@ export const DailyDigestEmail = ({
                                 marginTop: '2px',
                               }}
                             >
-                              {(() => {
-                                const description =
-                                  post.ai_summary_short ||
-                                  post.description ||
-                                  post.content_body ||
-                                  '';
-                                const wordCount = description
-                                  .trim()
-                                  .split(/\s+/).length;
-
-                                if (wordCount > 30) {
-                                  return description.substring(0, 150) + '...';
-                                }
-                                return description;
-                              })()}
+                              {truncateToLines(
+                                post.description || post.content_body || '',
+                                200
+                              )}
                             </Text>
                             <div
                               style={{
@@ -649,22 +654,10 @@ export const DailyDigestEmail = ({
 
                   {/* Description */}
                   <Text style={contentDescription}>
-                    {(() => {
-                      // If description exists and is 30 words or less, show full text
-                      const description = item.description || '';
-                      const wordCount = description.trim().split(/\s+/).length;
-
-                      if (wordCount > 0 && wordCount <= 30) {
-                        return description;
-                      }
-
-                      // Otherwise use AI summary if available, or truncated description
-                      return (
-                        item.ai_summary_short ||
-                        description.substring(0, 150) ||
-                        ''
-                      );
-                    })()}
+                    {truncateToLines(
+                      item.description || item.content_body || '',
+                      200
+                    )}
                   </Text>
 
                   {/* Referenced Content (for quotes/retweets) */}
