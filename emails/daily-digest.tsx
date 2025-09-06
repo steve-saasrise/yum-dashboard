@@ -80,15 +80,19 @@ interface DailyDigestEmailProps {
     };
     bullets: Array<{
       text: string;
+      summary?: string;
       sourceUrl?: string;
       imageUrl?: string;
       source?: string;
     }>;
     specialSection?: Array<{
       text: string;
+      summary?: string;
       sourceUrl?: string;
       imageUrl?: string;
       source?: string;
+      amount?: string;
+      series?: string;
     }>;
     specialSectionTitle?: string;
     generatedAt: string;
@@ -198,15 +202,26 @@ export const DailyDigestEmail = ({
                     style={{
                       width: '100%',
                       maxWidth: '560px',
+                      height: '315px',
                       margin: '16px 0',
+                      overflow: 'hidden',
+                      borderRadius: '8px',
+                      position: 'relative' as const,
                     }}
                   >
                     <Img
                       src={aiNewsSummary.bigStory.imageUrl}
                       width="560"
-                      height="280"
+                      height="560"
                       alt={aiNewsSummary.bigStory.title}
-                      style={bigStoryImage}
+                      style={{
+                        ...bigStoryImage,
+                        width: '100%',
+                        height: '560px',
+                        objectFit: 'cover' as const,
+                        objectPosition: 'center' as const,
+                        marginTop: '-122.5px',
+                      }}
                     />
                   </div>
                 )}
@@ -272,29 +287,42 @@ export const DailyDigestEmail = ({
                         </div>
                       )}
                       <div style={newsItemContent}>
-                        <Text style={newsItemNumber}>{index + 1}.</Text>
-                        <Text style={newsItemText}>
-                          {bullet.sourceUrl ? (
-                            <Link href={bullet.sourceUrl} style={newsItemLink}>
-                              {bullet.text}
-                            </Link>
-                          ) : (
-                            bullet.text
+                        <div>
+                          <Text style={newsItemText}>
+                            <span style={newsItemNumber}>{index + 1}.</span>{' '}
+                            {bullet.sourceUrl ? (
+                              <Link href={bullet.sourceUrl} style={newsItemLink}>
+                                {bullet.text}
+                              </Link>
+                            ) : (
+                              bullet.text
+                            )}
+                          </Text>
+                          {bullet.summary && (
+                            <Text style={{
+                              fontSize: '13px',
+                              color: '#6b7280',
+                              margin: '0',
+                              marginTop: '2px',
+                              lineHeight: '1.4',
+                              paddingLeft: '20px',
+                            }}>
+                              {bullet.summary}
+                            </Text>
                           )}
-                        </Text>
-                        <Text style={newsItemDescription}>
                           {bullet.source && (
-                            <span
-                              style={{
-                                fontSize: '12px',
-                                color: '#9ca3af',
-                                fontStyle: 'italic',
-                              }}
-                            >
+                            <Text style={{
+                              fontSize: '12px',
+                              color: '#9ca3af',
+                              fontStyle: 'italic',
+                              margin: '0',
+                              marginTop: '2px',
+                              paddingLeft: '20px',
+                            }}>
                               {bullet.source}
-                            </span>
+                            </Text>
                           )}
-                        </Text>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -345,32 +373,76 @@ export const DailyDigestEmail = ({
                             </div>
                           )}
                           <div style={newsItemContent}>
-                            <Text style={newsItemNumber}>{index + 1}.</Text>
-                            <Text style={newsItemText}>
-                              {item.sourceUrl ? (
-                                <Link
-                                  href={item.sourceUrl}
-                                  style={newsItemLink}
-                                >
-                                  {item.text}
-                                </Link>
-                              ) : (
-                                item.text
+                            <div>
+                              <Text style={newsItemText}>
+                                <span style={newsItemNumber}>{index + 1}.</span>{' '}
+                                {item.sourceUrl ? (
+                                  <Link
+                                    href={item.sourceUrl}
+                                    style={newsItemLink}
+                                  >
+                                    {item.text}
+                                  </Link>
+                                ) : (
+                                  item.text
+                                )}
+                              </Text>
+                              {item.summary && (
+                                <Text style={{
+                                  fontSize: '13px',
+                                  color: '#6b7280',
+                                  margin: '0',
+                                  marginTop: '2px',
+                                  lineHeight: '1.4',
+                                  paddingLeft: '20px',
+                                }}>
+                                  {item.summary}
+                                </Text>
                               )}
-                            </Text>
-                            <Text style={newsItemDescription}>
-                              {item.source && (
-                                <span
-                                  style={{
+                              <Text style={{
+                                margin: '0',
+                                marginTop: '4px',
+                                paddingLeft: '20px',
+                                fontSize: '12px',
+                              }}>
+                                {item.amount && (
+                                  <span style={{
+                                    display: 'inline-block',
+                                    padding: '3px 8px',
+                                    backgroundColor: '#d1fae5',
+                                    color: '#065f46',
+                                    borderRadius: '4px',
                                     fontSize: '12px',
+                                    fontWeight: '600',
+                                    marginRight: '8px',
+                                  }}>
+                                    {item.amount}
+                                  </span>
+                                )}
+                                {item.series && (
+                                  <span style={{
+                                    display: 'inline-block',
+                                    padding: '3px 8px',
+                                    backgroundColor: '#dbeafe',
+                                    color: '#1e40af',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    marginRight: '8px',
+                                  }}>
+                                    {item.series}
+                                  </span>
+                                )}
+                                {item.source && (
+                                  <span style={{
                                     color: '#9ca3af',
                                     fontStyle: 'italic',
-                                  }}
-                                >
-                                  {item.source}
-                                </span>
-                              )}
-                            </Text>
+                                  }}>
+                                    • {item.source}
+                                  </span>
+                                )}
+                              </Text>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -421,66 +493,79 @@ export const DailyDigestEmail = ({
                         )}
                       </div>
                       <div style={socialPostContent}>
-                        <Text style={socialPostNumber}>{index + 1}.</Text>
-                        <Link href={post.url} style={socialPostTitle}>
-                          {post.title.length > 80
-                            ? post.title.substring(0, 80) + '...'
-                            : post.title}
-                        </Link>
-                        <Text style={socialPostDescription}>
-                          {(() => {
-                            const description =
-                              post.ai_summary_short ||
-                              post.description ||
-                              post.content_body ||
-                              '';
-                            const wordCount = description
-                              .trim()
-                              .split(/\s+/).length;
+                        <div>
+                          <Text style={{ margin: '0', marginBottom: '2px' }}>
+                            <span style={socialPostNumber}>{index + 1}.</span>{' '}
+                            <Link href={post.url} style={socialPostTitle}>
+                              {post.title.length > 80
+                                ? post.title.substring(0, 80) + '...'
+                                : post.title}
+                            </Link>
+                          </Text>
+                          <div style={{ paddingLeft: '20px' }}>
+                            <Text style={{
+                              ...socialPostDescription,
+                              margin: '0',
+                              marginTop: '2px',
+                            }}>
+                              {(() => {
+                                const description =
+                                  post.ai_summary_short ||
+                                  post.description ||
+                                  post.content_body ||
+                                  '';
+                                const wordCount = description
+                                  .trim()
+                                  .split(/\s+/).length;
 
-                            if (wordCount > 30) {
-                              return description.substring(0, 150) + '...';
-                            }
-                            return description;
-                          })()}
-                        </Text>
-                        <div style={socialPostMeta}>
-                          <table
-                            style={{ borderSpacing: 0, marginBottom: '4px' }}
-                          >
-                            <tr>
-                              <td style={{ paddingRight: '6px' }}>
-                                <Img
-                                  src={
-                                    platformIcons[post.platform]?.src ||
-                                    platformIcons.website.src
-                                  }
-                                  alt={
-                                    platformIcons[post.platform]?.alt ||
-                                    platformIcons.website.alt
-                                  }
-                                  width="14"
-                                  height="14"
-                                  style={platformIconImg}
-                                />
-                              </td>
-                              <td>
-                                <Text style={socialPostCreator}>
-                                  by {post.creator_name}
-                                </Text>
-                              </td>
-                            </tr>
-                          </table>
-                          {post.engagement_metrics && (
-                            <Text style={socialPostEngagement}>
-                              {post.engagement_metrics.likes &&
-                                `❤️ ${post.engagement_metrics.likes.toLocaleString()}`}
-                              {post.engagement_metrics.views &&
-                                ` · ${post.engagement_metrics.views.toLocaleString()} views`}
-                              {post.engagement_metrics.comments &&
-                                ` · 💬 ${post.engagement_metrics.comments.toLocaleString()}`}
+                                if (wordCount > 30) {
+                                  return description.substring(0, 150) + '...';
+                                }
+                                return description;
+                              })()}
                             </Text>
-                          )}
+                            <div style={{
+                              ...socialPostMeta,
+                              marginTop: '4px',
+                            }}>
+                              <table
+                                style={{ borderSpacing: 0, marginBottom: '4px' }}
+                              >
+                                <tr>
+                                  <td style={{ paddingRight: '6px' }}>
+                                    <Img
+                                      src={
+                                        platformIcons[post.platform]?.src ||
+                                        platformIcons.website.src
+                                      }
+                                      alt={
+                                        platformIcons[post.platform]?.alt ||
+                                        platformIcons.website.alt
+                                      }
+                                      width="14"
+                                      height="14"
+                                      style={platformIconImg}
+                                    />
+                                  </td>
+                                  <td>
+                                    <Text style={socialPostCreator}>
+                                      by {post.creator_name}
+                                    </Text>
+                                  </td>
+                                </tr>
+                              </table>
+                              {post.engagement_metrics && (
+                                <Text style={socialPostEngagement}>
+                                  {post.engagement_metrics.likes &&
+                                    `❤️ ${post.engagement_metrics.likes.toLocaleString()}`}
+                                  {post.engagement_metrics.views &&
+                                    ` · ${post.engagement_metrics.views.toLocaleString()} views`}
+                                  {post.engagement_metrics.comments &&
+                                    ` · 💬 ${post.engagement_metrics.comments.toLocaleString()}`}
+                                </Text>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -695,7 +780,7 @@ DailyDigestEmail.PreviewProps = {
       creator_name: 'Sarah Chen (@sarahchen)',
       platform: 'linkedin' as const,
       thumbnail_url:
-        'https://via.placeholder.com/120x80/8b5cf6/ffffff?text=SaaS+Pricing',
+        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=120&h=120&fit=crop',
       published_at: new Date().toISOString(),
       ai_summary_short:
         'A data-driven pricing framework that helped increase ARR by 300%',
@@ -742,7 +827,7 @@ DailyDigestEmail.PreviewProps = {
       creator_name: 'Maria Santos (@mariasantos)',
       platform: 'youtube' as const,
       thumbnail_url:
-        'https://via.placeholder.com/120x80/10b981/ffffff?text=SaaS+Growth',
+        'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=120&h=120&fit=crop',
       published_at: new Date().toISOString(),
       ai_summary_short:
         'How to build a profitable SaaS without any marketing or PR',
@@ -773,36 +858,41 @@ DailyDigestEmail.PreviewProps = {
       source: 'TechCrunch',
       sourceUrl: 'https://example.com/salesforce-ai',
       imageUrl:
-        'https://via.placeholder.com/560x280/e0e7ff/4338ca?text=Salesforce+AI',
+        'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=560&h=560&fit=crop',
     },
     bullets: [
       {
-        text: 'Notion launches AI-powered workspace automation',
+        text: 'Notion launches AI workspace',
+        summary: 'AI-powered automation features help teams create docs and workflows 10x faster with natural language commands',
         sourceUrl: 'https://example.com/notion',
         source: 'The Verge',
         imageUrl:
-          'https://via.placeholder.com/120x80/ddd6fe/5b21b6?text=Notion',
+          'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=120&h=120&fit=crop',
       },
       {
-        text: 'Microsoft Teams Premium adds advanced meeting analytics',
+        text: 'Microsoft Teams adds analytics',
+        summary: 'Premium tier now includes meeting insights, attendance tracking, and engagement metrics for enterprise customers',
         sourceUrl: 'https://example.com/teams',
         source: 'The Verge',
-        imageUrl: 'https://via.placeholder.com/120x80/dbeafe/3730a3?text=Teams',
+        imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=120&h=120&fit=crop',
       },
       {
-        text: 'Slack introduces workflow automation for enterprise customers',
+        text: 'Slack automates enterprise workflows',
+        summary: 'New no-code builder lets teams create custom automations across 2,400+ integrated apps without developers',
         sourceUrl: 'https://example.com/slack',
         source: 'Forbes',
-        imageUrl: 'https://via.placeholder.com/120x80/e0e7ff/4338ca?text=Slack',
+        imageUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=120&h=120&fit=crop',
       },
       {
-        text: 'Zoom launches new developer platform for SaaS integrations',
+        text: 'Zoom launches developer platform',
+        summary: 'New APIs and SDKs enable deep SaaS integrations, custom video apps, and embedded collaboration features',
         sourceUrl: 'https://example.com/zoom',
         source: 'VentureBeat',
         imageUrl: 'https://via.placeholder.com/120x80/ede9fe/6d28d9?text=Zoom',
       },
       {
-        text: 'Stripe unveils embedded finance tools for SaaS platforms',
+        text: 'Stripe unveils embedded finance',
+        summary: 'SaaS platforms can now offer banking, cards, and lending directly to customers through new Treasury APIs',
         sourceUrl: 'https://example.com/stripe',
         source: 'TechCrunch',
         imageUrl:
@@ -811,31 +901,42 @@ DailyDigestEmail.PreviewProps = {
     ],
     specialSection: [
       {
-        text: 'Canva raises $1.5B at $40B valuation from Franklin Templeton',
+        text: 'Canva raises massive funding',
+        summary: 'Design platform secures funding from Franklin Templeton at $40B valuation to expand AI features globally',
+        amount: '$1.5B',
+        series: 'Late Stage',
         sourceUrl: 'https://example.com/canva-funding',
         source: 'TechCrunch',
         imageUrl: 'https://via.placeholder.com/120x80/fef3c7/f59e0b?text=Canva',
       },
       {
-        text: 'Miro closes $400M Series D led by ICONIQ Growth',
+        text: 'Miro closes Series D',
+        summary: 'Collaboration platform raises capital led by ICONIQ Growth to accelerate enterprise sales and product development',
+        amount: '$400M',
+        series: 'Series D',
         sourceUrl: 'https://example.com/miro-funding',
         source: 'Forbes',
         imageUrl: 'https://via.placeholder.com/120x80/fed7aa/fb923c?text=Miro',
       },
       {
-        text: 'Figma founder on $20B Adobe deal collapse and new funding',
+        text: 'Figma explores new funding',
+        summary: 'After $20B Adobe deal collapse, design tool considers new investment round at higher valuation',
         sourceUrl: 'https://example.com/figma-adobe',
         source: 'The Information',
         imageUrl: 'https://via.placeholder.com/120x80/fde68a/fbbf24?text=Figma',
       },
       {
-        text: 'Airtable secures $735M at $11.7B valuation for expansion',
+        text: 'Airtable secures growth capital',
+        summary: 'No-code database platform raises funds at $11.7B valuation for international expansion and enterprise features',
+        amount: '$735M',
+        series: 'Series F',
         sourceUrl: 'https://example.com/airtable-funding',
         source: 'VentureBeat',
-        imageUrl: 'https://via.placeholder.com/120x80/fef3c7/fcd34d?text=Airtable',
+        imageUrl:
+          'https://via.placeholder.com/120x80/fef3c7/fcd34d?text=Airtable',
       },
     ],
-    specialSectionTitle: 'Fundraising Announcements',
+    specialSectionTitle: 'SaaS Fundraising Announcements',
     generatedAt: new Date().toISOString(),
   },
   content: [
@@ -1241,7 +1342,7 @@ const bigStorySummaryText = {
 // News item styles
 const newsItemContainer = {
   display: 'flex',
-  marginBottom: '20px',
+  marginBottom: '12px',
   alignItems: 'flex-start',
 };
 
@@ -1279,7 +1380,8 @@ const newsItemText = {
 const newsItemLink = {
   color: '#2563eb',
   textDecoration: 'none',
-  fontWeight: '500',
+  fontSize: '15px',
+  fontWeight: '600',
 };
 
 const newsItemDescription = {
@@ -1349,7 +1451,7 @@ const socialPostNumber = {
 };
 
 const socialPostTitle = {
-  color: '#1a1a1a',
+  color: '#2563eb',
   fontSize: '15px',
   fontWeight: '600',
   textDecoration: 'none',

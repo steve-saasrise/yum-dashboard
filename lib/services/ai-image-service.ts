@@ -314,14 +314,13 @@ export class AIImageService {
       },
 
       technical: {
-        aspectRatio: options.isBigStory ? '16:9 landscape' : '1:1 square',
-        orientation: options.isBigStory
-          ? 'horizontal hero banner'
-          : 'centered thumbnail',
+        aspectRatio: '1:1 square',
+        orientation: 'centered composition',
         edgeToEdge: true,
         noBorders: true,
         fillCanvas:
-          'completely fill the image area without any borders or margins',
+          'completely fill the entire image area from edge to edge without any borders, margins, or white space',
+        coverage: 'artwork must cover 100% of the canvas without any empty space',
       },
 
       constraints: [
@@ -344,7 +343,12 @@ export class AIImageService {
     return `Generate an image based on these specifications:
 ${JSON.stringify(imageSpec, null, 2)}
 
-CRITICAL: The image must fill the entire canvas from edge to edge with no borders, margins, or white space around the edges.`;
+CRITICAL: 
+- Generate a perfect 1:1 square image
+- The artwork MUST fill the entire canvas from edge to edge 
+- NO borders, margins, or white space anywhere
+- The visual content should extend to all four edges of the image
+- Create a full-bleed design that covers 100% of the image area`;
   }
 
   /**

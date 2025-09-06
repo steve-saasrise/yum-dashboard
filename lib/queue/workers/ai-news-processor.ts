@@ -67,7 +67,11 @@ export function createAINewsProcessorWorker() {
               queue_generated: true,
               bigStory: newsResult.bigStory || null,
               special_section_title: newsResult.specialSectionTitle || null,
-              special_section_type: newsResult.topic.toLowerCase().includes('growth') ? 'growth_experiments' : 'fundraising',
+              special_section_type: newsResult.topic
+                .toLowerCase()
+                .includes('growth')
+                ? 'growth_experiments'
+                : 'fundraising',
             } as any,
           })
           .select('id')

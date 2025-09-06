@@ -2,8 +2,11 @@ import OpenAI from 'openai';
 
 interface NewsItem {
   text: string;
+  summary?: string;
   sourceUrl?: string;
   source?: string;
+  amount?: string;  // For fundraising items (e.g., "$500M")
+  series?: string;  // For fundraising items (e.g., "Series H")
 }
 
 interface BigStory {
@@ -251,14 +254,36 @@ export class AINewsService {
 
     const maxRetries = 3;
     const topic = this.getCleanTopic(loungeName, loungeDescription);
+
+    // Determine special section type and title based on topic
+    const topicLower = topic.toLowerCase();
+    const isGrowthTopic = topicLower.includes('growth');
+    const isVentureTopic = topicLower.includes('venture');
     
-    // Determine special section type based on topic
-    const isGrowthTopic = topic.toLowerCase().includes('growth');
-    const specialSectionType = isGrowthTopic ? 'growth experiments' : 'fundraising';
-    const specialSectionTitle = isGrowthTopic ? 'Growth Experiments & Results' : 'Fundraising Announcements';
-    const specialSectionFocus = isGrowthTopic 
+    const specialSectionType = isGrowthTopic
+      ? 'growth experiments'
+      : 'fundraising';
+    
+    // Generate topic-specific titles
+    let specialSectionTitle: string;
+    if (isGrowthTopic) {
+      specialSectionTitle = 'Growth Experiments & Results';
+    } else if (isVentureTopic) {
+      specialSectionTitle = 'Venture Capital Deals';
+    } else if (topicLower.includes('ai')) {
+      specialSectionTitle = 'AI Fundraising Announcements';
+    } else if (topicLower.includes('saas')) {
+      specialSectionTitle = 'SaaS Fundraising Announcements';
+    } else if (topicLower.includes('crypto')) {
+      specialSectionTitle = 'Crypto Fundraising Announcements';
+    } else {
+      // Fallback for other topics
+      specialSectionTitle = `${topic} Fundraising Announcements`;
+    }
+    
+    const specialSectionFocus = isGrowthTopic
       ? 'A/B tests, conversion rates, growth metrics, campaign results'
-      : 'funding rounds, Series A/B/C/D, acquisitions, valuations, investor names';
+      : 'funding rounds, Series A/B/C/D/E/F, seed rounds, acquisitions, valuations, investor names, funding amounts';
 
     // Build structured JSON prompt for better AI understanding
     const promptSpec = {
@@ -302,16 +327,21 @@ export class AINewsService {
           },
           {
             name: 'bullets',
-            description:
-              `Exactly 5 other important news items from the last 24 hours (EXCLUDING ${specialSectionType} news)`,
+            description: `Exactly 5 other important news items from the last 24 hours (EXCLUDING ${specialSectionType} news)`,
             type: 'array',
             count: 5,
             itemFields: {
               text: {
                 type: 'string',
-                description: 'Brief headline/summary',
-                wordCount: '10-15 words max',
-                maxLength: 150,
+                description: 'Short, punchy headline',
+                wordCount: '5-10 words max',
+                maxLength: 80,
+              },
+              summary: {
+                type: 'string',
+                description: '1-2 sentence explanation of what happened',
+                wordCount: '20-30 words',
+                maxLength: 200,
               },
               sourceUrl: {
                 type: 'string',
@@ -333,9 +363,26 @@ export class AINewsService {
             itemFields: {
               text: {
                 type: 'string',
-                description: 'Brief headline/summary about ' + specialSectionType,
-                wordCount: '10-15 words max',
-                maxLength: 150,
+                description: `Company name and short action (e.g., "DataBricks raises funding" or "Stripe experiments with pricing")`,
+                wordCount: '5-8 words max',
+                maxLength: 60,
+              },
+              summary: {
+                type: 'string',
+                description: '1-2 sentence explanation including key details',
+                wordCount: '20-30 words',
+                maxLength: 200,
+              },
+              amount: {
+                type: 'string',
+                description: 'Funding amount if applicable (e.g., "$500M", "$1.2B")',
+                optional: !isGrowthTopic,
+                format: 'currency',
+              },
+              series: {
+                type: 'string',
+                description: 'Funding round/series if applicable (e.g., "Series H", "Seed", "Series A")',
+                optional: !isGrowthTopic,
               },
               sourceUrl: {
                 type: 'string',
@@ -441,7 +488,7 @@ Return ONLY the JSON response with no additional text.`;
           // Extract items and bigStory from the response
           const items: NewsItem[] = [];
           let bigStory: BigStory | undefined;
-          let specialItems: NewsItem[] = [];
+          const specialItems: NewsItem[] = [];
 
           // Handle new response format - response can be an object with output array or just an array
           let outputText: string | undefined;
@@ -506,6 +553,7 @@ Return ONLY the JSON response with no additional text.`;
                   if (bullet.text) {
                     items.push({
                       text: bullet.text,
+                      summary: bullet.summary,
                       sourceUrl: bullet.sourceUrl,
                       source: bullet.source,
                     });
@@ -514,11 +562,17 @@ Return ONLY the JSON response with no additional text.`;
               }
 
               // Extract special section
-              if (parsed.specialSection && Array.isArray(parsed.specialSection)) {
+              if (
+                parsed.specialSection &&
+                Array.isArray(parsed.specialSection)
+              ) {
                 for (const item of parsed.specialSection.slice(0, 5)) {
                   if (item.text) {
                     specialItems.push({
                       text: item.text,
+                      summary: item.summary,
+                      amount: item.amount,
+                      series: item.series,
                       sourceUrl: item.sourceUrl,
                       source: item.source,
                     });
@@ -653,7 +707,8 @@ Return ONLY the JSON response with no additional text.`;
             items: this.validateAndTrimItems(items),
             bigStory,
             specialSection: specialItems.length > 0 ? specialItems : undefined,
-            specialSectionTitle: specialItems.length > 0 ? specialSectionTitle : undefined,
+            specialSectionTitle:
+              specialItems.length > 0 ? specialSectionTitle : undefined,
             topic,
             generatedAt: new Date().toISOString(),
           };
@@ -712,7 +767,7 @@ Return ONLY the JSON response with no additional text.`;
         // Parse the response similar to above
         const items: NewsItem[] = [];
         let bigStory: BigStory | undefined;
-        let specialItems: NewsItem[] = [];
+        const specialItems: NewsItem[] = [];
 
         // Handle new response format
         let outputText: string | undefined;
@@ -747,6 +802,7 @@ Return ONLY the JSON response with no additional text.`;
                 if (bullet.text) {
                   items.push({
                     text: bullet.text,
+                    summary: bullet.summary,
                     sourceUrl: bullet.sourceUrl,
                     source: bullet.source,
                   });
@@ -754,12 +810,15 @@ Return ONLY the JSON response with no additional text.`;
               }
             }
 
-            // Extract special section  
+            // Extract special section
             if (parsed.specialSection && Array.isArray(parsed.specialSection)) {
               for (const item of parsed.specialSection.slice(0, 5)) {
                 if (item.text) {
                   specialItems.push({
                     text: item.text,
+                    summary: item.summary,
+                    amount: item.amount,
+                    series: item.series,
                     sourceUrl: item.sourceUrl,
                     source: item.source,
                   });
@@ -819,7 +878,8 @@ Return ONLY the JSON response with no additional text.`;
           items: this.validateAndTrimItems(items),
           bigStory,
           specialSection: specialItems.length > 0 ? specialItems : undefined,
-          specialSectionTitle: specialItems.length > 0 ? specialSectionTitle : undefined,
+          specialSectionTitle:
+            specialItems.length > 0 ? specialSectionTitle : undefined,
           topic,
           generatedAt: new Date().toISOString(),
         };

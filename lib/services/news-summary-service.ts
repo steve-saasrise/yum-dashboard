@@ -5,9 +5,12 @@ import { OpenGraphService } from './opengraph-service';
 
 interface BulletPoint {
   text: string;
+  summary?: string;
   sourceUrl?: string;
   imageUrl?: string;
   source?: string;
+  amount?: string;  // For fundraising items
+  series?: string;  // For fundraising items
 }
 
 interface BigStory {
@@ -99,14 +102,31 @@ export class NewsSummaryService {
       })
       .join('\n');
 
-    // Determine special section type based on topic
-    const isGrowthTopic = topic.toLowerCase().includes('growth');
+    // Determine special section type and title based on topic
+    const topicLower = topic.toLowerCase();
+    const isGrowthTopic = topicLower.includes('growth');
+    const isVentureTopic = topicLower.includes('venture');
+    
     const specialSectionType = isGrowthTopic
       ? 'growth experiments'
       : 'fundraising';
-    const specialSectionTitle = isGrowthTopic
-      ? 'Growth Experiments & Results'
-      : 'Fundraising Announcements';
+    
+    // Generate topic-specific titles
+    let specialSectionTitle: string;
+    if (isGrowthTopic) {
+      specialSectionTitle = 'Growth Experiments & Results';
+    } else if (isVentureTopic) {
+      specialSectionTitle = 'Venture Capital Deals';
+    } else if (topicLower.includes('ai')) {
+      specialSectionTitle = 'AI Fundraising Announcements';
+    } else if (topicLower.includes('saas')) {
+      specialSectionTitle = 'SaaS Fundraising Announcements';
+    } else if (topicLower.includes('crypto')) {
+      specialSectionTitle = 'Crypto Fundraising Announcements';
+    } else {
+      // Fallback for other topics
+      specialSectionTitle = `${topic} Fundraising Announcements`;
+    }
 
     // Build the prompt
     const prompt = `Please create a news digest summary for ${topic} with three sections:
@@ -118,18 +138,22 @@ export class NewsSummaryService {
    - sourceUrl: The URL of the article
 
 2. TODAY'S HEADLINES: Create 5 bullet points of other important news (EXCLUDING ${specialSectionType} news). For each:
-   - text: Brief headline/summary (10-15 words max)
+   - text: Short, punchy headline (5-10 words max)
+   - summary: 1-2 sentence explanation of what happened (20-30 words)
    - sourceUrl: The URL of the article
    - source: The publication name
 
 3. ${specialSectionTitle.toUpperCase()}: Create 3-5 bullet points specifically about ${specialSectionType}. For each:
-   - text: Brief headline/summary (10-15 words max)
+   - text: Company name and short action (5-8 words max, e.g., "DataBricks raises funding")
+   - summary: 1-2 sentence explanation including key details (20-30 words)
+   ${!isGrowthTopic ? '- amount: Funding amount (e.g., "$500M", "$1.2B")' : ''}
+   ${!isGrowthTopic ? '- series: Funding round (e.g., "Series H", "Seed", "Series A")' : ''}
    - sourceUrl: The URL of the article
    - source: The publication name
    ${
      isGrowthTopic
-       ? '- Focus on: A/B tests, conversion rates, growth metrics, campaign results'
-       : '- Focus on: funding rounds, Series A/B/C/D, acquisitions, valuations, investor names'
+       ? '- Focus on: A/B tests, conversion rates, growth metrics, campaign results, experiment outcomes'
+       : '- Focus on: funding rounds, Series A/B/C/D/E/F, seed rounds, acquisitions, valuations, investor names, ALWAYS include exact funding amounts'
    }
 
 Context - Recent news items from the last 24 hours:
@@ -144,11 +168,11 @@ Format your response as a JSON object:
     "sourceUrl": "..."
   },
   "bullets": [
-    {"text": "...", "sourceUrl": "...", "source": "..."},
+    {"text": "...", "summary": "...", "sourceUrl": "...", "source": "..."},
     ...
   ],
   "specialSection": [
-    {"text": "...", "sourceUrl": "...", "source": "..."},
+    {"text": "...", "summary": "...", "amount": "...", "series": "...", "sourceUrl": "...", "source": "..."},
     ...
   ]
 }
@@ -282,10 +306,26 @@ IMPORTANT:
     }
 
     // Determine special section title based on topic
-    const isGrowthTopic = summary.topic.toLowerCase().includes('growth');
-    const specialSectionTitle = isGrowthTopic
-      ? 'Growth Experiments & Results'
-      : 'Fundraising Announcements';
+    const topicLower = summary.topic.toLowerCase();
+    const isGrowthTopic = topicLower.includes('growth');
+    const isVentureTopic = topicLower.includes('venture');
+    
+    // Generate topic-specific titles
+    let specialSectionTitle: string;
+    if (isGrowthTopic) {
+      specialSectionTitle = 'Growth Experiments & Results';
+    } else if (isVentureTopic) {
+      specialSectionTitle = 'Venture Capital Deals';
+    } else if (topicLower.includes('ai')) {
+      specialSectionTitle = 'AI Fundraising Announcements';
+    } else if (topicLower.includes('saas')) {
+      specialSectionTitle = 'SaaS Fundraising Announcements';
+    } else if (topicLower.includes('crypto')) {
+      specialSectionTitle = 'Crypto Fundraising Announcements';
+    } else {
+      // Fallback for other topics
+      specialSectionTitle = `${summary.topic} Fundraising Announcements`;
+    }
 
     const { data, error } = await this.supabase
       .from('daily_news_summaries')
