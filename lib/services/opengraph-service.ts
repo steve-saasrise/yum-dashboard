@@ -38,6 +38,15 @@ export class OpenGraphService {
       title?: string;
       source?: string;
       isBigStory?: boolean;
+      imagePrompt?: {
+        concept: string;
+        style: string;
+        mood: string;
+        colors: string;
+        elements: string[];
+        composition: string;
+        avoid: string[];
+      };
     }>,
     category?: string
   ): Promise<Map<string, string | null>> {
@@ -48,6 +57,15 @@ export class OpenGraphService {
       title?: string;
       source?: string;
       isBigStory?: boolean;
+      imagePrompt?: {
+        concept: string;
+        style: string;
+        mood: string;
+        colors: string;
+        elements: string[];
+        composition: string;
+        avoid: string[];
+      };
     }> = [];
 
     // Process in batches to avoid overwhelming the service
@@ -65,6 +83,7 @@ export class OpenGraphService {
             title: item.title,
             source: item.source,
             isBigStory: item.isBigStory,
+            imagePrompt: item.imagePrompt,
           });
           return { url: item.url, imageUrl: null };
         }
@@ -92,6 +111,7 @@ export class OpenGraphService {
           source: item.source,
           category: category || 'Technology',
           isBigStory: item.isBigStory,
+          imagePrompt: item.imagePrompt,
         }))
       );
 

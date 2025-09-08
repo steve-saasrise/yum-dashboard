@@ -3,6 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database, Json } from '@/types/database.types';
 import { OpenGraphService } from './opengraph-service';
 
+interface ImagePrompt {
+  concept: string;
+  style: string;
+  mood: string;
+  colors: string;
+  elements: string[];
+  composition: string;
+  avoid: string[];
+}
+
 interface BulletPoint {
   text: string;
   summary?: string;
@@ -11,6 +21,7 @@ interface BulletPoint {
   source?: string;
   amount?: string; // For fundraising items
   series?: string; // For fundraising items
+  imagePrompt?: ImagePrompt; // AI-generated image prompt
 }
 
 interface BigStory {
@@ -19,6 +30,7 @@ interface BigStory {
   source?: string;
   sourceUrl?: string;
   imageUrl?: string;
+  imagePrompt?: ImagePrompt; // AI-generated image prompt
 }
 
 interface NewsContent {
@@ -136,12 +148,14 @@ export class NewsSummaryService {
    - summary: 2-3 sentence summary explaining what happened and why it matters
    - source: The source publication name
    - sourceUrl: The URL of the article
+   - imagePrompt: A detailed image generation prompt in JSON format for creating a professional editorial image
 
 2. TODAY'S HEADLINES: Create 5 bullet points of other important news (EXCLUDING ${specialSectionType} news). For each:
    - text: Short, punchy headline (5-10 words max)
    - summary: 1-2 sentence explanation of what happened (20-30 words)
    - sourceUrl: The URL of the article
    - source: The publication name
+   - imagePrompt: A detailed image generation prompt in JSON format for creating a professional editorial image
 
 3. ${specialSectionTitle.toUpperCase()}: Create 3-5 bullet points specifically about ${specialSectionType}. For each:
    - text: Company name and short action (5-8 words max, e.g., "DataBricks raises funding")
@@ -150,11 +164,31 @@ export class NewsSummaryService {
    ${!isGrowthTopic ? '- series: Funding round (e.g., "Series H", "Seed", "Series A")' : ''}
    - sourceUrl: The URL of the article
    - source: The publication name
+   - imagePrompt: A detailed image generation prompt in JSON format for creating a professional editorial image
    ${
      isGrowthTopic
        ? '- Focus on: A/B tests, conversion rates, growth metrics, campaign results, experiment outcomes'
        : '- Focus on: funding rounds, Series A/B/C/D/E/F, seed rounds, acquisitions, valuations, investor names, ALWAYS include exact funding amounts'
    }
+
+For each imagePrompt, create a JSON object with these fields:
+{
+  "concept": "Main visual concept (abstract, no text)",
+  "style": "Visual style (modern, professional, tech-forward, etc.)",
+  "mood": "Emotional tone (innovative, secure, growth-oriented, etc.)",
+  "colors": "Color palette description",
+  "elements": ["visual element 1", "visual element 2", "visual element 3"],
+  "composition": "How elements should be arranged",
+  "avoid": ["thing to avoid 1", "thing to avoid 2"]
+}
+
+Image prompts should:
+- Be highly specific and contextual to the news item
+- Use abstract visual metaphors or include company logos if 100% certain
+- Never include text except in authentic logos
+- Be suitable for professional email newsletters
+- Match the tone and importance of the news
+- Logos are allowed ONLY when absolutely certain of the authentic design
 
 Context - Recent news items from the last 24 hours:
 ${newsContext}
@@ -165,14 +199,15 @@ Format your response as a JSON object:
     "title": "...",
     "summary": "...",
     "source": "...",
-    "sourceUrl": "..."
+    "sourceUrl": "...",
+    "imagePrompt": {...}
   },
   "bullets": [
-    {"text": "...", "summary": "...", "sourceUrl": "...", "source": "..."},
+    {"text": "...", "summary": "...", "sourceUrl": "...", "source": "...", "imagePrompt": {...}},
     ...
   ],
   "specialSection": [
-    {"text": "...", "summary": "...", "amount": "...", "series": "...", "sourceUrl": "...", "source": "..."},
+    {"text": "...", "summary": "...", "amount": "...", "series": "...", "sourceUrl": "...", "source": "...", "imagePrompt": {...}},
     ...
   ]
 }
@@ -180,7 +215,8 @@ Format your response as a JSON object:
 IMPORTANT: 
 - Headlines should NOT include ${specialSectionType} news
 - Special section should ONLY include ${specialSectionType} news
-- Focus on the most important and impactful news for ${topic} professionals.`;
+- Focus on the most important and impactful news for ${topic} professionals.
+- Each imagePrompt must be a properly formatted JSON object`;
 
     try {
       const completion = await this.openai.chat.completions.create({
@@ -197,7 +233,7 @@ IMPORTANT:
           },
         ],
         temperature: 0.7,
-        max_tokens: 300, // Increased to accommodate special section
+        max_tokens: 2000, // Increased to accommodate image prompts
         response_format: { type: 'json_object' },
       });
 
@@ -387,6 +423,7 @@ IMPORTANT:
         title?: string;
         source?: string;
         isBigStory?: boolean;
+        imagePrompt?: ImagePrompt;
       }> = [];
 
       // Collect URLs with metadata for AI generation if needed
@@ -400,6 +437,7 @@ IMPORTANT:
           title: summary.bigStory.title,
           source: summary.bigStory.source,
           isBigStory: true, // Mark this as the big story for 16:9 aspect ratio
+          imagePrompt: summary.bigStory.imagePrompt, // Pass the AI-generated prompt
         });
       }
 
@@ -410,6 +448,7 @@ IMPORTANT:
             title: bullet.text,
             source: bullet.source,
             isBigStory: false, // Regular bullets get square images
+            imagePrompt: bullet.imagePrompt, // Pass the AI-generated prompt
           });
         }
       });
@@ -422,6 +461,7 @@ IMPORTANT:
             title: item.text,
             source: item.source,
             isBigStory: false, // Special section items get square images
+            imagePrompt: item.imagePrompt, // Pass the AI-generated prompt
           });
         }
       });

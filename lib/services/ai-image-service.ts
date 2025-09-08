@@ -11,6 +11,15 @@ interface GenerateImageOptions {
   category?: string;
   description?: string;
   isBigStory?: boolean; // Flag to indicate if this is for the big story hero image
+  imagePrompt?: { // Pre-generated prompt from GPT
+    concept: string;
+    style: string;
+    mood: string;
+    colors: string;
+    elements: string[];
+    composition: string;
+    avoid: string[];
+  };
 }
 
 interface GeneratedImage {
@@ -170,7 +179,52 @@ export class AIImageService {
    * Using JSON structure for better AI understanding and consistency
    */
   private generatePrompt(options: GenerateImageOptions): string {
-    const { title, source, category, description } = options;
+    const { title, source, category, description, imagePrompt } = options;
+    
+    // If we have a pre-generated prompt from GPT, use it
+    if (imagePrompt) {
+      const enhancedPrompt = {
+        request: 'Generate a professional editorial image based on these AI-curated specifications',
+        concept: imagePrompt.concept,
+        style: imagePrompt.style,
+        mood: imagePrompt.mood,
+        colors: imagePrompt.colors,
+        elements: imagePrompt.elements,
+        composition: imagePrompt.composition,
+        technical: {
+          aspectRatio: '1:1 square', // Always use square for all images
+          orientation: 'centered composition',
+          edgeToEdge: true,
+          noBorders: true,
+          fillCanvas: 'completely fill the entire image area from edge to edge without any borders, margins, or white space',
+          coverage: 'artwork must cover 100% of the canvas without any empty space',
+        },
+        constraints: [
+          ...imagePrompt.avoid,
+          'NO text or typography',
+          'Company logos ARE allowed but ONLY if you are 100% certain of the correct logo design',
+          'NO generic or placeholder logos',
+          'NO words or letters except in authentic logos',
+          'NO borders or frames',
+          'NO white space or margins around edges',
+          'MUST fill entire canvas edge to edge',
+          'suitable for professional email newsletter',
+        ],
+      };
+      
+      return `Generate an image based on these AI-curated specifications:
+${JSON.stringify(enhancedPrompt, null, 2)}
+
+CRITICAL: 
+- Generate a perfect 1:1 square image
+- The artwork MUST fill the entire canvas from edge to edge 
+- NO borders, margins, or white space anywhere
+- The visual content should extend to all four edges of the image
+- Create a full-bleed design that covers 100% of the image area
+- Logos are allowed ONLY if you are 100% certain of the authentic design`;
+    }
+    
+    // Fallback to existing prompt generation logic
 
     // Clean up category name by removing "Coffee" and similar suffixes
     const cleanCategory = category
@@ -326,12 +380,12 @@ export class AIImageService {
 
       constraints: [
         'NO text or typography',
-        'NO logos or branding',
-        'NO words or letters',
+        'Company logos ARE allowed but ONLY if you are 100% certain of the correct logo design',
+        'NO generic or placeholder logos',
+        'NO words or letters except in authentic logos',
         'NO borders or frames',
         'NO white space or margins around edges',
         'MUST fill entire canvas edge to edge',
-        'abstract or conceptual imagery only',
         'suitable for professional email newsletter',
       ],
 
@@ -349,7 +403,8 @@ CRITICAL:
 - The artwork MUST fill the entire canvas from edge to edge 
 - NO borders, margins, or white space anywhere
 - The visual content should extend to all four edges of the image
-- Create a full-bleed design that covers 100% of the image area`;
+- Create a full-bleed design that covers 100% of the image area
+- Logos are allowed ONLY if you are 100% certain of the authentic design`;
   }
 
   /**
