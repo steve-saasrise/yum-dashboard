@@ -195,31 +195,96 @@ ${baseKeep.join('\n')}
 
 FILTER OUT (Score <60):
 ${baseFilter.join('\n')}`;
-    } else if (
-      loungeName === 'AI' ||
-      loungeName === 'Venture' ||
-      loungeName === 'Crypto'
-    ) {
-      // Other Business/Tech lounges
+    } else if (loungeName === 'AI' || loungeName === 'AI Coffee') {
+      // AI-specific lounge
       const baseKeep = [
-        '- ANY business, technology, or professional content',
-        '- Cross-domain content (AI in SaaS, crypto ventures, etc.) is WELCOME',
-        '- Product launches, company news, industry analysis',
-        '- Technical content, engineering, development',
-        '- Marketing, sales, growth strategies',
-        '- Pricing, metrics, case studies',
-        '- Professional insights and experiences',
-        '- Even brief business observations or questions',
+        '- AI technology, machine learning, LLMs, neural networks',
+        '- AI tools, products, and applications',
+        '- AI research, papers, breakthroughs',
+        '- AI in business, automation, AI agents',
+        '- AI development, prompting, workflows',
+        '- AI industry news, funding, acquisitions',
+        '- AI ethics, safety, governance',
+        '- AI startups and venture investments in AI',
+        '- Technical AI discussions and implementations',
         ...keepAdjustments,
       ];
 
       const baseFilter = [
-        '- Pure motivational quotes with no business context',
+        '- Sports results, athlete achievements, game scores',
+        '- Tennis, football, basketball, or any sports competition',
+        '- Celebrity gossip, entertainment news',
+        '- Personal life updates (birthdays, vacations, relationships)',
+        '- Food, fashion, lifestyle without AI context',
+        '- Generic motivational quotes',
+        '- Political content unrelated to AI policy',
+        '- Health/fitness unless AI-related',
+        '- Travel, weather, local news',
+        '- Pure venture/business without AI angle',
+        ...filterAdjustments,
+      ];
+
+      baseContext = `
+KEEP (Score 60+):
+${baseKeep.join('\n')}
+
+FILTER OUT (Score <60):
+${baseFilter.join('\n')}`;
+    } else if (loungeName === 'Venture' || loungeName === 'Venture Coffee') {
+      // Venture-specific lounge
+      const baseKeep = [
+        '- Venture capital, startup funding, investment rounds',
+        '- Startup news, exits, acquisitions, IPOs',
+        '- Founder stories, entrepreneurship insights',
+        '- Investment strategies, portfolio management',
+        '- Startup metrics, growth, scaling',
+        '- Accelerators, incubators, startup programs',
+        '- Angel investing, seed funding',
+        '- Market analysis, industry trends',
+        '- VC firm news, partner moves',
+        ...keepAdjustments,
+      ];
+
+      const baseFilter = [
+        '- Sports results, athlete achievements, game scores',
+        '- Tennis, football, basketball, or any sports competition',
+        '- Celebrity gossip, entertainment news',
+        '- Personal life updates (birthdays, vacations, relationships)',
+        '- Food, fashion, lifestyle without business context',
+        '- Generic motivational quotes',
+        '- Political content unrelated to business/tech policy',
+        '- Health/fitness unless startup-related',
+        '- Travel, weather, local news',
+        '- Pure technical content without business angle',
+        ...filterAdjustments,
+      ];
+
+      baseContext = `
+KEEP (Score 60+):
+${baseKeep.join('\n')}
+
+FILTER OUT (Score <60):
+${baseFilter.join('\n')}`;
+    } else if (loungeName === 'Crypto') {
+      // Crypto-specific lounge
+      const baseKeep = [
+        '- Cryptocurrency, blockchain, DeFi, Web3',
+        '- Crypto trading, markets, analysis',
+        '- NFTs, DAOs, smart contracts',
+        '- Crypto regulations, policy, legal',
+        '- Blockchain development, protocols',
+        '- Crypto projects, launches, updates',
+        '- Mining, staking, yield farming',
+        '- Crypto venture investments',
+        ...keepAdjustments,
+      ];
+
+      const baseFilter = [
+        '- Sports, entertainment (unless business angle)',
         '- Personal daily routines unrelated to work',
         '- Birthday wishes, personal celebrations',
         '- Generic life advice without professional context',
-        '- Political rants unrelated to tech/business',
-        '- Sports, entertainment (unless business angle)',
+        '- Political rants unrelated to crypto/tech',
         '- Vague excitement without context ("So cool!", "Amazing!")',
         ...filterAdjustments,
       ];
@@ -327,7 +392,7 @@ ${baseFilter.join('\n')}`;
         }
       }
 
-      const prompt = `You are a content curator. ${item.lounge_name === 'SaaS' ? 'For SaaS, prefer software content but accept relevant business strategies.' : 'Be INCLUSIVE - when in doubt, keep the content.'}
+      const prompt = `You are a strict content curator for a professional tech/business lounge. Be STRICT about filtering off-topic content.
 
 LOUNGE: ${item.lounge_name}
 ${loungeContext}
@@ -336,13 +401,14 @@ CONTENT TO EVALUATE:
 Author: ${item.creator_name}
 Content: ${fullContent}
 
-IMPORTANT: For quote tweets and retweets, evaluate BOTH the author's commentary AND the quoted/retweeted content. 
-- If EITHER the author's comment OR the quoted content is relevant to the lounge theme, score it as relevant (60+)
-- Only score low (<60) if BOTH the author's comment AND the quoted content are off-topic
-- When the author adds business/SaaS context to any content, that makes it relevant
+CRITICAL FILTERING RULES:
+- Sports content (tennis, football, basketball, US Open, World Cup, etc.) scores BELOW 40 unless it has EXPLICIT business/tech angle
+- Personal achievements in sports/entertainment score BELOW 40
+- Be STRICT: Content must be DIRECTLY relevant to the lounge theme, not tangentially related
+- For quote tweets/retweets: BOTH the commentary AND quoted content must be relevant. If either is off-topic, score low.
 
-Score 0-100 based on relevance to the lounge. ${item.lounge_name === 'SaaS' ? 'SaaS prefers software context but can include transferable business insights.' : 'Be lenient - only filter obvious off-topic content.'}
-The threshold is ${item.lounge_name === 'Biohacking' || item.lounge_name === 'Personal Growth' ? '50' : '60'}, so aim higher unless clearly off-topic.
+Score 0-100 based on relevance to the lounge. The threshold is ${item.lounge_name === 'Biohacking' || item.lounge_name === 'Personal Growth' ? '50' : '60'}.
+For ${item.lounge_name.includes('AI') ? 'AI lounges: ONLY AI/ML content scores 60+' : item.lounge_name.includes('Venture') ? 'Venture lounges: ONLY startup/investment content scores 60+' : 'this lounge: stay strictly on theme'}.
 
 Respond in JSON:
 {

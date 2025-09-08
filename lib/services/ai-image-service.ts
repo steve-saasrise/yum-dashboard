@@ -11,7 +11,8 @@ interface GenerateImageOptions {
   category?: string;
   description?: string;
   isBigStory?: boolean; // Flag to indicate if this is for the big story hero image
-  imagePrompt?: { // Pre-generated prompt from GPT
+  imagePrompt?: {
+    // Pre-generated prompt from GPT
     concept: string;
     style: string;
     mood: string;
@@ -180,11 +181,12 @@ export class AIImageService {
    */
   private generatePrompt(options: GenerateImageOptions): string {
     const { title, source, category, description, imagePrompt } = options;
-    
+
     // If we have a pre-generated prompt from GPT, use it
     if (imagePrompt) {
       const enhancedPrompt = {
-        request: 'Generate a professional editorial image based on these AI-curated specifications',
+        request:
+          'Generate a professional editorial image based on these AI-curated specifications',
         concept: imagePrompt.concept,
         style: imagePrompt.style,
         mood: imagePrompt.mood,
@@ -196,8 +198,10 @@ export class AIImageService {
           orientation: 'centered composition',
           edgeToEdge: true,
           noBorders: true,
-          fillCanvas: 'completely fill the entire image area from edge to edge without any borders, margins, or white space',
-          coverage: 'artwork must cover 100% of the canvas without any empty space',
+          fillCanvas:
+            'completely fill the entire image area from edge to edge without any borders, margins, or white space',
+          coverage:
+            'artwork must cover 100% of the canvas without any empty space',
         },
         constraints: [
           ...imagePrompt.avoid,
@@ -211,7 +215,7 @@ export class AIImageService {
           'suitable for professional email newsletter',
         ],
       };
-      
+
       return `Generate an image based on these AI-curated specifications:
 ${JSON.stringify(enhancedPrompt, null, 2)}
 
@@ -223,7 +227,7 @@ CRITICAL:
 - Create a full-bleed design that covers 100% of the image area
 - Logos are allowed ONLY if you are 100% certain of the authentic design`;
     }
-    
+
     // Fallback to existing prompt generation logic
 
     // Clean up category name by removing "Coffee" and similar suffixes
