@@ -235,7 +235,11 @@ export const DailyDigestEmail = ({
                         width: '100%',
                         height: '560px',
                         objectFit: 'cover' as const,
-                        objectPosition: 'center' as const,
+                        objectPosition: 'center center' as const,
+                        position: 'absolute' as const,
+                        top: '50%',
+                        left: '0',
+                        transform: 'translateY(-50%)',
                       }}
                     />
                   </div>
