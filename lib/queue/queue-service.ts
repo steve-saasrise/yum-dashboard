@@ -159,7 +159,9 @@ export async function queueAINewsGeneration(
   // CRITICAL: Clean up any existing waiting jobs to ensure delays work properly
   const waitingJobs = await newsQueue.getWaiting();
   if (waitingJobs.length > 0) {
-    console.log(`[AI News Queue] Removing ${waitingJobs.length} existing waiting jobs to apply new delays`);
+    console.log(
+      `[AI News Queue] Removing ${waitingJobs.length} existing waiting jobs to apply new delays`
+    );
     for (const job of waitingJobs) {
       await job.remove();
     }
@@ -196,7 +198,9 @@ export async function queueAINewsGeneration(
           delay: jobDelay, // Stagger by 25 seconds
         },
       });
-      console.log(`[AI News Queue] Job ${jobId} will be delayed by ${jobDelay}ms (${jobDelay/1000}s)`);
+      console.log(
+        `[AI News Queue] Job ${jobId} will be delayed by ${jobDelay}ms (${jobDelay / 1000}s)`
+      );
       jobIndex++;
     } else {
       const state = await existingJob.getState();
@@ -218,7 +222,9 @@ export async function queueAINewsGeneration(
             delay: jobDelay, // Stagger by 25 seconds
           },
         });
-        console.log(`[AI News Queue] Job ${jobId} (retry) will be delayed by ${jobDelay}ms (${jobDelay/1000}s)`);
+        console.log(
+          `[AI News Queue] Job ${jobId} (retry) will be delayed by ${jobDelay}ms (${jobDelay / 1000}s)`
+        );
         jobIndex++;
       } else {
         skipped++;
@@ -247,7 +253,9 @@ export async function queueAINewsGeneration(
           delay: jobDelay, // Stagger general job too
         },
       });
-      console.log(`[AI News Queue] General job ${generalJobId} will be delayed by ${jobDelay}ms (${jobDelay/1000}s)`);
+      console.log(
+        `[AI News Queue] General job ${generalJobId} will be delayed by ${jobDelay}ms (${jobDelay / 1000}s)`
+      );
       jobIndex++;
     } else {
       const state = await existingGeneralJob.getState();
@@ -268,7 +276,9 @@ export async function queueAINewsGeneration(
             delay: jobDelay, // Stagger general job too
           },
         });
-        console.log(`[AI News Queue] General job ${generalJobId} (retry) will be delayed by ${jobDelay}ms (${jobDelay/1000}s)`);
+        console.log(
+          `[AI News Queue] General job ${generalJobId} (retry) will be delayed by ${jobDelay}ms (${jobDelay / 1000}s)`
+        );
         jobIndex++;
       } else {
         skipped++;
