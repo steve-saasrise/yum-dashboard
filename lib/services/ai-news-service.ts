@@ -104,7 +104,10 @@ export class AINewsService {
     // Otherwise use exponential backoff with jitter
     // Start with longer initial delay for GPT-5-mini
     const baseDelayMs = 2000; // Start with 2 seconds
-    const exponentialDelay = Math.min(baseDelayMs * Math.pow(2, retryCount), 120000); // Max 2 minutes
+    const exponentialDelay = Math.min(
+      baseDelayMs * Math.pow(2, retryCount),
+      120000
+    ); // Max 2 minutes
     const jitter = exponentialDelay * Math.random() * 0.5; // Up to 50% jitter
     return Math.ceil(exponentialDelay + jitter);
   }
@@ -114,8 +117,12 @@ export class AINewsService {
    */
   private async throttleRequest(topic: string): Promise<void> {
     // Wait if we have too many concurrent requests
-    while (AINewsService.activeRequests >= AINewsService.MAX_CONCURRENT_REQUESTS) {
-      console.log(`[AI News] Waiting for concurrent requests to complete (active: ${AINewsService.activeRequests})`);
+    while (
+      AINewsService.activeRequests >= AINewsService.MAX_CONCURRENT_REQUESTS
+    ) {
+      console.log(
+        `[AI News] Waiting for concurrent requests to complete (active: ${AINewsService.activeRequests})`
+      );
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
@@ -125,7 +132,9 @@ export class AINewsService {
     const timeSinceLastGlobal = now - AINewsService.globalLastRequest;
     if (timeSinceLastGlobal < AINewsService.MIN_REQUEST_INTERVAL) {
       const waitTime = AINewsService.MIN_REQUEST_INTERVAL - timeSinceLastGlobal;
-      console.log(`[AI News] Throttling request for ${topic}, waiting ${waitTime}ms`);
+      console.log(
+        `[AI News] Throttling request for ${topic}, waiting ${waitTime}ms`
+      );
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
 
@@ -245,10 +254,12 @@ export class AINewsService {
         );
 
       // Only log warning for debugging, don't reject valid news
-      if (!hasNewsIndicators && !item.text.includes(':') && !item.text.includes(' to ')) {
-        console.log(
-          `Warning: Headline may not be news-like: "${item.text}"`
-        );
+      if (
+        !hasNewsIndicators &&
+        !item.text.includes(':') &&
+        !item.text.includes(' to ')
+      ) {
+        console.log(`Warning: Headline may not be news-like: "${item.text}"`);
       }
     }
 
@@ -699,7 +710,9 @@ Return ONLY the JSON response with no additional text.`;
 
           // Validate the response
           if (!this.isValidNewsResponse(items)) {
-            console.log(`Invalid response for ${topic} - no retries configured`);
+            console.log(
+              `Invalid response for ${topic} - no retries configured`
+            );
             throw new Error(
               `Failed to get valid news response for ${topic} (web search may have returned no results)`
             );
@@ -844,7 +857,9 @@ Return ONLY the JSON response with no additional text.`;
 
         // Validate the response
         if (!this.isValidNewsResponse(items)) {
-          console.log(`Invalid fallback response for ${topic} - no retries configured`);
+          console.log(
+            `Invalid fallback response for ${topic} - no retries configured`
+          );
           throw new Error(
             `Failed to get valid news response for ${topic} (fallback web search failed)`
           );
@@ -895,7 +910,9 @@ Return ONLY the JSON response with no additional text.`;
       // Always decrement active requests when done
       if (requestStarted) {
         AINewsService.activeRequests--;
-        console.log(`[AI News] Request completed for ${topic}, active requests: ${AINewsService.activeRequests}`);
+        console.log(
+          `[AI News] Request completed for ${topic}, active requests: ${AINewsService.activeRequests}`
+        );
       }
     }
   }

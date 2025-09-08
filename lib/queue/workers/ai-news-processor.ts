@@ -55,7 +55,7 @@ export function createAINewsProcessorWorker() {
 
         // Additional validation: Check that items have actual content
         const validItems = newsResult.items.filter(
-          item => item.text && item.text.trim().length > 10
+          (item) => item.text && item.text.trim().length > 10
         );
 
         if (validItems.length === 0) {

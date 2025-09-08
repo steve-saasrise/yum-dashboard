@@ -156,6 +156,15 @@ export async function queueAINewsGeneration(
   const queues = getQueues();
   const newsQueue = queues[QUEUE_NAMES.AI_NEWS_GENERATION];
 
+  // CRITICAL: Clean up any existing waiting jobs to ensure delays work properly
+  const waitingJobs = await newsQueue.getWaiting();
+  if (waitingJobs.length > 0) {
+    console.log(`[AI News Queue] Removing ${waitingJobs.length} existing waiting jobs to apply new delays`);
+    for (const job of waitingJobs) {
+      await job.remove();
+    }
+  }
+
   const jobsToAdd = [];
   let skipped = 0;
 
@@ -164,13 +173,14 @@ export async function queueAINewsGeneration(
   // Adding 25 second delays between jobs to stay well under limits
   let jobIndex = 0;
   const STAGGER_DELAY_MS = 25000; // 25 seconds between jobs
-  
+
   for (const lounge of lounges) {
     const jobId = `news-lounge-${lounge.id}-${new Date().toISOString().split('T')[0]}`;
     const existingJob = await newsQueue.getJob(jobId);
 
     // Only add if no existing job or previous job is completed/failed
     if (!existingJob) {
+      const jobDelay = jobIndex * STAGGER_DELAY_MS;
       jobsToAdd.push({
         name: JOB_NAMES.GENERATE_AI_NEWS,
         data: {
@@ -183,14 +193,16 @@ export async function queueAINewsGeneration(
         opts: {
           jobId,
           priority: 1,
-          delay: jobIndex * STAGGER_DELAY_MS, // Stagger by 25 seconds
+          delay: jobDelay, // Stagger by 25 seconds
         },
       });
+      console.log(`[AI News Queue] Job ${jobId} will be delayed by ${jobDelay}ms (${jobDelay/1000}s)`);
       jobIndex++;
     } else {
       const state = await existingJob.getState();
       if (state === 'completed' || state === 'failed') {
         await existingJob.remove();
+        const jobDelay = jobIndex * STAGGER_DELAY_MS;
         jobsToAdd.push({
           name: JOB_NAMES.GENERATE_AI_NEWS,
           data: {
@@ -203,9 +215,10 @@ export async function queueAINewsGeneration(
           opts: {
             jobId,
             priority: 1,
-            delay: jobIndex * STAGGER_DELAY_MS, // Stagger by 25 seconds
+            delay: jobDelay, // Stagger by 25 seconds
           },
         });
+        console.log(`[AI News Queue] Job ${jobId} (retry) will be delayed by ${jobDelay}ms (${jobDelay/1000}s)`);
         jobIndex++;
       } else {
         skipped++;
@@ -219,6 +232,7 @@ export async function queueAINewsGeneration(
     const existingGeneralJob = await newsQueue.getJob(generalJobId);
 
     if (!existingGeneralJob) {
+      const jobDelay = jobIndex * STAGGER_DELAY_MS;
       jobsToAdd.push({
         name: JOB_NAMES.GENERATE_AI_NEWS,
         data: {
@@ -230,14 +244,16 @@ export async function queueAINewsGeneration(
         opts: {
           jobId: generalJobId,
           priority: 1,
-          delay: jobIndex * STAGGER_DELAY_MS, // Stagger general job too
+          delay: jobDelay, // Stagger general job too
         },
       });
+      console.log(`[AI News Queue] General job ${generalJobId} will be delayed by ${jobDelay}ms (${jobDelay/1000}s)`);
       jobIndex++;
     } else {
       const state = await existingGeneralJob.getState();
       if (state === 'completed' || state === 'failed') {
         await existingGeneralJob.remove();
+        const jobDelay = jobIndex * STAGGER_DELAY_MS;
         jobsToAdd.push({
           name: JOB_NAMES.GENERATE_AI_NEWS,
           data: {
@@ -249,9 +265,10 @@ export async function queueAINewsGeneration(
           opts: {
             jobId: generalJobId,
             priority: 1,
-            delay: jobIndex * STAGGER_DELAY_MS, // Stagger general job too
+            delay: jobDelay, // Stagger general job too
           },
         });
+        console.log(`[AI News Queue] General job ${generalJobId} (retry) will be delayed by ${jobDelay}ms (${jobDelay/1000}s)`);
         jobIndex++;
       } else {
         skipped++;
