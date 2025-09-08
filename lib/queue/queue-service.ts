@@ -286,17 +286,26 @@ export async function queueAINewsGeneration(
     }
   }
 
-  // Add all jobs in bulk
+  // Add all jobs in bulk - job-specific opts will override defaultJobOptions
   const results =
     jobsToAdd.length > 0 ? await newsQueue.addBulk(jobsToAdd) : [];
 
-  // Log staggering info
+  // Log staggering info and verify delays
   if (results.length > 0) {
     console.log(
       `[AI News Queue] Scheduled ${results.length} jobs with 25s staggering (total time: ${
         (results.length - 1) * 25
       }s)`
     );
+    
+    // Log actual job delays for verification
+    for (let i = 0; i < results.length; i++) {
+      const job = results[i];
+      const jobData = job.data as any;
+      console.log(
+        `[AI News Queue] Job ${job.id} (${jobData.loungeName}) - Delay: ${job.opts.delay}ms`
+      );
+    }
   }
 
   return {

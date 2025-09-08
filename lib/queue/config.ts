@@ -79,12 +79,8 @@ export const AI_NEWS_JOB_OPTIONS = {
     type: 'exponential' as const,
     delay: 60000, // Start with 60 second delay if rate limited
   },
-  // Add rate limiting to prevent overwhelming the GPT-5-mini API
-  // With 59k tokens per request and 200k TPM limit, we can do ~3 requests/minute
-  limiter: {
-    max: 2, // Maximum 2 jobs per minute (conservative to leave headroom)
-    duration: 60000, // per 60 seconds
-  },
+  // IMPORTANT: Removed limiter to allow our custom delays to work properly
+  // Delays are set per-job in queueAINewsGeneration function
 };
 
 // Worker concurrency settings - Reduced to prevent lock contention
