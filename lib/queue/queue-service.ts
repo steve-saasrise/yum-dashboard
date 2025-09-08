@@ -159,7 +159,12 @@ export async function queueAINewsGeneration(
   const jobsToAdd = [];
   let skipped = 0;
 
-  // Queue jobs for each lounge
+  // Queue jobs for each lounge with staggered delays
+  // With 59k tokens per request and 200k TPM limit, we can safely do 3 requests/minute
+  // Adding 25 second delays between jobs to stay well under limits
+  let jobIndex = 0;
+  const STAGGER_DELAY_MS = 25000; // 25 seconds between jobs
+  
   for (const lounge of lounges) {
     const jobId = `news-lounge-${lounge.id}-${new Date().toISOString().split('T')[0]}`;
     const existingJob = await newsQueue.getJob(jobId);
@@ -178,9 +183,10 @@ export async function queueAINewsGeneration(
         opts: {
           jobId,
           priority: 1,
-          delay: 0,
+          delay: jobIndex * STAGGER_DELAY_MS, // Stagger by 25 seconds
         },
       });
+      jobIndex++;
     } else {
       const state = await existingJob.getState();
       if (state === 'completed' || state === 'failed') {
@@ -197,9 +203,10 @@ export async function queueAINewsGeneration(
           opts: {
             jobId,
             priority: 1,
-            delay: 0,
+            delay: jobIndex * STAGGER_DELAY_MS, // Stagger by 25 seconds
           },
         });
+        jobIndex++;
       } else {
         skipped++;
       }
@@ -223,9 +230,10 @@ export async function queueAINewsGeneration(
         opts: {
           jobId: generalJobId,
           priority: 1,
-          delay: 0,
+          delay: jobIndex * STAGGER_DELAY_MS, // Stagger general job too
         },
       });
+      jobIndex++;
     } else {
       const state = await existingGeneralJob.getState();
       if (state === 'completed' || state === 'failed') {
@@ -241,9 +249,10 @@ export async function queueAINewsGeneration(
           opts: {
             jobId: generalJobId,
             priority: 1,
-            delay: 0,
+            delay: jobIndex * STAGGER_DELAY_MS, // Stagger general job too
           },
         });
+        jobIndex++;
       } else {
         skipped++;
       }
@@ -253,6 +262,15 @@ export async function queueAINewsGeneration(
   // Add all jobs in bulk
   const results =
     jobsToAdd.length > 0 ? await newsQueue.addBulk(jobsToAdd) : [];
+
+  // Log staggering info
+  if (results.length > 0) {
+    console.log(
+      `[AI News Queue] Scheduled ${results.length} jobs with 25s staggering (total time: ${
+        (results.length - 1) * 25
+      }s)`
+    );
+  }
 
   return {
     queued: results.length,

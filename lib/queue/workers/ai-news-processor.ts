@@ -46,13 +46,35 @@ export function createAINewsProcessorWorker() {
           loungeDescription
         );
 
+        // Validate the news result before saving
+        if (!newsResult || !newsResult.items || newsResult.items.length === 0) {
+          throw new Error(
+            `Invalid news result for ${loungeName}: No items generated`
+          );
+        }
+
+        // Additional validation: Check that items have actual content
+        const validItems = newsResult.items.filter(
+          item => item.text && item.text.trim().length > 10
+        );
+
+        if (validItems.length === 0) {
+          throw new Error(
+            `Invalid news result for ${loungeName}: All items are empty or too short`
+          );
+        }
+
+        console.log(
+          `[AI News Worker] Generated ${validItems.length} valid news items for ${loungeName}`
+        );
+
         // Save to database
         const { data: savedSummary, error: saveError } = await supabase
           .from('daily_news_summaries')
           .insert({
             lounge_id: isGeneral ? null : loungeId,
             topic: newsResult.topic,
-            summary_bullets: newsResult.items as any,
+            summary_bullets: validItems as any,
             special_section: (newsResult.specialSection || []) as any,
             generated_at: new Date().toISOString(),
             model_used: 'gpt-4o-mini',
@@ -91,7 +113,7 @@ export function createAINewsProcessorWorker() {
           loungeId,
           loungeName,
           summaryId: savedSummary.id,
-          itemCount: newsResult.items.length,
+          itemCount: validItems.length,
           processingTime,
         };
       } catch (error: any) {

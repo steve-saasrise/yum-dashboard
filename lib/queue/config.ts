@@ -74,14 +74,15 @@ export const DEFAULT_JOB_OPTIONS = {
 // Specific job options for AI news generation with rate limit handling
 export const AI_NEWS_JOB_OPTIONS = {
   ...DEFAULT_JOB_OPTIONS,
-  attempts: 5, // Allow up to 5 retries for rate limit errors
+  attempts: 3, // Allow up to 3 retries ONLY for rate limit errors (handled by queue)
   backoff: {
     type: 'exponential' as const,
-    delay: 2000, // Start with 2 second delay
+    delay: 60000, // Start with 60 second delay if rate limited
   },
   // Add rate limiting to prevent overwhelming the GPT-5-mini API
+  // With 59k tokens per request and 200k TPM limit, we can do ~3 requests/minute
   limiter: {
-    max: 10, // Maximum 10 jobs (reduced from 100 to stay well under GPT-5-mini limits)
+    max: 2, // Maximum 2 jobs per minute (conservative to leave headroom)
     duration: 60000, // per 60 seconds
   },
 };

@@ -36,7 +36,9 @@ export class AINewsService {
   private openai: OpenAI | null = null;
   private static requestQueue: Map<string, number> = new Map(); // Track last request time per topic
   private static globalLastRequest: number = 0;
-  private static MIN_REQUEST_INTERVAL = 6000; // Minimum 6 seconds between any requests to respect GPT-5-mini rate limits
+  private static MIN_REQUEST_INTERVAL = 25000; // 25 seconds between requests (59k tokens per request, 200k TPM limit = ~3 req/min)
+  private static activeRequests = 0; // Track concurrent requests
+  private static MAX_CONCURRENT_REQUESTS = 1; // Limit concurrent API calls
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -93,14 +95,17 @@ export class AINewsService {
   private calculateBackoff(retryCount: number, baseDelay?: number): number {
     // If we have a specific retry-after from the API, use it
     if (baseDelay) {
-      // Add 10-20% jitter to prevent thundering herd
-      const jitter = baseDelay * (0.1 + Math.random() * 0.1);
-      return Math.ceil(baseDelay + jitter);
+      // Add 20-40% jitter to prevent thundering herd
+      const jitter = baseDelay * (0.2 + Math.random() * 0.2);
+      // Add extra buffer for safety
+      return Math.ceil(baseDelay + jitter + 1000);
     }
 
     // Otherwise use exponential backoff with jitter
-    const exponentialDelay = Math.min(1000 * Math.pow(2, retryCount), 60000);
-    const jitter = exponentialDelay * Math.random() * 0.3; // Up to 30% jitter
+    // Start with longer initial delay for GPT-5-mini
+    const baseDelayMs = 2000; // Start with 2 seconds
+    const exponentialDelay = Math.min(baseDelayMs * Math.pow(2, retryCount), 120000); // Max 2 minutes
+    const jitter = exponentialDelay * Math.random() * 0.5; // Up to 50% jitter
     return Math.ceil(exponentialDelay + jitter);
   }
 
@@ -108,19 +113,26 @@ export class AINewsService {
    * Rate limit requests to prevent hitting API limits
    */
   private async throttleRequest(topic: string): Promise<void> {
+    // Wait if we have too many concurrent requests
+    while (AINewsService.activeRequests >= AINewsService.MAX_CONCURRENT_REQUESTS) {
+      console.log(`[AI News] Waiting for concurrent requests to complete (active: ${AINewsService.activeRequests})`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
     const now = Date.now();
 
-    // Global throttling
+    // Global throttling with longer interval for GPT-5-mini
     const timeSinceLastGlobal = now - AINewsService.globalLastRequest;
     if (timeSinceLastGlobal < AINewsService.MIN_REQUEST_INTERVAL) {
       const waitTime = AINewsService.MIN_REQUEST_INTERVAL - timeSinceLastGlobal;
+      console.log(`[AI News] Throttling request for ${topic}, waiting ${waitTime}ms`);
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
 
     // Per-topic throttling (prevent rapid retries for same topic)
     const lastTopicRequest = AINewsService.requestQueue.get(topic) || 0;
     const timeSinceLastTopic = now - lastTopicRequest;
-    const minTopicInterval = 1000; // At least 1 second between same topic requests
+    const minTopicInterval = 5000; // At least 5 seconds between same topic requests
 
     if (timeSinceLastTopic < minTopicInterval) {
       const waitTime = minTopicInterval - timeSinceLastTopic;
@@ -130,10 +142,11 @@ export class AINewsService {
     // Update timestamps
     AINewsService.globalLastRequest = Date.now();
     AINewsService.requestQueue.set(topic, Date.now());
+    AINewsService.activeRequests++;
 
     // Clean up old entries to prevent memory leak
-    if (AINewsService.requestQueue.size > 1000) {
-      const cutoff = Date.now() - 300000; // 5 minutes
+    if (AINewsService.requestQueue.size > 100) {
+      const cutoff = Date.now() - 600000; // 10 minutes
       for (const [key, timestamp] of AINewsService.requestQueue.entries()) {
         if (timestamp < cutoff) {
           AINewsService.requestQueue.delete(key);
@@ -174,11 +187,11 @@ export class AINewsService {
       'do you want me to',
       'would you like',
       "i'll help you",
-      'let me',
+      'let me help',
       'i can help',
       'shall i',
-      'should i',
-      '?',
+      'should i generate',
+      'should i create',
     ];
 
     for (const item of items) {
@@ -225,14 +238,16 @@ export class AINewsService {
       }
 
       // Text should look like a news headline (contains some key indicators)
+      // Made less restrictive - many valid headlines don't have these specific words
       const hasNewsIndicators =
-        /\b(raises?|secures?|closes?|announces?|launches?|acquires?|buys?|sells?|partners?|reports?|reveals?|shows?|introduces?|expands?|opens?|shuts?|files?|sues?|wins?|loses?|gains?|drops?|surges?|falls?|jumps?|climbs?|plunges?|soars?|\$|€|£|¥|billion|million|funding|round|series|ipo|merger|acquisition|deal)\b/i.test(
+        /\b(raises?|secures?|closes?|announces?|launches?|acquires?|buys?|sells?|partners?|reports?|reveals?|shows?|introduces?|expands?|opens?|shuts?|files?|sues?|wins?|loses?|gains?|drops?|surges?|falls?|jumps?|climbs?|plunges?|soars?|debuts?|rolls?|builds?|creates?|develops?|releases?|updates?|improves?|enhances?|adds?|removes?|cuts?|increases?|decreases?|grows?|shrinks?|consolidates?|merges?|splits?|pivots?|shifts?|moves?|enters?|exits?|joins?|leaves?|starts?|stops?|begins?|ends?|hits?|reaches?|passes?|exceeds?|\$|€|£|¥|billion|million|funding|round|series|ipo|merger|acquisition|deal|unicorn|valuation|revenue|profit|loss|growth|decline)\b/i.test(
           item.text
         );
 
-      if (!hasNewsIndicators && !item.text.includes(':')) {
+      // Only log warning for debugging, don't reject valid news
+      if (!hasNewsIndicators && !item.text.includes(':') && !item.text.includes(' to ')) {
         console.log(
-          `Invalid response detected - doesn't look like news: "${item.text}"`
+          `Warning: Headline may not be news-like: "${item.text}"`
         );
       }
     }
@@ -252,7 +267,7 @@ export class AINewsService {
       throw new Error('OpenAI API key not configured');
     }
 
-    const maxRetries = 3;
+    const maxRetries = 0; // No retries - proper staggering prevents rate limits
     const topic = this.getCleanTopic(loungeName, loungeDescription);
 
     // Determine special section type and title based on topic
@@ -466,9 +481,11 @@ ${JSON.stringify(promptSpec, null, 2)}
 
 Return ONLY the JSON response with no additional text.`;
 
+    let requestStarted = false;
     try {
       // Apply throttling before making request
       await this.throttleRequest(topic);
+      requestStarted = true;
 
       // Try to use the Responses API with web search
       if ((this.openai as any).responses?.create) {
@@ -682,27 +699,10 @@ Return ONLY the JSON response with no additional text.`;
 
           // Validate the response
           if (!this.isValidNewsResponse(items)) {
-            console.log(
-              `Invalid response for ${topic}, retry ${retryCount + 1}/${maxRetries}`
+            console.log(`Invalid response for ${topic} - no retries configured`);
+            throw new Error(
+              `Failed to get valid news response for ${topic} (web search may have returned no results)`
             );
-
-            if (retryCount < maxRetries) {
-              // Wait before retrying (exponential backoff)
-              const delay = Math.min(1000 * Math.pow(2, retryCount), 60000); // Max 1 minute
-              console.log(`Waiting ${delay}ms before retry...`);
-              await new Promise((resolve) => setTimeout(resolve, delay));
-
-              // Retry with incremented count
-              return this.generateNews(
-                loungeName,
-                loungeDescription,
-                retryCount + 1
-              );
-            } else {
-              throw new Error(
-                `Failed to get valid news response after ${maxRetries} retries`
-              );
-            }
           }
 
           return {
@@ -734,18 +734,9 @@ Return ONLY the JSON response with no additional text.`;
               );
             }
 
-            if (retryCount < maxRetries) {
-              await new Promise((resolve) => setTimeout(resolve, backoffDelay));
-              return this.generateNews(
-                loungeName,
-                loungeDescription,
-                retryCount + 1
-              );
-            } else {
-              throw new Error(
-                `Rate limit exceeded after ${maxRetries} retries for ${topic}`
-              );
-            }
+            throw new Error(
+              `Rate limit exceeded for ${topic}. Job will retry later via queue system.`
+            );
           }
 
           console.log('Trying alternative web search approach...');
@@ -853,27 +844,10 @@ Return ONLY the JSON response with no additional text.`;
 
         // Validate the response
         if (!this.isValidNewsResponse(items)) {
-          console.log(
-            `Invalid fallback response for ${topic}, retry ${retryCount + 1}/${maxRetries}`
+          console.log(`Invalid fallback response for ${topic} - no retries configured`);
+          throw new Error(
+            `Failed to get valid news response for ${topic} (fallback web search failed)`
           );
-
-          if (retryCount < maxRetries) {
-            // Wait before retrying
-            const delay = Math.min(1000 * Math.pow(2, retryCount), 60000);
-            console.log(`Waiting ${delay}ms before retry...`);
-            await new Promise((resolve) => setTimeout(resolve, delay));
-
-            // Retry with incremented count
-            return this.generateNews(
-              loungeName,
-              loungeDescription,
-              retryCount + 1
-            );
-          } else {
-            throw new Error(
-              `Failed to get valid news response after ${maxRetries} retries`
-            );
-          }
         }
 
         return {
@@ -905,18 +879,9 @@ Return ONLY the JSON response with no additional text.`;
             );
           }
 
-          if (retryCount < maxRetries) {
-            await new Promise((resolve) => setTimeout(resolve, backoffDelay));
-            return this.generateNews(
-              loungeName,
-              loungeDescription,
-              retryCount + 1
-            );
-          } else {
-            throw new Error(
-              `Rate limit exceeded after ${maxRetries} retries for ${topic}`
-            );
-          }
+          throw new Error(
+            `Rate limit exceeded for ${topic} (fallback). Job will retry later via queue system.`
+          );
         }
 
         throw new Error(
@@ -926,6 +891,12 @@ Return ONLY the JSON response with no additional text.`;
     } catch (error) {
       console.error('Error generating news:', error);
       throw error;
+    } finally {
+      // Always decrement active requests when done
+      if (requestStarted) {
+        AINewsService.activeRequests--;
+        console.log(`[AI News] Request completed for ${topic}, active requests: ${AINewsService.activeRequests}`);
+      }
     }
   }
 
