@@ -297,7 +297,7 @@ export async function queueAINewsGeneration(
         (results.length - 1) * 25
       }s)`
     );
-    
+
     // Log actual job delays for verification
     for (let i = 0; i < results.length; i++) {
       const job = results[i];

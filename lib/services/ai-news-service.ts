@@ -37,8 +37,6 @@ export class AINewsService {
   private static requestQueue: Map<string, number> = new Map(); // Track last request time per topic
   private static globalLastRequest: number = 0;
   private static MIN_REQUEST_INTERVAL = 25000; // 25 seconds between requests (59k tokens per request, 200k TPM limit = ~3 req/min)
-  private static activeRequests = 0; // Track concurrent requests
-  private static MAX_CONCURRENT_REQUESTS = 1; // Limit concurrent API calls
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -116,15 +114,8 @@ export class AINewsService {
    * Rate limit requests to prevent hitting API limits
    */
   private async throttleRequest(topic: string): Promise<void> {
-    // Wait if we have too many concurrent requests
-    while (
-      AINewsService.activeRequests >= AINewsService.MAX_CONCURRENT_REQUESTS
-    ) {
-      console.log(
-        `[AI News] Waiting for concurrent requests to complete (active: ${AINewsService.activeRequests})`
-      );
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    }
+    // Skip concurrent check since we're already limited to 1 worker
+    // The worker concurrency handles this at the queue level
 
     const now = Date.now();
 
@@ -151,7 +142,6 @@ export class AINewsService {
     // Update timestamps
     AINewsService.globalLastRequest = Date.now();
     AINewsService.requestQueue.set(topic, Date.now());
-    AINewsService.activeRequests++;
 
     // Clean up old entries to prevent memory leak
     if (AINewsService.requestQueue.size > 100) {
@@ -492,11 +482,9 @@ ${JSON.stringify(promptSpec, null, 2)}
 
 Return ONLY the JSON response with no additional text.`;
 
-    let requestStarted = false;
     try {
       // Apply throttling before making request
       await this.throttleRequest(topic);
-      requestStarted = true;
 
       // Try to use the Responses API with web search
       if ((this.openai as any).responses?.create) {
@@ -906,14 +894,6 @@ Return ONLY the JSON response with no additional text.`;
     } catch (error) {
       console.error('Error generating news:', error);
       throw error;
-    } finally {
-      // Always decrement active requests when done
-      if (requestStarted) {
-        AINewsService.activeRequests--;
-        console.log(
-          `[AI News] Request completed for ${topic}, active requests: ${AINewsService.activeRequests}`
-        );
-      }
     }
   }
 
