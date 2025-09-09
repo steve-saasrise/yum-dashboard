@@ -76,31 +76,36 @@ export class ExaNewsService {
     const topicLower = topic.toLowerCase();
     const isGrowthTopic = topicLower.includes('growth');
     const isVentureTopic = topicLower.includes('venture');
+    const isCryptoTopic = topicLower.includes('crypto') || topicLower.includes('blockchain');
 
+    // Special section should focus on money/deals/metrics
     const specialSectionType = isGrowthTopic
-      ? 'growth experiments'
-      : 'fundraising';
+      ? 'growth metrics and experiments'
+      : 'funding and acquisitions';
 
-    // Generate topic-specific titles
+    // Generate topic-specific titles and focus
     let specialSectionTitle: string;
+    let specialSectionFocus: string;
+    
     if (isGrowthTopic) {
-      specialSectionTitle = 'Growth Experiments & Results';
+      specialSectionTitle = 'Growth Metrics & Experiments';
+      specialSectionFocus = 'ONLY include: A/B test results with specific conversion improvements (e.g., "increased signups by 47%"), growth experiments with measurable outcomes, product-led growth metrics, viral coefficient improvements. EXCLUDE: general growth advice, conferences, tools without specific results';
     } else if (isVentureTopic) {
-      specialSectionTitle = 'Venture Capital Deals';
+      specialSectionTitle = 'Latest Funding Rounds';
+      specialSectionFocus = 'ONLY include: Series A/B/C/D/E/F rounds with exact amounts (e.g., "$50M Series B"), seed funding with amounts, acquisitions with valuations, IPO announcements. Must include dollar amounts. EXCLUDE: events, conferences, general VC news';
     } else if (topicLower.includes('ai')) {
-      specialSectionTitle = 'AI Fundraising Announcements';
+      specialSectionTitle = 'AI Funding & Acquisitions';
+      specialSectionFocus = 'ONLY include: AI company funding rounds with specific amounts (e.g., "Anthropic raises $450M"), AI startup acquisitions with deal values, AI unicorn valuations. Must include dollar amounts. EXCLUDE: product launches, research papers, conferences';
     } else if (topicLower.includes('saas')) {
-      specialSectionTitle = 'SaaS Fundraising Announcements';
-    } else if (topicLower.includes('crypto')) {
-      specialSectionTitle = 'Crypto Fundraising Announcements';
+      specialSectionTitle = 'SaaS Funding & M&A';
+      specialSectionFocus = 'ONLY include: SaaS company funding rounds with amounts, SaaS acquisitions with valuations, SaaS IPOs or exit deals. Must include dollar amounts. EXCLUDE: product updates, integrations, partnerships without financial terms';
+    } else if (isCryptoTopic) {
+      specialSectionTitle = 'Crypto Funding & Token Launches';
+      specialSectionFocus = 'ONLY include: Crypto/blockchain company funding rounds with amounts (e.g., "Uniswap Labs raises $165M"), token launches with initial valuations, crypto acquisitions, DeFi protocol TVL milestones. Must include dollar amounts or percentages. EXCLUDE: price movements, conferences, regulatory news, general announcements';
     } else {
-      // Fallback for other topics
-      specialSectionTitle = `${topic} Fundraising Announcements`;
+      specialSectionTitle = `${topic} Funding & Deals`;
+      specialSectionFocus = 'ONLY include: Company funding rounds with specific dollar amounts, acquisitions with deal values, IPOs, major commercial deals with financial terms. EXCLUDE: partnerships without financial details, product launches, events';
     }
-
-    const specialSectionFocus = isGrowthTopic
-      ? 'A/B tests, conversion rates, growth metrics, campaign results'
-      : 'funding rounds, Series A/B/C/D/E/F, seed rounds, acquisitions, valuations, investor names, funding amounts';
 
     try {
       // Calculate date for last 24 hours
@@ -112,45 +117,47 @@ export class ExaNewsService {
         return date.toISOString().split('T')[0];
       };
 
-      // Build highly specific search query based on topic and description
+      // Build natural language query for neural search (not keyword lists)
       let searchQuery = '';
+      let category: 'news' | 'company' | 'research paper' | undefined = 'news';
 
-      // Use much more specific and targeted queries for each lounge
+      // Use natural language queries that describe what we want
       if (
         topicLower.includes('ai') ||
         loungeDescription?.toLowerCase().includes('artificial intelligence')
       ) {
-        // Focus on AI/ML breakthroughs, model releases, AI company news
-        searchQuery = `(OpenAI OR Anthropic OR Google DeepMind OR Microsoft AI OR Meta AI) OR "GPT-5" OR "Claude" OR "Gemini" OR "machine learning breakthrough" OR "AI model" OR "artificial intelligence" OR "neural network" OR "LLM" OR "large language model" OR "AI startup funding" OR "AI regulation" OR "AI safety"`;
+        // Natural language query for AI news
+        searchQuery = `Latest groundbreaking AI developments: new model releases from OpenAI Anthropic Google DeepMind, major AI funding rounds, breakthrough research papers, AI regulation updates`;
       } else if (
         topicLower.includes('saas') ||
         loungeDescription?.toLowerCase().includes('software as a service')
       ) {
-        // Focus on SaaS companies, enterprise software, B2B tools
-        searchQuery = `(Salesforce OR Slack OR Notion OR Monday OR Figma OR Canva OR Stripe OR Shopify) OR "SaaS funding" OR "B2B software" OR "enterprise software" OR "cloud software" OR "subscription business" OR "SaaS metrics" OR "product-led growth" OR "SaaS IPO" OR "software acquisition"`;
+        // Natural language query for SaaS news
+        searchQuery = `Major SaaS company announcements: enterprise software funding rounds, B2B product launches, SaaS acquisitions and IPOs, product-led growth success stories`;
       } else if (
         topicLower.includes('venture') ||
         loungeDescription?.toLowerCase().includes('venture capital')
       ) {
-        // Focus on VC firms, funding rounds, startup ecosystem
-        searchQuery = `(Sequoia OR Andreessen Horowitz OR Y Combinator OR Accel OR Benchmark) OR "Series A" OR "Series B" OR "Series C" OR "seed funding" OR "venture capital" OR "startup funding" OR "unicorn valuation" OR "VC investment" OR "startup acquisition" OR "IPO" OR "SPAC"`;
+        // Natural language query for VC news
+        searchQuery = `Significant venture capital deals: Series A B C funding announcements, unicorn valuations, major VC firm investments, startup acquisitions and IPOs`;
+        category = 'company';
       } else if (
         topicLower.includes('growth') ||
         loungeDescription?.toLowerCase().includes('growth strategies')
       ) {
-        // Focus on growth hacking, marketing strategies, conversion optimization
-        searchQuery = `"growth hacking" OR "A/B testing results" OR "conversion rate optimization" OR "growth experiment" OR "viral marketing" OR "product-led growth" OR "user acquisition" OR "retention strategy" OR "growth metrics" OR "marketing automation" OR "growth case study" OR "PLG" OR "customer acquisition cost"`;
+        // Natural language query for growth news
+        searchQuery = `Growth hacking case studies and results: successful A/B testing experiments, conversion optimization wins, viral marketing campaigns, product-led growth strategies`;
       } else if (
         topicLower.includes('crypto') ||
         loungeDescription?.toLowerCase().includes('blockchain')
       ) {
-        // Comprehensive crypto search - cast a wider net to ensure we always get results
-        searchQuery = `(Bitcoin OR BTC OR Ethereum OR ETH OR Solana OR cryptocurrency OR crypto) OR (Coinbase OR Binance OR Kraken OR "crypto exchange") OR (DeFi OR "decentralized finance" OR NFT OR Web3) OR ("crypto news" OR "blockchain news" OR "digital assets") OR (altcoin OR stablecoin OR USDT OR USDC) OR ("crypto market" OR "crypto trading" OR "crypto price") OR (blockchain OR "distributed ledger" OR "smart contracts") OR ("crypto regulation" OR SEC OR "crypto policy") OR (Polygon OR Avalanche OR Cardano OR Polkadot) OR ("crypto funding" OR "crypto investment" OR "crypto VC")`;
+        // Natural language query for crypto - more focused on news
+        searchQuery = `Major cryptocurrency and blockchain news: Bitcoin Ethereum price movements, DeFi protocol launches, crypto regulation updates, institutional adoption, major hacks or security incidents`;
       } else {
-        // Fallback: use the description if available, otherwise use topic
-        searchQuery =
-          loungeDescription ||
-          `${topic} latest news developments announcements`;
+        // Fallback: use natural description
+        searchQuery = loungeDescription 
+          ? `Latest important news and developments in ${loungeDescription}`
+          : `Breaking news and major announcements in ${topic} industry`;
       }
 
       // Log the search details
@@ -162,13 +169,16 @@ export class ExaNewsService {
         `[Exa News Service] Lounge description: "${loungeDescription || 'Not provided'}"`
       );
 
-      // Perform Exa search with date filtering (increased to 20 for better coverage)
+      // Perform Exa search with optimized parameters for relevancy
       const searchResults = await this.exa.searchAndContents(searchQuery, {
-        numResults: 20,
+        numResults: 25, // Increased for better selection
+        useAutoprompt: true, // Enable Exa's query enhancement
+        type: 'neural', // Force neural search for better relevancy
+        category, // Focus on news/company results
         startPublishedDate: formatDate(startDate),
         endPublishedDate: formatDate(endDate),
         text: {
-          maxCharacters: 500, // Get highlights for each result
+          maxCharacters: 1000, // More context for better curation
           includeHtmlTags: false,
         },
         excludeDomains: [
@@ -181,8 +191,28 @@ export class ExaNewsService {
           'x.com',
           'linkedin.com',
           'youtube.com',
+          'medium.com', // Often has low-quality content
+          'substack.com', // Personal blogs, not major news
+          'dev.to', // Developer blogs, not news
         ],
-      });
+        // Add quality-focused domains
+        includeDomains: topicLower.includes('crypto') ? [
+          'coindesk.com',
+          'cointelegraph.com',
+          'decrypt.co',
+          'theblock.co',
+          'blockworks.co'
+        ] : topicLower.includes('ai') ? [
+          'techcrunch.com',
+          'theverge.com',
+          'wired.com',
+          'venturebeat.com',
+          'arstechnica.com',
+          'reuters.com',
+          'bloomberg.com',
+          'theinformation.com'
+        ] : undefined,
+      } as any);
 
       console.log(
         `[Exa News Service] Found ${searchResults.results.length} results for ${topic}`
@@ -199,15 +229,16 @@ export class ExaNewsService {
         };
       }
 
-      // Prepare content for GPT curation
+      // Prepare content for GPT curation with more context
       const articlesForCuration = searchResults.results.map(
         (result, index) => ({
           index: index + 1,
           title: result.title,
           url: result.url,
           publishedDate: result.publishedDate,
-          excerpt: result.text?.substring(0, 500) || '',
+          excerpt: result.text || '', // Use full text now (1000 chars)
           source: new URL(result.url).hostname.replace('www.', ''),
+          score: result.score, // Include relevancy score if available
         })
       );
 
@@ -238,16 +269,17 @@ export class ExaNewsService {
             },
           },
           specialSection: {
-            description: `Select 3-5 stories about ${specialSectionType}`,
-            focus: specialSectionFocus,
+            description: `Select 3-5 stories STRICTLY about ${specialSectionType}`,
+            criticalRequirements: specialSectionFocus,
             format: {
-              text: 'Company name and action (5-8 words)',
-              summary: '1-2 sentences with key details',
-              amount: 'Funding amount if applicable',
-              series: 'Funding round if applicable',
+              text: 'Company name and specific action with amount (e.g., "Stripe raises $600M")',
+              summary: '1-2 sentences including investors, valuation, or key metrics',
+              amount: 'REQUIRED: Exact dollar amount (e.g., "$50M", "$1.2B")',
+              series: 'Funding round type if applicable (e.g., "Series C", "Seed")',
               sourceUrl: 'URL from article',
               source: 'Publication name',
             },
+            validation: 'If an item does NOT include specific financial amounts or metrics, DO NOT include it in specialSection',
           },
         },
         outputFormat: 'JSON only, no additional text',
@@ -270,30 +302,43 @@ Return ONLY valid JSON with this structure:
 
       console.log(`[Exa News Service] Sending to GPT-5-mini for curation...`);
 
-      // Use GPT-5-mini with the responses API (GPT-5 uses different API than GPT-4)
+      // Enhanced curation prompt for better relevancy
       const completion = await (this.openai as any).responses.create({
         model: 'gpt-5-mini',
-        input: `You are a news curator specializing in ${topic}. Your job is to select ONLY the most relevant articles that directly relate to ${topic}.
+        input: `You are an expert news curator for ${topic}. Select the most GROUNDBREAKING and IMPACTFUL news.
 
-CRITICAL REQUIREMENTS:
-- Only include articles that are DIRECTLY relevant to ${topic}
-- Exclude any general tech news unless it specifically impacts ${topic}
-- Exclude sports, entertainment, or lifestyle content unless directly related to ${topic} industry
-- Focus on substance: funding, product launches, acquisitions, technical breakthroughs, industry trends
-- Prioritize news from recognized industry sources and companies
+SELECTION CRITERIA (in priority order):
+1. **Impact**: Prefer news with industry-changing implications
+2. **Recency**: Prioritize breaking news and first-time announcements
+3. **Scale**: Focus on major deals, significant funding rounds ($10M+), notable acquisitions
+4. **Innovation**: Highlight technical breakthroughs, first-of-its-kind developments
+5. **Credibility**: Prefer recognized sources and companies
 
-IMPORTANT: You MUST fill all 5 bullet points and the special section. If you cannot find 5 perfect matches:
-- Include the best available articles even if tangentially related to ${topic}
-- NEVER return "No applicable story" or empty fields
-- It's better to include a somewhat relevant story than no story at all
-- There are ${articlesForCuration.length} articles provided - use them all if needed
+EXCLUSION RULES:
+- NO routine updates or minor feature releases
+- NO opinion pieces or speculation
+- NO duplicate stories (same event from different sources)
+- NO tangentially related content
+- NO stories older than 24 hours unless truly exceptional
+
+CURATION GUIDELINES:
+- For bigStory: Choose the SINGLE most impactful/breaking news
+- For bullets: Select diverse stories covering different aspects of ${topic}
+- For specialSection: ${specialSectionFocus}
+  * MUST include specific dollar amounts or percentages
+  * If no articles meet these strict criteria, return empty specialSection rather than include irrelevant items
+  * Conference announcements, events, and general news DO NOT belong in specialSection
+- Headlines should be punchy and convey the significance
+- Summaries should explain WHY this matters to the industry
+
+Articles are sorted by relevance score. Prefer higher-scored articles unless a lower-scored one is clearly more impactful.
 
 ${curationPrompt}`,
         reasoning: {
-          effort: 'minimal', // Fast response for simple curation task
+          effort: 'medium', // Better reasoning for curation
         },
         text: {
-          verbosity: 'low', // Concise output for structured JSON
+          verbosity: 'low', // Still concise for JSON
         },
         max_output_tokens: 4000,
       });
