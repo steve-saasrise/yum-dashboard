@@ -62,7 +62,7 @@ export class ExaNewsService {
       'fool.com',
       'investopedia.com',
     ],
-    
+
     // Technology and AI focused
     tech: [
       'techcrunch.com',
@@ -90,7 +90,7 @@ export class ExaNewsService {
       'lifehacker.com',
       'makeuseof.com',
     ],
-    
+
     // AI and ML specific news sources
     ai: [
       'venturebeat.com',
@@ -113,7 +113,7 @@ export class ExaNewsService {
       'towardsdatascience.com',
       'arxiv.org', // For research papers
     ],
-    
+
     // Cryptocurrency and blockchain news sources
     crypto: [
       'coindesk.com',
@@ -141,7 +141,7 @@ export class ExaNewsService {
       'coinpedia.org',
       'protos.com',
     ],
-    
+
     // SaaS and B2B news (focusing on news sites, not company blogs)
     saas: [
       'saastr.com',
@@ -159,7 +159,7 @@ export class ExaNewsService {
       'channelfutures.com',
       'mspmentor.net',
     ],
-    
+
     // Venture capital and startup news
     venture: [
       'pitchbook.com',
@@ -182,7 +182,7 @@ export class ExaNewsService {
       'altassets.net',
       'mergersandinquisitions.com',
     ],
-    
+
     // Growth and marketing news
     growth: [
       'growthhackers.com',
@@ -367,8 +367,15 @@ export class ExaNewsService {
         // Use crypto and financial domains
         includeDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.crypto,
-          ...this.TRUSTED_NEWS_DOMAINS.general.filter(d => 
-            ['bloomberg.com', 'reuters.com', 'wsj.com', 'ft.com', 'cnbc.com', 'forbes.com'].includes(d)
+          ...this.TRUSTED_NEWS_DOMAINS.general.filter((d) =>
+            [
+              'bloomberg.com',
+              'reuters.com',
+              'wsj.com',
+              'ft.com',
+              'cnbc.com',
+              'forbes.com',
+            ].includes(d)
           ),
         ];
       } else {

@@ -223,20 +223,21 @@ export const DailyDigestEmail = ({
                       overflow: 'hidden',
                       borderRadius: '8px',
                       position: 'relative' as const,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#f3f4f6',
                     }}
                   >
                     <Img
                       src={aiNewsSummary.bigStory.imageUrl}
                       width="560"
-                      height="560"
                       alt={aiNewsSummary.bigStory.title}
                       style={{
-                        ...bigStoryImage,
                         width: '100%',
-                        height: '560px',
-                        objectFit: 'cover' as const,
-                        objectPosition: 'center center' as const,
-                        marginTop: '-122.5px', // Center vertically: -(560-315)/2
+                        height: 'auto',
+                        display: 'block',
+                        objectFit: 'contain' as const,
                       }}
                     />
                   </div>
@@ -1215,10 +1216,12 @@ const bigStoryTitle = {
 
 const bigStoryImage = {
   width: '100%',
+  maxWidth: '560px',
   height: 'auto',
-  borderRadius: '6px',
+  borderRadius: '8px',
   objectFit: 'cover' as const,
   display: 'block',
+  margin: '16px 0',
 };
 
 const bigStoryHeadline = {

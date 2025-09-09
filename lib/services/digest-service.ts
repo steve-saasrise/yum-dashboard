@@ -413,6 +413,16 @@ export class DigestService {
               imageUrl?: string;
               source?: string;
             }>;
+            specialSection?: Array<{
+              text: string;
+              summary?: string;
+              sourceUrl?: string;
+              imageUrl?: string;
+              source?: string;
+              amount?: string;
+              series?: string;
+            }>;
+            specialSectionTitle?: string;
             generatedAt: string;
           }
         | undefined = undefined;
@@ -427,6 +437,7 @@ export class DigestService {
           );
           aiNewsSummary = {
             ...enhanced,
+            specialSectionTitle: summary.specialSectionTitle,
             generatedAt: summary.generatedAt,
           };
         }
