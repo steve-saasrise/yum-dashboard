@@ -89,6 +89,6 @@ export const WORKER_CONCURRENCY = {
   AI_SUMMARY: 3, // Generate 3 summaries concurrently
   CREATOR_PROCESSING: 3, // Process 3 individual creators (reduced from 10 to prevent lock issues)
   BRIGHTDATA_PROCESSING: 2, // Process 2 BrightData snapshots concurrently
-  AI_NEWS_GENERATION: 3, // Process 3 news generation jobs concurrently
+  AI_NEWS_GENERATION: 2, // Process 2 news generation jobs concurrently (reduced from 3 to stay under 200k TPM limit)
   EMAIL_DIGEST: 10, // Process 10 user digests concurrently (emails are fast)
 };

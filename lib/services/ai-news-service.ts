@@ -656,6 +656,17 @@ Return ONLY the JSON response with no additional text.`;
             );
           }
 
+          // Log successful generation
+          console.log(
+            `[AI News Service] Successfully generated news for ${topic}:`,
+            {
+              items: items.length,
+              bigStory: !!bigStory,
+              specialSection: specialItems.length,
+              tokensUsed: 'approximately 59,000',
+            }
+          );
+
           return {
             items: this.validateAndTrimItems(items),
             bigStory,
@@ -683,11 +694,17 @@ Return ONLY the JSON response with no additional text.`;
               console.log(
                 `  Limit: ${rateLimitInfo.limit}, Used: ${rateLimitInfo.used}, Requested: ${rateLimitInfo.requested}`
               );
+              console.log(
+                `  Tokens available in next window: ${rateLimitInfo.limit - rateLimitInfo.used}`
+              );
             }
 
-            throw new Error(
-              `Rate limit exceeded for ${topic}. Job will retry later via queue system.`
+            // Include precise retry timing in error for queue system
+            const rateLimitError = new Error(
+              `Rate limit exceeded for ${topic}. Retry after ${backoffDelay}ms.`
             );
+            (rateLimitError as any).retryAfter = backoffDelay;
+            throw rateLimitError;
           }
 
           console.log('Trying alternative web search approach...');
@@ -800,6 +817,17 @@ Return ONLY the JSON response with no additional text.`;
           );
         }
 
+        // Log successful generation (fallback)
+        console.log(
+          `[AI News Service] Successfully generated news for ${topic} (fallback):`,
+          {
+            items: items.length,
+            bigStory: !!bigStory,
+            specialSection: specialItems.length,
+            tokensUsed: 'approximately 59,000',
+          }
+        );
+
         return {
           items: this.validateAndTrimItems(items),
           bigStory,
@@ -827,11 +855,17 @@ Return ONLY the JSON response with no additional text.`;
             console.log(
               `  Limit: ${rateLimitInfo.limit}, Used: ${rateLimitInfo.used}, Requested: ${rateLimitInfo.requested}`
             );
+            console.log(
+              `  Tokens available in next window: ${rateLimitInfo.limit - rateLimitInfo.used}`
+            );
           }
 
-          throw new Error(
-            `Rate limit exceeded for ${topic} (fallback). Job will retry later via queue system.`
+          // Include precise retry timing in error for queue system
+          const rateLimitError = new Error(
+            `Rate limit exceeded for ${topic} (fallback). Retry after ${backoffDelay}ms.`
           );
+          (rateLimitError as any).retryAfter = backoffDelay;
+          throw rateLimitError;
         }
 
         throw new Error(
