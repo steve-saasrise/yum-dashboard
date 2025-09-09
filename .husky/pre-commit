@@ -4,7 +4,9 @@ npm run fix
 # Type check (will fail commit if errors exist)
 npm run typecheck
 
-# Run tests if they exist
+# Run tests if they exist (with increased stack size to prevent segfault)
 if [ -f "jest.config.js" ] || [ -f "jest.config.ts" ]; then
-  npm run test
+  # Increase stack size to prevent segmentation fault with Node v24 + Next.js 15.5
+  # This is needed when running multiple npm scripts in sequence
+  node --stack-size=16384 node_modules/.bin/jest
 fi
