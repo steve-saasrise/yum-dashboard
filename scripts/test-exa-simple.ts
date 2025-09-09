@@ -20,7 +20,9 @@ async function testExaSimple() {
   const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
-  console.log(`Date range: ${formatDate(startDate)} to ${formatDate(endDate)}\n`);
+  console.log(
+    `Date range: ${formatDate(startDate)} to ${formatDate(endDate)}\n`
+  );
 
   // Test 1: Simple search without any filters
   console.log('Test 1: Simple search without filters');

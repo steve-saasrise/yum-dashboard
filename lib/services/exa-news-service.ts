@@ -321,7 +321,7 @@ export class ExaNewsService {
       // Build natural language query optimized for Exa's neural search
       let searchQuery = '';
       let category: 'news' | 'company' | 'research paper' | undefined = 'news';
-      
+
       // Create optimized queries based on topic - check lounge description first
       if (
         loungeDescription?.toLowerCase().includes('cryptocurrency') ||
@@ -361,7 +361,7 @@ export class ExaNewsService {
 
       // Build the comprehensive trusted domains list for manual filtering later
       let trustedDomains: string[] = [];
-      
+
       if (topicLower.includes('ai')) {
         trustedDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.ai,
@@ -391,7 +391,14 @@ export class ExaNewsService {
         trustedDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.crypto,
           ...this.TRUSTED_NEWS_DOMAINS.general.filter((d) =>
-            ['bloomberg.com', 'reuters.com', 'wsj.com', 'ft.com', 'cnbc.com', 'forbes.com'].includes(d)
+            [
+              'bloomberg.com',
+              'reuters.com',
+              'wsj.com',
+              'ft.com',
+              'cnbc.com',
+              'forbes.com',
+            ].includes(d)
           ),
         ];
       } else {
@@ -441,29 +448,29 @@ export class ExaNewsService {
       const domainFilteredResults = searchResults.results.filter((result) => {
         const url = new URL(result.url);
         const domain = url.hostname.replace('www.', '').toLowerCase();
-        
+
         // Check if it's a trusted domain
         const isTrusted = trustedDomains.some((trustedDomain) => {
           const cleanTrusted = trustedDomain.replace('www.', '').toLowerCase();
           return domain === cleanTrusted || domain.endsWith(`.${cleanTrusted}`);
         });
-        
+
         // For crypto, be more permissive with crypto-specific sites
-        const isCryptoAcceptable = topicLower.includes('crypto') && (
-          domain.includes('coin') ||
-          domain.includes('crypto') ||
-          domain.includes('blockchain') ||
-          domain.includes('defi') ||
-          domain.includes('nft') ||
-          domain.includes('web3') ||
-          domain.includes('bitcoin') ||
-          domain.includes('ethereum') ||
-          domain.includes('binance') ||
-          domain.includes('token')
-        );
-        
+        const isCryptoAcceptable =
+          topicLower.includes('crypto') &&
+          (domain.includes('coin') ||
+            domain.includes('crypto') ||
+            domain.includes('blockchain') ||
+            domain.includes('defi') ||
+            domain.includes('nft') ||
+            domain.includes('web3') ||
+            domain.includes('bitcoin') ||
+            domain.includes('ethereum') ||
+            domain.includes('binance') ||
+            domain.includes('token'));
+
         // Also accept press release sites, company sites, and academic sources
-        const isGenerallyAcceptable = 
+        const isGenerallyAcceptable =
           domain.includes('newswire') ||
           domain.includes('wire.com') ||
           domain.includes('.edu') ||
@@ -481,7 +488,7 @@ export class ExaNewsService {
           domain.includes('ibm.') ||
           domain.includes('tech') ||
           domain.includes('news');
-        
+
         return isTrusted || isCryptoAcceptable || isGenerallyAcceptable;
       });
 

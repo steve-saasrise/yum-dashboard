@@ -35,7 +35,9 @@ async function testCrypto() {
     console.log(`- Processing time: ${processingTime}ms`);
     console.log(`- Regular items: ${result.items.length}`);
     console.log(`- Big story: ${result.bigStory ? 'Yes' : 'No'}`);
-    console.log(`- Special section: ${result.specialSection?.length || 0} items`);
+    console.log(
+      `- Special section: ${result.specialSection?.length || 0} items`
+    );
 
     if (result.bigStory) {
       console.log(`\n📰 Big Story: ${result.bigStory.title}`);

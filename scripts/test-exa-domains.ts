@@ -20,10 +20,13 @@ async function testExaDomains() {
   const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
-  const searchQuery = 'latest AI artificial intelligence news breakthroughs announcements funding today';
+  const searchQuery =
+    'latest AI artificial intelligence news breakthroughs announcements funding today';
 
   console.log('Searching for:', searchQuery);
-  console.log(`Date range: ${formatDate(startDate)} to ${formatDate(endDate)}\n`);
+  console.log(
+    `Date range: ${formatDate(startDate)} to ${formatDate(endDate)}\n`
+  );
 
   try {
     const results = await exa.searchAndContents(searchQuery, {
@@ -52,8 +55,9 @@ async function testExaDomains() {
     });
 
     // Sort by count
-    const sortedDomains = Array.from(domainCounts.entries())
-      .sort((a, b) => b[1] - a[1]);
+    const sortedDomains = Array.from(domainCounts.entries()).sort(
+      (a, b) => b[1] - a[1]
+    );
 
     console.log('Top domains returned by Exa:');
     sortedDomains.slice(0, 20).forEach(([domain, count]) => {
@@ -89,7 +93,10 @@ async function testExaDomains() {
       trustedDomains.some((td) => d === td || d.endsWith(`.${td}`))
     );
 
-    console.log('\nTrusted domains found:', foundTrusted.length > 0 ? foundTrusted : 'NONE');
+    console.log(
+      '\nTrusted domains found:',
+      foundTrusted.length > 0 ? foundTrusted : 'NONE'
+    );
 
     // Show some sample results
     console.log('\nSample results:');
@@ -102,7 +109,6 @@ async function testExaDomains() {
         console.log(`   Published: ${r.publishedDate}`);
       }
     });
-
   } catch (error) {
     console.error('Error:', error);
   }

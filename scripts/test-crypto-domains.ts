@@ -20,10 +20,13 @@ async function testCryptoDomains() {
   const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
-  const searchQuery = 'cryptocurrency blockchain Bitcoin Ethereum DeFi NFT Web3 crypto news today';
+  const searchQuery =
+    'cryptocurrency blockchain Bitcoin Ethereum DeFi NFT Web3 crypto news today';
 
   console.log('Searching for:', searchQuery);
-  console.log(`Date range: ${formatDate(startDate)} to ${formatDate(endDate)}\n`);
+  console.log(
+    `Date range: ${formatDate(startDate)} to ${formatDate(endDate)}\n`
+  );
 
   try {
     const results = await exa.searchAndContents(searchQuery, {
@@ -52,8 +55,9 @@ async function testCryptoDomains() {
     });
 
     // Sort by count
-    const sortedDomains = Array.from(domainCounts.entries())
-      .sort((a, b) => b[1] - a[1]);
+    const sortedDomains = Array.from(domainCounts.entries()).sort(
+      (a, b) => b[1] - a[1]
+    );
 
     console.log('Top domains returned by Exa for crypto:');
     sortedDomains.forEach(([domain, count]) => {
@@ -69,7 +73,6 @@ async function testCryptoDomains() {
       console.log(`\n${i + 1}. ${r.title}`);
       console.log(`   Domain: ${domain}`);
     });
-
   } catch (error) {
     console.error('Error:', error);
   }
