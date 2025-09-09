@@ -416,26 +416,8 @@ export class ExaNewsService {
           maxCharacters: 1000, // More context for better curation
           includeHtmlTags: false,
         },
-        excludeDomains: [
-          'reddit.com',
-          'facebook.com',
-          'instagram.com',
-          'pinterest.com',
-          'tiktok.com',
-          'twitter.com',
-          'x.com',
-          'linkedin.com',
-          'youtube.com',
-          'medium.com', // Often has low-quality content
-          'substack.com', // Personal blogs, not major news
-          'dev.to', // Developer blogs, not news
-          'wikipedia.org', // Encyclopedic content, not news
-          'github.com', // Code repos, not news
-          'stackoverflow.com', // Q&A, not news
-          'discord.com', // Chat platforms
-          'slack.com', // Chat platforms
-        ],
         // Use the comprehensive whitelist of trusted domains
+        // Note: Can't use both includeDomains and excludeDomains with content fetching
         includeDomains,
       } as any);
 
