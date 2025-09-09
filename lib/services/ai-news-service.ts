@@ -34,9 +34,6 @@ interface RateLimitInfo {
 
 export class AINewsService {
   private openai: OpenAI | null = null;
-  private static requestQueue: Map<string, number> = new Map(); // Track last request time per topic
-  private static globalLastRequest: number = 0;
-  private static MIN_REQUEST_INTERVAL = 25000; // 25 seconds between requests (59k tokens per request, 200k TPM limit = ~3 req/min)
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -110,49 +107,6 @@ export class AINewsService {
     return Math.ceil(exponentialDelay + jitter);
   }
 
-  /**
-   * Rate limit requests to prevent hitting API limits
-   */
-  private async throttleRequest(topic: string): Promise<void> {
-    // Skip concurrent check since we're already limited to 1 worker
-    // The worker concurrency handles this at the queue level
-
-    const now = Date.now();
-
-    // Global throttling with longer interval for GPT-5-mini
-    const timeSinceLastGlobal = now - AINewsService.globalLastRequest;
-    if (timeSinceLastGlobal < AINewsService.MIN_REQUEST_INTERVAL) {
-      const waitTime = AINewsService.MIN_REQUEST_INTERVAL - timeSinceLastGlobal;
-      console.log(
-        `[AI News] Throttling request for ${topic}, waiting ${waitTime}ms`
-      );
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
-    }
-
-    // Per-topic throttling (prevent rapid retries for same topic)
-    const lastTopicRequest = AINewsService.requestQueue.get(topic) || 0;
-    const timeSinceLastTopic = now - lastTopicRequest;
-    const minTopicInterval = 5000; // At least 5 seconds between same topic requests
-
-    if (timeSinceLastTopic < minTopicInterval) {
-      const waitTime = minTopicInterval - timeSinceLastTopic;
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
-    }
-
-    // Update timestamps
-    AINewsService.globalLastRequest = Date.now();
-    AINewsService.requestQueue.set(topic, Date.now());
-
-    // Clean up old entries to prevent memory leak
-    if (AINewsService.requestQueue.size > 100) {
-      const cutoff = Date.now() - 600000; // 10 minutes
-      for (const [key, timestamp] of AINewsService.requestQueue.entries()) {
-        if (timestamp < cutoff) {
-          AINewsService.requestQueue.delete(key);
-        }
-      }
-    }
-  }
 
   /**
    * Clean topic name by removing "Coffee" and similar suffixes
@@ -483,9 +437,6 @@ ${JSON.stringify(promptSpec, null, 2)}
 Return ONLY the JSON response with no additional text.`;
 
     try {
-      // Apply throttling before making request
-      await this.throttleRequest(topic);
-
       // Try to use the Responses API with web search
       if ((this.openai as any).responses?.create) {
         try {
@@ -748,9 +699,6 @@ Return ONLY the JSON response with no additional text.`;
       console.log(`Attempting GPT-5-mini with web search for ${topic} news...`);
 
       try {
-        // Apply throttling before fallback request
-        await this.throttleRequest(topic);
-
         const response = await (this.openai as any).responses.create({
           model: 'gpt-5-mini',
           tools: [{ type: 'web_search' }],
