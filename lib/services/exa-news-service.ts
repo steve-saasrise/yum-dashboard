@@ -33,11 +33,11 @@ export class ExaNewsService {
   constructor() {
     const exaApiKey = process.env.EXA_API_KEY;
     const openaiApiKey = process.env.OPENAI_API_KEY;
-    
+
     if (exaApiKey) {
       this.exa = new Exa(exaApiKey);
     }
-    
+
     if (openaiApiKey) {
       this.openai = new OpenAI({ apiKey: openaiApiKey });
     }
@@ -71,7 +71,7 @@ export class ExaNewsService {
     }
 
     const topic = this.getCleanTopic(loungeName, loungeDescription);
-    
+
     // Determine special section type and title based on topic
     const topicLower = topic.toLowerCase();
     const isGrowthTopic = topicLower.includes('growth');
@@ -103,32 +103,64 @@ export class ExaNewsService {
       : 'funding rounds, Series A/B/C/D/E/F, seed rounds, acquisitions, valuations, investor names, funding amounts';
 
     try {
-      console.log(`[Exa News Service] Starting search for ${topic}...`);
-      
       // Calculate date for last 24 hours
       const endDate = new Date();
       const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
-      
+
       // Format dates as YYYY-MM-DD
       const formatDate = (date: Date) => {
         return date.toISOString().split('T')[0];
       };
 
-      // Build search query based on topic
-      let searchQuery = `${topic} news`;
-      
-      // Add specific keywords for better results
-      if (topicLower.includes('ai')) {
-        searchQuery = `AI artificial intelligence news releases updates`;
-      } else if (topicLower.includes('saas')) {
-        searchQuery = `SaaS software B2B enterprise news updates`;
-      } else if (topicLower.includes('venture')) {
-        searchQuery = `venture capital funding rounds investments startups`;
-      } else if (topicLower.includes('growth')) {
-        searchQuery = `growth marketing experiments A/B testing metrics`;
-      } else if (topicLower.includes('crypto')) {
-        searchQuery = `cryptocurrency blockchain DeFi news updates`;
+      // Build highly specific search query based on topic and description
+      let searchQuery = '';
+
+      // Use much more specific and targeted queries for each lounge
+      if (
+        topicLower.includes('ai') ||
+        loungeDescription?.toLowerCase().includes('artificial intelligence')
+      ) {
+        // Focus on AI/ML breakthroughs, model releases, AI company news
+        searchQuery = `(OpenAI OR Anthropic OR Google DeepMind OR Microsoft AI OR Meta AI) OR "GPT-5" OR "Claude" OR "Gemini" OR "machine learning breakthrough" OR "AI model" OR "artificial intelligence" OR "neural network" OR "LLM" OR "large language model" OR "AI startup funding" OR "AI regulation" OR "AI safety"`;
+      } else if (
+        topicLower.includes('saas') ||
+        loungeDescription?.toLowerCase().includes('software as a service')
+      ) {
+        // Focus on SaaS companies, enterprise software, B2B tools
+        searchQuery = `(Salesforce OR Slack OR Notion OR Monday OR Figma OR Canva OR Stripe OR Shopify) OR "SaaS funding" OR "B2B software" OR "enterprise software" OR "cloud software" OR "subscription business" OR "SaaS metrics" OR "product-led growth" OR "SaaS IPO" OR "software acquisition"`;
+      } else if (
+        topicLower.includes('venture') ||
+        loungeDescription?.toLowerCase().includes('venture capital')
+      ) {
+        // Focus on VC firms, funding rounds, startup ecosystem
+        searchQuery = `(Sequoia OR Andreessen Horowitz OR Y Combinator OR Accel OR Benchmark) OR "Series A" OR "Series B" OR "Series C" OR "seed funding" OR "venture capital" OR "startup funding" OR "unicorn valuation" OR "VC investment" OR "startup acquisition" OR "IPO" OR "SPAC"`;
+      } else if (
+        topicLower.includes('growth') ||
+        loungeDescription?.toLowerCase().includes('growth strategies')
+      ) {
+        // Focus on growth hacking, marketing strategies, conversion optimization
+        searchQuery = `"growth hacking" OR "A/B testing results" OR "conversion rate optimization" OR "growth experiment" OR "viral marketing" OR "product-led growth" OR "user acquisition" OR "retention strategy" OR "growth metrics" OR "marketing automation" OR "growth case study" OR "PLG" OR "customer acquisition cost"`;
+      } else if (
+        topicLower.includes('crypto') ||
+        loungeDescription?.toLowerCase().includes('blockchain')
+      ) {
+        // Focus on major crypto news, DeFi, blockchain tech
+        searchQuery = `(Bitcoin OR Ethereum OR Solana OR Coinbase OR Binance) OR "cryptocurrency" OR "blockchain" OR "DeFi" OR "NFT" OR "Web3" OR "crypto regulation" OR "stablecoin" OR "crypto funding" OR "blockchain adoption" OR "smart contracts" OR "crypto exchange"`;
+      } else {
+        // Fallback: use the description if available, otherwise use topic
+        searchQuery =
+          loungeDescription ||
+          `${topic} latest news developments announcements`;
       }
+
+      // Log the search details
+      console.log(`[Exa News Service] Starting search for ${topic}...`);
+      console.log(
+        `[Exa News Service] Using search query: "${searchQuery.substring(0, 200)}${searchQuery.length > 200 ? '...' : ''}"`
+      );
+      console.log(
+        `[Exa News Service] Lounge description: "${loungeDescription || 'Not provided'}"`
+      );
 
       // Perform Exa search with date filtering
       const searchResults = await this.exa.searchAndContents(searchQuery, {
@@ -137,7 +169,7 @@ export class ExaNewsService {
         endPublishedDate: formatDate(endDate),
         text: {
           maxCharacters: 500, // Get highlights for each result
-          includeHtmlTags: false
+          includeHtmlTags: false,
         },
         excludeDomains: [
           'reddit.com',
@@ -148,14 +180,18 @@ export class ExaNewsService {
           'twitter.com',
           'x.com',
           'linkedin.com',
-          'youtube.com'
-        ]
+          'youtube.com',
+        ],
       });
 
-      console.log(`[Exa News Service] Found ${searchResults.results.length} results for ${topic}`);
+      console.log(
+        `[Exa News Service] Found ${searchResults.results.length} results for ${topic}`
+      );
 
       if (searchResults.results.length === 0) {
-        console.log(`[Exa News Service] No results found for ${topic}, returning empty news`);
+        console.log(
+          `[Exa News Service] No results found for ${topic}, returning empty news`
+        );
         return {
           items: [],
           topic,
@@ -164,14 +200,16 @@ export class ExaNewsService {
       }
 
       // Prepare content for GPT curation
-      const articlesForCuration = searchResults.results.map((result, index) => ({
-        index: index + 1,
-        title: result.title,
-        url: result.url,
-        publishedDate: result.publishedDate,
-        excerpt: result.text?.substring(0, 500) || '',
-        source: new URL(result.url).hostname.replace('www.', '')
-      }));
+      const articlesForCuration = searchResults.results.map(
+        (result, index) => ({
+          index: index + 1,
+          title: result.title,
+          url: result.url,
+          publishedDate: result.publishedDate,
+          excerpt: result.text?.substring(0, 500) || '',
+          source: new URL(result.url).hostname.replace('www.', ''),
+        })
+      );
 
       // Build structured prompt for GPT curation
       const curatedPrompt = {
@@ -183,10 +221,11 @@ export class ExaNewsService {
             description: 'Select the most impactful story from the articles',
             format: {
               title: 'The headline (keep original or write better)',
-              summary: '2-3 sentences explaining what happened and why it matters',
+              summary:
+                '2-3 sentences explaining what happened and why it matters',
               source: 'Publication name',
-              sourceUrl: 'URL from the article'
-            }
+              sourceUrl: 'URL from the article',
+            },
           },
           bullets: {
             description: `Select 5 other important stories (excluding ${specialSectionType})`,
@@ -195,8 +234,8 @@ export class ExaNewsService {
               text: 'Short punchy headline (5-10 words)',
               summary: '1-2 sentence explanation (20-30 words)',
               sourceUrl: 'URL from article',
-              source: 'Publication name'
-            }
+              source: 'Publication name',
+            },
           },
           specialSection: {
             description: `Select 3-5 stories about ${specialSectionType}`,
@@ -207,11 +246,11 @@ export class ExaNewsService {
               amount: 'Funding amount if applicable',
               series: 'Funding round if applicable',
               sourceUrl: 'URL from article',
-              source: 'Publication name'
-            }
-          }
+              source: 'Publication name',
+            },
+          },
         },
-        outputFormat: 'JSON only, no additional text'
+        outputFormat: 'JSON only, no additional text',
       };
 
       const curationPrompt = `Based on these ${articlesForCuration.length} recent articles about ${topic}, create a news digest.
@@ -234,16 +273,23 @@ Return ONLY valid JSON with this structure:
       // Use GPT-5-mini with the responses API (GPT-5 uses different API than GPT-4)
       const completion = await (this.openai as any).responses.create({
         model: 'gpt-5-mini',
-        input: `You are a news curator. Format the provided articles into a structured news digest. Return only valid JSON.
+        input: `You are a news curator specializing in ${topic}. Your job is to select ONLY the most relevant articles that directly relate to ${topic}.
+
+CRITICAL REQUIREMENTS:
+- Only include articles that are DIRECTLY relevant to ${topic}
+- Exclude any general tech news unless it specifically impacts ${topic}
+- Exclude sports, entertainment, or lifestyle content unless directly related to ${topic} industry
+- Focus on substance: funding, product launches, acquisitions, technical breakthroughs, industry trends
+- Prioritize news from recognized industry sources and companies
 
 ${curationPrompt}`,
         reasoning: {
-          effort: 'minimal' // Fast response for simple curation task
+          effort: 'minimal', // Fast response for simple curation task
         },
         text: {
-          verbosity: 'low' // Concise output for structured JSON
+          verbosity: 'low', // Concise output for structured JSON
         },
-        max_output_tokens: 4000
+        max_output_tokens: 4000,
       });
 
       // GPT-5 responses API returns output_text directly
@@ -254,7 +300,7 @@ ${curationPrompt}`,
       }
 
       const parsed = JSON.parse(responseContent);
-      
+
       // Extract the curated content
       const items: NewsItem[] = [];
       let bigStory: BigStory | undefined;
@@ -299,30 +345,37 @@ ${curationPrompt}`,
       const inputTokens = completion.usage?.input_tokens || 0;
       const outputTokens = completion.usage?.output_tokens || 0;
       const totalTokens = completion.usage?.total_tokens || 0;
-      const gptCost = (inputTokens / 1000000 * 0.25) + (outputTokens / 1000000 * 2); // $0.25/1M input, $2/1M output
-      
-      console.log(`[Exa News Service] Successfully generated news for ${topic}:`, {
-        items: items.length,
-        bigStory: !!bigStory,
-        specialSection: specialItems.length,
-        inputTokens,
-        outputTokens,
-        totalTokens,
-        gptCost: `$${gptCost.toFixed(4)}`,
-        exaSearchResults: searchResults.results.length
-      });
+      const gptCost =
+        (inputTokens / 1000000) * 0.25 + (outputTokens / 1000000) * 2; // $0.25/1M input, $2/1M output
+
+      console.log(
+        `[Exa News Service] Successfully generated news for ${topic}:`,
+        {
+          items: items.length,
+          bigStory: !!bigStory,
+          specialSection: specialItems.length,
+          inputTokens,
+          outputTokens,
+          totalTokens,
+          gptCost: `$${gptCost.toFixed(4)}`,
+          exaSearchResults: searchResults.results.length,
+        }
+      );
 
       return {
         items: this.validateAndTrimItems(items),
         bigStory,
         specialSection: specialItems.length > 0 ? specialItems : undefined,
-        specialSectionTitle: specialItems.length > 0 ? specialSectionTitle : undefined,
+        specialSectionTitle:
+          specialItems.length > 0 ? specialSectionTitle : undefined,
         topic,
         generatedAt: new Date().toISOString(),
       };
-
     } catch (error) {
-      console.error(`[Exa News Service] Error generating news for ${topic}:`, error);
+      console.error(
+        `[Exa News Service] Error generating news for ${topic}:`,
+        error
+      );
       throw error;
     }
   }

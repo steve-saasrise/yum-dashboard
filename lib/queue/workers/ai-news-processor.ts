@@ -40,7 +40,9 @@ export function createAINewsProcessorWorker() {
         const exaNewsService = new ExaNewsService();
 
         // Generate AI news using Exa
-        console.log(`[AI News Worker] Generating news using Exa for: ${loungeName}`);
+        console.log(
+          `[AI News Worker] Generating news using Exa for: ${loungeName}`
+        );
         const newsResult = await exaNewsService.generateNews(
           loungeName,
           loungeDescription
