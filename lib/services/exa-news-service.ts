@@ -30,6 +30,184 @@ export class ExaNewsService {
   private exa: Exa | null = null;
   private openai: OpenAI | null = null;
 
+  // Comprehensive list of trusted NEWS domains (sources that publish news articles with headlines)
+  private readonly TRUSTED_NEWS_DOMAINS = {
+    // Major global news outlets
+    general: [
+      'reuters.com',
+      'bloomberg.com',
+      'wsj.com',
+      'ft.com',
+      'forbes.com',
+      'businessinsider.com',
+      'cnbc.com',
+      'economist.com',
+      'bbc.com',
+      'nytimes.com',
+      'washingtonpost.com',
+      'theguardian.com',
+      'apnews.com',
+      'axios.com',
+      'politico.com',
+      'thehill.com',
+      'fortune.com',
+      'fastcompany.com',
+      'inc.com',
+      'entrepreneur.com',
+      'businessweek.com',
+      'marketwatch.com',
+      'seekingalpha.com',
+      'benzinga.com',
+      'barrons.com',
+      'fool.com',
+      'investopedia.com',
+    ],
+    
+    // Technology and AI focused
+    tech: [
+      'techcrunch.com',
+      'theverge.com',
+      'arstechnica.com',
+      'wired.com',
+      'engadget.com',
+      'gizmodo.com',
+      'mashable.com',
+      'thenextweb.com',
+      'zdnet.com',
+      'cnet.com',
+      'anandtech.com',
+      'tomshardware.com',
+      'pcmag.com',
+      'techradar.com',
+      'digitaltrends.com',
+      '9to5mac.com',
+      '9to5google.com',
+      'macrumors.com',
+      'androidauthority.com',
+      'androidcentral.com',
+      'xda-developers.com',
+      'howtogeek.com',
+      'lifehacker.com',
+      'makeuseof.com',
+    ],
+    
+    // AI and ML specific news sources
+    ai: [
+      'venturebeat.com',
+      'theinformation.com',
+      'semafor.com',
+      'artificialintelligence-news.com',
+      'theregister.com',
+      'hpcwire.com',
+      'insidebigdata.com',
+      'datanami.com',
+      'infoworld.com',
+      'technologyreview.com',
+      'spectrum.ieee.org',
+      'singularityhub.com',
+      'thenewstack.io',
+      'analyticsindiamag.com',
+      'marktechpost.com',
+      'syncedreview.com',
+      'kdnuggets.com',
+      'towardsdatascience.com',
+      'arxiv.org', // For research papers
+    ],
+    
+    // Cryptocurrency and blockchain news sources
+    crypto: [
+      'coindesk.com',
+      'cointelegraph.com',
+      'theblock.co',
+      'decrypt.co',
+      'bitcoinmagazine.com',
+      'cryptonews.com',
+      'cryptoslate.com',
+      'ambcrypto.com',
+      'cryptopotato.com',
+      'dailyhodl.com',
+      'cryptobriefing.com',
+      'blockworks.co',
+      'thedefiant.io',
+      'bankless.com',
+      'cryptopanic.com',
+      'u.today',
+      'newsbtc.com',
+      'bitcoinist.com',
+      'coingape.com',
+      'beincrypto.com',
+      'cryptonewsz.com',
+      'coinjournal.net',
+      'coinpedia.org',
+      'protos.com',
+    ],
+    
+    // SaaS and B2B news (focusing on news sites, not company blogs)
+    saas: [
+      'saastr.com',
+      'saasboomi.com',
+      'getlatka.com',
+      'betakit.com',
+      'eu-startups.com',
+      'startupnation.com',
+      'siliconangle.com',
+      'sdtimes.com',
+      'ciodive.com',
+      'informationweek.com',
+      'channele2e.com',
+      'crn.com',
+      'channelfutures.com',
+      'mspmentor.net',
+    ],
+    
+    // Venture capital and startup news
+    venture: [
+      'pitchbook.com',
+      'crunchbase.com',
+      'venturebeat.com',
+      'strictlyvc.com',
+      'term.sheet',
+      'pehub.com',
+      'finsmes.com',
+      'techinasia.com',
+      'tech.eu',
+      'sifted.eu',
+      'startupnews.com',
+      'startupgrind.com',
+      'betalist.com',
+      'killerstartups.com',
+      'startupbeat.com',
+      'venturecapitaljournal.com',
+      'privateequitywire.com',
+      'altassets.net',
+      'mergersandinquisitions.com',
+    ],
+    
+    // Growth and marketing news
+    growth: [
+      'growthhackers.com',
+      'marketingland.com',
+      'searchengineland.com',
+      'searchenginejournal.com',
+      'martech.org',
+      'martechtoday.com',
+      'marketingdive.com',
+      'adweek.com',
+      'adage.com',
+      'digiday.com',
+      'emarketer.com',
+      'marketingweek.com',
+      'thedrum.com',
+      'campaignlive.com',
+      'mobilemarketer.com',
+      'retaildive.com',
+      'modernretail.co',
+      'glossy.co',
+      'marketingprofs.com',
+      'chiefmartec.com',
+    ],
+  };
+
   constructor() {
     const exaApiKey = process.env.EXA_API_KEY;
     const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -127,20 +305,33 @@ export class ExaNewsService {
       // Build natural language query for neural search (not keyword lists)
       let searchQuery = '';
       let category: 'news' | 'company' | 'research paper' | undefined = 'news';
+      let includeDomains: string[] = [];
 
-      // Use focused queries that work well with Exa's autoprompt
+      // Select appropriate domains and query based on topic
       if (
         topicLower.includes('ai') ||
         loungeDescription?.toLowerCase().includes('artificial intelligence')
       ) {
         // Focused query for AI news - let autoprompt enhance it
         searchQuery = `AI news today announcements funding breakthroughs`;
+        // Combine tech, AI, and general news domains
+        includeDomains = [
+          ...this.TRUSTED_NEWS_DOMAINS.ai,
+          ...this.TRUSTED_NEWS_DOMAINS.tech,
+          ...this.TRUSTED_NEWS_DOMAINS.general,
+        ];
       } else if (
         topicLower.includes('saas') ||
         loungeDescription?.toLowerCase().includes('software as a service')
       ) {
         // Focused query for SaaS news
         searchQuery = `SaaS companies funding product launches acquisitions today`;
+        // Combine SaaS, tech, and general business domains
+        includeDomains = [
+          ...this.TRUSTED_NEWS_DOMAINS.saas,
+          ...this.TRUSTED_NEWS_DOMAINS.tech,
+          ...this.TRUSTED_NEWS_DOMAINS.general,
+        ];
       } else if (
         topicLower.includes('venture') ||
         loungeDescription?.toLowerCase().includes('venture capital')
@@ -148,29 +339,59 @@ export class ExaNewsService {
         // Focused query for VC news
         searchQuery = `venture capital funding rounds Series A B C today`;
         category = 'company';
+        // Combine venture, tech, and business domains
+        includeDomains = [
+          ...this.TRUSTED_NEWS_DOMAINS.venture,
+          ...this.TRUSTED_NEWS_DOMAINS.tech,
+          ...this.TRUSTED_NEWS_DOMAINS.general,
+        ];
       } else if (
         topicLower.includes('growth') ||
         loungeDescription?.toLowerCase().includes('growth strategies')
       ) {
         // Focused query for growth news
         searchQuery = `growth experiments A/B testing results case studies metrics`;
+        // Combine growth, SaaS, and tech domains
+        includeDomains = [
+          ...this.TRUSTED_NEWS_DOMAINS.growth,
+          ...this.TRUSTED_NEWS_DOMAINS.saas,
+          ...this.TRUSTED_NEWS_DOMAINS.tech,
+          ...this.TRUSTED_NEWS_DOMAINS.general,
+        ];
       } else if (
         topicLower.includes('crypto') ||
         loungeDescription?.toLowerCase().includes('blockchain')
       ) {
         // Broader crypto query - not just BTC/ETH
         searchQuery = `cryptocurrency blockchain news DeFi NFT Web3 altcoins today`;
+        // Use crypto and financial domains
+        includeDomains = [
+          ...this.TRUSTED_NEWS_DOMAINS.crypto,
+          ...this.TRUSTED_NEWS_DOMAINS.general.filter(d => 
+            ['bloomberg.com', 'reuters.com', 'wsj.com', 'ft.com', 'cnbc.com', 'forbes.com'].includes(d)
+          ),
+        ];
       } else {
-        // Fallback: use concise description
+        // Fallback: use general news and tech domains
         searchQuery = loungeDescription
           ? `${loungeDescription} news today`
           : `${topic} news announcements today`;
+        includeDomains = [
+          ...this.TRUSTED_NEWS_DOMAINS.general,
+          ...this.TRUSTED_NEWS_DOMAINS.tech,
+        ];
       }
+
+      // Remove duplicates from includeDomains
+      includeDomains = [...new Set(includeDomains)];
 
       // Log the search details
       console.log(`[Exa News Service] Starting search for ${topic}...`);
       console.log(
         `[Exa News Service] Using search query: "${searchQuery.substring(0, 200)}${searchQuery.length > 200 ? '...' : ''}"`
+      );
+      console.log(
+        `[Exa News Service] Whitelisting ${includeDomains.length} trusted domains`
       );
       console.log(
         `[Exa News Service] Lounge description: "${loungeDescription || 'Not provided'}"`
@@ -207,27 +428,8 @@ export class ExaNewsService {
           'discord.com', // Chat platforms
           'slack.com', // Chat platforms
         ],
-        // Add quality-focused domains
-        includeDomains: topicLower.includes('crypto')
-          ? [
-              'coindesk.com',
-              'cointelegraph.com',
-              'decrypt.co',
-              'theblock.co',
-              'blockworks.co',
-            ]
-          : topicLower.includes('ai')
-            ? [
-                'techcrunch.com',
-                'theverge.com',
-                'wired.com',
-                'venturebeat.com',
-                'arstechnica.com',
-                'reuters.com',
-                'bloomberg.com',
-                'theinformation.com',
-              ]
-            : undefined,
+        // Use the comprehensive whitelist of trusted domains
+        includeDomains,
       } as any);
 
       console.log(
@@ -239,13 +441,16 @@ export class ExaNewsService {
         // Verify publication date is actually recent
         if (result.publishedDate) {
           const pubDate = new Date(result.publishedDate);
-          const hoursSince = (Date.now() - pubDate.getTime()) / (1000 * 60 * 60);
+          const hoursSince =
+            (Date.now() - pubDate.getTime()) / (1000 * 60 * 60);
           if (hoursSince > 48) {
-            console.log(`[Exa News Service] Filtering old article (#${index + 1}): ${result.title} (${hoursSince.toFixed(0)}h old)`);
+            console.log(
+              `[Exa News Service] Filtering old article (#${index + 1}): ${result.title} (${hoursSince.toFixed(0)}h old)`
+            );
             return false;
           }
         }
-        
+
         // Filter out non-news URL patterns
         const url = result.url.toLowerCase();
         const excludePatterns = [
@@ -257,14 +462,16 @@ export class ExaNewsService {
           /\/services\//,
           /\/press-releases?\//,
           /\/investor-relations\//,
-          /\/\d{4}\/\d{2}\// // Archive URLs like /2020/05/
+          /\/\d{4}\/\d{2}\//, // Archive URLs like /2020/05/
         ];
-        
-        if (excludePatterns.some(pattern => pattern.test(url))) {
-          console.log(`[Exa News Service] Filtering non-news URL (#${index + 1}): ${result.url}`);
+
+        if (excludePatterns.some((pattern) => pattern.test(url))) {
+          console.log(
+            `[Exa News Service] Filtering non-news URL (#${index + 1}): ${result.url}`
+          );
           return false;
         }
-        
+
         // Filter promotional content based on text
         if (result.text) {
           const textLower = result.text.toLowerCase();
@@ -275,22 +482,24 @@ export class ExaNewsService {
             'register now',
             'sign up today',
             'limited time offer',
-            'sponsored content'
+            'sponsored content',
           ];
-          
-          if (promoIndicators.some(phrase => textLower.includes(phrase))) {
-            console.log(`[Exa News Service] Filtering promotional content (#${index + 1}): ${result.title}`);
+
+          if (promoIndicators.some((phrase) => textLower.includes(phrase))) {
+            console.log(
+              `[Exa News Service] Filtering promotional content (#${index + 1}): ${result.title}`
+            );
             return false;
           }
         }
-        
+
         return true;
       });
 
       // Deduplicate by title similarity
       const deduplicatedResults = [];
       const seenTitles = new Set();
-      
+
       for (const result of validResults) {
         // Create normalized title for comparison
         const normalizedTitle = (result.title || '')
@@ -299,12 +508,14 @@ export class ExaNewsService {
           .split(' ')
           .slice(0, 5)
           .join(' ');
-        
+
         if (!seenTitles.has(normalizedTitle)) {
           seenTitles.add(normalizedTitle);
           deduplicatedResults.push(result);
         } else {
-          console.log(`[Exa News Service] Filtering duplicate: ${result.title}`);
+          console.log(
+            `[Exa News Service] Filtering duplicate: ${result.title}`
+          );
         }
       }
 
@@ -324,17 +535,15 @@ export class ExaNewsService {
       }
 
       // Prepare content for GPT curation with filtered results
-      const articlesForCuration = deduplicatedResults.map(
-        (result, index) => ({
-          index: index + 1,
-          title: result.title,
-          url: result.url,
-          publishedDate: result.publishedDate,
-          excerpt: result.text || '', // Use full text now (1000 chars)
-          source: new URL(result.url).hostname.replace('www.', ''),
-          score: result.score, // Include relevancy score if available
-        })
-      );
+      const articlesForCuration = deduplicatedResults.map((result, index) => ({
+        index: index + 1,
+        title: result.title,
+        url: result.url,
+        publishedDate: result.publishedDate,
+        excerpt: result.text || '', // Use full text now (1000 chars)
+        source: new URL(result.url).hostname.replace('www.', ''),
+        score: result.score, // Include relevancy score if available
+      }));
 
       // Build structured prompt for GPT curation
       const curatedPrompt = {
