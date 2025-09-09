@@ -186,7 +186,7 @@ export class AIImageService {
     if (imagePrompt) {
       const enhancedPrompt = {
         request:
-          'Generate a professional editorial image based on these AI-curated specifications',
+          'Generate a FULL-BLEED professional editorial image that completely fills the canvas',
         concept: imagePrompt.concept,
         style: imagePrompt.style,
         mood: imagePrompt.mood,
@@ -194,14 +194,14 @@ export class AIImageService {
         elements: imagePrompt.elements,
         composition: imagePrompt.composition,
         technical: {
-          aspectRatio: '1:1 square', // Always use square for all images
-          orientation: 'centered composition',
-          edgeToEdge: true,
-          noBorders: true,
-          fillCanvas:
-            'completely fill the entire image area from edge to edge without any borders, margins, or white space',
-          coverage:
-            'artwork must cover 100% of the canvas without any empty space',
+          aspectRatio: '1:1 perfect square',
+          format: 'FULL-BLEED image with NO borders whatsoever',
+          coverage: 'Visual content MUST extend to ALL FOUR EDGES',
+          background: 'Extend background patterns/colors to image boundaries',
+          fillRequirement:
+            'The entire 100% of the canvas must be filled with visual content - no empty areas, no borders, no margins, no padding',
+          edgeToEdge:
+            'Image must bleed off all edges - top, bottom, left, and right',
         },
         constraints: [
           ...imagePrompt.avoid,
@@ -209,23 +209,25 @@ export class AIImageService {
           'Company logos ARE allowed but ONLY if you are 100% certain of the correct logo design',
           'NO generic or placeholder logos',
           'NO words or letters except in authentic logos',
-          'NO borders or frames',
-          'NO white space or margins around edges',
-          'MUST fill entire canvas edge to edge',
+          'ABSOLUTELY NO borders, frames, or edges',
+          'ABSOLUTELY NO white/gray/neutral borders or margins',
+          'NO empty space around the edges - fill completely',
+          'Background MUST extend to all edges',
           'suitable for professional email newsletter',
         ],
       };
 
-      return `Generate an image based on these AI-curated specifications:
+      return `CRITICAL REQUIREMENTS - FULL-BLEED IMAGE:
+- Create a 1:1 square image that COMPLETELY FILLS the canvas
+- The artwork MUST extend to ALL FOUR EDGES with NO borders
+- Background elements/colors MUST reach the image boundaries
+- DO NOT leave any white, gray, or empty space around edges
+- Think of this as a "full-bleed" print design - content goes edge to edge
+
+Generate based on these specifications:
 ${JSON.stringify(enhancedPrompt, null, 2)}
 
-CRITICAL: 
-- Generate a perfect 1:1 square image
-- The artwork MUST fill the entire canvas from edge to edge 
-- NO borders, margins, or white space anywhere
-- The visual content should extend to all four edges of the image
-- Create a full-bleed design that covers 100% of the image area
-- Logos are allowed ONLY if you are 100% certain of the authentic design`;
+REMINDER: The image must look like the second example - with visual content extending fully to all edges, NOT like the first example with borders.`;
     }
 
     // Fallback to existing prompt generation logic
@@ -372,14 +374,14 @@ CRITICAL:
       },
 
       technical: {
-        aspectRatio: '1:1 square',
-        orientation: 'centered composition',
-        edgeToEdge: true,
-        noBorders: true,
-        fillCanvas:
-          'completely fill the entire image area from edge to edge without any borders, margins, or white space',
-        coverage:
-          'artwork must cover 100% of the canvas without any empty space',
+        aspectRatio: '1:1 perfect square',
+        format: 'FULL-BLEED image with NO borders whatsoever',
+        coverage: 'Visual content MUST extend to ALL FOUR EDGES',
+        background: 'Extend background patterns/colors to image boundaries',
+        fillRequirement:
+          'The entire 100% of the canvas must be filled with visual content - no empty areas, no borders, no margins, no padding',
+        edgeToEdge:
+          'Image must bleed off all edges - top, bottom, left, and right',
       },
 
       constraints: [
@@ -387,9 +389,10 @@ CRITICAL:
         'Company logos ARE allowed but ONLY if you are 100% certain of the correct logo design',
         'NO generic or placeholder logos',
         'NO words or letters except in authentic logos',
-        'NO borders or frames',
-        'NO white space or margins around edges',
-        'MUST fill entire canvas edge to edge',
+        'ABSOLUTELY NO borders, frames, or edges',
+        'ABSOLUTELY NO white/gray/neutral borders or margins',
+        'NO empty space around the edges - fill completely',
+        'Background MUST extend to all edges',
         'suitable for professional email newsletter',
       ],
 
@@ -399,16 +402,17 @@ CRITICAL:
     };
 
     // Convert to a clear JSON string for the AI
-    return `Generate an image based on these specifications:
+    return `CRITICAL REQUIREMENTS - FULL-BLEED IMAGE:
+- Create a 1:1 square image that COMPLETELY FILLS the canvas
+- The artwork MUST extend to ALL FOUR EDGES with NO borders
+- Background elements/colors MUST reach the image boundaries
+- DO NOT leave any white, gray, or empty space around edges
+- Think of this as a "full-bleed" print design - content goes edge to edge
+
+Generate based on these specifications:
 ${JSON.stringify(imageSpec, null, 2)}
 
-CRITICAL: 
-- Generate a perfect 1:1 square image
-- The artwork MUST fill the entire canvas from edge to edge 
-- NO borders, margins, or white space anywhere
-- The visual content should extend to all four edges of the image
-- Create a full-bleed design that covers 100% of the image area
-- Logos are allowed ONLY if you are 100% certain of the authentic design`;
+REMINDER: Visual content and background MUST extend fully to all edges. No borders or empty space allowed.`;
   }
 
   /**

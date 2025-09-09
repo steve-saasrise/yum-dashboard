@@ -236,16 +236,19 @@ export const DailyDigestEmail = ({
                         height: '560px',
                         objectFit: 'cover' as const,
                         objectPosition: 'center center' as const,
-                        position: 'absolute' as const,
-                        top: '50%',
-                        left: '0',
-                        transform: 'translateY(-50%)',
+                        marginTop: '-122.5px', // Center vertically: -(560-315)/2
                       }}
                     />
                   </div>
                 )}
                 <Heading as="h3" style={bigStoryHeadline}>
-                  {aiNewsSummary.bigStory.title}
+                  {aiNewsSummary.bigStory.sourceUrl ? (
+                    <Link href={aiNewsSummary.bigStory.sourceUrl} style={bigStoryHeadlineLink}>
+                      {aiNewsSummary.bigStory.title}
+                    </Link>
+                  ) : (
+                    aiNewsSummary.bigStory.title
+                  )}
                 </Heading>
                 <Text style={bigStorySummaryText}>
                   {aiNewsSummary.bigStory.summary}
@@ -609,143 +612,6 @@ export const DailyDigestEmail = ({
               </Section>
             </>
           )}
-
-          {/* Content Items */}
-          <Section style={contentSection}>
-            {content.map((item, index) => (
-              <div key={item.id}>
-                <div style={contentItem}>
-                  {/* Platform and Creator */}
-                  <table style={platformBadge}>
-                    <tr>
-                      <td style={platformIconCell}>
-                        <Img
-                          src={
-                            platformIcons[item.platform]?.src ||
-                            platformIcons.website.src
-                          }
-                          alt={
-                            platformIcons[item.platform]?.alt ||
-                            platformIcons.website.alt
-                          }
-                          width="16"
-                          height="16"
-                          style={platformIconImg}
-                        />
-                      </td>
-                      <td>
-                        <Text style={creatorName}>{item.creator_name}</Text>
-                      </td>
-                    </tr>
-                  </table>
-
-                  {/* Title */}
-                  <Heading as="h3" style={contentTitle}>
-                    {item.title}
-                  </Heading>
-
-                  {/* Thumbnail if exists */}
-                  {item.thumbnail_url && (
-                    <Img
-                      src={item.thumbnail_url}
-                      width="120"
-                      height="90"
-                      alt={item.title}
-                      style={thumbnail}
-                    />
-                  )}
-
-                  {/* Description */}
-                  <Text style={contentDescription}>
-                    {truncateToLines(
-                      item.description || item.content_body || '',
-                      200
-                    )}
-                  </Text>
-
-                  {/* Referenced Content (for quotes/retweets) */}
-                  {item.reference_type && item.referenced_content && (
-                    <div style={referencedContentContainer}>
-                      <Text style={referenceLabel}>
-                        {item.reference_type === 'quote'
-                          ? '💬 Quoted'
-                          : item.reference_type === 'retweet'
-                            ? '🔁 Reposted'
-                            : '↪ Replied to'}
-                      </Text>
-                      <div style={referencedContentBox}>
-                        {item.referenced_content.author && (
-                          <div style={referencedAuthorContainer}>
-                            <Text style={referencedAuthor}>
-                              {item.referenced_content.author.name ||
-                                item.referenced_content.author.username ||
-                                'Unknown'}
-                            </Text>
-                            {item.referenced_content.author.username && (
-                              <Text style={referencedUsername}>
-                                @{item.referenced_content.author.username}
-                              </Text>
-                            )}
-                            {item.referenced_content.author.is_verified && (
-                              <Text style={verifiedBadge}>✓</Text>
-                            )}
-                          </div>
-                        )}
-                        {item.referenced_content.text && (
-                          <Text style={referencedText}>
-                            {item.referenced_content.text}
-                          </Text>
-                        )}
-                        {item.referenced_content.media_urls &&
-                          item.referenced_content.media_urls.length > 0 && (
-                            <div style={mediaContainer}>
-                              {item.referenced_content.media_urls
-                                .slice(0, 2)
-                                .map(
-                                  (media, idx) =>
-                                    media.type === 'image' && (
-                                      <Img
-                                        key={idx}
-                                        src={media.url}
-                                        width="80"
-                                        height="80"
-                                        alt=""
-                                        style={referencedImage}
-                                      />
-                                    )
-                                )}
-                            </div>
-                          )}
-                        {item.referenced_content.engagement_metrics && (
-                          <Text style={engagementMetrics}>
-                            {item.referenced_content.engagement_metrics.likes &&
-                              `❤️ ${item.referenced_content.engagement_metrics.likes.toLocaleString()}`}
-                            {item.referenced_content.engagement_metrics.views &&
-                              ` · ${item.referenced_content.engagement_metrics.views.toLocaleString()} views`}
-                          </Text>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Button */}
-                  <Button
-                    style={viewButton}
-                    href={item.url}
-                    className="button-hover"
-                  >
-                    View Original
-                  </Button>
-                </div>
-
-                {index < content.length - 1 && <Hr style={contentDivider} />}
-              </div>
-            ))}
-          </Section>
-
-          <Section style={{ padding: '0 10px' }}>
-            <Hr style={divider} />
-          </Section>
 
           {/* Footer */}
           <Section style={footer}>
@@ -1334,9 +1200,6 @@ const engagementMetrics = {
 
 // Big Story styles
 const bigStorySection = {
-  padding: '20px 10px',
-  backgroundColor: '#e0e7ff',
-  borderRadius: '8px',
   marginBottom: '20px',
 };
 
@@ -1356,11 +1219,17 @@ const bigStoryImage = {
 };
 
 const bigStoryHeadline = {
-  color: '#1a1a1a',
   fontSize: '20px',
   fontWeight: '600',
   lineHeight: '1.3',
   margin: '12px 0',
+};
+
+const bigStoryHeadlineLink = {
+  color: '#2563eb',
+  textDecoration: 'none',
+  fontSize: '20px',
+  fontWeight: '600',
 };
 
 const bigStorySummaryText = {
@@ -1421,9 +1290,7 @@ const newsItemDescription = {
 };
 
 // Social Posts Section styles
-const socialPostsSection = {
-  padding: '20px 10px',
-};
+const socialPostsSection = {};
 
 const socialPostsTitle = {
   color: '#1a1a1a',

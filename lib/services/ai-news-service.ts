@@ -107,7 +107,6 @@ export class AINewsService {
     return Math.ceil(exponentialDelay + jitter);
   }
 
-
   /**
    * Clean topic name by removing "Coffee" and similar suffixes
    */
