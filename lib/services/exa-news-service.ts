@@ -112,6 +112,22 @@ export class ExaNewsService {
       'kdnuggets.com',
       'towardsdatascience.com',
       'arxiv.org', // For research papers
+      'sciencedaily.com', // Science news
+      'phys.org', // Physics and science news
+      'ts2.tech', // Tech news
+      'insidermonkey.com', // Financial and tech analysis
+      'prnewswire.com', // Press releases
+      'businesswire.com', // Business wire news
+      'globenewswire.com', // Global news wire
+      'newswire.ca', // Canadian newswire
+      'ibm.com', // IBM news and research
+      'microsoft.com', // Microsoft news
+      'google.com', // Google AI news
+      'deepmind.com', // DeepMind news
+      'openai.com', // OpenAI news
+      'anthropic.com', // Anthropic news
+      'nvidia.com', // NVIDIA AI news
+      'meta.com', // Meta AI news
     ],
 
     // Cryptocurrency and blockchain news sources
@@ -302,95 +318,91 @@ export class ExaNewsService {
         return date.toISOString().split('T')[0];
       };
 
-      // Build natural language query for neural search (not keyword lists)
+      // Build natural language query optimized for Exa's neural search
       let searchQuery = '';
       let category: 'news' | 'company' | 'research paper' | undefined = 'news';
-      let includeDomains: string[] = [];
-
-      // Select appropriate domains and query based on topic
+      
+      // Create optimized queries based on topic - check lounge description first
       if (
-        topicLower.includes('ai') ||
-        loungeDescription?.toLowerCase().includes('artificial intelligence')
+        loungeDescription?.toLowerCase().includes('cryptocurrency') ||
+        loungeDescription?.toLowerCase().includes('blockchain') ||
+        topicLower.includes('crypto')
       ) {
-        // Focused query for AI news - let autoprompt enhance it
-        searchQuery = `AI news today announcements funding breakthroughs`;
-        // Combine tech, AI, and general news domains
-        includeDomains = [
+        searchQuery = `cryptocurrency blockchain Bitcoin Ethereum DeFi NFT Web3 crypto news today`;
+      } else if (
+        loungeDescription?.toLowerCase().includes('artificial intelligence') ||
+        topicLower.includes('ai')
+      ) {
+        // Natural language query that Exa's neural search understands well
+        searchQuery = `latest AI artificial intelligence news breakthroughs announcements funding today`;
+      } else if (
+        loungeDescription?.toLowerCase().includes('software as a service') ||
+        topicLower.includes('saas')
+      ) {
+        searchQuery = `SaaS software companies news funding product launches acquisitions today`;
+      } else if (
+        loungeDescription?.toLowerCase().includes('venture capital') ||
+        topicLower.includes('venture')
+      ) {
+        searchQuery = `venture capital VC funding rounds Series A B C startups investments today`;
+        category = 'company'; // Use company category for VC news
+      } else if (
+        loungeDescription?.toLowerCase().includes('growth strategies') ||
+        loungeDescription?.toLowerCase().includes('b2b growth') ||
+        topicLower.includes('growth')
+      ) {
+        searchQuery = `growth marketing experiments A/B testing conversion rates case studies metrics results`;
+      } else {
+        // Use the description if available, otherwise generic query
+        searchQuery = loungeDescription
+          ? `${loungeDescription} latest news updates announcements today`
+          : `${topic} news updates announcements today`;
+      }
+
+      // Build the comprehensive trusted domains list for manual filtering later
+      let trustedDomains: string[] = [];
+      
+      if (topicLower.includes('ai')) {
+        trustedDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.ai,
           ...this.TRUSTED_NEWS_DOMAINS.tech,
           ...this.TRUSTED_NEWS_DOMAINS.general,
         ];
-      } else if (
-        topicLower.includes('saas') ||
-        loungeDescription?.toLowerCase().includes('software as a service')
-      ) {
-        // Focused query for SaaS news
-        searchQuery = `SaaS companies funding product launches acquisitions today`;
-        // Combine SaaS, tech, and general business domains
-        includeDomains = [
+      } else if (topicLower.includes('saas')) {
+        trustedDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.saas,
           ...this.TRUSTED_NEWS_DOMAINS.tech,
           ...this.TRUSTED_NEWS_DOMAINS.general,
         ];
-      } else if (
-        topicLower.includes('venture') ||
-        loungeDescription?.toLowerCase().includes('venture capital')
-      ) {
-        // Focused query for VC news
-        searchQuery = `venture capital funding rounds Series A B C today`;
-        category = 'company';
-        // Combine venture, tech, and business domains
-        includeDomains = [
+      } else if (topicLower.includes('venture')) {
+        trustedDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.venture,
           ...this.TRUSTED_NEWS_DOMAINS.tech,
           ...this.TRUSTED_NEWS_DOMAINS.general,
         ];
-      } else if (
-        topicLower.includes('growth') ||
-        loungeDescription?.toLowerCase().includes('growth strategies')
-      ) {
-        // Focused query for growth news
-        searchQuery = `growth experiments A/B testing results case studies metrics`;
-        // Combine growth, SaaS, and tech domains
-        includeDomains = [
+      } else if (topicLower.includes('growth')) {
+        trustedDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.growth,
           ...this.TRUSTED_NEWS_DOMAINS.saas,
           ...this.TRUSTED_NEWS_DOMAINS.tech,
           ...this.TRUSTED_NEWS_DOMAINS.general,
         ];
-      } else if (
-        topicLower.includes('crypto') ||
-        loungeDescription?.toLowerCase().includes('blockchain')
-      ) {
-        // Broader crypto query - not just BTC/ETH
-        searchQuery = `cryptocurrency blockchain news DeFi NFT Web3 altcoins today`;
-        // Use crypto and financial domains
-        includeDomains = [
+      } else if (topicLower.includes('crypto')) {
+        trustedDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.crypto,
           ...this.TRUSTED_NEWS_DOMAINS.general.filter((d) =>
-            [
-              'bloomberg.com',
-              'reuters.com',
-              'wsj.com',
-              'ft.com',
-              'cnbc.com',
-              'forbes.com',
-            ].includes(d)
+            ['bloomberg.com', 'reuters.com', 'wsj.com', 'ft.com', 'cnbc.com', 'forbes.com'].includes(d)
           ),
         ];
       } else {
-        // Fallback: use general news and tech domains
-        searchQuery = loungeDescription
-          ? `${loungeDescription} news today`
-          : `${topic} news announcements today`;
-        includeDomains = [
+        trustedDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.general,
           ...this.TRUSTED_NEWS_DOMAINS.tech,
         ];
       }
 
-      // Remove duplicates from includeDomains
-      includeDomains = [...new Set(includeDomains)];
+      // Remove duplicates
+      trustedDomains = [...new Set(trustedDomains)];
 
       // Log the search details
       console.log(`[Exa News Service] Starting search for ${topic}...`);
@@ -398,17 +410,18 @@ export class ExaNewsService {
         `[Exa News Service] Using search query: "${searchQuery.substring(0, 200)}${searchQuery.length > 200 ? '...' : ''}"`
       );
       console.log(
-        `[Exa News Service] Whitelisting ${includeDomains.length} trusted domains`
+        `[Exa News Service] Will filter for ${trustedDomains.length} trusted domains after search`
       );
       console.log(
         `[Exa News Service] Lounge description: "${loungeDescription || 'Not provided'}"`
       );
 
-      // Perform Exa search with optimized parameters for relevancy
+      // Perform search AND get contents without domain filtering
+      // We'll filter by trusted domains manually after getting results
       const searchResults = await this.exa.searchAndContents(searchQuery, {
-        numResults: 25, // Optimal number for quality selection
+        numResults: 50, // Get more results since we'll filter manually
         useAutoprompt: true, // Enable Exa's query enhancement
-        type: 'neural', // Force neural search for better relevancy
+        type: 'auto', // Let Exa choose between neural and keyword
         category, // Focus on news/company results
         startPublishedDate: formatDate(startDate),
         endPublishedDate: formatDate(endDate),
@@ -416,17 +429,68 @@ export class ExaNewsService {
           maxCharacters: 1000, // More context for better curation
           includeHtmlTags: false,
         },
-        // Use the comprehensive whitelist of trusted domains
-        // Note: Can't use both includeDomains and excludeDomains with content fetching
-        includeDomains,
+        // NO includeDomains - we'll filter manually after
       } as any);
 
       console.log(
         `[Exa News Service] Found ${searchResults.results.length} results for ${topic}`
       );
 
-      // Filter and validate results
-      const validResults = searchResults.results.filter((result, index) => {
+      // Be more permissive with domain filtering
+      // Accept results from major news wires, tech company sites, and science outlets
+      const domainFilteredResults = searchResults.results.filter((result) => {
+        const url = new URL(result.url);
+        const domain = url.hostname.replace('www.', '').toLowerCase();
+        
+        // Check if it's a trusted domain
+        const isTrusted = trustedDomains.some((trustedDomain) => {
+          const cleanTrusted = trustedDomain.replace('www.', '').toLowerCase();
+          return domain === cleanTrusted || domain.endsWith(`.${cleanTrusted}`);
+        });
+        
+        // For crypto, be more permissive with crypto-specific sites
+        const isCryptoAcceptable = topicLower.includes('crypto') && (
+          domain.includes('coin') ||
+          domain.includes('crypto') ||
+          domain.includes('blockchain') ||
+          domain.includes('defi') ||
+          domain.includes('nft') ||
+          domain.includes('web3') ||
+          domain.includes('bitcoin') ||
+          domain.includes('ethereum') ||
+          domain.includes('binance') ||
+          domain.includes('token')
+        );
+        
+        // Also accept press release sites, company sites, and academic sources
+        const isGenerallyAcceptable = 
+          domain.includes('newswire') ||
+          domain.includes('wire.com') ||
+          domain.includes('.edu') ||
+          domain.includes('sciencedaily') ||
+          domain.includes('phys.org') ||
+          domain.includes('insider') ||
+          domain.includes('yahoo') ||
+          domain.includes('microsoft') ||
+          domain.includes('google') ||
+          domain.includes('nvidia') ||
+          domain.includes('openai') ||
+          domain.includes('anthropic') ||
+          domain.includes('deepmind') ||
+          domain.includes('meta.') ||
+          domain.includes('ibm.') ||
+          domain.includes('tech') ||
+          domain.includes('news');
+        
+        return isTrusted || isCryptoAcceptable || isGenerallyAcceptable;
+      });
+
+      console.log(
+        `[Exa News Service] After domain filtering: ${domainFilteredResults.length} results from acceptable sources`
+      );
+
+      // Then validate and filter further
+      const validResults = domainFilteredResults.filter((result, index) => {
         // Verify publication date is actually recent
         if (result.publishedDate) {
           const pubDate = new Date(result.publishedDate);
