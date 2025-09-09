@@ -83,12 +83,12 @@ export const AI_NEWS_JOB_OPTIONS = {
   // Delays are set per-job in queueAINewsGeneration function
 };
 
-// Worker concurrency settings - Reduced to prevent lock contention
+// Worker concurrency settings - Restored to optimal levels with Exa
 export const WORKER_CONCURRENCY = {
   CONTENT_FETCH: 2, // Process 2 creators concurrently (reduced from 5)
   AI_SUMMARY: 3, // Generate 3 summaries concurrently
   CREATOR_PROCESSING: 3, // Process 3 individual creators (reduced from 10 to prevent lock issues)
   BRIGHTDATA_PROCESSING: 2, // Process 2 BrightData snapshots concurrently
-  AI_NEWS_GENERATION: 2, // Process 2 news generation jobs concurrently (reduced from 3 to stay under 200k TPM limit)
+  AI_NEWS_GENERATION: 3, // Process 3 news generation jobs concurrently (no more rate limits with Exa!)
   EMAIL_DIGEST: 10, // Process 10 user digests concurrently (emails are fast)
 };

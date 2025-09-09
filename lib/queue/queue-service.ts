@@ -158,8 +158,6 @@ export async function queueAINewsGeneration(
 
   const jobsToAdd = [];
   let skipped = 0;
-  let delayCounter = 0;
-  const STAGGER_DELAY = 15000; // 15 seconds between job starts
 
   for (const lounge of lounges) {
     const jobId = `news-lounge-${lounge.id}-${new Date().toISOString().split('T')[0]}`;
@@ -179,10 +177,9 @@ export async function queueAINewsGeneration(
         opts: {
           jobId,
           priority: 1,
-          delay: delayCounter * STAGGER_DELAY, // Stagger job starts
+          delay: 0, // No delay - Exa handles parallel requests well
         },
       });
-      delayCounter++;
     } else {
       const state = await existingJob.getState();
       if (state === 'completed' || state === 'failed') {
@@ -199,10 +196,9 @@ export async function queueAINewsGeneration(
           opts: {
             jobId,
             priority: 1,
-            delay: delayCounter * STAGGER_DELAY, // Stagger job starts
+            delay: 0, // No delay - Exa handles parallel requests well
           },
         });
-        delayCounter++;
       } else {
         skipped++;
       }
@@ -226,10 +222,9 @@ export async function queueAINewsGeneration(
         opts: {
           jobId: generalJobId,
           priority: 1,
-          delay: delayCounter * STAGGER_DELAY, // Stagger general news too
+          delay: 0, // No delay - Exa handles parallel requests well
         },
       });
-      delayCounter++;
     } else {
       const state = await existingGeneralJob.getState();
       if (state === 'completed' || state === 'failed') {
@@ -245,10 +240,9 @@ export async function queueAINewsGeneration(
           opts: {
             jobId: generalJobId,
             priority: 1,
-            delay: delayCounter * STAGGER_DELAY, // Stagger general news too
+            delay: 0, // No delay - Exa handles parallel requests well
           },
         });
-        delayCounter++;
       } else {
         skipped++;
       }
@@ -259,13 +253,11 @@ export async function queueAINewsGeneration(
   const results =
     jobsToAdd.length > 0 ? await newsQueue.addBulk(jobsToAdd) : [];
 
-  // Log staggering details
+  // Log queue details
   if (results.length > 0) {
-    console.log(`[AI News Queue] Queued ${results.length} jobs with staggered delays:`);
-    jobsToAdd.forEach((job, index) => {
-      const delaySeconds = (job.opts?.delay || 0) / 1000;
-      console.log(`  - ${job.data.loungeName}: ${delaySeconds}s delay`);
-    });
+    console.log(
+      `[AI News Queue] Queued ${results.length} jobs for immediate processing (no delays with Exa!)`
+    );
   }
 
   return {

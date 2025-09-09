@@ -243,7 +243,10 @@ export const DailyDigestEmail = ({
                 )}
                 <Heading as="h3" style={bigStoryHeadline}>
                   {aiNewsSummary.bigStory.sourceUrl ? (
-                    <Link href={aiNewsSummary.bigStory.sourceUrl} style={bigStoryHeadlineLink}>
+                    <Link
+                      href={aiNewsSummary.bigStory.sourceUrl}
+                      style={bigStoryHeadlineLink}
+                    >
                       {aiNewsSummary.bigStory.title}
                     </Link>
                   ) : (

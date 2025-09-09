@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
-import { AINewsService } from '@/lib/services/ai-news-service';
+import { ExaNewsService } from '@/lib/services/exa-news-service';
 import {
   getRedisConnection,
   QUEUE_NAMES,
@@ -36,12 +36,12 @@ export function createAINewsProcessorWorker() {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Initialize AI news service
-        const aiNewsService = new AINewsService();
+        // Initialize Exa news service
+        const exaNewsService = new ExaNewsService();
 
-        // Generate AI news
-        console.log(`[AI News Worker] Generating news for: ${loungeName}`);
-        const newsResult = await aiNewsService.generateNews(
+        // Generate AI news using Exa
+        console.log(`[AI News Worker] Generating news using Exa for: ${loungeName}`);
+        const newsResult = await exaNewsService.generateNews(
           loungeName,
           loungeDescription
         );
@@ -77,7 +77,7 @@ export function createAINewsProcessorWorker() {
             summary_bullets: validItems as any,
             special_section: (newsResult.specialSection || []) as any,
             generated_at: new Date().toISOString(),
-            model_used: 'gpt-4o-mini',
+            model_used: 'gpt-5-mini',
             token_count: 0, // Can be calculated if needed
             generation_time_ms: Date.now() - startTime,
             used_in_digest: false,

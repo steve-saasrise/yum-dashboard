@@ -79,6 +79,7 @@
     "date-fns": "latest",
     "dotenv": "^17.2.1",
     "embla-carousel-react": "8.5.1",
+    "exa-js": "^1.9.3",
     "googleapis": "^153.0.0",
     "input-otp": "1.4.1",
     "ioredis": "^5.7.0",
