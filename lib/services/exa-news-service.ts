@@ -144,8 +144,8 @@ export class ExaNewsService {
         topicLower.includes('crypto') ||
         loungeDescription?.toLowerCase().includes('blockchain')
       ) {
-        // Focus on major crypto news, DeFi, blockchain tech
-        searchQuery = `(Bitcoin OR Ethereum OR Solana OR Coinbase OR Binance) OR "cryptocurrency" OR "blockchain" OR "DeFi" OR "NFT" OR "Web3" OR "crypto regulation" OR "stablecoin" OR "crypto funding" OR "blockchain adoption" OR "smart contracts" OR "crypto exchange"`;
+        // Comprehensive crypto search - cast a wider net to ensure we always get results
+        searchQuery = `(Bitcoin OR BTC OR Ethereum OR ETH OR Solana OR cryptocurrency OR crypto) OR (Coinbase OR Binance OR Kraken OR "crypto exchange") OR (DeFi OR "decentralized finance" OR NFT OR Web3) OR ("crypto news" OR "blockchain news" OR "digital assets") OR (altcoin OR stablecoin OR USDT OR USDC) OR ("crypto market" OR "crypto trading" OR "crypto price") OR (blockchain OR "distributed ledger" OR "smart contracts") OR ("crypto regulation" OR SEC OR "crypto policy") OR (Polygon OR Avalanche OR Cardano OR Polkadot) OR ("crypto funding" OR "crypto investment" OR "crypto VC")`;
       } else {
         // Fallback: use the description if available, otherwise use topic
         searchQuery =
@@ -162,9 +162,9 @@ export class ExaNewsService {
         `[Exa News Service] Lounge description: "${loungeDescription || 'Not provided'}"`
       );
 
-      // Perform Exa search with date filtering
+      // Perform Exa search with date filtering (increased to 20 for better coverage)
       const searchResults = await this.exa.searchAndContents(searchQuery, {
-        numResults: 12,
+        numResults: 20,
         startPublishedDate: formatDate(startDate),
         endPublishedDate: formatDate(endDate),
         text: {
@@ -282,6 +282,12 @@ CRITICAL REQUIREMENTS:
 - Focus on substance: funding, product launches, acquisitions, technical breakthroughs, industry trends
 - Prioritize news from recognized industry sources and companies
 
+IMPORTANT: You MUST fill all 5 bullet points and the special section. If you cannot find 5 perfect matches:
+- Include the best available articles even if tangentially related to ${topic}
+- NEVER return "No applicable story" or empty fields
+- It's better to include a somewhat relevant story than no story at all
+- There are ${articlesForCuration.length} articles provided - use them all if needed
+
 ${curationPrompt}`,
         reasoning: {
           effort: 'minimal', // Fast response for simple curation task
@@ -311,10 +317,13 @@ ${curationPrompt}`,
         bigStory = parsed.bigStory;
       }
 
-      // Extract bullets
+      // Extract bullets and filter out "No applicable story" entries
       if (parsed.bullets && Array.isArray(parsed.bullets)) {
         for (const bullet of parsed.bullets.slice(0, 5)) {
-          if (bullet.text) {
+          if (
+            bullet.text &&
+            !bullet.text.toLowerCase().includes('no applicable story')
+          ) {
             items.push({
               text: bullet.text,
               summary: bullet.summary,
@@ -325,10 +334,35 @@ ${curationPrompt}`,
         }
       }
 
-      // Extract special section
+      // Fallback: If we have less than 3 items, use article titles directly
+      if (items.length < 3 && articlesForCuration.length > 0) {
+        console.log(
+          `[Exa News Service] Warning: Only ${items.length} items for ${topic}, using article titles as fallback`
+        );
+
+        // Add remaining articles directly
+        const needed = 5 - items.length;
+        for (let i = 0; i < Math.min(needed, articlesForCuration.length); i++) {
+          const article = articlesForCuration[i];
+          if (!items.some((item) => item.sourceUrl === article.url)) {
+            items.push({
+              text: (article.title || 'Latest crypto news').substring(0, 80),
+              summary:
+                article.excerpt.substring(0, 150) || 'Read more at the source',
+              sourceUrl: article.url,
+              source: article.source,
+            });
+          }
+        }
+      }
+
+      // Extract special section and filter out "No applicable story" entries
       if (parsed.specialSection && Array.isArray(parsed.specialSection)) {
         for (const item of parsed.specialSection.slice(0, 5)) {
-          if (item.text) {
+          if (
+            item.text &&
+            !item.text.toLowerCase().includes('no applicable story')
+          ) {
             specialItems.push({
               text: item.text,
               summary: item.summary,
