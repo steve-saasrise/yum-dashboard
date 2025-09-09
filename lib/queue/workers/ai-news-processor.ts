@@ -148,6 +148,12 @@ export function createAINewsProcessorWorker() {
       concurrency: WORKER_CONCURRENCY.AI_NEWS_GENERATION,
       removeOnComplete: { count: 20 },
       removeOnFail: { count: 50 },
+      // Rate limit to respect Exa's 5 requests per second limit
+      // With safety margin: 4 requests per second = 240 per minute
+      limiter: {
+        max: 4, // Maximum 4 jobs
+        duration: 1000, // Per 1 second
+      },
     }
   );
 
