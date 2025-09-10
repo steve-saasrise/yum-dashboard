@@ -320,8 +320,9 @@ export class ExaNewsService {
 
       // Build natural language query optimized for Exa's neural search
       let searchQuery = '';
-      const category: 'news' | 'company' | 'research paper' | undefined =
-        'news';
+      // Use news_article for better article filtering
+      const category: 'news' | 'company' | 'research paper' | 'news_article' | undefined =
+        'news_article' as any;
 
       // Create optimized queries based on topic - check lounge description first
       // ALL queries should focus on NEWS, not educational content
@@ -340,14 +341,14 @@ export class ExaNewsService {
         loungeDescription?.toLowerCase().includes('software as a service') ||
         topicLower.includes('saas')
       ) {
-        // Use site: operators to target specific news sites
-        searchQuery = `(site:techcrunch.com OR site:venturebeat.com OR site:theinformation.com OR site:sifted.eu OR site:forbes.com) SaaS "raises" "funding" "Series A" "Series B" "Series C" "acquisition" "IPO"`;
+        // Simple query focused on enterprise SaaS (not medical/biotech)
+        searchQuery = `enterprise SaaS B2B software startup funding rounds Series A B C acquisitions Salesforce Slack Datadog Snowflake`;
       } else if (
         loungeDescription?.toLowerCase().includes('venture capital') ||
         topicLower.includes('venture')
       ) {
-        // Use site: operators for VC news too
-        searchQuery = `(site:techcrunch.com OR site:pitchbook.com OR site:crunchbase.com OR site:venturebeat.com OR site:theinformation.com) venture capital "raises" "Series A" "Series B" "Series C" "funding round" "million" "billion"`;
+        // Simple query for tech/startup VC (not medical/biotech)
+        searchQuery = `tech startups venture capital VC funding rounds raised millions Series A B C Sequoia Andreessen YC`;
         // Don't change category - keep it as 'news'
       } else if (
         loungeDescription?.toLowerCase().includes('growth strategies') ||
@@ -429,36 +430,51 @@ export class ExaNewsService {
         `[Exa News Service] Lounge description: "${loungeDescription || 'Not provided'}"`
       );
 
-      // Use keyword search for site: operators, neural for others
-      const searchType = searchQuery.includes('site:') ? 'keyword' : 'auto';
-      const useAutoprompt = !searchQuery.includes('site:'); // Don't modify site: queries
-      
-      // Perform search AND get contents without domain filtering
-      // We'll filter by trusted domains manually after getting results
-      // IMPORTANT: Use livecrawl to get fresh content instead of cached results
-      const searchResults = await this.exa.searchAndContents(searchQuery, {
-        numResults: 50, // Get more results since we'll filter manually
-        useAutoprompt, // Enable Exa's query enhancement (except for site: queries)
-        type: searchType, // Use keyword for site: operators
-        category, // Focus on news/company results
+      // Build search configuration
+      let searchConfig: any = {
+        numResults: 50,
+        useAutoprompt: true, // Always use autoprompt for better results
+        type: 'auto', // Let Exa decide
+        category, // Use news_article category
         startPublishedDate: formatDate(startDate),
         endPublishedDate: formatDate(endDate),
-        livecrawl: 'preferred', // Try to get fresh content, fallback to cache if needed
+        livecrawl: 'preferred', // Try to get fresh content
         text: {
-          maxCharacters: 1000, // More context for better curation
+          maxCharacters: 1000,
           includeHtmlTags: false,
         },
-        // Exclude known problematic domains
-        excludeDomains: [
-          'eventbrite.com',
-          'summit.thehouse.fund',
-          'iqpc.com',
-          'coriniumintelligence.com',
-          'managedservicessummit.com',
-          'bvca.co.uk', // British Venture Capital Association - not news
-          'analytica-world.com', // Too niche/medical focused
-        ] as any,
-      } as any);
+      };
+
+      // For SaaS and Venture topics, use includeDomains for quality sources
+      if (topicLower.includes('saas') || topicLower.includes('venture')) {
+        searchConfig.includeDomains = [
+          'techcrunch.com',
+          'venturebeat.com',
+          'forbes.com',
+          'bloomberg.com',
+          'reuters.com',
+          'theinformation.com',
+          'sifted.eu',
+          'pitchbook.com',
+          'crunchbase.com',
+          'businessinsider.com',
+          'wsj.com',
+          'cnbc.com',
+        ];
+      }
+      
+      // Always exclude problematic domains
+      searchConfig.excludeDomains = [
+        'eventbrite.com',
+        'summit.thehouse.fund',
+        'iqpc.com',
+        'coriniumintelligence.com',
+        'managedservicessummit.com',
+        'bvca.co.uk',
+        'analytica-world.com',
+      ];
+
+      const searchResults = await this.exa.searchAndContents(searchQuery, searchConfig);
 
       console.log(
         `[Exa News Service] Found ${searchResults.results.length} results for ${topic}`
@@ -580,14 +596,20 @@ export class ExaNewsService {
           const hoursSince =
             (Date.now() - pubDate.getTime()) / (1000 * 60 * 60);
           // For SaaS and Venture, be stricter about freshness (24h max)
-          const maxHours = (topicLower.includes('saas') || topicLower.includes('venture')) ? 24 : 48;
+          const maxHours =
+            topicLower.includes('saas') || topicLower.includes('venture')
+              ? 24
+              : 48;
           if (hoursSince > maxHours) {
             console.log(
               `[Exa News Service] Filtering old article (#${index + 1}): ${result.title} (${hoursSince.toFixed(0)}h old, max ${maxHours}h)`
             );
             return false;
           }
-        } else if (topicLower.includes('saas') || topicLower.includes('venture')) {
+        } else if (
+          topicLower.includes('saas') ||
+          topicLower.includes('venture')
+        ) {
           // For SaaS/Venture, reject articles without dates
           console.log(
             `[Exa News Service] Filtering article without date for ${topic}: ${result.title}`

@@ -30,7 +30,7 @@ async function testSaaSVenture() {
 
   try {
     const saasQuery = `SaaS software startup funding acquisitions product launches Salesforce Slack Zoom Microsoft Teams Notion news today`;
-    
+
     console.log('Query:', saasQuery);
     console.log('');
 
@@ -60,10 +60,12 @@ async function testSaaSVenture() {
       if (r.publishedDate) {
         const date = r.publishedDate.split('T')[0];
         dateAnalysis.set(date, (dateAnalysis.get(date) || 0) + 1);
-        
+
         const pubDate = new Date(r.publishedDate);
-        const hoursAgo = Math.floor((endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60));
-        
+        const hoursAgo = Math.floor(
+          (endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60)
+        );
+
         console.log(`${i + 1}. [${hoursAgo}h ago] ${domain}`);
         console.log(`   ${r.title}`);
         console.log(`   Score: ${r.score}`);
@@ -81,7 +83,9 @@ async function testSaaSVenture() {
     Array.from(dateAnalysis.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
       .forEach(([date, count]) => {
-        const daysAgo = Math.floor((endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+        const daysAgo = Math.floor(
+          (endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
+        );
         console.log(`  ${date} (${daysAgo} days ago): ${count} articles`);
       });
     console.log('');
@@ -104,7 +108,7 @@ async function testSaaSVenture() {
 
   try {
     const ventureQuery = `venture capital VC funding rounds Series A B C startup investments acquisitions IPO news today`;
-    
+
     console.log('Query:', ventureQuery);
     console.log('');
 
@@ -134,10 +138,12 @@ async function testSaaSVenture() {
       if (r.publishedDate) {
         const date = r.publishedDate.split('T')[0];
         dateAnalysis.set(date, (dateAnalysis.get(date) || 0) + 1);
-        
+
         const pubDate = new Date(r.publishedDate);
-        const hoursAgo = Math.floor((endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60));
-        
+        const hoursAgo = Math.floor(
+          (endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60)
+        );
+
         console.log(`${i + 1}. [${hoursAgo}h ago] ${domain}`);
         console.log(`   ${r.title}`);
         console.log(`   Score: ${r.score}`);
@@ -155,7 +161,9 @@ async function testSaaSVenture() {
     Array.from(dateAnalysis.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
       .forEach(([date, count]) => {
-        const daysAgo = Math.floor((endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+        const daysAgo = Math.floor(
+          (endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
+        );
         console.log(`  ${date} (${daysAgo} days ago): ${count} articles`);
       });
     console.log('');
@@ -178,7 +186,7 @@ async function testSaaSVenture() {
 
   try {
     const aiQuery = `latest AI artificial intelligence news breakthroughs announcements funding today`;
-    
+
     console.log('Query:', aiQuery);
     console.log('');
 
@@ -211,7 +219,9 @@ async function testSaaSVenture() {
     Array.from(dateAnalysis.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
       .forEach(([date, count]) => {
-        const daysAgo = Math.floor((endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+        const daysAgo = Math.floor(
+          (endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
+        );
         console.log(`  ${date} (${daysAgo} days ago): ${count} articles`);
       });
 
@@ -220,8 +230,10 @@ async function testSaaSVenture() {
     aiResults.results.slice(0, 5).forEach((r, i) => {
       const domain = new URL(r.url).hostname.replace('www.', '');
       const pubDate = r.publishedDate ? new Date(r.publishedDate) : null;
-      const hoursAgo = pubDate ? Math.floor((endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60)) : 'unknown';
-      
+      const hoursAgo = pubDate
+        ? Math.floor((endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60))
+        : 'unknown';
+
       console.log(`${i + 1}. [${hoursAgo}h ago] ${domain}: ${r.title}`);
     });
   } catch (error) {

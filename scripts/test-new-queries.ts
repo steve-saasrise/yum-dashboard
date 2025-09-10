@@ -30,7 +30,7 @@ async function testNewQueries() {
 
   try {
     const saasQuery = `TechCrunch VentureBeat SaaS startup "Series A" "Series B" "Series C" funding round million billion Salesforce HubSpot Datadog Snowflake Stripe acquisition IPO news`;
-    
+
     console.log('Query:', saasQuery);
     console.log('');
 
@@ -69,10 +69,12 @@ async function testNewQueries() {
       if (r.publishedDate) {
         const date = r.publishedDate.split('T')[0];
         dateAnalysis.set(date, (dateAnalysis.get(date) || 0) + 1);
-        
+
         const pubDate = new Date(r.publishedDate);
-        const hoursAgo = Math.floor((endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60));
-        
+        const hoursAgo = Math.floor(
+          (endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60)
+        );
+
         console.log(`${i + 1}. [${hoursAgo}h ago] ${domain}`);
         console.log(`   ${r.title}`);
         if (r.text) {
@@ -89,7 +91,9 @@ async function testNewQueries() {
     Array.from(dateAnalysis.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
       .forEach(([date, count]) => {
-        const daysAgo = Math.floor((endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+        const daysAgo = Math.floor(
+          (endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
+        );
         console.log(`  ${date} (${daysAgo} days ago): ${count} articles`);
       });
     console.log('');
@@ -112,7 +116,7 @@ async function testNewQueries() {
 
   try {
     const ventureQuery = `TechCrunch Pitchbook "raises $" "secures funding" "Series A" "Series B" "Series C" "Series D" million billion venture capital Sequoia Andreessen Y Combinator IPO acquisition`;
-    
+
     console.log('Query:', ventureQuery);
     console.log('');
 
@@ -143,16 +147,20 @@ async function testNewQueries() {
     // Show top 10 results
     ventureResults.results.slice(0, 10).forEach((r, i) => {
       const domain = new URL(r.url).hostname.replace('www.', '');
-      
+
       if (r.publishedDate) {
         const pubDate = new Date(r.publishedDate);
-        const hoursAgo = Math.floor((endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60));
-        
+        const hoursAgo = Math.floor(
+          (endDate.getTime() - pubDate.getTime()) / (1000 * 60 * 60)
+        );
+
         console.log(`${i + 1}. [${hoursAgo}h ago] ${domain}`);
         console.log(`   ${r.title}`);
         if (r.text) {
           // Check if it mentions funding amounts
-          const fundingMatch = r.text.match(/\$[\d.]+[MBK]|\$[\d,]+|million|billion/i);
+          const fundingMatch = r.text.match(
+            /\$[\d.]+[MBK]|\$[\d,]+|million|billion/i
+          );
           if (fundingMatch) {
             console.log(`   💰 Funding mention: ${fundingMatch[0]}`);
           }
@@ -178,7 +186,9 @@ async function testNewQueries() {
     Array.from(dateAnalysis.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
       .forEach(([date, count]) => {
-        const daysAgo = Math.floor((endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+        const daysAgo = Math.floor(
+          (endDate.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
+        );
         console.log(`  ${date} (${daysAgo} days ago): ${count} articles`);
       });
   } catch (error) {
