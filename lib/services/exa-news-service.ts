@@ -425,6 +425,7 @@ export class ExaNewsService {
 
       // Perform search AND get contents without domain filtering
       // We'll filter by trusted domains manually after getting results
+      // IMPORTANT: Use livecrawl to get fresh content instead of cached results
       const searchResults = await this.exa.searchAndContents(searchQuery, {
         numResults: 50, // Get more results since we'll filter manually
         useAutoprompt: true, // Enable Exa's query enhancement
@@ -432,6 +433,7 @@ export class ExaNewsService {
         category, // Focus on news/company results
         startPublishedDate: formatDate(startDate),
         endPublishedDate: formatDate(endDate),
+        livecrawl: 'preferred', // Try to get fresh content, fallback to cache if needed
         text: {
           maxCharacters: 1000, // More context for better curation
           includeHtmlTags: false,
