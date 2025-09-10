@@ -340,14 +340,14 @@ export class ExaNewsService {
         loungeDescription?.toLowerCase().includes('software as a service') ||
         topicLower.includes('saas')
       ) {
-        // Focus on actual SaaS company news, not generic content
-        searchQuery = `SaaS software startup funding acquisitions product launches Salesforce Slack Zoom Microsoft Teams Notion news today`;
+        // Use site: operators to target specific news sites
+        searchQuery = `(site:techcrunch.com OR site:venturebeat.com OR site:theinformation.com OR site:sifted.eu OR site:forbes.com) SaaS "raises" "funding" "Series A" "Series B" "Series C" "acquisition" "IPO"`;
       } else if (
         loungeDescription?.toLowerCase().includes('venture capital') ||
         topicLower.includes('venture')
       ) {
-        // Keep focus on news category, not company category
-        searchQuery = `venture capital VC funding rounds Series A B C startup investments acquisitions IPO news today`;
+        // Use site: operators for VC news too
+        searchQuery = `(site:techcrunch.com OR site:pitchbook.com OR site:crunchbase.com OR site:venturebeat.com OR site:theinformation.com) venture capital "raises" "Series A" "Series B" "Series C" "funding round" "million" "billion"`;
         // Don't change category - keep it as 'news'
       } else if (
         loungeDescription?.toLowerCase().includes('growth strategies') ||
@@ -429,13 +429,17 @@ export class ExaNewsService {
         `[Exa News Service] Lounge description: "${loungeDescription || 'Not provided'}"`
       );
 
+      // Use keyword search for site: operators, neural for others
+      const searchType = searchQuery.includes('site:') ? 'keyword' : 'auto';
+      const useAutoprompt = !searchQuery.includes('site:'); // Don't modify site: queries
+      
       // Perform search AND get contents without domain filtering
       // We'll filter by trusted domains manually after getting results
       // IMPORTANT: Use livecrawl to get fresh content instead of cached results
       const searchResults = await this.exa.searchAndContents(searchQuery, {
         numResults: 50, // Get more results since we'll filter manually
-        useAutoprompt: true, // Enable Exa's query enhancement
-        type: 'auto', // Let Exa choose between neural and keyword
+        useAutoprompt, // Enable Exa's query enhancement (except for site: queries)
+        type: searchType, // Use keyword for site: operators
         category, // Focus on news/company results
         startPublishedDate: formatDate(startDate),
         endPublishedDate: formatDate(endDate),
@@ -444,7 +448,16 @@ export class ExaNewsService {
           maxCharacters: 1000, // More context for better curation
           includeHtmlTags: false,
         },
-        // NO includeDomains - we'll filter manually after
+        // Exclude known problematic domains
+        excludeDomains: [
+          'eventbrite.com',
+          'summit.thehouse.fund',
+          'iqpc.com',
+          'coriniumintelligence.com',
+          'managedservicessummit.com',
+          'bvca.co.uk', // British Venture Capital Association - not news
+          'analytica-world.com', // Too niche/medical focused
+        ] as any,
       } as any);
 
       console.log(
@@ -566,12 +579,20 @@ export class ExaNewsService {
           const pubDate = new Date(result.publishedDate);
           const hoursSince =
             (Date.now() - pubDate.getTime()) / (1000 * 60 * 60);
-          if (hoursSince > 48) {
+          // For SaaS and Venture, be stricter about freshness (24h max)
+          const maxHours = (topicLower.includes('saas') || topicLower.includes('venture')) ? 24 : 48;
+          if (hoursSince > maxHours) {
             console.log(
-              `[Exa News Service] Filtering old article (#${index + 1}): ${result.title} (${hoursSince.toFixed(0)}h old)`
+              `[Exa News Service] Filtering old article (#${index + 1}): ${result.title} (${hoursSince.toFixed(0)}h old, max ${maxHours}h)`
             );
             return false;
           }
+        } else if (topicLower.includes('saas') || topicLower.includes('venture')) {
+          // For SaaS/Venture, reject articles without dates
+          console.log(
+            `[Exa News Service] Filtering article without date for ${topic}: ${result.title}`
+          );
+          return false;
         }
 
         // Filter out non-news URL patterns
@@ -736,19 +757,25 @@ Return ONLY valid JSON with this structure:
         model: 'gpt-5-mini',
         input: `You are an expert news curator for ${topic}. Select the most GROUNDBREAKING and IMPACTFUL news.
 
+CRITICAL FRESHNESS CHECK:
+- Articles MUST be from the last 24 hours (check publishedDate field)
+- If publishedDate is older than 24 hours ago, REJECT IT
+- Prefer articles published TODAY over yesterday
+- If all articles are old, return empty sections rather than stale news
+
 SELECTION CRITERIA (in priority order):
-1. **Impact**: Prefer news with industry-changing implications
-2. **Recency**: Prioritize breaking news and first-time announcements
+1. **Freshness**: MUST be from last 24 hours (use publishedDate to verify)
+2. **Impact**: Prefer news with industry-changing implications
 3. **Scale**: Focus on major deals, significant funding rounds ($10M+), notable acquisitions
 4. **Innovation**: Highlight technical breakthroughs, first-of-its-kind developments
-5. **Credibility**: Prefer recognized sources and companies
+5. **Credibility**: Prefer TechCrunch, VentureBeat, TheInformation, Forbes, Bloomberg
 
 EXCLUSION RULES:
+- NO articles older than 24 hours (check publishedDate)
 - NO routine updates or minor feature releases
 - NO opinion pieces or speculation
 - NO duplicate stories (same event from different sources)
 - NO tangentially related content
-- NO stories older than 24 hours unless truly exceptional
 
 CURATION GUIDELINES:
 - For bigStory: Choose the SINGLE most impactful/breaking news
