@@ -320,74 +320,66 @@ export class ExaNewsService {
 
       // Build natural language query optimized for Exa's neural search
       let searchQuery = '';
-      let category: 'news' | 'company' | 'research paper' | undefined = 'news';
+      const category: 'news' | 'company' | 'research paper' | undefined =
+        'news';
 
       // Create optimized queries based on topic - check lounge description first
+      // ALL queries should focus on NEWS, not educational content
       if (
         loungeDescription?.toLowerCase().includes('cryptocurrency') ||
         loungeDescription?.toLowerCase().includes('blockchain') ||
         topicLower.includes('crypto')
       ) {
-        searchQuery = `cryptocurrency blockchain Bitcoin Ethereum DeFi NFT Web3 crypto news today`;
+        searchQuery = `cryptocurrency blockchain Bitcoin Ethereum DeFi NFT Web3 crypto news today latest breaking`;
       } else if (
         loungeDescription?.toLowerCase().includes('artificial intelligence') ||
         topicLower.includes('ai')
       ) {
-        // Natural language query that Exa's neural search understands well
         searchQuery = `latest AI artificial intelligence news breakthroughs announcements funding today`;
       } else if (
         loungeDescription?.toLowerCase().includes('software as a service') ||
         topicLower.includes('saas')
       ) {
-        searchQuery = `SaaS software companies news funding product launches acquisitions today`;
+        // Focus on actual SaaS company news, not generic content
+        searchQuery = `SaaS software startup funding acquisitions product launches Salesforce Slack Zoom Microsoft Teams Notion news today`;
       } else if (
         loungeDescription?.toLowerCase().includes('venture capital') ||
         topicLower.includes('venture')
       ) {
-        searchQuery = `venture capital VC funding rounds Series A B C startups investments today`;
-        category = 'company'; // Use company category for VC news
+        // Keep focus on news category, not company category
+        searchQuery = `venture capital VC funding rounds Series A B C startup investments acquisitions IPO news today`;
+        // Don't change category - keep it as 'news'
       } else if (
         loungeDescription?.toLowerCase().includes('growth strategies') ||
         loungeDescription?.toLowerCase().includes('b2b growth') ||
         topicLower.includes('growth')
       ) {
-        searchQuery = `growth marketing experiments A/B testing conversion rates case studies metrics results`;
+        // Change from case studies to actual news
+        searchQuery = `B2B growth marketing SaaS revenue expansion startup scaling funding news announcements today`;
+      } else if (
+        loungeDescription?.toLowerCase().includes('technology') ||
+        topicLower.includes('technology') ||
+        topicLower.includes('tech')
+      ) {
+        searchQuery = `technology tech companies product launches acquisitions breakthroughs innovation news today latest`;
+      } else if (
+        loungeDescription?.toLowerCase().includes('business') ||
+        topicLower.includes('business')
+      ) {
+        searchQuery = `business companies corporate earnings acquisitions mergers leadership changes news today latest`;
       } else {
         // Use the description if available, otherwise generic query
         searchQuery = loungeDescription
-          ? `${loungeDescription} latest news updates announcements today`
-          : `${topic} news updates announcements today`;
+          ? `${loungeDescription} latest news updates announcements today breaking`
+          : `${topic} news updates announcements today latest breaking`;
       }
 
       // Build the comprehensive trusted domains list for manual filtering later
+      // Use mainstream news sites for ALL topics to get high-quality, frequently-updated content
       let trustedDomains: string[] = [];
 
-      if (topicLower.includes('ai')) {
-        trustedDomains = [
-          ...this.TRUSTED_NEWS_DOMAINS.ai,
-          ...this.TRUSTED_NEWS_DOMAINS.tech,
-          ...this.TRUSTED_NEWS_DOMAINS.general,
-        ];
-      } else if (topicLower.includes('saas')) {
-        trustedDomains = [
-          ...this.TRUSTED_NEWS_DOMAINS.saas,
-          ...this.TRUSTED_NEWS_DOMAINS.tech,
-          ...this.TRUSTED_NEWS_DOMAINS.general,
-        ];
-      } else if (topicLower.includes('venture')) {
-        trustedDomains = [
-          ...this.TRUSTED_NEWS_DOMAINS.venture,
-          ...this.TRUSTED_NEWS_DOMAINS.tech,
-          ...this.TRUSTED_NEWS_DOMAINS.general,
-        ];
-      } else if (topicLower.includes('growth')) {
-        trustedDomains = [
-          ...this.TRUSTED_NEWS_DOMAINS.growth,
-          ...this.TRUSTED_NEWS_DOMAINS.saas,
-          ...this.TRUSTED_NEWS_DOMAINS.tech,
-          ...this.TRUSTED_NEWS_DOMAINS.general,
-        ];
-      } else if (topicLower.includes('crypto')) {
+      if (topicLower.includes('crypto')) {
+        // Crypto has its own specific sites that work well
         trustedDomains = [
           ...this.TRUSTED_NEWS_DOMAINS.crypto,
           ...this.TRUSTED_NEWS_DOMAINS.general.filter((d) =>
@@ -402,9 +394,23 @@ export class ExaNewsService {
           ),
         ];
       } else {
+        // For ALL other topics (AI, SaaS, Growth, Venture, Tech, Business):
+        // Use mainstream tech and general news sites where the BIG news actually appears
+        // Don't use niche sites that Exa rarely crawls
         trustedDomains = [
+          // Start with general news sites (high-traffic, frequently crawled)
           ...this.TRUSTED_NEWS_DOMAINS.general,
+          // Add tech news sites (where most tech/SaaS/startup news appears)
           ...this.TRUSTED_NEWS_DOMAINS.tech,
+          // For AI, also include AI-specific sites
+          ...(topicLower.includes('ai') ? this.TRUSTED_NEWS_DOMAINS.ai : []),
+          // Include VentureBeat and TheInformation for all business topics
+          'venturebeat.com',
+          'theinformation.com',
+          'semafor.com',
+          'prnewswire.com',
+          'businesswire.com',
+          'globenewswire.com',
         ];
       }
 
@@ -450,6 +456,44 @@ export class ExaNewsService {
       const domainFilteredResults = searchResults.results.filter((result) => {
         const url = new URL(result.url);
         const domain = url.hostname.replace('www.', '').toLowerCase();
+        const pathname = url.pathname.toLowerCase();
+
+        // CRITICAL: Filter out homepage and category pages that aren't actual articles
+        // These patterns indicate category/homepage URLs, not article pages
+        const isCategoryOrHomepage =
+          pathname === '/' ||
+          pathname === '/technology' ||
+          pathname === '/technology/' ||
+          pathname === '/business' ||
+          pathname === '/business/' ||
+          pathname === '/tech' ||
+          pathname === '/tech/' ||
+          pathname === '/news' ||
+          pathname === '/news/' ||
+          pathname === '/crypto' ||
+          pathname === '/crypto/' ||
+          pathname === '/ai' ||
+          pathname === '/ai/' ||
+          pathname === '/startups' ||
+          pathname === '/startups/' ||
+          pathname === '/category/technology' ||
+          pathname === '/category/business' ||
+          pathname === '/section/technology' ||
+          pathname === '/section/business' ||
+          pathname === '/topics/technology' ||
+          pathname === '/topics/business';
+
+        // Reject category/homepage URLs
+        if (isCategoryOrHomepage) {
+          return false;
+        }
+
+        // Also reject if URL doesn't have enough path segments (likely a category page)
+        // Most article URLs have at least 2-3 segments like /2024/09/article-title
+        const pathSegments = pathname.split('/').filter((s) => s.length > 0);
+        if (pathSegments.length < 2 && !pathname.includes('.html')) {
+          return false;
+        }
 
         // Check if it's a trusted domain
         const isTrusted = trustedDomains.some((trustedDomain) => {
@@ -472,6 +516,7 @@ export class ExaNewsService {
             domain.includes('token'));
 
         // Also accept press release sites, company sites, and academic sources
+        // Be MORE permissive for non-crypto topics since Exa returns niche sites
         const isGenerallyAcceptable =
           domain.includes('newswire') ||
           domain.includes('wire.com') ||
@@ -489,7 +534,23 @@ export class ExaNewsService {
           domain.includes('meta.') ||
           domain.includes('ibm.') ||
           domain.includes('tech') ||
-          domain.includes('news');
+          domain.includes('news') ||
+          domain.includes('venture') ||
+          domain.includes('startup') ||
+          domain.includes('saas') ||
+          domain.includes('business') ||
+          domain.includes('fund') ||
+          domain.includes('capital') ||
+          domain.includes('invest') ||
+          domain.includes('analytic') ||
+          domain.includes('world') ||
+          domain.includes('.ai') ||
+          domain.includes('.io') ||
+          domain.includes('bvca') || // British Venture Capital Association
+          domain.includes('sequencehq') || // Startup/SaaS site
+          domain.includes('hostingjournalist') || // Tech/hosting news
+          domain.includes('fogbreak') || // VC/startup advisors
+          domain.includes('highergov'); // Gov tech news
 
         return isTrusted || isCryptoAcceptable || isGenerallyAcceptable;
       });

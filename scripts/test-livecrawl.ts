@@ -19,7 +19,7 @@ async function testLivecrawl() {
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
-  
+
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
   console.log('Current time:', now.toISOString());
@@ -31,7 +31,7 @@ async function testLivecrawl() {
   console.log('='.repeat(60));
   console.log('TEST 1: WITHOUT livecrawl (cached/stale results)');
   console.log('='.repeat(60));
-  
+
   try {
     const cachedResults = await exa.searchAndContents(
       'cryptocurrency Bitcoin Ethereum news today latest breaking',
@@ -49,14 +49,14 @@ async function testLivecrawl() {
     );
 
     console.log(`Found ${cachedResults.results.length} cached results\n`);
-    
+
     cachedResults.results.slice(0, 5).forEach((r, i) => {
       const domain = new URL(r.url).hostname.replace('www.', '');
       const publishDate = r.publishedDate ? new Date(r.publishedDate) : null;
-      const hoursAgo = publishDate 
+      const hoursAgo = publishDate
         ? Math.floor((now.getTime() - publishDate.getTime()) / (1000 * 60 * 60))
         : 'unknown';
-      
+
       console.log(`${i + 1}. [${hoursAgo} hours ago] ${domain}`);
       console.log(`   ${r.title}`);
       console.log(`   Published: ${r.publishedDate || 'NO DATE'}`);
@@ -70,7 +70,7 @@ async function testLivecrawl() {
   console.log('\n' + '='.repeat(60));
   console.log('TEST 2: WITH livecrawl="preferred" (fresh results)');
   console.log('='.repeat(60));
-  
+
   try {
     const freshResults = await exa.searchAndContents(
       'cryptocurrency Bitcoin Ethereum news today latest breaking',
@@ -89,14 +89,14 @@ async function testLivecrawl() {
     );
 
     console.log(`Found ${freshResults.results.length} fresh results\n`);
-    
+
     freshResults.results.slice(0, 5).forEach((r, i) => {
       const domain = new URL(r.url).hostname.replace('www.', '');
       const publishDate = r.publishedDate ? new Date(r.publishedDate) : null;
-      const hoursAgo = publishDate 
+      const hoursAgo = publishDate
         ? Math.floor((now.getTime() - publishDate.getTime()) / (1000 * 60 * 60))
         : 'unknown';
-      
+
       console.log(`${i + 1}. [${hoursAgo} hours ago] ${domain}`);
       console.log(`   ${r.title}`);
       console.log(`   Published: ${r.publishedDate || 'NO DATE'}`);
@@ -110,7 +110,7 @@ async function testLivecrawl() {
   console.log('\n' + '='.repeat(60));
   console.log('TEST 3: WITH livecrawl="always" (force fresh, higher latency)');
   console.log('='.repeat(60));
-  
+
   try {
     const startTime = Date.now();
     const alwaysFreshResults = await exa.searchAndContents(
@@ -130,16 +130,18 @@ async function testLivecrawl() {
     );
     const latency = Date.now() - startTime;
 
-    console.log(`Found ${alwaysFreshResults.results.length} forced-fresh results`);
+    console.log(
+      `Found ${alwaysFreshResults.results.length} forced-fresh results`
+    );
     console.log(`Latency: ${latency}ms\n`);
-    
+
     alwaysFreshResults.results.slice(0, 5).forEach((r, i) => {
       const domain = new URL(r.url).hostname.replace('www.', '');
       const publishDate = r.publishedDate ? new Date(r.publishedDate) : null;
-      const hoursAgo = publishDate 
+      const hoursAgo = publishDate
         ? Math.floor((now.getTime() - publishDate.getTime()) / (1000 * 60 * 60))
         : 'unknown';
-      
+
       console.log(`${i + 1}. [${hoursAgo} hours ago] ${domain}`);
       console.log(`   ${r.title}`);
       console.log(`   Published: ${r.publishedDate || 'NO DATE'}`);
@@ -153,7 +155,7 @@ async function testLivecrawl() {
   console.log('\n' + '='.repeat(60));
   console.log('TEST 4: CoinCentral with livecrawl="preferred"');
   console.log('='.repeat(60));
-  
+
   try {
     const coincentralResults = await exa.searchAndContents(
       'site:coincentral.com cryptocurrency news',
@@ -170,14 +172,16 @@ async function testLivecrawl() {
       } as any
     );
 
-    console.log(`Found ${coincentralResults.results.length} CoinCentral results\n`);
-    
+    console.log(
+      `Found ${coincentralResults.results.length} CoinCentral results\n`
+    );
+
     coincentralResults.results.slice(0, 5).forEach((r, i) => {
       const publishDate = r.publishedDate ? new Date(r.publishedDate) : null;
-      const hoursAgo = publishDate 
+      const hoursAgo = publishDate
         ? Math.floor((now.getTime() - publishDate.getTime()) / (1000 * 60 * 60))
         : 'unknown';
-      
+
       console.log(`${i + 1}. [${hoursAgo} hours ago] ${r.title}`);
       console.log(`   Published: ${r.publishedDate || 'NO DATE'}`);
       console.log(`   URL: ${r.url}`);

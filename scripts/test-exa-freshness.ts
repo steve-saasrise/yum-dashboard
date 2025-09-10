@@ -19,13 +19,13 @@ async function testExaFreshness() {
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
-  
+
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  
+
   const twoDaysAgo = new Date(today);
   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  
+
   const weekAgo = new Date(today);
   weekAgo.setDate(weekAgo.getDate() - 7);
 
@@ -40,7 +40,7 @@ async function testExaFreshness() {
   console.log('='.repeat(60));
   console.log('TEST 1: Crypto news from TODAY ONLY');
   console.log('='.repeat(60));
-  
+
   try {
     const todayResults = await exa.searchAndContents(
       'cryptocurrency Bitcoin Ethereum news today latest breaking',
@@ -58,7 +58,7 @@ async function testExaFreshness() {
     );
 
     console.log(`Found ${todayResults.results.length} results from TODAY\n`);
-    
+
     todayResults.results.forEach((r, i) => {
       const domain = new URL(r.url).hostname.replace('www.', '');
       console.log(`${i + 1}. [${r.publishedDate || 'NO DATE'}] ${domain}`);
@@ -74,7 +74,7 @@ async function testExaFreshness() {
   console.log('\n' + '='.repeat(60));
   console.log('TEST 2: Search coincentral.com specifically');
   console.log('='.repeat(60));
-  
+
   try {
     // Try searching with site: operator
     const coincentralResults = await exa.searchAndContents(
@@ -91,8 +91,10 @@ async function testExaFreshness() {
       }
     );
 
-    console.log(`Found ${coincentralResults.results.length} CoinCentral results\n`);
-    
+    console.log(
+      `Found ${coincentralResults.results.length} CoinCentral results\n`
+    );
+
     coincentralResults.results.forEach((r, i) => {
       console.log(`${i + 1}. [${r.publishedDate || 'NO DATE'}] ${r.title}`);
       console.log(`   URL: ${r.url}`);
@@ -106,7 +108,7 @@ async function testExaFreshness() {
   console.log('\n' + '='.repeat(60));
   console.log('TEST 3: Date distribution of "recent" crypto news');
   console.log('='.repeat(60));
-  
+
   try {
     const recentResults = await exa.searchAndContents(
       'cryptocurrency Bitcoin Ethereum news latest breaking today',
@@ -126,7 +128,7 @@ async function testExaFreshness() {
     // Group by date
     const dateGroups = new Map<string, number>();
     const noDateCount = { count: 0, domains: new Set<string>() };
-    
+
     recentResults.results.forEach((r) => {
       if (r.publishedDate) {
         const date = r.publishedDate.split('T')[0];
@@ -139,19 +141,21 @@ async function testExaFreshness() {
     });
 
     // Sort dates
-    const sortedDates = Array.from(dateGroups.entries()).sort((a, b) => 
+    const sortedDates = Array.from(dateGroups.entries()).sort((a, b) =>
       b[0].localeCompare(a[0])
     );
 
     console.log('Date distribution:');
     sortedDates.forEach(([date, count]) => {
-      const daysAgo = Math.floor((now.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+      const daysAgo = Math.floor(
+        (now.getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
+      );
       console.log(`  ${date} (${daysAgo} days ago): ${count} articles`);
     });
-    
+
     if (noDateCount.count > 0) {
       console.log(`  NO DATE: ${noDateCount.count} articles from domains:`);
-      Array.from(noDateCount.domains).forEach(d => console.log(`    - ${d}`));
+      Array.from(noDateCount.domains).forEach((d) => console.log(`    - ${d}`));
     }
   } catch (error) {
     console.error('Error:', error);
@@ -161,7 +165,7 @@ async function testExaFreshness() {
   console.log('\n' + '='.repeat(60));
   console.log('TEST 4: Using excludeDomains to filter out bad sources');
   console.log('='.repeat(60));
-  
+
   try {
     const excludeResults = await exa.searchAndContents(
       'cryptocurrency Bitcoin Ethereum news today latest',
@@ -189,8 +193,10 @@ async function testExaFreshness() {
       } as any
     );
 
-    console.log(`Found ${excludeResults.results.length} results (excluding social media)\n`);
-    
+    console.log(
+      `Found ${excludeResults.results.length} results (excluding social media)\n`
+    );
+
     excludeResults.results.slice(0, 10).forEach((r, i) => {
       const domain = new URL(r.url).hostname.replace('www.', '');
       console.log(`${i + 1}. [${r.publishedDate || 'NO DATE'}] ${domain}`);
