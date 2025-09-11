@@ -153,65 +153,65 @@ export class BraveNewsService {
   private getSearchQueries(loungeType: string): string[] {
     const queries: { [key: string]: string[] } = {
       ai: [
-        // Funding focused
-        'AI startup raises million series funding',
-        'OpenAI Anthropic Google funding round',
-        'artificial intelligence company acquisition',
-        'generative AI investment venture capital',
-        // Product launches
-        'OpenAI ChatGPT new model release',
-        'Google Gemini AI announcement',
-        'Anthropic Claude update features',
-        // General AI news
-        'AI breakthrough technology announcement',
+        // AI-specific funding
+        'OpenAI Anthropic raises funding',
+        'artificial intelligence Series A B C',
+        'generative AI investment million',
+        'machine learning acquisition deal',
+        // AI product news
+        'ChatGPT Claude Gemini new release',
+        'large language model announcement',
+        'AI model benchmark breakthrough',
+        // AI companies
+        'Mistral Cohere Stability AI news',
       ],
       saas: [
-        // Funding focused
-        'SaaS startup raises million funding',
-        'B2B software company acquisition',
-        'enterprise software IPO announcement',
-        'cloud SaaS merger acquisition deal',
-        // Growth metrics
-        'SaaS company revenue growth ARR',
-        'software company valuation unicorn',
-        // General SaaS news
-        'B2B SaaS product launch announcement',
+        // SaaS-specific funding
+        'B2B SaaS Series A B C',
+        'enterprise software acquisition',
+        'cloud software IPO S-1',
+        'subscription business raises million',
+        // SaaS metrics
+        'ARR MRR growth B2B software',
+        'SaaS valuation multiple revenue',
+        // SaaS companies
+        'Salesforce Slack Zoom Datadog news',
       ],
       venture: [
-        // Funding rounds
-        'startup raises series A B C funding',
-        'venture capital new fund billion',
-        'unicorn startup valuation funding',
-        'seed funding round tech startup',
-        // VC news
-        'venture capital firm investment',
-        'VC portfolio company exit IPO',
-        // General venture news
-        'startup funding announcement today',
+        // VC funds
+        'venture capital raises new fund',
+        'Sequoia Andreessen Accel partners',
+        'VC firm billion fund close',
+        'emerging manager venture fund',
+        // Portfolio news
+        'portfolio company IPO exit',
+        'venture backed unicorn valuation',
+        // VC deals
+        'lead investor term sheet',
       ],
       growth: [
-        // Metrics focused
-        'startup revenue growth ARR MRR',
-        'company reaches million users milestone',
-        'SaaS growth metrics CAC LTV',
-        'startup doubles revenue year over year',
-        // Growth strategies
-        'product led growth success story',
-        'company expansion international market',
-        // General growth news
-        'startup growth announcement metrics',
+        // Growth metrics
+        'doubled revenue year over year',
+        'million users milestone achieved',
+        'CAC payback period months',
+        'net revenue retention percent',
+        // Growth experiments
+        'A/B test conversion improvement',
+        'product led growth PLG metrics',
+        // Scale stories
+        'scaled from to million ARR',
       ],
       crypto: [
-        // Funding focused
-        'crypto startup raises funding',
-        'blockchain company investment round',
-        'cryptocurrency exchange acquisition',
-        'DeFi protocol funding announcement',
-        // Market news
-        'Bitcoin Ethereum price movement',
-        'crypto regulation SEC announcement',
-        // General crypto news
-        'blockchain technology breakthrough',
+        // Crypto funding
+        'Web3 blockchain raises Series',
+        'DeFi protocol funding round',
+        'crypto exchange acquisition merger',
+        'NFT marketplace investment million',
+        // Crypto specific
+        'token launch TVL billion',
+        'layer 2 mainnet deployment',
+        // Crypto companies
+        'Coinbase Binance Uniswap news',
       ],
     };
 
@@ -276,7 +276,11 @@ export class BraveNewsService {
   private buildGPTPrompt(
     loungeType: string,
     articles: BraveNewsArticle[]
-  ): { prompt: string; specialSectionTitle: string; specialSectionFocus: string } {
+  ): {
+    prompt: string;
+    specialSectionTitle: string;
+    specialSectionFocus: string;
+  } {
     const loungeContext: { [key: string]: string } = {
       ai: 'AI and machine learning',
       saas: 'SaaS and B2B software',
@@ -287,29 +291,35 @@ export class BraveNewsService {
 
     const topicLower = loungeType.toLowerCase();
     const context = loungeContext[topicLower] || 'technology';
-    
+
     // Match Exa's special section logic
     let specialSectionTitle: string;
     let specialSectionFocus: string;
-    
+
     if (topicLower.includes('growth')) {
       specialSectionTitle = 'Growth Metrics & Experiments';
-      specialSectionFocus = 'ONLY include: A/B test results with specific conversion improvements, growth experiments with measurable outcomes, product-led growth metrics';
+      specialSectionFocus =
+        'ONLY include: A/B test results with specific conversion improvements, growth experiments with measurable outcomes, product-led growth metrics';
     } else if (topicLower.includes('venture')) {
       specialSectionTitle = 'Latest Funding Rounds';
-      specialSectionFocus = 'ONLY include: Series A/B/C/D rounds with exact amounts, seed funding with amounts, acquisitions with valuations. Must include dollar amounts';
+      specialSectionFocus =
+        'ONLY include: Series A/B/C/D rounds with exact amounts, seed funding with amounts, acquisitions with valuations. Must include dollar amounts';
     } else if (topicLower.includes('ai')) {
       specialSectionTitle = 'AI Funding & Acquisitions';
-      specialSectionFocus = 'ONLY include: AI company funding rounds with specific amounts, AI startup acquisitions with deal values. Must include dollar amounts';
+      specialSectionFocus =
+        'ONLY include: AI company funding rounds with specific amounts, AI startup acquisitions with deal values. Must include dollar amounts';
     } else if (topicLower.includes('saas')) {
       specialSectionTitle = 'SaaS Funding & M&A';
-      specialSectionFocus = 'ONLY include: SaaS company funding rounds with amounts, SaaS acquisitions with valuations. Must include dollar amounts';
+      specialSectionFocus =
+        'ONLY include: SaaS company funding rounds with amounts, SaaS acquisitions with valuations. Must include dollar amounts';
     } else if (topicLower.includes('crypto')) {
       specialSectionTitle = 'Crypto Funding & Token Launches';
-      specialSectionFocus = 'ONLY include: Crypto/blockchain company funding rounds with amounts, token launches with valuations. Must include dollar amounts';
+      specialSectionFocus =
+        'ONLY include: Crypto/blockchain company funding rounds with amounts, token launches with valuations. Must include dollar amounts';
     } else {
       specialSectionTitle = `${loungeType} Funding & Deals`;
-      specialSectionFocus = 'ONLY include: Company funding rounds with specific dollar amounts, acquisitions with deal values';
+      specialSectionFocus =
+        'ONLY include: Company funding rounds with specific dollar amounts, acquisitions with deal values';
     }
 
     const articlesText = articles
@@ -401,7 +411,8 @@ IMPORTANT: Return a valid JSON object with this EXACT structure:
       }
 
       // Generate summary with GPT
-      const { prompt, specialSectionTitle, specialSectionFocus } = this.buildGPTPrompt(loungeType, articles);
+      const { prompt, specialSectionTitle, specialSectionFocus } =
+        this.buildGPTPrompt(loungeType, articles);
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
         messages: [
@@ -485,7 +496,8 @@ IMPORTANT: Return a valid JSON object with this EXACT structure:
         items,
         bigStory,
         specialSection: specialSection.length > 0 ? specialSection : undefined,
-        specialSectionTitle: specialSection.length > 0 ? specialSectionTitle : undefined,
+        specialSectionTitle:
+          specialSection.length > 0 ? specialSectionTitle : undefined,
         topic: loungeType,
         generatedAt: new Date().toISOString(),
       };

@@ -1,6 +1,9 @@
 import { Worker, Job } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
-import { getBraveNewsService, GenerateNewsResult } from '@/lib/services/brave-news-service';
+import {
+  getBraveNewsService,
+  GenerateNewsResult,
+} from '@/lib/services/brave-news-service';
 import {
   getRedisConnection,
   QUEUE_NAMES,

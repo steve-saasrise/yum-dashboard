@@ -34,7 +34,7 @@ async function testBraveNews() {
       console.log(`⏱️  Duration: ${duration}s`);
       console.log(`📊 Articles found: ${result.articlesFound}`);
       console.log(`📝 Articles used: ${result.articlesUsed}`);
-      
+
       const news = result.content;
       console.log('\n--- Big Story ---');
       if (news.bigStory) {
@@ -45,7 +45,7 @@ async function testBraveNews() {
       } else {
         console.log('No big story generated');
       }
-      
+
       console.log('\n--- Headlines ---');
       news.items.forEach((item, i) => {
         console.log(`${i + 1}. ${item.text}`);
@@ -53,9 +53,11 @@ async function testBraveNews() {
         if (item.source) console.log(`   Source: ${item.source}`);
         if (item.sourceUrl) console.log(`   URL: ${item.sourceUrl}`);
       });
-      
+
       if (news.specialSection && news.specialSection.length > 0) {
-        console.log(`\n--- ${news.specialSectionTitle || 'Special Section'} ---`);
+        console.log(
+          `\n--- ${news.specialSectionTitle || 'Special Section'} ---`
+        );
         news.specialSection.forEach((item, i) => {
           console.log(`${i + 1}. ${item.text}`);
           if (item.amount) console.log(`   Amount: ${item.amount}`);
@@ -65,7 +67,7 @@ async function testBraveNews() {
           if (item.sourceUrl) console.log(`   URL: ${item.sourceUrl}`);
         });
       }
-      
+
       console.log('\n--- End Content ---\n');
     } else {
       console.error('❌ News generation failed:');
