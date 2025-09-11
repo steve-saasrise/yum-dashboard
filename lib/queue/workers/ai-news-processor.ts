@@ -1,9 +1,9 @@
 import { Worker, Job } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
 import {
-  getBraveNewsService,
+  getPerplexityNewsService,
   GenerateNewsResult,
-} from '@/lib/services/brave-news-service';
+} from '@/lib/services/perplexity-news-service';
 import {
   getRedisConnection,
   QUEUE_NAMES,
@@ -39,14 +39,15 @@ export function createAINewsProcessorWorker() {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Initialize Brave news service
-        const braveNewsService = getBraveNewsService();
+        // Initialize Perplexity news service
+        const perplexityNewsService = getPerplexityNewsService();
 
-        // Generate AI news using Brave
+        // Generate AI news using Perplexity
         console.log(
-          `[AI News Worker] Generating news using Brave for: ${loungeName}`
+          `[AI News Worker] Generating news using Perplexity for: ${loungeName}`
         );
-        const result = await braveNewsService.generateNewsForLounge(loungeName);
+        const result =
+          await perplexityNewsService.generateNewsForLounge(loungeName);
 
         if (!result.success || !result.content) {
           throw new Error(
@@ -159,11 +160,11 @@ export function createAINewsProcessorWorker() {
       concurrency: WORKER_CONCURRENCY.AI_NEWS_GENERATION,
       removeOnComplete: { count: 20 },
       removeOnFail: { count: 50 },
-      // Rate limit to respect Exa's 5 requests per second limit
-      // With safety margin: 4 requests per second = 240 per minute
+      // Rate limit to respect Perplexity's 50 requests per minute limit
+      // With safety margin: 40 requests per minute
       limiter: {
-        max: 4, // Maximum 4 jobs
-        duration: 1000, // Per 1 second
+        max: 40, // Maximum 40 jobs
+        duration: 60000, // Per 60 seconds (1 minute)
       },
     }
   );
