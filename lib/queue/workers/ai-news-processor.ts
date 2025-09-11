@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
-import { ExaNewsService } from '@/lib/services/exa-news-service';
+import { getBraveNewsService } from '@/lib/services/brave-news-service';
 import {
   getRedisConnection,
   QUEUE_NAMES,
@@ -15,6 +15,68 @@ interface AINewsJobData {
   loungeDescription?: string;
   isGeneral?: boolean;
   timestamp: string;
+}
+
+function parseNewsContent(content: string, loungeName: string) {
+  const lines = content.split('\n');
+  const items: { text: string; summary?: string }[] = [];
+  const specialSection: { text: string; summary?: string }[] = [];
+  let bigStory: { title: string; summary: string } | null = null;
+  let specialSectionTitle = '';
+  
+  let currentSection = '';
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Parse Big Story
+    if (trimmed.startsWith('**Big Story**')) {
+      currentSection = 'bigStory';
+      continue;
+    }
+    
+    // Parse Headlines
+    if (trimmed.startsWith('**Headlines**')) {
+      currentSection = 'headlines';
+      continue;
+    }
+    
+    // Parse Special Section (funding, metrics, etc.)
+    if (trimmed.includes('**') && trimmed.includes('Funding') || 
+        trimmed.includes('**') && trimmed.includes('Metrics') ||
+        trimmed.includes('**') && trimmed.includes('Acquisitions')) {
+      currentSection = 'special';
+      specialSectionTitle = trimmed.replace(/\*\*/g, '').trim();
+      continue;
+    }
+    
+    // Process content based on section
+    if (currentSection === 'bigStory' && trimmed && !bigStory) {
+      const nextLine = lines[lines.indexOf(line) + 1]?.trim();
+      if (nextLine) {
+        bigStory = {
+          title: trimmed,
+          summary: nextLine
+        };
+      }
+    } else if (currentSection === 'headlines' && trimmed.startsWith('•')) {
+      items.push({
+        text: trimmed.substring(1).trim()
+      });
+    } else if (currentSection === 'special' && trimmed.startsWith('•')) {
+      specialSection.push({
+        text: trimmed.substring(1).trim()
+      });
+    }
+  }
+  
+  return {
+    topic: loungeName,
+    items,
+    specialSection,
+    bigStory,
+    specialSectionTitle
+  };
 }
 
 export function createAINewsProcessorWorker() {
@@ -36,17 +98,21 @@ export function createAINewsProcessorWorker() {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Initialize Exa news service
-        const exaNewsService = new ExaNewsService();
+        // Initialize Brave news service
+        const braveNewsService = getBraveNewsService();
 
-        // Generate AI news using Exa
+        // Generate AI news using Brave
         console.log(
-          `[AI News Worker] Generating news using Exa for: ${loungeName}`
+          `[AI News Worker] Generating news using Brave for: ${loungeName}`
         );
-        const newsResult = await exaNewsService.generateNews(
-          loungeName,
-          loungeDescription
-        );
+        const result = await braveNewsService.generateNewsForLounge(loungeName);
+        
+        if (!result.success || !result.content) {
+          throw new Error(`Failed to generate news for ${loungeName}: ${result.error}`);
+        }
+        
+        // Parse the content into structured format
+        const newsResult = parseNewsContent(result.content, loungeName);
 
         // Validate the news result before saving
         if (!newsResult || !newsResult.items || newsResult.items.length === 0) {
