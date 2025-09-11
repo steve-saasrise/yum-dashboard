@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
-import { getBraveNewsService } from '@/lib/services/brave-news-service';
+import { getBraveNewsService, GenerateNewsResult } from '@/lib/services/brave-news-service';
 import {
   getRedisConnection,
   QUEUE_NAMES,
@@ -15,68 +15,6 @@ interface AINewsJobData {
   loungeDescription?: string;
   isGeneral?: boolean;
   timestamp: string;
-}
-
-function parseNewsContent(content: string, loungeName: string) {
-  const lines = content.split('\n');
-  const items: { text: string; summary?: string }[] = [];
-  const specialSection: { text: string; summary?: string }[] = [];
-  let bigStory: { title: string; summary: string } | null = null;
-  let specialSectionTitle = '';
-  
-  let currentSection = '';
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    
-    // Parse Big Story
-    if (trimmed.startsWith('**Big Story**')) {
-      currentSection = 'bigStory';
-      continue;
-    }
-    
-    // Parse Headlines
-    if (trimmed.startsWith('**Headlines**')) {
-      currentSection = 'headlines';
-      continue;
-    }
-    
-    // Parse Special Section (funding, metrics, etc.)
-    if (trimmed.includes('**') && trimmed.includes('Funding') || 
-        trimmed.includes('**') && trimmed.includes('Metrics') ||
-        trimmed.includes('**') && trimmed.includes('Acquisitions')) {
-      currentSection = 'special';
-      specialSectionTitle = trimmed.replace(/\*\*/g, '').trim();
-      continue;
-    }
-    
-    // Process content based on section
-    if (currentSection === 'bigStory' && trimmed && !bigStory) {
-      const nextLine = lines[lines.indexOf(line) + 1]?.trim();
-      if (nextLine) {
-        bigStory = {
-          title: trimmed,
-          summary: nextLine
-        };
-      }
-    } else if (currentSection === 'headlines' && trimmed.startsWith('•')) {
-      items.push({
-        text: trimmed.substring(1).trim()
-      });
-    } else if (currentSection === 'special' && trimmed.startsWith('•')) {
-      specialSection.push({
-        text: trimmed.substring(1).trim()
-      });
-    }
-  }
-  
-  return {
-    topic: loungeName,
-    items,
-    specialSection,
-    bigStory,
-    specialSectionTitle
-  };
 }
 
 export function createAINewsProcessorWorker() {
@@ -106,13 +44,15 @@ export function createAINewsProcessorWorker() {
           `[AI News Worker] Generating news using Brave for: ${loungeName}`
         );
         const result = await braveNewsService.generateNewsForLounge(loungeName);
-        
+
         if (!result.success || !result.content) {
-          throw new Error(`Failed to generate news for ${loungeName}: ${result.error}`);
+          throw new Error(
+            `Failed to generate news for ${loungeName}: ${result.error}`
+          );
         }
-        
-        // Parse the content into structured format
-        const newsResult = parseNewsContent(result.content, loungeName);
+
+        // The content is already structured as GenerateNewsResult
+        const newsResult: GenerateNewsResult = result.content;
 
         // Validate the news result before saving
         if (!newsResult || !newsResult.items || newsResult.items.length === 0) {
@@ -136,15 +76,15 @@ export function createAINewsProcessorWorker() {
           `[AI News Worker] Generated ${validItems.length} valid news items for ${loungeName}`
         );
 
-        // Save to database
+        // Save to database with proper structure
         const { data: savedSummary, error: saveError } = await supabase
           .from('daily_news_summaries')
           .insert({
             lounge_id: isGeneral ? null : loungeId,
             topic: newsResult.topic,
-            summary_bullets: validItems as any,
+            summary_bullets: newsResult.items as any, // Items now have all fields
             special_section: (newsResult.specialSection || []) as any,
-            generated_at: new Date().toISOString(),
+            generated_at: newsResult.generatedAt,
             model_used: 'gpt-5-mini',
             token_count: 0, // Can be calculated if needed
             generation_time_ms: Date.now() - startTime,
@@ -152,7 +92,7 @@ export function createAINewsProcessorWorker() {
             metadata: {
               cron_generated: true,
               is_general: isGeneral || false,
-              generated_at: new Date().toISOString(),
+              generated_at: newsResult.generatedAt,
               job_id: job.id,
               queue_generated: true,
               bigStory: newsResult.bigStory || null,
@@ -162,6 +102,8 @@ export function createAINewsProcessorWorker() {
                 .includes('growth')
                 ? 'growth_experiments'
                 : 'fundraising',
+              articles_found: result.articlesFound,
+              articles_used: result.articlesUsed,
             } as any,
           })
           .select('id')

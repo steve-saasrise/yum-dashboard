@@ -30,7 +30,7 @@ async function testNewsArticleCategory() {
 
   try {
     const saasQuery = `(site:techcrunch.com OR site:venturebeat.com OR site:theinformation.com OR site:sifted.eu OR site:forbes.com) SaaS "raises" "funding" "Series A" "Series B" "Series C" "acquisition" "IPO"`;
-    
+
     console.log('Query:', saasQuery);
     console.log('Category: news\n');
 
@@ -47,19 +47,24 @@ async function testNewsArticleCategory() {
       },
     } as any);
 
-    console.log(`Found ${newsResults.results.length} results with category: "news"\n`);
+    console.log(
+      `Found ${newsResults.results.length} results with category: "news"\n`
+    );
 
     newsResults.results.forEach((r, i) => {
       const url = new URL(r.url);
       const pathname = url.pathname;
-      
+
       // Check if it's a category page
-      const isCategory = pathname.includes('/category/') || 
-                        pathname.includes('/section/') || 
-                        pathname.includes('/topic/') ||
-                        pathname.split('/').filter(s => s).length <= 1;
-      
-      console.log(`${i + 1}. ${isCategory ? '❌ CATEGORY' : '✅ ARTICLE'}: ${url.hostname}${pathname}`);
+      const isCategory =
+        pathname.includes('/category/') ||
+        pathname.includes('/section/') ||
+        pathname.includes('/topic/') ||
+        pathname.split('/').filter((s) => s).length <= 1;
+
+      console.log(
+        `${i + 1}. ${isCategory ? '❌ CATEGORY' : '✅ ARTICLE'}: ${url.hostname}${pathname}`
+      );
       console.log(`   Title: ${r.title}`);
       console.log('');
     });
@@ -74,7 +79,7 @@ async function testNewsArticleCategory() {
 
   try {
     const saasQuery = `(site:techcrunch.com OR site:venturebeat.com OR site:theinformation.com OR site:sifted.eu OR site:forbes.com) SaaS "raises" "funding" "Series A" "Series B" "Series C" "acquisition" "IPO"`;
-    
+
     console.log('Query:', saasQuery);
     console.log('Category: news_article\n');
 
@@ -91,19 +96,24 @@ async function testNewsArticleCategory() {
       },
     } as any);
 
-    console.log(`Found ${articleResults.results.length} results with category: "news_article"\n`);
+    console.log(
+      `Found ${articleResults.results.length} results with category: "news_article"\n`
+    );
 
     articleResults.results.forEach((r, i) => {
       const url = new URL(r.url);
       const pathname = url.pathname;
-      
+
       // Check if it's a category page
-      const isCategory = pathname.includes('/category/') || 
-                        pathname.includes('/section/') || 
-                        pathname.includes('/topic/') ||
-                        pathname.split('/').filter(s => s).length <= 1;
-      
-      console.log(`${i + 1}. ${isCategory ? '❌ CATEGORY' : '✅ ARTICLE'}: ${url.hostname}${pathname}`);
+      const isCategory =
+        pathname.includes('/category/') ||
+        pathname.includes('/section/') ||
+        pathname.includes('/topic/') ||
+        pathname.split('/').filter((s) => s).length <= 1;
+
+      console.log(
+        `${i + 1}. ${isCategory ? '❌ CATEGORY' : '✅ ARTICLE'}: ${url.hostname}${pathname}`
+      );
       console.log(`   Title: ${r.title}`);
       console.log('');
     });
@@ -118,7 +128,7 @@ async function testNewsArticleCategory() {
 
   try {
     const aiQuery = `latest AI artificial intelligence news breakthroughs announcements funding today`;
-    
+
     console.log('Query:', aiQuery);
     console.log('Category: news_article\n');
 
@@ -135,19 +145,24 @@ async function testNewsArticleCategory() {
       },
     } as any);
 
-    console.log(`Found ${aiResults.results.length} AI results with category: "news_article"\n`);
+    console.log(
+      `Found ${aiResults.results.length} AI results with category: "news_article"\n`
+    );
 
     aiResults.results.forEach((r, i) => {
       const url = new URL(r.url);
       const pathname = url.pathname;
-      
+
       // Check if it's a category page
-      const isCategory = pathname.includes('/category/') || 
-                        pathname.includes('/section/') || 
-                        pathname.includes('/topic/') ||
-                        pathname.split('/').filter(s => s).length <= 1;
-      
-      console.log(`${i + 1}. ${isCategory ? '❌ CATEGORY' : '✅ ARTICLE'}: ${url.hostname}${pathname}`);
+      const isCategory =
+        pathname.includes('/category/') ||
+        pathname.includes('/section/') ||
+        pathname.includes('/topic/') ||
+        pathname.split('/').filter((s) => s).length <= 1;
+
+      console.log(
+        `${i + 1}. ${isCategory ? '❌ CATEGORY' : '✅ ARTICLE'}: ${url.hostname}${pathname}`
+      );
       console.log(`   Title: ${r.title}`);
       console.log('');
     });

@@ -187,7 +187,7 @@ export const DailyDigestEmail = ({
 
           {/* Lounge Title */}
           <Section style={loungeHeader}>
-            <Heading style={loungeTitle}>{loungeName} Lounge</Heading>
+            <Heading style={loungeTitle}>{loungeName}</Heading>
             <Text style={loungeDesc}>{loungeDescription}</Text>
           </Section>
 

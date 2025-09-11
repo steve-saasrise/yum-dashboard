@@ -30,9 +30,35 @@ export interface BraveSearchResponse {
   };
 }
 
+// Match Exa's return structure
+export interface NewsItem {
+  text: string;
+  summary?: string;
+  sourceUrl?: string;
+  source?: string;
+  amount?: string; // For fundraising items
+  series?: string; // For fundraising items
+}
+
+export interface BigStory {
+  title: string;
+  summary: string;
+  source?: string;
+  sourceUrl?: string;
+}
+
+export interface GenerateNewsResult {
+  items: NewsItem[];
+  bigStory?: BigStory;
+  specialSection?: NewsItem[];
+  specialSectionTitle?: string;
+  topic: string;
+  generatedAt: string;
+}
+
 export interface NewsGenerationResult {
   success: boolean;
-  content?: string;
+  content?: GenerateNewsResult;
   error?: string;
   lounge: string;
   articlesFound: number;
@@ -250,7 +276,7 @@ export class BraveNewsService {
   private buildGPTPrompt(
     loungeType: string,
     articles: BraveNewsArticle[]
-  ): string {
+  ): { prompt: string; specialSectionTitle: string; specialSectionFocus: string } {
     const loungeContext: { [key: string]: string } = {
       ai: 'AI and machine learning',
       saas: 'SaaS and B2B software',
@@ -259,17 +285,32 @@ export class BraveNewsService {
       crypto: 'cryptocurrency and blockchain',
     };
 
-    const specialSectionPrompt: { [key: string]: string } = {
-      ai: 'AI Funding & Acquisitions (include $ amounts)',
-      saas: 'SaaS Funding & M&A (include $ amounts)',
-      venture: 'Latest Funding Rounds (include $ amounts)',
-      growth: 'Growth Metrics & Experiments (include specific numbers)',
-      crypto: 'Crypto Funding & Token Launches (include $ amounts)',
-    };
-
-    const context = loungeContext[loungeType.toLowerCase()] || 'technology';
-    const specialSection =
-      specialSectionPrompt[loungeType.toLowerCase()] || 'Industry Updates';
+    const topicLower = loungeType.toLowerCase();
+    const context = loungeContext[topicLower] || 'technology';
+    
+    // Match Exa's special section logic
+    let specialSectionTitle: string;
+    let specialSectionFocus: string;
+    
+    if (topicLower.includes('growth')) {
+      specialSectionTitle = 'Growth Metrics & Experiments';
+      specialSectionFocus = 'ONLY include: A/B test results with specific conversion improvements, growth experiments with measurable outcomes, product-led growth metrics';
+    } else if (topicLower.includes('venture')) {
+      specialSectionTitle = 'Latest Funding Rounds';
+      specialSectionFocus = 'ONLY include: Series A/B/C/D rounds with exact amounts, seed funding with amounts, acquisitions with valuations. Must include dollar amounts';
+    } else if (topicLower.includes('ai')) {
+      specialSectionTitle = 'AI Funding & Acquisitions';
+      specialSectionFocus = 'ONLY include: AI company funding rounds with specific amounts, AI startup acquisitions with deal values. Must include dollar amounts';
+    } else if (topicLower.includes('saas')) {
+      specialSectionTitle = 'SaaS Funding & M&A';
+      specialSectionFocus = 'ONLY include: SaaS company funding rounds with amounts, SaaS acquisitions with valuations. Must include dollar amounts';
+    } else if (topicLower.includes('crypto')) {
+      specialSectionTitle = 'Crypto Funding & Token Launches';
+      specialSectionFocus = 'ONLY include: Crypto/blockchain company funding rounds with amounts, token launches with valuations. Must include dollar amounts';
+    } else {
+      specialSectionTitle = `${loungeType} Funding & Deals`;
+      specialSectionFocus = 'ONLY include: Company funding rounds with specific dollar amounts, acquisitions with deal values';
+    }
 
     const articlesText = articles
       .slice(0, 20)
@@ -279,7 +320,7 @@ export class BraveNewsService {
       )
       .join('\n\n');
 
-    return `You are a curator for a ${context} focused newsletter. Based on these news articles from the last 24 hours, create a concise daily digest.
+    const prompt = `You are a curator for a ${context} focused newsletter. Based on these news articles from the last 24 hours, create a concise daily digest.
 
 Articles:
 ${articlesText}
@@ -297,7 +338,7 @@ Create a news digest with EXACTLY this structure:
 • [Bullet 4 - Important story with brief context]
 • [Bullet 5 - Important story with brief context]
 
-**${specialSection}**
+**${specialSectionTitle}**
 • [Specific deal/metric with $ amount or numbers]
 • [Specific deal/metric with $ amount or numbers]
 • [Specific deal/metric with $ amount or numbers]
@@ -307,7 +348,37 @@ Guidelines:
 - Include specific company names and dollar amounts
 - Keep bullets concise but informative
 - Prioritize breaking news and major announcements
-- For the special section, ONLY include items with specific metrics or dollar amounts`;
+- For the special section, ONLY include items with specific metrics or dollar amounts
+
+IMPORTANT: Return a valid JSON object with this EXACT structure:
+{
+  "bigStory": {
+    "title": "string",
+    "summary": "string", 
+    "source": "string",
+    "sourceUrl": "string"
+  },
+  "bullets": [
+    {
+      "text": "string",
+      "summary": "string",
+      "source": "string",
+      "sourceUrl": "string"
+    }
+  ],
+  "specialSection": [
+    {
+      "text": "string",
+      "summary": "string",
+      "amount": "string (e.g. $50M)",
+      "series": "string (e.g. Series C)",
+      "source": "string",
+      "sourceUrl": "string"
+    }
+  ]
+}`;
+
+    return { prompt, specialSectionTitle, specialSectionFocus };
   }
 
   public async generateNewsForLounge(
@@ -330,14 +401,14 @@ Guidelines:
       }
 
       // Generate summary with GPT
-      const prompt = this.buildGPTPrompt(loungeType, articles);
+      const { prompt, specialSectionTitle, specialSectionFocus } = this.buildGPTPrompt(loungeType, articles);
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
         messages: [
           {
             role: 'system',
             content:
-              'You are a professional news curator. Create concise, informative digests.',
+              'You are a professional news curator. Return ONLY valid JSON with no additional text or markdown formatting. Focus on creating accurate, informative news digests.',
           },
           {
             role: 'user',
@@ -350,12 +421,78 @@ Guidelines:
       const content = completion.choices[0]?.message?.content;
 
       if (!content) {
+        console.error('GPT Response:', JSON.stringify(completion, null, 2));
         throw new Error('No content generated from GPT');
       }
 
+      // Parse the JSON response
+      let parsed: any;
+      try {
+        // Remove any markdown formatting if present
+        const cleanContent = content.replace(/```json\n?|```/g, '').trim();
+        parsed = JSON.parse(cleanContent);
+      } catch (parseError) {
+        console.error('Failed to parse GPT response:', content);
+        throw new Error('Failed to parse GPT response as JSON');
+      }
+
+      // Extract and structure the content matching Exa's format
+      const items: NewsItem[] = [];
+      let bigStory: BigStory | undefined;
+      const specialSection: NewsItem[] = [];
+
+      // Extract bigStory
+      if (parsed.bigStory) {
+        bigStory = {
+          title: parsed.bigStory.title,
+          summary: parsed.bigStory.summary,
+          source: parsed.bigStory.source,
+          sourceUrl: parsed.bigStory.sourceUrl,
+        };
+      }
+
+      // Extract bullets
+      if (parsed.bullets && Array.isArray(parsed.bullets)) {
+        for (const bullet of parsed.bullets.slice(0, 5)) {
+          if (bullet.text) {
+            items.push({
+              text: bullet.text,
+              summary: bullet.summary,
+              sourceUrl: bullet.sourceUrl,
+              source: bullet.source,
+            });
+          }
+        }
+      }
+
+      // Extract special section
+      if (parsed.specialSection && Array.isArray(parsed.specialSection)) {
+        for (const item of parsed.specialSection.slice(0, 5)) {
+          if (item.text) {
+            specialSection.push({
+              text: item.text,
+              summary: item.summary,
+              amount: item.amount,
+              series: item.series,
+              sourceUrl: item.sourceUrl,
+              source: item.source,
+            });
+          }
+        }
+      }
+
+      const result: GenerateNewsResult = {
+        items,
+        bigStory,
+        specialSection: specialSection.length > 0 ? specialSection : undefined,
+        specialSectionTitle: specialSection.length > 0 ? specialSectionTitle : undefined,
+        topic: loungeType,
+        generatedAt: new Date().toISOString(),
+      };
+
       return {
         success: true,
-        content,
+        content: result,
         lounge: loungeType,
         articlesFound: articles.length,
         articlesUsed: Math.min(20, articles.length),

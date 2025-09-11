@@ -25,13 +25,13 @@ async function testSimpleExa() {
 
   // Test 1: Simple SaaS query (no site: operators)
   console.log('='.repeat(60));
-  console.log('TEST 1: Simple SaaS Query (like Exa\'s example)');
+  console.log("TEST 1: Simple SaaS Query (like Exa's example)");
   console.log('='.repeat(60));
 
   try {
     // Simple, natural language query - let Exa do its magic
     const saasQuery = `recent SaaS startup funding rounds Series A B C acquisitions`;
-    
+
     console.log('Query:', saasQuery);
     console.log('Using: autoprompt=true, type=auto\n');
 
@@ -56,18 +56,22 @@ async function testSimpleExa() {
     saasResults.results.forEach((r, i) => {
       const url = new URL(r.url);
       const pathname = url.pathname;
-      
+
       // Check if it's likely an article (has date pattern or long path)
       const hasDatePattern = /\/\d{4}\/\d{1,2}\//.test(pathname);
-      const pathSegments = pathname.split('/').filter(s => s);
-      const isLikelyArticle = hasDatePattern || pathSegments.length >= 3 || pathname.includes('.html');
-      
-      const isCategory = pathname.includes('/category/') || 
-                        pathname.includes('/section/') || 
-                        pathname.includes('/topic/') ||
-                        pathname === '/' ||
-                        pathSegments.length <= 1;
-      
+      const pathSegments = pathname.split('/').filter((s) => s);
+      const isLikelyArticle =
+        hasDatePattern ||
+        pathSegments.length >= 3 ||
+        pathname.includes('.html');
+
+      const isCategory =
+        pathname.includes('/category/') ||
+        pathname.includes('/section/') ||
+        pathname.includes('/topic/') ||
+        pathname === '/' ||
+        pathSegments.length <= 1;
+
       if (isLikelyArticle && !isCategory) {
         articleCount++;
         console.log(`✅ ARTICLE: ${url.hostname}${pathname}`);
@@ -75,16 +79,21 @@ async function testSimpleExa() {
         categoryCount++;
         console.log(`❌ CATEGORY/HOME: ${url.hostname}${pathname}`);
       }
-      
+
       console.log(`   Title: ${r.title}`);
       if (r.publishedDate) {
-        const hoursAgo = Math.floor((endDate.getTime() - new Date(r.publishedDate).getTime()) / (1000 * 60 * 60));
+        const hoursAgo = Math.floor(
+          (endDate.getTime() - new Date(r.publishedDate).getTime()) /
+            (1000 * 60 * 60)
+        );
         console.log(`   Published: ${hoursAgo}h ago`);
       }
       console.log('');
     });
 
-    console.log(`Summary: ${articleCount} articles, ${categoryCount} category/home pages\n`);
+    console.log(
+      `Summary: ${articleCount} articles, ${categoryCount} category/home pages\n`
+    );
   } catch (error) {
     console.error('Error:', error);
   }
@@ -96,7 +105,7 @@ async function testSimpleExa() {
 
   try {
     const ventureQuery = `latest venture capital funding rounds startups raised millions Series A B C`;
-    
+
     console.log('Query:', ventureQuery);
     console.log('Using: autoprompt=true, type=auto\n');
 
@@ -118,22 +127,27 @@ async function testSimpleExa() {
     ventureResults.results.slice(0, 5).forEach((r, i) => {
       const url = new URL(r.url);
       const pathname = url.pathname;
-      const pathSegments = pathname.split('/').filter(s => s);
-      
+      const pathSegments = pathname.split('/').filter((s) => s);
+
       console.log(`${i + 1}. ${url.hostname}`);
       console.log(`   Path: ${pathname}`);
       console.log(`   Title: ${r.title}`);
-      
+
       if (r.text) {
         // Check for funding mentions
-        const fundingMatch = r.text.match(/\$[\d.]+[MBK]|\$[\d,]+|raised|funding|Series [A-F]/i);
+        const fundingMatch = r.text.match(
+          /\$[\d.]+[MBK]|\$[\d,]+|raised|funding|Series [A-F]/i
+        );
         if (fundingMatch) {
           console.log(`   💰 Contains funding info`);
         }
       }
-      
+
       if (r.publishedDate) {
-        const hoursAgo = Math.floor((endDate.getTime() - new Date(r.publishedDate).getTime()) / (1000 * 60 * 60));
+        const hoursAgo = Math.floor(
+          (endDate.getTime() - new Date(r.publishedDate).getTime()) /
+            (1000 * 60 * 60)
+        );
         console.log(`   ⏰ ${hoursAgo}h ago`);
       }
       console.log('');
@@ -150,7 +164,7 @@ async function testSimpleExa() {
   try {
     const testQuery = `SaaS startup funding Series A B C`;
     const domains = ['techcrunch.com', 'venturebeat.com', 'forbes.com'];
-    
+
     console.log('Query:', testQuery);
     console.log('includeDomains:', domains);
     console.log('');
@@ -168,10 +182,14 @@ async function testSimpleExa() {
       },
     } as any);
 
-    console.log(`Found ${domainResults.results.length} results with includeDomains\n`);
+    console.log(
+      `Found ${domainResults.results.length} results with includeDomains\n`
+    );
 
     if (domainResults.results.length === 0) {
-      console.log('⚠️  includeDomains returned 0 results - this confirms it might not work with searchAndContents');
+      console.log(
+        '⚠️  includeDomains returned 0 results - this confirms it might not work with searchAndContents'
+      );
     } else {
       domainResults.results.forEach((r, i) => {
         const domain = new URL(r.url).hostname;

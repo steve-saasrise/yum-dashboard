@@ -238,7 +238,7 @@ export class ExaNewsService {
   }
 
   /**
-   * Clean topic name by removing "Coffee" and similar suffixes
+   * Clean topic name by removing "Lounge" and similar suffixes
    */
   private getCleanTopic(
     loungeName: string,
@@ -249,8 +249,8 @@ export class ExaNewsService {
       return loungeDescription;
     }
 
-    // Otherwise clean the name (remove "Coffee" and similar suffixes)
-    return loungeName.replace(/\s*(Coffee|Lounge|Room|Hub)$/i, '').trim();
+    // Otherwise clean the name (remove "Lounge" and similar suffixes)
+    return loungeName.replace(/\s*(Lounge|Room|Hub)$/i, '').trim();
   }
 
   /**
@@ -321,8 +321,12 @@ export class ExaNewsService {
       // Build natural language query optimized for Exa's neural search
       let searchQuery = '';
       // Use news_article for better article filtering
-      const category: 'news' | 'company' | 'research paper' | 'news_article' | undefined =
-        'news_article' as any;
+      const category:
+        | 'news'
+        | 'company'
+        | 'research paper'
+        | 'news_article'
+        | undefined = 'news_article' as any;
 
       // Create optimized queries based on topic - check lounge description first
       // ALL queries should focus on NEWS, not educational content
@@ -431,7 +435,7 @@ export class ExaNewsService {
       );
 
       // Build search configuration
-      let searchConfig: any = {
+      const searchConfig: any = {
         numResults: 50,
         useAutoprompt: true, // Always use autoprompt for better results
         type: 'auto', // Let Exa decide
@@ -462,7 +466,7 @@ export class ExaNewsService {
           'cnbc.com',
         ];
       }
-      
+
       // Always exclude problematic domains
       searchConfig.excludeDomains = [
         'eventbrite.com',
@@ -474,7 +478,10 @@ export class ExaNewsService {
         'analytica-world.com',
       ];
 
-      const searchResults = await this.exa.searchAndContents(searchQuery, searchConfig);
+      const searchResults = await this.exa.searchAndContents(
+        searchQuery,
+        searchConfig
+      );
 
       console.log(
         `[Exa News Service] Found ${searchResults.results.length} results for ${topic}`
