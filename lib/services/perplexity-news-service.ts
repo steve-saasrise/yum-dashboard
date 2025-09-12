@@ -78,7 +78,6 @@ export class PerplexityNewsService {
     return queries[loungeType.toLowerCase()] || queries.ai;
   }
 
-
   private getSpecialSectionInfo(loungeType: string): {
     title: string;
     focus: string;

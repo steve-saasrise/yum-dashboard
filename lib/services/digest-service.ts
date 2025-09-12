@@ -5,6 +5,7 @@ import { NewsSummaryService } from './news-summary-service';
 import { SocialPostSelector } from './social-post-selector';
 import { OpenGraphService } from './opengraph-service';
 import { AIImageService } from './ai-image-service';
+import { ImageOptimizer } from './image-optimizer';
 
 // Lazy initialize Resend client to avoid build-time errors
 let resend: Resend | null = null;
@@ -440,6 +441,18 @@ export class DigestService {
             specialSectionTitle: summary.specialSectionTitle,
             generatedAt: summary.generatedAt,
           };
+
+          // Crop the big story image to ensure perfect fit
+          if (aiNewsSummary.bigStory?.imageUrl) {
+            const croppedImage = await ImageOptimizer.cropForEmailHero(
+              aiNewsSummary.bigStory.imageUrl,
+              560, // width
+              315 // height (16:9 aspect ratio)
+            );
+            if (croppedImage) {
+              aiNewsSummary.bigStory.imageUrl = croppedImage;
+            }
+          }
         }
       } catch (summaryError) {
         console.error('Error fetching AI news summary:', summaryError);

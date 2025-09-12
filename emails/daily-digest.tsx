@@ -214,33 +214,20 @@ export const DailyDigestEmail = ({
                   </Heading>
                 </div>
                 {aiNewsSummary.bigStory.imageUrl && (
-                  <div
+                  <Img
+                    src={aiNewsSummary.bigStory.imageUrl}
+                    width="560"
+                    height="315"
+                    alt={aiNewsSummary.bigStory.title}
                     style={{
                       width: '100%',
                       maxWidth: '560px',
-                      height: '315px',
-                      margin: '16px 0',
-                      overflow: 'hidden',
+                      height: 'auto',
+                      display: 'block',
                       borderRadius: '8px',
-                      position: 'relative' as const,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: '#f3f4f6',
+                      margin: '16px 0',
                     }}
-                  >
-                    <Img
-                      src={aiNewsSummary.bigStory.imageUrl}
-                      width="560"
-                      alt={aiNewsSummary.bigStory.title}
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        display: 'block',
-                        objectFit: 'contain' as const,
-                      }}
-                    />
-                  </div>
+                  />
                 )}
                 <Heading as="h3" style={bigStoryHeadline}>
                   {aiNewsSummary.bigStory.sourceUrl ? (
