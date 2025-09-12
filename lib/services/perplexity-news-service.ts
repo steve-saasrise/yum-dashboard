@@ -65,14 +65,14 @@ export class PerplexityNewsService {
 
   private getSearchQuery(loungeType: string): string {
     const queries: { [key: string]: string } = {
-      ai: 'What are the latest AI and machine learning developments, funding rounds, product launches, and major announcements from OpenAI, Anthropic, Google AI, Microsoft AI, and AI startups in the past 24 hours from a variety of credible tech and business news sources? Include specific funding amounts and technical breakthroughs. Look across different publications for diverse perspectives.',
-      saas: "What are today's B2B SaaS news from a diverse range of major tech publications including enterprise software funding rounds, IPOs, acquisitions, product announcements, and ARR milestones from companies like Salesforce, ServiceNow, Datadog, and emerging SaaS startups? Focus on Series A/B/C funding with specific amounts from multiple reputable sources for broader coverage.",
+      ai: 'What are the latest AI and machine learning developments, funding rounds, product launches, and major announcements from OpenAI, Anthropic, Google AI, Microsoft AI, and AI startups in the past 24 hours? Include specific funding amounts and technical breakthroughs.',
+      saas: "What are today's B2B SaaS news including enterprise software funding rounds, IPOs, acquisitions, product announcements, and ARR milestones from companies like Salesforce, ServiceNow, Datadog, and emerging SaaS startups? Focus on Series A/B/C funding with specific amounts.",
       venture:
-        'What venture capital funds raised new funds today and which startups received Series A, B, C, or D funding in the last 24 hours according to various established business and tech news outlets? Include specific fund sizes, valuations, lead investors, and notable portfolio company exits or IPOs. Search across different sources for comprehensive coverage.',
+        'What venture capital funds raised new funds today and which startups received Series A, B, C, or D funding in the last 24 hours? Include specific fund sizes, valuations, lead investors, and notable portfolio company exits or IPOs.',
       growth:
-        'What companies announced growth metrics, scaling milestones, A/B test results, or product-led growth experiments today in various credible business and tech publications? Include specific conversion rate improvements, ARR growth percentages, user acquisition numbers, and CAC payback periods. Look for diverse sources to get a complete picture.',
+        'What companies announced growth metrics, scaling milestones, A/B test results, or product-led growth experiments today? Include specific conversion rate improvements, ARR growth percentages, user acquisition numbers, and CAC payback periods.',
       crypto:
-        "What are today's cryptocurrency and blockchain news from a variety of established crypto and tech news sources including DeFi protocol launches, token launches, Web3 funding rounds, NFT marketplace updates, and layer-2 developments? Include TVL numbers, funding amounts, and major partnership announcements. Search multiple sources for varied perspectives.",
+        "What are today's cryptocurrency and blockchain news including DeFi protocol launches, token launches, Web3 funding rounds, NFT marketplace updates, and layer-2 developments? Include TVL numbers, funding amounts, and major partnership announcements.",
     };
 
     return queries[loungeType.toLowerCase()] || queries.ai;
@@ -131,6 +131,7 @@ export class PerplexityNewsService {
 
 IMPORTANT: 
 - Focus on credible, established news sources and avoid content farms, promotional material, or low-quality sources
+- Only use US and European news sources - no Asian or Indian sources
 - Prioritize source diversity - try to include news from different publications when possible to provide varied perspectives
 - If the best news comes from a single source that's fine, but when multiple good stories exist, prefer variety
 - Mix major publications, industry-specific news sites, and reputable tech/business media
@@ -168,6 +169,8 @@ Guidelines:
 - Include exactly 5 items in "bullets"
 - Include 1-3 items in "specialSection" (prioritize quality over quantity - only include genuinely newsworthy items)
 - ${specialSectionFocus}
+- CRITICAL: Each story must be COMPLETELY UNIQUE - no duplicates across bigStory, bullets, and specialSection
+- NEVER include the same company/event in multiple sections (e.g., if OpenAI's funding is the big story, don't mention it again in bullets or special section)
 - ALWAYS populate the "series" field for funding announcements (e.g., "Seed", "Series A", "Series B", "Series C", "Series D", "Late Stage")
 - ALWAYS populate the "amount" field with exact dollar amounts (e.g., "$5M", "$100M", "$1.2B")
 - Prioritize breaking news and major announcements
