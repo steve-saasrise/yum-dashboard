@@ -65,39 +65,19 @@ export class PerplexityNewsService {
 
   private getSearchQuery(loungeType: string): string {
     const queries: { [key: string]: string } = {
-      ai: 'What are the latest AI and machine learning developments, funding rounds, product launches, and major announcements from OpenAI, Anthropic, Google AI, Microsoft AI, and AI startups in the past 24 hours? Include specific funding amounts and technical breakthroughs.',
-      saas: "What are today's B2B SaaS news including enterprise software funding rounds, IPOs, acquisitions, product announcements, and ARR milestones from companies like Salesforce, ServiceNow, Datadog, and emerging SaaS startups? Focus on Series A/B/C funding with specific amounts.",
+      ai: 'What are the latest AI and machine learning developments, funding rounds, product launches, and major announcements from OpenAI, Anthropic, Google AI, Microsoft AI, and AI startups in the past 24 hours from credible tech and business news sources? Include specific funding amounts and technical breakthroughs.',
+      saas: "What are today's B2B SaaS news from major tech publications including enterprise software funding rounds, IPOs, acquisitions, product announcements, and ARR milestones from companies like Salesforce, ServiceNow, Datadog, and emerging SaaS startups? Focus on Series A/B/C funding with specific amounts from reputable sources.",
       venture:
-        'What venture capital funds raised new funds today and which startups received Series A, B, C, or D funding in the last 24 hours? Include specific fund sizes, valuations, lead investors, and notable portfolio company exits or IPOs.',
+        'What venture capital funds raised new funds today and which startups received Series A, B, C, or D funding in the last 24 hours according to established business and tech news outlets? Include specific fund sizes, valuations, lead investors, and notable portfolio company exits or IPOs.',
       growth:
-        'What companies announced growth metrics, scaling milestones, A/B test results, or product-led growth experiments today? Include specific conversion rate improvements, ARR growth percentages, user acquisition numbers, and CAC payback periods.',
+        'What companies announced growth metrics, scaling milestones, A/B test results, or product-led growth experiments today in credible business and tech publications? Include specific conversion rate improvements, ARR growth percentages, user acquisition numbers, and CAC payback periods.',
       crypto:
-        "What are today's cryptocurrency and blockchain news including DeFi protocol launches, token launches, Web3 funding rounds, NFT marketplace updates, and layer-2 developments? Include TVL numbers, funding amounts, and major partnership announcements.",
+        "What are today's cryptocurrency and blockchain news from established crypto and tech news sources including DeFi protocol launches, token launches, Web3 funding rounds, NFT marketplace updates, and layer-2 developments? Include TVL numbers, funding amounts, and major partnership announcements.",
     };
 
     return queries[loungeType.toLowerCase()] || queries.ai;
   }
 
-  private getTrustedDomains(): string[] {
-    return [
-      'techcrunch.com',
-      'reuters.com',
-      'bloomberg.com',
-      'forbes.com',
-      'theinformation.com',
-      'axios.com',
-      'venturebeat.com',
-      'sifted.eu',
-      'businessinsider.com',
-      'cnbc.com',
-      'theverge.com',
-      'wired.com',
-      'arstechnica.com',
-      'coindesk.com',
-      'cointelegraph.com',
-      'decrypt.co',
-    ];
-  }
 
   private getSpecialSectionInfo(loungeType: string): {
     title: string;
@@ -148,7 +128,9 @@ export class PerplexityNewsService {
     const { focus: specialSectionFocus } =
       this.getSpecialSectionInfo(loungeType);
 
-    return `You are a professional news curator for a ${loungeType} focused newsletter. Your task is to create a structured daily digest from search results.
+    return `You are a professional news curator for a ${loungeType} focused newsletter. Your task is to create a structured daily digest from credible news sources and authoritative publications.
+
+IMPORTANT: Focus on credible, established news sources and avoid content farms, promotional material, or low-quality sources. Prioritize major publications, industry-specific news sites, and reputable tech/business media.
 
 Return a valid JSON object with EXACTLY this structure:
 
@@ -226,7 +208,6 @@ Guidelines:
         temperature: 0.3,
         max_tokens: 4000,
         // @ts-expect-error - Perplexity-specific parameters
-        search_domain_filter: this.getTrustedDomains(),
         search_recency_filter: 'day',
         return_citations: true,
         search_context_size: 'high',
