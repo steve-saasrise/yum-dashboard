@@ -65,14 +65,14 @@ export class PerplexityNewsService {
 
   private getSearchQuery(loungeType: string): string {
     const queries: { [key: string]: string } = {
-      ai: 'What are the latest AI and machine learning developments, funding rounds, product launches, and major announcements from OpenAI, Anthropic, Google AI, Microsoft AI, and AI startups in the past 24 hours from credible tech and business news sources? Include specific funding amounts and technical breakthroughs.',
-      saas: "What are today's B2B SaaS news from major tech publications including enterprise software funding rounds, IPOs, acquisitions, product announcements, and ARR milestones from companies like Salesforce, ServiceNow, Datadog, and emerging SaaS startups? Focus on Series A/B/C funding with specific amounts from reputable sources.",
+      ai: 'What are the latest AI and machine learning developments, funding rounds, product launches, and major announcements from OpenAI, Anthropic, Google AI, Microsoft AI, and AI startups in the past 24 hours from a variety of credible tech and business news sources? Include specific funding amounts and technical breakthroughs. Look across different publications for diverse perspectives.',
+      saas: "What are today's B2B SaaS news from a diverse range of major tech publications including enterprise software funding rounds, IPOs, acquisitions, product announcements, and ARR milestones from companies like Salesforce, ServiceNow, Datadog, and emerging SaaS startups? Focus on Series A/B/C funding with specific amounts from multiple reputable sources for broader coverage.",
       venture:
-        'What venture capital funds raised new funds today and which startups received Series A, B, C, or D funding in the last 24 hours according to established business and tech news outlets? Include specific fund sizes, valuations, lead investors, and notable portfolio company exits or IPOs.',
+        'What venture capital funds raised new funds today and which startups received Series A, B, C, or D funding in the last 24 hours according to various established business and tech news outlets? Include specific fund sizes, valuations, lead investors, and notable portfolio company exits or IPOs. Search across different sources for comprehensive coverage.',
       growth:
-        'What companies announced growth metrics, scaling milestones, A/B test results, or product-led growth experiments today in credible business and tech publications? Include specific conversion rate improvements, ARR growth percentages, user acquisition numbers, and CAC payback periods.',
+        'What companies announced growth metrics, scaling milestones, A/B test results, or product-led growth experiments today in various credible business and tech publications? Include specific conversion rate improvements, ARR growth percentages, user acquisition numbers, and CAC payback periods. Look for diverse sources to get a complete picture.',
       crypto:
-        "What are today's cryptocurrency and blockchain news from established crypto and tech news sources including DeFi protocol launches, token launches, Web3 funding rounds, NFT marketplace updates, and layer-2 developments? Include TVL numbers, funding amounts, and major partnership announcements.",
+        "What are today's cryptocurrency and blockchain news from a variety of established crypto and tech news sources including DeFi protocol launches, token launches, Web3 funding rounds, NFT marketplace updates, and layer-2 developments? Include TVL numbers, funding amounts, and major partnership announcements. Search multiple sources for varied perspectives.",
     };
 
     return queries[loungeType.toLowerCase()] || queries.ai;
@@ -94,32 +94,32 @@ export class PerplexityNewsService {
       return {
         title: 'Latest Funding Rounds',
         focus:
-          'Focus on Series A/B/C/D rounds with exact dollar amounts, valuations, and lead investors.',
+          'Focus on Series A/B/C/D rounds with EXACT dollar amounts and SPECIFIC series names (e.g., "Series B", "Series C"). Always include the series field for each funding announcement.',
       };
     } else if (topicLower.includes('ai')) {
       return {
         title: 'AI Funding & Acquisitions',
         focus:
-          'Focus on AI company funding rounds and acquisitions with specific dollar amounts.',
+          'Focus on AI company funding rounds with EXACT dollar amounts and SPECIFIC series names (e.g., "Series A", "Seed"). Always include both amount and series fields.',
       };
     } else if (topicLower.includes('saas')) {
       return {
         title: 'SaaS Funding & M&A',
         focus:
-          'Focus on SaaS company funding rounds and acquisitions with specific valuations.',
+          'Focus on SaaS company funding rounds with EXACT valuations and SPECIFIC series names (e.g., "Series B", "Series D"). Always include both amount and series fields.',
       };
     } else if (topicLower.includes('crypto')) {
       return {
         title: 'Crypto Funding & Token Launches',
         focus:
-          'Focus on crypto/blockchain funding rounds and token launches with specific amounts.',
+          'Focus on crypto/blockchain funding rounds with EXACT amounts and SPECIFIC series names if applicable. Always include amount and series fields.',
       };
     }
 
     return {
       title: `${loungeType} Funding & Deals`,
       focus:
-        'Focus on company funding rounds and acquisitions with specific dollar amounts.',
+        'Focus on company funding rounds with EXACT dollar amounts and SPECIFIC series names (e.g., "Series A", "Series C"). Always include both amount and series fields.',
     };
   }
 
@@ -129,7 +129,11 @@ export class PerplexityNewsService {
 
     return `You are a professional news curator for a ${loungeType} focused newsletter. Your task is to create a structured daily digest from credible news sources and authoritative publications.
 
-IMPORTANT: Focus on credible, established news sources and avoid content farms, promotional material, or low-quality sources. Prioritize major publications, industry-specific news sites, and reputable tech/business media.
+IMPORTANT: 
+- Focus on credible, established news sources and avoid content farms, promotional material, or low-quality sources
+- Prioritize source diversity - try to include news from different publications when possible to provide varied perspectives
+- If the best news comes from a single source that's fine, but when multiple good stories exist, prefer variety
+- Mix major publications, industry-specific news sites, and reputable tech/business media
 
 Return a valid JSON object with EXACTLY this structure:
 
@@ -162,8 +166,10 @@ Return a valid JSON object with EXACTLY this structure:
 
 Guidelines:
 - Include exactly 5 items in "bullets"
-- Include 3-5 items in "specialSection"
+- Include 1-3 items in "specialSection" (prioritize quality over quantity - only include genuinely newsworthy items)
 - ${specialSectionFocus}
+- ALWAYS populate the "series" field for funding announcements (e.g., "Seed", "Series A", "Series B", "Series C", "Series D", "Late Stage")
+- ALWAYS populate the "amount" field with exact dollar amounts (e.g., "$5M", "$100M", "$1.2B")
 - Prioritize breaking news and major announcements
 - Include specific company names and dollar amounts where available
 - Keep text concise but informative
@@ -280,9 +286,9 @@ Guidelines:
         }
       }
 
-      // Extract special section
+      // Extract special section (exactly 3 items)
       if (parsed.specialSection && Array.isArray(parsed.specialSection)) {
-        for (const item of parsed.specialSection.slice(0, 5)) {
+        for (const item of parsed.specialSection.slice(0, 3)) {
           if (item.text) {
             specialSection.push({
               text: item.text,
