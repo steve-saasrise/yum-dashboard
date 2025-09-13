@@ -160,6 +160,25 @@ export const DailyDigestEmail = ({
 }: DailyDigestEmailProps) => {
   const previewText = `Your ${loungeName} Daily Digest - ${content.length} updates`;
 
+  // Determine logo based on lounge name
+  const getLogoForLounge = (name: string): string => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('venture')) {
+      return `${baseUrl}/venturetume_logo.png`;
+    } else if (lowerName.includes('ai')) {
+      return `${baseUrl}/aitimes_logo.png`;
+    } else if (lowerName.includes('crypto')) {
+      return `${baseUrl}/cryptotimes_logo.png`;
+    } else if (lowerName.includes('growth') || lowerName.includes('b2b')) {
+      return `${baseUrl}/growthtimes_logo.png`;
+    } else {
+      // Default to SaaS Times logo
+      return `${baseUrl}/saastimes_logo.png`;
+    }
+  };
+
+  const logoUrl = getLogoForLounge(loungeName);
+
   return (
     <Html>
       <Head>
@@ -172,23 +191,11 @@ export const DailyDigestEmail = ({
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
-          {/* Header */}
+          {/* Header with Logo, Subheading, and Date */}
           <Section style={header}>
-            <Link href="https://lounge.ai">
-              <Img
-                src={`${baseUrl}/saastimes_logo.png`}
-                width="180"
-                alt="Lounge"
-                style={logo}
-              />
-            </Link>
-            <Text style={dateText}>{date}</Text>
-          </Section>
-
-          {/* Lounge Title */}
-          <Section style={loungeHeader}>
-            <Heading style={loungeTitle}>{loungeName}</Heading>
+            <Img src={logoUrl} height="40" alt={loungeName} style={logo} />
             <Text style={loungeDesc}>{loungeDescription}</Text>
+            <Text style={dateText}>{date}</Text>
           </Section>
 
           <Section style={{ padding: '0 10px' }}>
@@ -922,18 +929,22 @@ const container = {
 };
 
 const header = {
-  padding: '20px 10px',
+  padding: '30px 10px 20px',
   textAlign: 'center' as const,
 };
 
 const logo = {
-  margin: '0 auto',
+  margin: '0 auto 8px',
+  display: 'block',
+  height: '40px',
+  width: 'auto',
 };
 
 const dateText = {
   color: '#8898aa',
-  fontSize: '14px',
-  margin: '10px 0 0 0',
+  fontSize: '13px',
+  margin: '8px 0 0 0',
+  fontWeight: '400',
 };
 
 const loungeHeader = {
@@ -949,9 +960,11 @@ const loungeTitle = {
 };
 
 const loungeDesc = {
-  color: '#666',
-  fontSize: '14px',
-  margin: '8px 0 0 0',
+  color: '#4a5568',
+  fontSize: '15px',
+  margin: '0 0 4px 0',
+  fontWeight: '500',
+  letterSpacing: '0.2px',
 };
 
 const divider = {
