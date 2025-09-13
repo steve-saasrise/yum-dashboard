@@ -176,7 +176,7 @@ export const DailyDigestEmail = ({
           <Section style={header}>
             <Link href="https://lounge.ai">
               <Img
-                src="https://lounge.ai/official_lounge_logo.png"
+                src={`${baseUrl}/saastimes_logo.png`}
                 width="180"
                 alt="Lounge"
                 style={logo}
@@ -302,7 +302,6 @@ export const DailyDigestEmail = ({
                       <div style={newsItemContent}>
                         <div>
                           <Text style={newsItemText}>
-                            <span style={newsItemNumber}>{index + 1}.</span>{' '}
                             {bullet.sourceUrl ? (
                               <Link
                                 href={bullet.sourceUrl}
@@ -322,7 +321,6 @@ export const DailyDigestEmail = ({
                                 margin: '0',
                                 marginTop: '2px',
                                 lineHeight: '1.4',
-                                paddingLeft: '20px',
                               }}
                             >
                               {bullet.summary}
@@ -336,7 +334,6 @@ export const DailyDigestEmail = ({
                                 fontStyle: 'italic',
                                 margin: '0',
                                 marginTop: '2px',
-                                paddingLeft: '20px',
                               }}
                             >
                               {bullet.source}
@@ -395,7 +392,6 @@ export const DailyDigestEmail = ({
                           <div style={newsItemContent}>
                             <div>
                               <Text style={newsItemText}>
-                                <span style={newsItemNumber}>{index + 1}.</span>{' '}
                                 {item.sourceUrl ? (
                                   <Link
                                     href={item.sourceUrl}
@@ -415,7 +411,6 @@ export const DailyDigestEmail = ({
                                     margin: '0',
                                     marginTop: '2px',
                                     lineHeight: '1.4',
-                                    paddingLeft: '20px',
                                   }}
                                 >
                                   {item.summary}
@@ -425,7 +420,6 @@ export const DailyDigestEmail = ({
                                 style={{
                                   margin: '0',
                                   marginTop: '4px',
-                                  paddingLeft: '20px',
                                   fontSize: '12px',
                                 }}
                               >
@@ -525,14 +519,13 @@ export const DailyDigestEmail = ({
                       <div style={socialPostContent}>
                         <div>
                           <Text style={{ margin: '0', marginBottom: '2px' }}>
-                            <span style={socialPostNumber}>{index + 1}.</span>{' '}
                             <Link href={post.url} style={socialPostTitle}>
                               {post.title.length > 80
                                 ? post.title.substring(0, 80) + '...'
                                 : post.title}
                             </Link>
                           </Text>
-                          <div style={{ paddingLeft: '20px' }}>
+                          <div>
                             <Text
                               style={{
                                 ...socialPostDescription,
@@ -638,7 +631,7 @@ export const DailyDigestEmail = ({
 
 DailyDigestEmail.PreviewProps = {
   loungeName: 'SaaS',
-  loungeDescription: 'Software as a Service industry news and insights',
+  loungeDescription: 'Making You Smarter Every Morning',
   date: new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
