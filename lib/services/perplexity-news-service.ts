@@ -65,14 +65,14 @@ export class PerplexityNewsService {
 
   private getSearchQuery(loungeType: string): string {
     const queries: { [key: string]: string } = {
-      ai: 'What are the latest AI and machine learning developments, funding rounds, product launches, and major announcements from OpenAI, Anthropic, Google AI, Microsoft AI, and AI startups in the past 24 hours? Include specific funding amounts and technical breakthroughs.',
-      saas: "What are today's B2B SaaS news including enterprise software funding rounds, IPOs, acquisitions, product announcements, and ARR milestones from companies like Salesforce, ServiceNow, Datadog, and emerging SaaS startups? Focus on Series A/B/C funding with specific amounts.",
+      ai: 'Find specific news articles about AI companies announcing funding, launching products, or making breakthroughs today. Look for individual stories with details about OpenAI, Anthropic, Google AI, Microsoft AI, and AI startups. Include funding amounts and technical details from the articles.',
+      saas: "Find individual news articles about B2B SaaS companies from today. Look for specific stories about funding rounds, acquisitions, product launches from Salesforce, ServiceNow, Datadog, and SaaS startups. Focus on articles with Series A/B/C details and specific amounts.",
       venture:
-        'What venture capital funds raised new funds today and which startups received Series A, B, C, or D funding in the last 24 hours? Include specific fund sizes, valuations, lead investors, and notable portfolio company exits or IPOs.',
+        'Find specific news articles about venture capital funds and startup funding rounds from today. Look for individual stories about Series A, B, C, or D investments with fund sizes, valuations, and lead investors mentioned in the articles.',
       growth:
-        'What companies announced growth metrics, scaling milestones, A/B test results, or product-led growth experiments today? Include specific conversion rate improvements, ARR growth percentages, user acquisition numbers, and CAC payback periods.',
+        'Find specific news articles about companies announcing growth metrics and milestones today. Look for individual stories with conversion rates, ARR growth, user acquisition numbers, and growth experiments detailed in the articles.',
       crypto:
-        "What are today's cryptocurrency and blockchain news including DeFi protocol launches, token launches, Web3 funding rounds, NFT marketplace updates, and layer-2 developments? Include TVL numbers, funding amounts, and major partnership announcements.",
+        "Find specific news articles about cryptocurrency and blockchain from today. Look for individual stories about DeFi launches, token announcements, Web3 funding, and NFT updates with TVL numbers and funding amounts in the articles.",
     };
 
     return queries[loungeType.toLowerCase()] || queries.ai;
@@ -218,7 +218,7 @@ Guidelines:
         // @ts-expect-error - Perplexity-specific parameters
         search_recency_filter: 'day',
         return_citations: true,
-        search_context_size: 'high',
+        search_context_size: 'medium',
       });
 
       const content = response.choices[0]?.message?.content;
