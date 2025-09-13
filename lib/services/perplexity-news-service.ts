@@ -66,13 +66,13 @@ export class PerplexityNewsService {
   private getSearchQuery(loungeType: string): string {
     const queries: { [key: string]: string } = {
       ai: 'Find specific news articles about AI companies announcing funding, launching products, or making breakthroughs today. Look for individual stories with details about OpenAI, Anthropic, Google AI, Microsoft AI, and AI startups. Include funding amounts and technical details from the articles.',
-      saas: "Find individual news articles about B2B SaaS companies from today. Look for specific stories about funding rounds, acquisitions, product launches from Salesforce, ServiceNow, Datadog, and SaaS startups. Focus on articles with Series A/B/C details and specific amounts.",
+      saas: 'Find individual news articles about B2B SaaS companies from today. Look for specific stories about funding rounds, acquisitions, product launches from Salesforce, ServiceNow, Datadog, and SaaS startups. Focus on articles with Series A/B/C details and specific amounts.',
       venture:
         'Find specific news articles about venture capital funds and startup funding rounds from today. Look for individual stories about Series A, B, C, or D investments with fund sizes, valuations, and lead investors mentioned in the articles.',
       growth:
         'Find specific news articles about companies announcing growth metrics and milestones today. Look for individual stories with conversion rates, ARR growth, user acquisition numbers, and growth experiments detailed in the articles.',
       crypto:
-        "Find specific news articles about cryptocurrency and blockchain from today. Look for individual stories about DeFi launches, token announcements, Web3 funding, and NFT updates with TVL numbers and funding amounts in the articles.",
+        'Find specific news articles about cryptocurrency and blockchain from today. Look for individual stories about DeFi launches, token announcements, Web3 funding, and NFT updates with TVL numbers and funding amounts in the articles.',
     };
 
     return queries[loungeType.toLowerCase()] || queries.ai;
@@ -135,6 +135,7 @@ IMPORTANT:
 - Prioritize source diversity - try to include news from different publications when possible to provide varied perspectives
 - If the best news comes from a single source that's fine, but when multiple good stories exist, prefer variety
 - Mix major publications, industry-specific news sites, and reputable tech/business media
+- CRITICAL: Always provide deep links to actual article pages, not homepage URLs or category pages. Each sourceUrl should link directly to the specific article being referenced.
 
 Return a valid JSON object with EXACTLY this structure:
 
@@ -150,7 +151,7 @@ Return a valid JSON object with EXACTLY this structure:
       "text": "Important news item with company names and brief context",
       "summary": "1-2 sentences of additional context if needed",
       "source": "Source name",
-      "sourceUrl": "URL to the article"
+      "sourceUrl": "Direct URL to the specific article (not homepage)"
     }
   ],
   "specialSection": [
@@ -176,7 +177,8 @@ Guidelines:
 - Prioritize breaking news and major announcements
 - Include specific company names and dollar amounts where available
 - Keep text concise but informative
-- Ensure all URLs are from the search results provided`;
+- Ensure all URLs are deep links to individual articles, not category pages or homepages
+- Each URL should point directly to the specific story being referenced`;
   }
 
   public async generateNewsForLounge(
@@ -218,7 +220,7 @@ Guidelines:
         // @ts-expect-error - Perplexity-specific parameters
         search_recency_filter: 'day',
         return_citations: true,
-        search_context_size: 'medium',
+        search_context_size: 'high',
       });
 
       const content = response.choices[0]?.message?.content;
