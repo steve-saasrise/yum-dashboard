@@ -51,6 +51,116 @@ export class PerplexityNewsService {
     });
   }
 
+  private getTrustedSources(loungeType: string): string[] {
+    const sources: { [key: string]: string[] } = {
+      saas: [
+        // Tier 1 - Essential SaaS sources
+        'techcrunch.com', // Top tech news, SaaS funding rounds
+        'saastr.com', // Jason Lemkin's SaaS authority
+        'venturebeat.com', // Enterprise tech & AI coverage
+        'forbes.com', // Business & SaaS trends
+
+        // SaaS-specific publications
+        'thesaasnews.com', // Dedicated SaaS funding news
+        'saasboomi.com', // Global SaaS community
+        'productled.com', // Product-led growth strategies
+        'chartmogul.com', // SaaS metrics & analytics
+
+        // Business & enterprise tech
+        'ciodive.com', // IT executive decisions, SaaS adoption
+        'businessinsider.com', // Tech business news
+        'wsj.com', // Wall Street Journal enterprise
+        'bloomberg.com', // Business & financial news
+
+        // VC & funding focused
+        'crunchbase.com', // Funding database & news
+        'pitchbook.com', // VC & PE data
+        'news.crunchbase.com', // Crunchbase News
+
+        // Product & growth
+        'intercom.com', // Customer engagement insights
+        'amplitude.com', // Product analytics
+        'mindtheproduct.com', // Product management community
+        'hubspot.com', // Marketing & sales growth
+      ],
+
+      venture: [
+        // Tier 1 - Essential VC sources
+        'techcrunch.com', // #1 for breaking funding news
+        'venturebeat.com', // Strong VC & AI startup coverage
+        'pitchbook.com', // Premium data & verified funding
+        'crunchbase.com', // Funding database & news
+
+        // Dedicated VC publications
+        'venturecapitaljournal.com', // Premium VC intelligence
+        'pehub.com', // PE/VC deal insider info
+        'privateequityinternational.com', // Global PE/VC news
+        'vcnewsdaily.com', // Dedicated VC news
+
+        // Financial news with VC coverage
+        'wsj.com', // WSJ Pro Venture Capital
+        'bloomberg.com', // Bloomberg Tech & VC
+        'cnbc.com', // CNBC Venture Capital section
+        'ft.com', // Financial Times PE/VC
+        'forbes.com', // Forbes VC coverage
+
+        // Regional & specialized
+        'sifted.eu', // European startup ecosystem
+        'axios.com', // Axios Pro Rata newsletter
+        'fortune.com', // Fortune Term Sheet
+        'reuters.com', // Reuters VC news
+
+        // Data platforms with news
+        'news.crunchbase.com', // Crunchbase News
+        'buyoutsinsider.com', // Mid-market PE/VC
+      ],
+
+      // Placeholder for other lounges - using default sources for now
+      growth: [
+        'techcrunch.com',
+        'venturebeat.com',
+        'forbes.com',
+        'bloomberg.com',
+        'wsj.com',
+        'businessinsider.com',
+        'axios.com',
+        'reuters.com',
+        'crunchbase.com',
+        'pitchbook.com',
+      ],
+
+      ai: [
+        'techcrunch.com',
+        'venturebeat.com',
+        'theverge.com',
+        'wired.com',
+        'arstechnica.com',
+        'forbes.com',
+        'bloomberg.com',
+        'reuters.com',
+        'axios.com',
+        'wsj.com',
+      ],
+
+      crypto: [
+        'coindesk.com',
+        'cointelegraph.com',
+        'decrypt.co',
+        'theblock.co',
+        'forbes.com',
+        'bloomberg.com',
+        'reuters.com',
+        'techcrunch.com',
+        'venturebeat.com',
+        'axios.com',
+      ],
+    };
+
+    // Return the sources for the lounge type, limited to 20 domains max
+    const selectedSources = sources[loungeType.toLowerCase()] || sources.ai;
+    return selectedSources.slice(0, 20);
+  }
+
   private async enforceRateLimit(): Promise<void> {
     const now = Date.now();
     const timeSinceLastRequest = now - this.lastRequestTime;
@@ -127,14 +237,13 @@ export class PerplexityNewsService {
     const { focus: specialSectionFocus } =
       this.getSpecialSectionInfo(loungeType);
 
-    return `You are a professional news curator for a ${loungeType} focused newsletter. Your task is to create a structured daily digest from credible news sources and authoritative publications.
+    return `You are a professional news curator for a ${loungeType} focused newsletter. Your task is to create a structured daily digest from trusted, authoritative news sources.
 
 IMPORTANT: 
-- Focus on credible, established news sources and avoid content farms, promotional material, or low-quality sources
-- Only use US and European news sources - no Asian or Indian sources
+- You are searching from a curated list of trusted, high-quality news sources specific to ${loungeType}
+- These sources have been vetted for credibility, accuracy, and authority in their respective domains
 - Prioritize source diversity - try to include news from different publications when possible to provide varied perspectives
 - If the best news comes from a single source that's fine, but when multiple good stories exist, prefer variety
-- Mix major publications, industry-specific news sites, and reputable tech/business media
 - CRITICAL: Always provide deep links to actual article pages, not homepage URLs or category pages. Each sourceUrl should link directly to the specific article being referenced.
 
 Return a valid JSON object with EXACTLY this structure:
@@ -201,6 +310,7 @@ Guidelines:
       const systemPrompt = this.buildSystemPrompt(loungeType);
       const { title: specialSectionTitle } =
         this.getSpecialSectionInfo(loungeType);
+      const trustedSources = this.getTrustedSources(loungeType);
 
       // Make Perplexity API call with search parameters
       const response = await this.client.chat.completions.create({
@@ -221,6 +331,7 @@ Guidelines:
         search_recency_filter: 'day',
         return_citations: true,
         search_context_size: 'high',
+        search_domain_filter: trustedSources, // Add domain filtering for trusted sources
       });
 
       const content = response.choices[0]?.message?.content;
