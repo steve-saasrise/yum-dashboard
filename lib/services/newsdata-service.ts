@@ -224,6 +224,12 @@ export class NewsDataService {
       params.append('country', options.country);
     }
 
+    // Add priority domain filter to get only high-quality sources
+    // top = top 10% most authoritative news domains
+    // medium = top 30% of news domains
+    // low = top 50% of news domains
+    params.append('prioritydomain', 'top');
+
     // Skip domain filter for free tier - it limits results too much
     // if (domains.length > 0) {
     //   params.append('domain', domains.slice(0, 5).join(','));
@@ -301,6 +307,9 @@ export class NewsDataService {
       params.append('domain', options.domain.slice(0, 5).join(','));
     }
 
+    // Add priority domain filter to get only high-quality sources
+    params.append('prioritydomain', 'top');
+
     if (options.page) {
       params.append('page', options.page);
     }
@@ -365,6 +374,9 @@ export class NewsDataService {
     if (options.country) {
       params.append('country', options.country);
     }
+
+    // Add priority domain filter to get only high-quality sources
+    params.append('prioritydomain', 'top');
 
     if (options.page) {
       params.append('page', options.page);
