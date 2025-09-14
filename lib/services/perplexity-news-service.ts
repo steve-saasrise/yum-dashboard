@@ -58,7 +58,7 @@ export class PerplexityNewsService {
         'thesaasnews.com', // Dedicated SaaS funding news - BREAKING NEWS
         'techcrunch.com', // Tech news, SaaS funding rounds
         'venturebeat.com', // Enterprise tech & SaaS coverage
-        
+
         // Major business news with SaaS coverage
         'bloomberg.com', // Business & financial news
         'reuters.com', // Global business breaking news
@@ -67,18 +67,18 @@ export class PerplexityNewsService {
         'forbes.com', // Business news
         'cnbc.com', // Business breaking news
         'ft.com', // Financial Times
-        
+
         // Tech news sites with SaaS coverage
         'theinformation.com', // Premium tech news
         'axios.com', // Tech and business news
         'theverge.com', // Tech news
         'zdnet.com', // Enterprise software news
-        
+
         // VC & funding news
         'crunchbase.com', // Funding announcements
         'pitchbook.com', // VC & PE data
         'sifted.eu', // European startup news
-        
+
         // Enterprise IT news (SaaS adoption)
         'ciodive.com', // IT executive decisions
         'computerworld.com', // Enterprise computing news

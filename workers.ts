@@ -8,7 +8,7 @@ if (process.env.NODE_ENV !== 'production') {
 import { createCreatorProcessorWorker } from '@/lib/queue/workers/creator-processor';
 import { createSummaryProcessorWorker } from '@/lib/queue/workers/summary-processor';
 import { createBrightDataProcessorWorker } from '@/lib/queue/workers/brightdata-processor';
-import { createAINewsProcessorWorker } from '@/lib/queue/workers/ai-news-processor';
+import { createAINewsProcessorWorkerNewsData } from '@/lib/queue/workers/ai-news-processor-newsdata';
 import { createDigestWorker } from '@/lib/queue/workers/digest-processor';
 
 console.log('Starting queue workers...');
@@ -47,7 +47,7 @@ if (!process.env.RESEND_API_KEY) {
 const creatorWorker = createCreatorProcessorWorker();
 const summaryWorker = createSummaryProcessorWorker();
 const brightdataWorker = createBrightDataProcessorWorker();
-const aiNewsWorker = createAINewsProcessorWorker();
+const aiNewsWorker = createAINewsProcessorWorkerNewsData();
 const digestWorker = createDigestWorker();
 
 console.log('Workers started successfully!');
@@ -59,7 +59,7 @@ console.log(
   '- BrightData processor worker: Processing LinkedIn snapshots asynchronously'
 );
 console.log(
-  '- AI News processor worker: Generating AI news summaries for lounges (3 concurrent)'
+  '- AI News processor worker: Generating AI news summaries using NewsData.io + GPT-5-mini (3 concurrent)'
 );
 console.log(
   '- Email Digest worker: Processing daily email digests (5 concurrent)'

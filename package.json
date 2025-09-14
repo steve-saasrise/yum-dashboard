@@ -25,7 +25,8 @@
     "workers": "tsx workers.ts",
     "workers:dev": "tsx watch workers.ts",
     "worker:digest": "tsx scripts/start-digest-worker.ts",
-    "email": "email dev --dir emails --port 3001"
+    "email": "email dev --dir emails --port 3001",
+    "test:newsdata": "tsx scripts/test-newsdata-integration.ts"
   },
   "dependencies": {
     "@google/genai": "^1.17.0",
