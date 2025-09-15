@@ -70,11 +70,15 @@ export function createAINewsProcessorWorkerNewsData() {
           }
         );
 
+        console.log(
+          `[AI News Worker - NewsData] Fetched ${mainNewsResponse.results?.length || 0} articles for ${loungeType}`
+        );
+
         // Fetch special section articles with funding/M&A focus
         // Note: NewsData.io doesn't support complex OR queries, use simpler terms
         const specialQuery =
           loungeType.toLowerCase() === 'saas'
-            ? 'funding Series'  // Will catch "Series A", "Series B", etc.
+            ? 'funding Series' // Will catch "Series A", "Series B", etc.
             : loungeType.toLowerCase() === 'venture'
               ? 'venture capital'
               : loungeType.toLowerCase() === 'growth'
@@ -86,20 +90,18 @@ export function createAINewsProcessorWorkerNewsData() {
           console.log(
             `[AI News Worker - NewsData] Fetching special section articles with query: ${specialQuery}`
           );
-          
+
           // Build query options
           const queryOptions: any = {
             size: 10,
             language: 'en',
             category: ['business', 'technology'],
           };
-          
-          // Add domain filter for SaaS funding section to prioritize thesaasnews.com
-          if (loungeType.toLowerCase() === 'saas') {
-            queryOptions.domain = ['thesaasnews.com', 'techcrunch.com', 'venturebeat.com', 'forbes.com', 'bloomberg.com'];
-            console.log('[AI News Worker - NewsData] Using domain filter for SaaS funding:', queryOptions.domain);
-          }
-          
+
+          // Note: NewsData.io domain filter requires exact domain names from their database
+          // Removing domain filter as it causes 422 errors with domains not in their system
+          // Instead rely on query and category filters for relevant results
+
           specialSectionResponse = await newsDataService.fetchNewsByQuery(
             specialQuery,
             queryOptions
@@ -130,6 +132,19 @@ export function createAINewsProcessorWorkerNewsData() {
         console.log(
           `[AI News Worker - NewsData] Fetched ${mainNewsResponse.results.length} main articles and ${specialSectionResponse?.results.length || 0} special section articles, now curating with GPT-5-mini`
         );
+
+        // Log article details for debugging
+        if (combinedResponse.results.length > 0) {
+          console.log(
+            `[AI News Worker - NewsData] First article sample:`,
+            {
+              title: combinedResponse.results[0].title,
+              hasDescription: !!combinedResponse.results[0].description,
+              hasContent: !!combinedResponse.results[0].content,
+              source: combinedResponse.results[0].source_id,
+            }
+          );
+        }
 
         // Curate news using GPT-5-mini
         const curatedNews = await gptCurator.curateNewsFromNewsData(

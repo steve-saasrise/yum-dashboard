@@ -88,7 +88,7 @@ export class GPTNewsCurator {
       this.getSpecialSectionInfo(config.loungeType);
 
     const maxBullets = config.maxBullets || 5;
-    const maxSpecialSection = config.maxSpecialSection || 3;
+    const maxSpecialSection = config.maxSpecialSection || 5;
 
     return `You are a professional news curator for a ${config.loungeType} focused newsletter. Your task is to analyze the provided news articles and create a structured daily digest.
 
@@ -177,7 +177,7 @@ Guidelines:
       }));
 
       console.log(
-        `[GPT Curator] Curating ${articles.length} articles for ${config.loungeType} lounge`
+        `[GPT Curator] Curating ${articles.length} articles for ${config.loungeType} lounge using model: ${this.model}`
       );
 
       const response = await this.client.chat.completions.create({
@@ -206,7 +206,12 @@ Guidelines:
       const content = response.choices[0]?.message?.content;
 
       if (!content) {
-        throw new Error('No content generated from GPT');
+        console.error('[GPT Curator] Empty response from OpenAI:', {
+          model: this.model,
+          articleCount: articles.length,
+          response: response.choices[0],
+        });
+        throw new Error(`No content generated from GPT model ${this.model}`);
       }
 
       // Parse the JSON response
@@ -276,7 +281,7 @@ Guidelines:
       if (parsed.specialSection && Array.isArray(parsed.specialSection)) {
         for (const item of parsed.specialSection.slice(
           0,
-          config.maxSpecialSection || 3
+          config.maxSpecialSection || 5
         )) {
           if (item.text) {
             specialSection.push({
@@ -308,8 +313,14 @@ Guidelines:
       );
 
       return result;
-    } catch (error) {
-      console.error('[GPT Curator] Error curating news:', error);
+    } catch (error: any) {
+      console.error('[GPT Curator] Error curating news:', {
+        error: error.message,
+        model: this.model,
+        articleCount: articles.length,
+        loungeType: config.loungeType,
+        errorDetails: error.response?.data || error,
+      });
       throw error;
     }
   }

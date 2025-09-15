@@ -382,7 +382,7 @@ export const DailyDigestEmail = ({
                   </div>
                   <div style={{ marginTop: '16px' }}>
                     {aiNewsSummary.specialSection
-                      .slice(0, 3)
+                      .slice(0, 5)
                       .map((item, index) => (
                         <div key={index} style={newsItemContainer}>
                           {item.imageUrl && (

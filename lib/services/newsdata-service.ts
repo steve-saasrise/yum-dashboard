@@ -97,7 +97,7 @@ export class NewsDataService {
   private getDomainFilter(loungeType: string): string[] {
     const domains: { [key: string]: string[] } = {
       saas: [
-        'thesaasnews.com',  // Moved to top priority
+        'thesaasnews.com', // Moved to top priority
         'techcrunch.com',
         'venturebeat.com',
         'bloomberg.com',
