@@ -29,7 +29,7 @@ export class GPTNewsCurator {
   private client: OpenAI;
   private model: string;
 
-  constructor(apiKey: string, model: string = 'gpt-5-mini') {
+  constructor(apiKey: string, model: string = 'gpt-4o-mini') {
     if (!apiKey) {
       throw new Error('OpenAI API key is required');
     }
@@ -198,8 +198,9 @@ Guidelines:
             )}`,
           },
         ],
-        // temperature not supported for gpt-5-mini (o1-mini reasoning models)
-        max_completion_tokens: 4000,
+        // gpt-4o-mini supports temperature
+        temperature: 0.7,
+        max_tokens: 4000, // Use max_tokens for gpt-4o-mini
         response_format: { type: 'json_object' },
       });
 
@@ -372,8 +373,8 @@ export function getGPTNewsCurator(): GPTNewsCurator {
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY environment variable is not set');
     }
-    // Use gpt-5-mini model for cost-effectiveness
-    gptNewsCurator = new GPTNewsCurator(apiKey, 'gpt-5-mini');
+    // Use gpt-4o-mini model for best balance of cost and reliability
+    gptNewsCurator = new GPTNewsCurator(apiKey, 'gpt-4o-mini');
   }
   return gptNewsCurator;
 }

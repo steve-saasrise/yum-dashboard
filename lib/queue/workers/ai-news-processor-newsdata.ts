@@ -130,23 +130,20 @@ export function createAINewsProcessorWorkerNewsData() {
         };
 
         console.log(
-          `[AI News Worker - NewsData] Fetched ${mainNewsResponse.results.length} main articles and ${specialSectionResponse?.results.length || 0} special section articles, now curating with GPT-5-mini`
+          `[AI News Worker - NewsData] Fetched ${mainNewsResponse.results.length} main articles and ${specialSectionResponse?.results.length || 0} special section articles, now curating with GPT`
         );
 
         // Log article details for debugging
         if (combinedResponse.results.length > 0) {
-          console.log(
-            `[AI News Worker - NewsData] First article sample:`,
-            {
-              title: combinedResponse.results[0].title,
-              hasDescription: !!combinedResponse.results[0].description,
-              hasContent: !!combinedResponse.results[0].content,
-              source: combinedResponse.results[0].source_id,
-            }
-          );
+          console.log(`[AI News Worker - NewsData] First article sample:`, {
+            title: combinedResponse.results[0].title,
+            hasDescription: !!combinedResponse.results[0].description,
+            hasContent: !!combinedResponse.results[0].content,
+            source: combinedResponse.results[0].source_id,
+          });
         }
 
-        // Curate news using GPT-5-mini
+        // Curate news using GPT
         const curatedNews = await gptCurator.curateNewsFromNewsData(
           combinedResponse,
           {
@@ -154,7 +151,7 @@ export function createAINewsProcessorWorkerNewsData() {
             maxBullets: 5,
             maxSpecialSection: 3,
             includeImages: true,
-            model: 'gpt-5-mini',
+            // model will use default from GPTNewsCurator (gpt-4o-mini)
           }
         );
 
@@ -192,7 +189,7 @@ export function createAINewsProcessorWorkerNewsData() {
             summary_bullets: curatedNews.items as any,
             special_section: (curatedNews.specialSection || []) as any,
             generated_at: curatedNews.generatedAt,
-            model_used: 'gpt-5-mini',
+            model_used: 'gpt-4o-mini',
             token_count: 0, // Can be calculated if needed
             generation_time_ms: Date.now() - startTime,
             used_in_digest: false,
@@ -214,7 +211,7 @@ export function createAINewsProcessorWorkerNewsData() {
               articles_used:
                 validItems.length + (curatedNews.specialSection?.length || 0),
               news_source: 'newsdata.io',
-              curation_model: 'gpt-5-mini',
+              curation_model: 'gpt-4o-mini',
             } as any,
           })
           .select('id')
