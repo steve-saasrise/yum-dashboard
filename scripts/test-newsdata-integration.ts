@@ -38,7 +38,7 @@ async function testNewsDataIntegration() {
     console.log('🤖 Initializing GPT curator...');
     const gptCurator = new GPTNewsCurator(
       process.env.OPENAI_API_KEY,
-      'gpt-5-mini'
+      'gpt-4o-mini'
     );
 
     // Fetch news from NewsData.io
@@ -79,8 +79,8 @@ async function testNewsDataIntegration() {
       }
     });
 
-    // Curate news with GPT-5-mini
-    console.log(`\n🎯 Curating news with GPT-5-mini...`);
+    // Curate news with GPT-4o-mini
+    console.log(`\n🎯 Curating news with GPT-4o-mini...`);
     const startCuration = Date.now();
 
     const curatedNews = await gptCurator.curateNewsFromNewsData(newsResponse, {

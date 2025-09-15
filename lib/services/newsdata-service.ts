@@ -219,16 +219,26 @@ export class NewsDataService {
       params.append('category', categories.join(','));
     }
 
-    // Add country filter if specified
-    if (options.country) {
-      params.append('country', options.country);
-    }
+    // Filter for Western countries only to avoid Asian/Indian news sources
+    // API allows up to 5 countries, so we focus on major English-speaking Western nations
+    const westernCountries = 'us,gb,ca,au,fr';
+    params.append('country', options.country || westernCountries);
 
     // Add priority domain filter to get only high-quality sources
     // top = top 10% most authoritative news domains
     // medium = top 30% of news domains
     // low = top 50% of news domains
     params.append('prioritydomain', 'top');
+
+    // Exclude press release distribution services - they're not real journalism
+    // API allows up to 5 domains to exclude
+    // Note: Only use domains that exist in NewsData.io's database
+    const pressReleaseDomains = [
+      'prnewswire.com',
+      'globenewswire.com',
+      'businesswire.com'
+    ];
+    params.append('excludedomain', pressReleaseDomains.join(','));
 
     // Skip domain filter for free tier - it limits results too much
     // if (domains.length > 0) {
@@ -299,9 +309,9 @@ export class NewsDataService {
       params.append('category', options.category.join(','));
     }
 
-    if (options.country) {
-      params.append('country', options.country);
-    }
+    // Default to Western countries if not specified
+    const westernCountries = 'us,gb,ca,au,fr';
+    params.append('country', options.country || westernCountries);
 
     if (options.domain && options.domain.length > 0) {
       params.append('domain', options.domain.slice(0, 5).join(','));
@@ -309,6 +319,14 @@ export class NewsDataService {
 
     // Add priority domain filter to get only high-quality sources
     params.append('prioritydomain', 'top');
+
+    // Exclude press release distribution services
+    const pressReleaseDomains = [
+      'prnewswire.com',
+      'globenewswire.com',
+      'businesswire.com'
+    ];
+    params.append('excludedomain', pressReleaseDomains.join(','));
 
     if (options.page) {
       params.append('page', options.page);
@@ -371,12 +389,20 @@ export class NewsDataService {
       params.append('category', categories.join(','));
     }
 
-    if (options.country) {
-      params.append('country', options.country);
-    }
+    // Default to Western countries if not specified
+    const westernCountries = 'us,gb,ca,au,fr';
+    params.append('country', options.country || westernCountries);
 
     // Add priority domain filter to get only high-quality sources
     params.append('prioritydomain', 'top');
+
+    // Exclude press release distribution services
+    const pressReleaseDomains = [
+      'prnewswire.com',
+      'globenewswire.com',
+      'businesswire.com'
+    ];
+    params.append('excludedomain', pressReleaseDomains.join(','));
 
     if (options.page) {
       params.append('page', options.page);
