@@ -100,6 +100,11 @@ IMPORTANT RULES:
 5. All URLs must be preserved exactly as provided - these are the actual article links
 6. Focus on breaking news, major announcements, and significant developments
 
+REJECTION CRITERIA:
+- REJECT any local/regional business stories that don't involve major SaaS companies
+- REJECT consumer-focused content or DIY tech tips
+- ONLY include news about established SaaS companies or significant startup funding
+
 Return a valid JSON object with EXACTLY this structure:
 
 {

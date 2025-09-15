@@ -10,25 +10,28 @@ async function testPriorityDomain() {
   console.log('============================================\n');
 
   const service = getNewsDataService();
-  
+
   const loungeTypes = ['ai', 'saas', 'venture'];
-  
+
   for (const loungeType of loungeTypes) {
     console.log(`\n📰 Testing ${loungeType.toUpperCase()} lounge:`);
     console.log('-'.repeat(40));
-    
+
     try {
       const response = await service.fetchLatestNews(loungeType, { size: 5 });
-      
+
       console.log(`✅ Fetched ${response.results.length} articles\n`);
-      
+
       response.results.forEach((article, i) => {
-        const sourceName = article.source_name || article.source_id || 'Unknown';
+        const sourceName =
+          article.source_name || article.source_id || 'Unknown';
         const priority = article.source_priority;
-        
+
         console.log(`${i + 1}. ${sourceName}`);
         if (priority !== undefined) {
-          console.log(`   Priority Score: ${priority} (lower = more authoritative)`);
+          console.log(
+            `   Priority Score: ${priority} (lower = more authoritative)`
+          );
         }
         console.log(`   Title: ${article.title?.substring(0, 70)}...`);
       });
@@ -36,8 +39,10 @@ async function testPriorityDomain() {
       console.error(`❌ Error fetching ${loungeType}: ${error}`);
     }
   }
-  
-  console.log('\n✨ All articles should be from top 10% most authoritative sources');
+
+  console.log(
+    '\n✨ All articles should be from top 10% most authoritative sources'
+  );
 }
 
 testPriorityDomain().catch(console.error);

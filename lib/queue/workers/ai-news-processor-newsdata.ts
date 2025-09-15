@@ -54,12 +54,13 @@ export function createAINewsProcessorWorkerNewsData() {
           loungeType = 'growth';
         }
 
-        // Fetch news from NewsData.io
+        // Fetch news from NewsData.io - separate queries for main stories and special section
         console.log(
           `[AI News Worker - NewsData] Fetching news from NewsData.io for: ${loungeType}`
         );
 
-        const newsDataResponse = await newsDataService.fetchLatestNews(
+        // Fetch main news articles for headlines and big story
+        const mainNewsResponse = await newsDataService.fetchLatestNews(
           loungeType,
           {
             size: 10, // Free tier limit is 10 (upgrade for more)
@@ -69,22 +70,59 @@ export function createAINewsProcessorWorkerNewsData() {
           }
         );
 
+        // Fetch special section articles with funding/M&A focus
+        const specialQuery =
+          loungeType.toLowerCase() === 'saas'
+            ? 'SaaS funding OR SaaS acquisition OR SaaS merger OR Series A OR Series B OR Series C'
+            : loungeType.toLowerCase() === 'venture'
+              ? 'venture capital OR Series A OR Series B OR Series C OR funding round'
+              : loungeType.toLowerCase() === 'growth'
+                ? 'growth metrics OR A/B test OR conversion rate OR ARR growth'
+                : null;
+
+        let specialSectionResponse = null;
+        if (specialQuery) {
+          console.log(
+            `[AI News Worker - NewsData] Fetching special section articles with query: ${specialQuery}`
+          );
+          specialSectionResponse = await newsDataService.fetchNewsByQuery(
+            specialQuery,
+            {
+              size: 10,
+              language: 'en',
+              category: ['business', 'technology'],
+            }
+          );
+        }
+
         if (
-          !newsDataResponse.results ||
-          newsDataResponse.results.length === 0
+          !mainNewsResponse.results ||
+          mainNewsResponse.results.length === 0
         ) {
           throw new Error(
             `No news articles found for ${loungeType} from NewsData.io`
           );
         }
 
+        // Combine both responses for GPT curation
+        const combinedResponse = {
+          results: [
+            ...mainNewsResponse.results,
+            ...(specialSectionResponse?.results || []),
+          ],
+          totalResults:
+            mainNewsResponse.totalResults +
+            (specialSectionResponse?.totalResults || 0),
+          status: mainNewsResponse.status,
+        };
+
         console.log(
-          `[AI News Worker - NewsData] Fetched ${newsDataResponse.results.length} articles, now curating with GPT-5-mini`
+          `[AI News Worker - NewsData] Fetched ${mainNewsResponse.results.length} main articles and ${specialSectionResponse?.results.length || 0} special section articles, now curating with GPT-5-mini`
         );
 
         // Curate news using GPT-5-mini
         const curatedNews = await gptCurator.curateNewsFromNewsData(
-          newsDataResponse,
+          combinedResponse,
           {
             loungeType,
             maxBullets: 5,
@@ -145,8 +183,8 @@ export function createAINewsProcessorWorkerNewsData() {
                 .includes('growth')
                 ? 'growth_experiments'
                 : 'fundraising',
-              articles_found: newsDataResponse.totalResults,
-              articles_fetched: newsDataResponse.results.length,
+              articles_found: combinedResponse.totalResults,
+              articles_fetched: combinedResponse.results.length,
               articles_used:
                 validItems.length + (curatedNews.specialSection?.length || 0),
               news_source: 'newsdata.io',
