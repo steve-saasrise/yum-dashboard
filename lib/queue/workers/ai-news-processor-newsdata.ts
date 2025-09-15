@@ -71,13 +71,14 @@ export function createAINewsProcessorWorkerNewsData() {
         );
 
         // Fetch special section articles with funding/M&A focus
+        // Note: NewsData.io doesn't support complex OR queries, use simpler terms
         const specialQuery =
           loungeType.toLowerCase() === 'saas'
-            ? 'SaaS funding OR SaaS acquisition OR SaaS merger OR Series A OR Series B OR Series C'
+            ? 'funding Series'  // Will catch "Series A", "Series B", etc.
             : loungeType.toLowerCase() === 'venture'
-              ? 'venture capital OR Series A OR Series B OR Series C OR funding round'
+              ? 'venture capital'
               : loungeType.toLowerCase() === 'growth'
-                ? 'growth metrics OR A/B test OR conversion rate OR ARR growth'
+                ? 'growth metrics'
                 : null;
 
         let specialSectionResponse = null;
@@ -85,13 +86,23 @@ export function createAINewsProcessorWorkerNewsData() {
           console.log(
             `[AI News Worker - NewsData] Fetching special section articles with query: ${specialQuery}`
           );
+          
+          // Build query options
+          const queryOptions: any = {
+            size: 10,
+            language: 'en',
+            category: ['business', 'technology'],
+          };
+          
+          // Add domain filter for SaaS funding section to prioritize thesaasnews.com
+          if (loungeType.toLowerCase() === 'saas') {
+            queryOptions.domain = ['thesaasnews.com', 'techcrunch.com', 'venturebeat.com', 'forbes.com', 'bloomberg.com'];
+            console.log('[AI News Worker - NewsData] Using domain filter for SaaS funding:', queryOptions.domain);
+          }
+          
           specialSectionResponse = await newsDataService.fetchNewsByQuery(
             specialQuery,
-            {
-              size: 10,
-              language: 'en',
-              category: ['business', 'technology'],
-            }
+            queryOptions
           );
         }
 
