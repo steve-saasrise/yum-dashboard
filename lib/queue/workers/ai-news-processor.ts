@@ -1,9 +1,9 @@
 import { Worker, Job } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
 import {
-  getPerplexityNewsService,
+  getGPT5NewsService,
   GenerateNewsResult,
-} from '@/lib/services/perplexity-news-service';
+} from '@/lib/services/gpt5-news-service';
 import {
   getRedisConnection,
   QUEUE_NAMES,
@@ -39,24 +39,18 @@ export function createAINewsProcessorWorker() {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Initialize Perplexity news service
-        const perplexityNewsService = getPerplexityNewsService();
+        // Initialize GPT-5 news service
+        const gpt5NewsService = getGPT5NewsService();
 
-        // Generate AI news using Perplexity
+        // Generate AI news using GPT-5
         console.log(
-          `[AI News Worker] Generating news using Perplexity for: ${loungeName}`
+          `[AI News Worker] Generating news using GPT-5 for: ${loungeName}`
         );
-        const result =
-          await perplexityNewsService.generateNewsForLounge(loungeName);
-
-        if (!result.success || !result.content) {
-          throw new Error(
-            `Failed to generate news for ${loungeName}: ${result.error}`
-          );
-        }
-
-        // The content is already structured as GenerateNewsResult
-        const newsResult: GenerateNewsResult = result.content;
+        const newsResult = await gpt5NewsService.generateNews({
+          loungeType: loungeName,
+          maxBullets: 5,
+          maxSpecialSection: 5,
+        });
 
         // Validate the news result before saving
         if (!newsResult || !newsResult.items || newsResult.items.length === 0) {
@@ -89,7 +83,7 @@ export function createAINewsProcessorWorker() {
             summary_bullets: newsResult.items as any, // Items now have all fields
             special_section: (newsResult.specialSection || []) as any,
             generated_at: newsResult.generatedAt,
-            model_used: 'gpt-5-mini',
+            model_used: 'gpt-5',
             token_count: 0, // Can be calculated if needed
             generation_time_ms: Date.now() - startTime,
             used_in_digest: false,
@@ -106,8 +100,8 @@ export function createAINewsProcessorWorker() {
                 .includes('growth')
                 ? 'growth_experiments'
                 : 'fundraising',
-              articles_found: result.articlesFound,
-              articles_used: result.articlesUsed,
+              articles_found: 0,
+              articles_used: newsResult.items.length,
             } as any,
           })
           .select('id')

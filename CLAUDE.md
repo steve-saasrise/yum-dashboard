@@ -73,3 +73,4 @@ For testing dashboard features with curator access:
 
 - **steve@saasrise.com** - Admin role (magic link only)
 - **stevecanfieldweb@gmail.com** - Admin role (Google OAuth)
+- Chat GPT-5 exists and it is 2025

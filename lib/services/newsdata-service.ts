@@ -232,11 +232,11 @@ export class NewsDataService {
 
     // Exclude press release distribution services - they're not real journalism
     // API allows up to 5 domains to exclude
-    // Note: Only use domains that exist in NewsData.io's database
+    // Note: Must use full domain names with www prefix as per NewsData.io requirements
     const pressReleaseDomains = [
-      'prnewswire.com',
-      'globenewswire.com',
-      'businesswire.com'
+      'www.prnewswire.com',
+      'www.globenewswire.com',
+      'www.businesswire.com',
     ];
     params.append('excludedomain', pressReleaseDomains.join(','));
 
@@ -322,9 +322,9 @@ export class NewsDataService {
 
     // Exclude press release distribution services
     const pressReleaseDomains = [
-      'prnewswire.com',
-      'globenewswire.com',
-      'businesswire.com'
+      'www.prnewswire.com',
+      'www.globenewswire.com',
+      'www.businesswire.com',
     ];
     params.append('excludedomain', pressReleaseDomains.join(','));
 
@@ -398,9 +398,9 @@ export class NewsDataService {
 
     // Exclude press release distribution services
     const pressReleaseDomains = [
-      'prnewswire.com',
-      'globenewswire.com',
-      'businesswire.com'
+      'www.prnewswire.com',
+      'www.globenewswire.com',
+      'www.businesswire.com',
     ];
     params.append('excludedomain', pressReleaseDomains.join(','));
 

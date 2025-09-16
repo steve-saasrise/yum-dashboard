@@ -71,6 +71,8 @@ async function testNewsDataIntegration() {
       console.log(
         `   Source: ${article.source_name || article.source_id || 'Unknown'}`
       );
+      console.log(`   Source ID: ${article.source_id}`);
+      console.log(`   Source URL: ${article.source_url}`);
       console.log(`   URL: ${article.link}`);
       if (article.description) {
         console.log(
@@ -78,6 +80,11 @@ async function testNewsDataIntegration() {
         );
       }
     });
+
+    // Debug: Show all unique source_ids
+    const uniqueSources = new Set(newsResponse.results.map((a) => a.source_id));
+    console.log('\n🔍 All unique source IDs in response:');
+    console.log(Array.from(uniqueSources).join(', '));
 
     // Curate news with GPT-4o-mini
     console.log(`\n🎯 Curating news with GPT-4o-mini...`);
