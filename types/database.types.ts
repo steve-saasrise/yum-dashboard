@@ -14,6 +14,41 @@ export type Database = {
   };
   public: {
     Tables: {
+      ai_news: {
+        Row: {
+          content: Json;
+          created_at: string | null;
+          generated_at: string | null;
+          id: string;
+          lounge_id: string | null;
+          news_date: string;
+        };
+        Insert: {
+          content?: Json;
+          created_at?: string | null;
+          generated_at?: string | null;
+          id?: string;
+          lounge_id?: string | null;
+          news_date?: string;
+        };
+        Update: {
+          content?: Json;
+          created_at?: string | null;
+          generated_at?: string | null;
+          id?: string;
+          lounge_id?: string | null;
+          news_date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ai_news_lounge_id_fkey';
+            columns: ['lounge_id'];
+            isOneToOne: false;
+            referencedRelation: 'lounges';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       api_usage_tracking: {
         Row: {
           endpoint: string;

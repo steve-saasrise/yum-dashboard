@@ -25,14 +25,16 @@ async function testStockMovers() {
       // Display Indexes
       console.log('📊 SaaS Indexes (Prior Day)');
       console.log('─'.repeat(50));
-      stockData.indexes.forEach(index => {
+      stockData.indexes.forEach((index) => {
         const sign = index.changePercent >= 0 ? '+' : '';
         const color = index.changePercent >= 0 ? '\x1b[32m' : '\x1b[31m';
         console.log(`${index.name}`);
         if (index.details) {
           console.log(`  ${index.details}`);
         }
-        console.log(`  ${color}${sign}${index.changePercent.toFixed(1)}%\x1b[0m\n`);
+        console.log(
+          `  ${color}${sign}${index.changePercent.toFixed(1)}%\x1b[0m\n`
+        );
       });
 
       // Display Top Gainers
@@ -42,9 +44,13 @@ async function testStockMovers() {
         console.log(`${i + 1}. ${stock.companyName} (${stock.symbol})`);
         console.log(`   $${stock.price.toFixed(2)} | ${stock.marketCap}`);
         if (stock.revenue || stock.ebitda) {
-          console.log(`   ${[stock.revenue, stock.ebitda].filter(Boolean).join(', ')}`);
+          console.log(
+            `   ${[stock.revenue, stock.ebitda].filter(Boolean).join(', ')}`
+          );
         }
-        console.log(`   \x1b[32m+$${Math.abs(stock.change).toFixed(2)} (+${stock.changePercent.toFixed(1)}%)\x1b[0m\n`);
+        console.log(
+          `   \x1b[32m+$${Math.abs(stock.change).toFixed(2)} (+${stock.changePercent.toFixed(1)}%)\x1b[0m\n`
+        );
       });
 
       // Display Top Losers
@@ -54,12 +60,18 @@ async function testStockMovers() {
         console.log(`${i + 1}. ${stock.companyName} (${stock.symbol})`);
         console.log(`   $${stock.price.toFixed(2)} | ${stock.marketCap}`);
         if (stock.revenue || stock.ebitda) {
-          console.log(`   ${[stock.revenue, stock.ebitda].filter(Boolean).join(', ')}`);
+          console.log(
+            `   ${[stock.revenue, stock.ebitda].filter(Boolean).join(', ')}`
+          );
         }
-        console.log(`   \x1b[31m$${stock.change.toFixed(2)} (${stock.changePercent.toFixed(1)}%)\x1b[0m\n`);
+        console.log(
+          `   \x1b[31m$${stock.change.toFixed(2)} (${stock.changePercent.toFixed(1)}%)\x1b[0m\n`
+        );
       });
 
-      console.log(`\nGenerated at: ${new Date(stockData.generatedAt).toLocaleString()}`);
+      console.log(
+        `\nGenerated at: ${new Date(stockData.generatedAt).toLocaleString()}`
+      );
 
       // Validate data structure
       console.log('\n✅ Data Validation:');
@@ -69,19 +81,20 @@ async function testStockMovers() {
 
       // Check if data looks realistic
       const allStocks = [...stockData.topGainers, ...stockData.topLosers];
-      const hasValidPrices = allStocks.every(s => s.price > 0);
-      const hasValidSymbols = allStocks.every(s => s.symbol && s.symbol.length > 0);
-      const hasValidChanges = stockData.topGainers.every(s => s.change > 0) &&
-                              stockData.topLosers.every(s => s.change < 0);
+      const hasValidPrices = allStocks.every((s) => s.price > 0);
+      const hasValidSymbols = allStocks.every(
+        (s) => s.symbol && s.symbol.length > 0
+      );
+      const hasValidChanges =
+        stockData.topGainers.every((s) => s.change > 0) &&
+        stockData.topLosers.every((s) => s.change < 0);
 
       console.log(`  - Valid prices: ${hasValidPrices ? '✓' : '✗'}`);
       console.log(`  - Valid symbols: ${hasValidSymbols ? '✓' : '✗'}`);
       console.log(`  - Valid changes: ${hasValidChanges ? '✓' : '✗'}`);
-
     } else {
       console.log('❌ No stock data returned');
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
     process.exit(1);

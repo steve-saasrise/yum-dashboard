@@ -37,7 +37,9 @@ export class GPT5StockMoversService {
 
   public async generateStockMovers(): Promise<StockMoversData> {
     try {
-      console.log('[GPT-5 Stock Movers] Generating SaaS stock movers with web search...');
+      console.log(
+        '[GPT-5 Stock Movers] Generating SaaS stock movers with web search...'
+      );
 
       // Get today's date for context
       const today = new Date();
@@ -137,7 +139,8 @@ IMPORTANT: All data MUST be from actual web search results, not generated.`,
         const outputTextItem = response.output.find(
           (item: any) =>
             item.type === 'output_text' ||
-            (item.type === 'message' && item.content?.[0]?.type === 'output_text')
+            (item.type === 'message' &&
+              item.content?.[0]?.type === 'output_text')
         );
 
         if (outputTextItem) {

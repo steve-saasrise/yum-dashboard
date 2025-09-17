@@ -33,7 +33,7 @@ export interface GPT5NewsConfig {
 
 export class GPT5NewsService {
   private client: OpenAI;
-  private model: string = 'gpt-5-mini'; // Using GPT-5-mini model
+  private model: string = 'gpt-5'; // Using GPT-5 model
 
   constructor(apiKey: string) {
     if (!apiKey) {
@@ -183,6 +183,87 @@ Guidelines:
         fundingInstructions = `${maxSpecialSection} ${config.loungeType} funding/investment items - with verified amounts`;
       }
 
+      // Define allowed domains based on lounge type to avoid paywalls
+      let allowedDomains: string[] = [];
+
+      if (isSaaS || loungeType.includes('b2b')) {
+        allowedDomains = [
+          'techcrunch.com',
+          'theverge.com',
+          'venturebeat.com',
+          'siliconangle.com',
+          'thesaasnews.com',
+          'saasworthy.com',
+          'getlatka.com',
+          'zdnet.com',
+          'arstechnica.com',
+          'reuters.com',
+          'apnews.com',
+          'prnewswire.com',
+          'businesswire.com',
+          'producthunt.com',
+        ];
+      } else if (loungeType.includes('ai')) {
+        allowedDomains = [
+          'techcrunch.com',
+          'theverge.com',
+          'venturebeat.com',
+          'openai.com',
+          'anthropic.com',
+          'huggingface.co',
+          'arxiv.org',
+          'deepmind.com',
+          'reuters.com',
+          'arstechnica.com',
+          'thenextweb.com',
+          'engadget.com',
+          'prnewswire.com',
+          'businesswire.com',
+        ];
+      } else if (loungeType.includes('crypto')) {
+        allowedDomains = [
+          'coindesk.com',
+          'cointelegraph.com',
+          'decrypt.co',
+          'theblock.co',
+          'bitcoinmagazine.com',
+          'cryptoslate.com',
+          'u.today',
+          'newsbtc.com',
+          'cryptonews.com',
+          'beincrypto.com',
+        ];
+      } else if (loungeType.includes('venture')) {
+        allowedDomains = [
+          'techcrunch.com',
+          'venturebeat.com',
+          'crunchbase.com',
+          'sifted.eu',
+          'eu-startups.com',
+          'startupnation.com',
+          'thesaasnews.com',
+          'prnewswire.com',
+          'businesswire.com',
+          'reuters.com',
+          'axios.com',
+        ];
+      } else {
+        // Generic fallback - focus on free, accessible sources
+        allowedDomains = [
+          'techcrunch.com',
+          'theverge.com',
+          'venturebeat.com',
+          'reuters.com',
+          'apnews.com',
+          'arstechnica.com',
+          'zdnet.com',
+          'engadget.com',
+          'thenextweb.com',
+          'prnewswire.com',
+          'businesswire.com',
+        ];
+      }
+
       // Use the Responses API with web_search tool
       const response = await (this.client as any).responses.create({
         model: this.model,
@@ -193,6 +274,9 @@ Guidelines:
           {
             type: 'web_search',
             search_context_size: 'medium', // Balanced context and latency (default)
+            filters: {
+              allowed_domains: allowedDomains,
+            },
           },
         ],
         include: ['web_search_call.action.sources'],

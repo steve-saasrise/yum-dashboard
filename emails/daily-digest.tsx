@@ -652,7 +652,9 @@ export const DailyDigestEmail = ({
                 {/* Market Indexes */}
                 {stockMovers.indexes && stockMovers.indexes.length > 0 && (
                   <div style={indexesContainer}>
-                    <Text style={indexesHeader}>📊 SaaS Indexes (Prior Day)</Text>
+                    <Text style={indexesHeader}>
+                      📊 SaaS Indexes (Prior Day)
+                    </Text>
                     {stockMovers.indexes.map((index, i) => (
                       <div key={i} style={indexItem}>
                         <div>
@@ -664,7 +666,8 @@ export const DailyDigestEmail = ({
                         <Text
                           style={{
                             ...indexChange,
-                            color: index.changePercent >= 0 ? '#10b981' : '#ef4444',
+                            color:
+                              index.changePercent >= 0 ? '#10b981' : '#ef4444',
                           }}
                         >
                           {index.changePercent >= 0 ? '+' : ''}
@@ -676,34 +679,35 @@ export const DailyDigestEmail = ({
                 )}
 
                 {/* Top Gainers */}
-                {stockMovers.topGainers && stockMovers.topGainers.length > 0 && (
-                  <div style={stockListContainer}>
-                    <Text style={stockListHeader}>🟢 Top Gainers</Text>
-                    {stockMovers.topGainers.map((stock, i) => (
-                      <div key={i} style={stockItem}>
-                        <div style={stockItemLeft}>
-                          <Text style={stockItemNumber}>{i + 1}.</Text>
-                          <div>
-                            <Text style={stockCompanyName}>
-                              {stock.companyName} ({stock.symbol})
-                            </Text>
-                            <Text style={stockMetrics}>
-                              ${stock.price.toFixed(2)} | {stock.marketCap}
-                              {stock.revenue && `, ${stock.revenue}`}
-                              {stock.ebitda && `, ${stock.ebitda}`}
+                {stockMovers.topGainers &&
+                  stockMovers.topGainers.length > 0 && (
+                    <div style={stockListContainer}>
+                      <Text style={stockListHeader}>🟢 Top Gainers</Text>
+                      {stockMovers.topGainers.map((stock, i) => (
+                        <div key={i} style={stockItem}>
+                          <div style={stockItemLeft}>
+                            <Text style={stockItemNumber}>{i + 1}.</Text>
+                            <div>
+                              <Text style={stockCompanyName}>
+                                {stock.companyName} ({stock.symbol})
+                              </Text>
+                              <Text style={stockMetrics}>
+                                ${stock.price.toFixed(2)} | {stock.marketCap}
+                                {stock.revenue && `, ${stock.revenue}`}
+                                {stock.ebitda && `, ${stock.ebitda}`}
+                              </Text>
+                            </div>
+                          </div>
+                          <div style={stockItemRight}>
+                            <Text style={stockChangePositive}>
+                              +${Math.abs(stock.change).toFixed(2)} (+
+                              {stock.changePercent.toFixed(1)}%)
                             </Text>
                           </div>
                         </div>
-                        <div style={stockItemRight}>
-                          <Text style={stockChangePositive}>
-                            +${Math.abs(stock.change).toFixed(2)} (+
-                            {stock.changePercent.toFixed(1)}%)
-                          </Text>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
 
                 {/* Top Losers */}
                 {stockMovers.topLosers && stockMovers.topLosers.length > 0 && (
