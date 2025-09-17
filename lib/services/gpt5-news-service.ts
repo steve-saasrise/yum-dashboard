@@ -33,7 +33,7 @@ export interface GPT5NewsConfig {
 
 export class GPT5NewsService {
   private client: OpenAI;
-  private model: string = 'gpt-5'; // Using GPT-5 model
+  private model: string = 'gpt-5-mini'; // Using GPT-5-mini model
 
   constructor(apiKey: string) {
     if (!apiKey) {

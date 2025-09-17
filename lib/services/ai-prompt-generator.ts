@@ -28,7 +28,9 @@ export class AIPromptGenerator {
   /**
    * Generate an image prompt using GPT-4o-mini
    */
-  async generateImagePrompt(options: ImagePromptOptions): Promise<GeneratedPrompt | null> {
+  async generateImagePrompt(
+    options: ImagePromptOptions
+  ): Promise<GeneratedPrompt | null> {
     if (!this.openai) {
       console.error('OpenAI API key not configured for prompt generation');
       return null;
@@ -64,7 +66,7 @@ Generate a specific, contextual prompt that visually represents the article's co
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          { role: 'user', content: userPrompt },
         ],
         temperature: 0.7,
         max_tokens: 200,
@@ -113,7 +115,7 @@ Generate a specific, contextual prompt that visually represents the article's co
 
       // Small delay between batches to respect rate limits
       if (i + batchSize < articles.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 

@@ -95,7 +95,9 @@ export class AIImageService {
       let prompt: string;
 
       if (options.title && this.promptGenerator) {
-        console.log(`Generating smart prompt with GPT-4o-mini for: ${options.title}`);
+        console.log(
+          `Generating smart prompt with GPT-4o-mini for: ${options.title}`
+        );
         const generatedPrompt = await this.promptGenerator.generateImagePrompt({
           title: options.title,
           description: options.description,
@@ -109,7 +111,9 @@ export class AIImageService {
           console.log(`AI-generated prompt: ${prompt}`);
         } else {
           // Fallback to template-based prompt
-          console.log('GPT-4o-mini prompt generation failed, falling back to template');
+          console.log(
+            'GPT-4o-mini prompt generation failed, falling back to template'
+          );
           prompt = this.generatePrompt(options);
         }
       } else {
@@ -776,20 +780,23 @@ export class AIImageService {
     const results = new Map<string, GeneratedImage | null>();
 
     // First, generate all prompts in bulk using GPT-4o-mini (if titles are available)
-    const articlesWithTitles = articles.filter(a => a.title);
+    const articlesWithTitles = articles.filter((a) => a.title);
     const promptMap = new Map<string, string>();
 
     if (articlesWithTitles.length > 0 && this.promptGenerator) {
-      console.log(`Generating ${articlesWithTitles.length} prompts with GPT-4o-mini...`);
-      const generatedPrompts = await this.promptGenerator.generateBulkImagePrompts(
-        articlesWithTitles.map(a => ({
-          title: a.title!,
-          description: a.description,
-          source: a.source,
-          category: a.category,
-          isBigStory: a.isBigStory,
-        }))
+      console.log(
+        `Generating ${articlesWithTitles.length} prompts with GPT-4o-mini...`
       );
+      const generatedPrompts =
+        await this.promptGenerator.generateBulkImagePrompts(
+          articlesWithTitles.map((a) => ({
+            title: a.title!,
+            description: a.description,
+            source: a.source,
+            category: a.category,
+            isBigStory: a.isBigStory,
+          }))
+        );
 
       // Store the generated prompts
       generatedPrompts.forEach((prompt, title) => {
