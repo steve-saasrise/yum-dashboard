@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import fetch from 'node-fetch';
 import sharp from 'sharp';
+import { AIPromptGenerator } from './ai-prompt-generator';
 
 interface GenerateImageOptions {
   url: string;
@@ -33,9 +34,11 @@ export class AIImageService {
   private genAI: GoogleGenAI | null = null;
   private supabase: ReturnType<typeof createClient> | null = null;
   private static instance: AIImageService | null = null;
+  private promptGenerator: AIPromptGenerator;
 
   constructor() {
     this.initializeServices();
+    this.promptGenerator = new AIPromptGenerator();
   }
 
   private initializeServices() {
@@ -88,11 +91,34 @@ export class AIImageService {
         };
       }
 
-      // Generate a contextual prompt based on the article metadata
-      const prompt = this.generatePrompt(options);
+      // First, try to generate a smart prompt using GPT-4o-mini if we have title
+      let prompt: string;
+
+      if (options.title && this.promptGenerator) {
+        console.log(`Generating smart prompt with GPT-4o-mini for: ${options.title}`);
+        const generatedPrompt = await this.promptGenerator.generateImagePrompt({
+          title: options.title,
+          description: options.description,
+          source: options.source,
+          category: options.category,
+          isBigStory: options.isBigStory,
+        });
+
+        if (generatedPrompt) {
+          prompt = generatedPrompt.prompt;
+          console.log(`AI-generated prompt: ${prompt}`);
+        } else {
+          // Fallback to template-based prompt
+          console.log('GPT-4o-mini prompt generation failed, falling back to template');
+          prompt = this.generatePrompt(options);
+        }
+      } else {
+        // Use template-based prompt if no title or prompt generator unavailable
+        prompt = this.generatePrompt(options);
+      }
 
       console.log(`Generating AI image for: ${options.url}`);
-      console.log(`Prompt: ${prompt}`);
+      console.log(`Final prompt: ${prompt}`);
 
       // Call Gemini 2.5 Flash Image Preview model (aka "Nano Banana")
       const response = await this.genAI.models.generateContent({
@@ -749,12 +775,49 @@ export class AIImageService {
   ): Promise<Map<string, GeneratedImage | null>> {
     const results = new Map<string, GeneratedImage | null>();
 
+    // First, generate all prompts in bulk using GPT-4o-mini (if titles are available)
+    const articlesWithTitles = articles.filter(a => a.title);
+    const promptMap = new Map<string, string>();
+
+    if (articlesWithTitles.length > 0 && this.promptGenerator) {
+      console.log(`Generating ${articlesWithTitles.length} prompts with GPT-4o-mini...`);
+      const generatedPrompts = await this.promptGenerator.generateBulkImagePrompts(
+        articlesWithTitles.map(a => ({
+          title: a.title!,
+          description: a.description,
+          source: a.source,
+          category: a.category,
+          isBigStory: a.isBigStory,
+        }))
+      );
+
+      // Store the generated prompts
+      generatedPrompts.forEach((prompt, title) => {
+        promptMap.set(title, prompt.prompt);
+      });
+    }
+
     // Process in small batches to avoid rate limiting
     const batchSize = 3;
     for (let i = 0; i < articles.length; i += batchSize) {
       const batch = articles.slice(i, i + batchSize);
 
       const promises = batch.map(async (article) => {
+        // If we have a pre-generated prompt, add it to the options
+        if (article.title && promptMap.has(article.title)) {
+          const aiPrompt = promptMap.get(article.title)!;
+          // Create a temporary imagePrompt structure to use the AI-generated prompt
+          article.imagePrompt = {
+            concept: aiPrompt,
+            style: 'professional',
+            mood: 'optimistic',
+            colors: 'harmonious',
+            elements: [],
+            composition: 'balanced',
+            avoid: ['text', 'letters', 'numbers'],
+          };
+        }
+
         const image = await this.generateFallbackImage(article);
         return { url: article.url, image };
       });
