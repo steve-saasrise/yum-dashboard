@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getGPT5NewsService } from '@/lib/services/gpt5-news-service';
+import { queueAINewsGeneration } from '@/lib/queue/queue-service';
 import type { Database } from '@/types/database.types';
 
-export const maxDuration = 60; // 60 seconds for direct generation
+export const maxDuration = 10; // Reduced to 10 seconds since we're just queuing
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -39,97 +39,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generate news using GPT-5 service
-    const gpt5Service = getGPT5NewsService();
-    const newsData = await gpt5Service.generateNews({
-      loungeType: 'saas',
-      maxBullets: 5,
-      maxSpecialSection: 5,
+    console.log(`[Cron] Queuing SaaS news generation for lounge: ${saasLounge.name}`);
+
+    // Queue just the SaaS lounge for processing
+    const queueResult = await queueAINewsGeneration([saasLounge], false);
+
+    console.log('[Cron] SaaS news generation job queued:', {
+      queued: queueResult.queued,
+      skipped: queueResult.skipped,
     });
-
-    console.log('[Cron] Generated SaaS news:', {
-      bullets: newsData.items.length,
-      specialSection: newsData.specialSection?.length || 0,
-      hasBigStory: !!newsData.bigStory,
-    });
-
-    // Prepare data for database - ensure it's properly typed as Json
-    const aiNewsData = {
-      lounge_id: saasLounge.id,
-      content: {
-        bigStory: newsData.bigStory,
-        bullets: newsData.items,
-        fundingNews: newsData.specialSection,
-        fundingTitle: newsData.specialSectionTitle || 'SaaS Funding & M&A',
-        generatedAt: newsData.generatedAt,
-      } as any, // Type as any to satisfy Json type requirement
-      generated_at: new Date().toISOString(),
-      news_date: new Date().toISOString().split('T')[0], // Today's date
-    };
-
-    // Check if news already exists for today
-    const today = new Date().toISOString().split('T')[0];
-    const { data: existingNews } = await supabase
-      .from('ai_news')
-      .select('id')
-      .eq('lounge_id', saasLounge.id)
-      .eq('news_date', today)
-      .single();
-
-    let result;
-    if (existingNews) {
-      // Update existing news
-      const { data, error } = await supabase
-        .from('ai_news')
-        .update({
-          content: aiNewsData.content,
-          generated_at: aiNewsData.generated_at,
-        })
-        .eq('id', existingNews.id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating AI news:', error);
-        return NextResponse.json(
-          { error: 'Failed to update AI news in database' },
-          { status: 500 }
-        );
-      }
-      result = data;
-      console.log('[Cron] Updated existing SaaS news for today');
-    } else {
-      // Insert new news
-      const { data, error } = await supabase
-        .from('ai_news')
-        .insert(aiNewsData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error inserting AI news:', error);
-        return NextResponse.json(
-          { error: 'Failed to save AI news to database' },
-          { status: 500 }
-        );
-      }
-      result = data;
-      console.log('[Cron] Saved new SaaS news to database');
-    }
 
     return NextResponse.json({
       success: true,
-      message: 'SaaS news generated and saved successfully',
+      message: 'SaaS news generation queued successfully',
       data: {
         loungeId: saasLounge.id,
         loungeName: saasLounge.name,
-        newsId: result.id,
-        newsDate: result.news_date,
-        items: {
-          bigStory: newsData.bigStory ? 1 : 0,
-          bullets: newsData.items.length,
-          funding: newsData.specialSection?.length || 0,
-        },
+        queued: queueResult.queued,
+        skipped: queueResult.skipped,
+        jobs: queueResult.jobs.map((job) => ({
+          id: job.id,
+          name: job.name,
+        })),
       },
       timestamp: new Date().toISOString(),
     });
