@@ -129,11 +129,11 @@ Guidelines:
         // Keep SaaS exactly as it was
         instructions = `You are a professional SaaS industry news curator. Today is ${dateStr}. Focus on accuracy and real sources.`;
         searchQueries = `Priority search queries:
-1. "SaaS funding rounds" OR "Series A B C D funding" site:techcrunch.com OR site:forbes.com from:24h
-2. "Salesforce" OR "HubSpot" OR "Zoom" OR "Slack" OR "Notion" news from:24h
-3. "B2B software" OR "enterprise software" announcements from:24h
-4. "SaaS acquisition" OR "SaaS IPO" OR "SaaS merger" from:24h
-5. For funding section specifically: site:thesaasnews.com funding OR acquisition OR "Series A" OR "Series B" OR "Series C"`;
+1. "SaaS industry" OR "software as a service" OR "B2B software" news from:24h
+2. "SaaS funding" OR "Series A B C D" OR "venture capital SaaS" from:24h
+3. "enterprise software" OR "cloud computing" OR "business software" announcements from:24h
+4. "SaaS acquisition" OR "software company merger" OR "SaaS IPO" from:24h
+5. site:techcrunch.com OR site:forbes.com OR site:thesaasnews.com SaaS OR "software as a service" from:24h`;
         fundingInstructions = `${maxSpecialSection} funding/M&A items - primarily from www.thesaasnews.com with verified funding rounds and real amounts`;
       } else if (loungeType.includes('ai')) {
         instructions = `You are a professional AI industry news curator. Today is ${dateStr}. Focus on accuracy and real sources.`;
@@ -187,12 +187,12 @@ Guidelines:
       const response = await (this.client as any).responses.create({
         model: this.model,
         reasoning: {
-          effort: 'high', // Increased effort for better quality
+          effort: 'medium', // Balanced effort for quality and cost
         },
         tools: [
           {
             type: 'web_search',
-            search_context_size: 'high',
+            search_context_size: 'medium', // Balanced context and latency (default)
           },
         ],
         include: ['web_search_call.action.sources'],

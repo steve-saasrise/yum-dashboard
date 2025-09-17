@@ -62,6 +62,30 @@ interface ContentItem {
   };
 }
 
+interface StockMover {
+  symbol: string;
+  companyName: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  marketCap?: string;
+  revenue?: string;
+  ebitda?: string;
+}
+
+interface MarketIndex {
+  name: string;
+  changePercent: number;
+  details?: string;
+}
+
+interface StockMoversData {
+  indexes: MarketIndex[];
+  topGainers: StockMover[];
+  topLosers: StockMover[];
+  generatedAt: string;
+}
+
 interface DailyDigestEmailProps {
   loungeName: string;
   loungeDescription: string;
@@ -97,6 +121,7 @@ interface DailyDigestEmailProps {
     specialSectionTitle?: string;
     generatedAt: string;
   };
+  stockMovers?: StockMoversData;
 }
 
 // Platform icon images - using hosted PNGs for email compatibility
@@ -157,6 +182,7 @@ export const DailyDigestEmail = ({
   unsubscribeUrl,
   date,
   aiNewsSummary,
+  stockMovers,
 }: DailyDigestEmailProps) => {
   const previewText = `Your ${loungeName} Daily Digest - ${content.length} updates`;
 
@@ -604,6 +630,117 @@ export const DailyDigestEmail = ({
             </>
           )}
 
+          {/* SaaS Stock Movers Section */}
+          {stockMovers && (
+            <>
+              <Section style={stockMoversSection}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '16px',
+                  }}
+                >
+                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
+                    📈
+                  </Text>
+                  <Heading as="h3" style={stockMoversTitle}>
+                    SaaS Stock Movers
+                  </Heading>
+                </div>
+
+                {/* Market Indexes */}
+                {stockMovers.indexes && stockMovers.indexes.length > 0 && (
+                  <div style={indexesContainer}>
+                    <Text style={indexesHeader}>📊 SaaS Indexes (Prior Day)</Text>
+                    {stockMovers.indexes.map((index, i) => (
+                      <div key={i} style={indexItem}>
+                        <div>
+                          <Text style={indexName}>{index.name}</Text>
+                          {index.details && (
+                            <Text style={indexDetails}>{index.details}</Text>
+                          )}
+                        </div>
+                        <Text
+                          style={{
+                            ...indexChange,
+                            color: index.changePercent >= 0 ? '#10b981' : '#ef4444',
+                          }}
+                        >
+                          {index.changePercent >= 0 ? '+' : ''}
+                          {index.changePercent.toFixed(1)}%
+                        </Text>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Top Gainers */}
+                {stockMovers.topGainers && stockMovers.topGainers.length > 0 && (
+                  <div style={stockListContainer}>
+                    <Text style={stockListHeader}>🟢 Top Gainers</Text>
+                    {stockMovers.topGainers.map((stock, i) => (
+                      <div key={i} style={stockItem}>
+                        <div style={stockItemLeft}>
+                          <Text style={stockItemNumber}>{i + 1}.</Text>
+                          <div>
+                            <Text style={stockCompanyName}>
+                              {stock.companyName} ({stock.symbol})
+                            </Text>
+                            <Text style={stockMetrics}>
+                              ${stock.price.toFixed(2)} | {stock.marketCap}
+                              {stock.revenue && `, ${stock.revenue}`}
+                              {stock.ebitda && `, ${stock.ebitda}`}
+                            </Text>
+                          </div>
+                        </div>
+                        <div style={stockItemRight}>
+                          <Text style={stockChangePositive}>
+                            +${Math.abs(stock.change).toFixed(2)} (+
+                            {stock.changePercent.toFixed(1)}%)
+                          </Text>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Top Losers */}
+                {stockMovers.topLosers && stockMovers.topLosers.length > 0 && (
+                  <div style={stockListContainer}>
+                    <Text style={stockListHeader}>🔴 Top Losers</Text>
+                    {stockMovers.topLosers.map((stock, i) => (
+                      <div key={i} style={stockItem}>
+                        <div style={stockItemLeft}>
+                          <Text style={stockItemNumber}>{i + 1}.</Text>
+                          <div>
+                            <Text style={stockCompanyName}>
+                              {stock.companyName} ({stock.symbol})
+                            </Text>
+                            <Text style={stockMetrics}>
+                              ${stock.price.toFixed(2)} | {stock.marketCap}
+                              {stock.revenue && `, ${stock.revenue}`}
+                              {stock.ebitda && `, ${stock.ebitda}`}
+                            </Text>
+                          </div>
+                        </div>
+                        <div style={stockItemRight}>
+                          <Text style={stockChangeNegative}>
+                            ${stock.change.toFixed(2)} (
+                            {stock.changePercent.toFixed(1)}%)
+                          </Text>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+              <Section style={{ padding: '0 10px' }}>
+                <Hr style={divider} />
+              </Section>
+            </>
+          )}
+
           {/* Footer */}
           <Section style={footer}>
             <Text style={footerText}>
@@ -647,6 +784,85 @@ DailyDigestEmail.PreviewProps = {
   }),
   recipientEmail: 'user@example.com',
   unsubscribeUrl: 'https://lounge.ai/settings/account',
+  stockMovers: {
+    indexes: [
+      {
+        name: 'BVP Cloud Index',
+        changePercent: 1.8,
+        details: '6.3x Rev, 28.1x EBITDA',
+      },
+      {
+        name: 'Aventis Public SaaS Index',
+        changePercent: -0.4,
+        details: '7.1x Rev, 24.2x EBITDA',
+      },
+    ],
+    topGainers: [
+      {
+        symbol: 'NOW',
+        companyName: 'ServiceNow',
+        price: 756.32,
+        change: 24.18,
+        changePercent: 3.3,
+        marketCap: '155.2B Market Cap',
+        revenue: '18.2x Rev',
+        ebitda: '67.3x EBITDA',
+      },
+      {
+        symbol: 'SNOW',
+        companyName: 'Snowflake',
+        price: 142.65,
+        change: 4.23,
+        changePercent: 3.1,
+        marketCap: '46.8B Market Cap',
+        revenue: '15.1x Rev',
+        ebitda: '89.2x EBITDA',
+      },
+      {
+        symbol: 'HUBS',
+        companyName: 'HubSpot',
+        price: 521.89,
+        change: 12.45,
+        changePercent: 2.4,
+        marketCap: '26.4B Market Cap',
+        revenue: '12.3x Rev',
+        ebitda: '45.7x EBITDA',
+      },
+    ],
+    topLosers: [
+      {
+        symbol: 'DOCU',
+        companyName: 'DocuSign',
+        price: 56.23,
+        change: -2.87,
+        changePercent: -4.9,
+        marketCap: '11.2B Market Cap',
+        revenue: '4.8x Rev',
+        ebitda: '22.1x EBITDA',
+      },
+      {
+        symbol: 'ZM',
+        companyName: 'Zoom',
+        price: 67.45,
+        change: -2.34,
+        changePercent: -3.4,
+        marketCap: '20.1B Market Cap',
+        revenue: '4.2x Rev',
+        ebitda: '18.6x EBITDA',
+      },
+      {
+        symbol: 'OKTA',
+        companyName: 'Okta',
+        price: 78.91,
+        change: -1.98,
+        changePercent: -2.4,
+        marketCap: '13.5B Market Cap',
+        revenue: '6.7x Rev',
+        ebitda: '31.8x EBITDA',
+      },
+    ],
+    generatedAt: new Date().toISOString(),
+  },
   topSocialPosts: [
     {
       id: 'sp1',
@@ -1379,4 +1595,125 @@ const socialPostEngagement = {
   fontSize: '11px',
   margin: '4px 0 0 0',
   display: 'block',
+};
+
+// Stock Movers Section styles
+const stockMoversSection = {
+  padding: '0 10px',
+};
+
+const stockMoversTitle = {
+  color: '#1a1a1a',
+  fontSize: '18px',
+  fontWeight: '600',
+  margin: '0',
+};
+
+const indexesContainer = {
+  backgroundColor: '#f9fafb',
+  borderRadius: '8px',
+  padding: '12px',
+  marginBottom: '16px',
+};
+
+const indexesHeader = {
+  fontSize: '13px',
+  fontWeight: '600',
+  color: '#4b5563',
+  marginBottom: '12px',
+  display: 'block',
+};
+
+const indexItem = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '10px',
+};
+
+const indexName = {
+  fontSize: '14px',
+  fontWeight: '600',
+  color: '#1a1a1a',
+  margin: '0',
+};
+
+const indexDetails = {
+  fontSize: '12px',
+  color: '#6b7280',
+  margin: '2px 0 0 0',
+};
+
+const indexChange = {
+  fontSize: '14px',
+  fontWeight: '600',
+  margin: '0',
+};
+
+const stockListContainer = {
+  marginBottom: '20px',
+};
+
+const stockListHeader = {
+  fontSize: '13px',
+  fontWeight: '600',
+  color: '#4b5563',
+  marginBottom: '12px',
+  display: 'block',
+};
+
+const stockItem = {
+  backgroundColor: '#ffffff',
+  border: '1px solid #e5e7eb',
+  borderRadius: '6px',
+  padding: '12px',
+  marginBottom: '8px',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+};
+
+const stockItemLeft = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '12px',
+};
+
+const stockItemRight = {
+  textAlign: 'right' as const,
+};
+
+const stockItemNumber = {
+  fontSize: '14px',
+  fontWeight: '600',
+  color: '#6b7280',
+  margin: '0',
+  minWidth: '20px',
+};
+
+const stockCompanyName = {
+  fontSize: '14px',
+  fontWeight: '600',
+  color: '#1a1a1a',
+  margin: '0',
+};
+
+const stockMetrics = {
+  fontSize: '12px',
+  color: '#6b7280',
+  margin: '2px 0 0 0',
+};
+
+const stockChangePositive = {
+  fontSize: '13px',
+  fontWeight: '600',
+  color: '#10b981',
+  margin: '0',
+};
+
+const stockChangeNegative = {
+  fontSize: '13px',
+  fontWeight: '600',
+  color: '#ef4444',
+  margin: '0',
 };

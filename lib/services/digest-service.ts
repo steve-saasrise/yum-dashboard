@@ -6,6 +6,7 @@ import { SocialPostSelector } from './social-post-selector';
 import { OpenGraphService } from './opengraph-service';
 import { AIImageService } from './ai-image-service';
 import { ImageOptimizer } from './image-optimizer';
+import { getGPT5StockMoversService } from './gpt5-stock-movers-service';
 
 // Lazy initialize Resend client to avoid build-time errors
 let resend: Resend | null = null;
@@ -458,6 +459,19 @@ export class DigestService {
         console.error('Error fetching AI news summary:', summaryError);
       }
 
+      // Get stock movers data for SaaS lounges
+      let stockMovers = undefined;
+      if (lounge.name.toLowerCase().includes('saas')) {
+        try {
+          const stockMoversService = getGPT5StockMoversService();
+          stockMovers = await stockMoversService.generateStockMovers();
+          console.log('Successfully fetched stock movers for SaaS lounge');
+        } catch (stockError) {
+          console.error('Error fetching stock movers:', stockError);
+          // Continue without stock data if it fails
+        }
+      }
+
       // Get news content (same for all users) - fallback if no AI summary
       const newsContent = aiNewsSummary ? [] : await this.getNewsContent(5);
 
@@ -551,6 +565,7 @@ export class DigestService {
           unsubscribeUrl,
           date,
           aiNewsSummary,
+          stockMovers,
         }),
       });
 
