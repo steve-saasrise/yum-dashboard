@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const { data: saasLounge, error: loungeError } = await supabase
       .from('lounges')
       .select('id, name, description')
-      .eq('name', 'SaaS')
+      .eq('name', 'SaaS Times')
       .eq('is_system_lounge', true)
       .single();
 
