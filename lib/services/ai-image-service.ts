@@ -189,7 +189,7 @@ export class AIImageService {
       'abstract geometric art',
       'nature photography',
       'impressionist painting',
-      'flat design illustration'
+      'flat design illustration',
     ];
 
     const randomStyle = styles[Math.floor(Math.random() * styles.length)];
@@ -236,26 +236,26 @@ export class AIImageService {
     const simplifications: { [key: string]: string } = {
       'artificial intelligence': 'intelligent systems and learning',
       'machine learning': 'pattern recognition and adaptation',
-      'blockchain': 'connected network of trust',
-      'cryptocurrency': 'digital value exchange',
+      blockchain: 'connected network of trust',
+      cryptocurrency: 'digital value exchange',
       'neural network': 'interconnected pathways',
       'cloud computing': 'distributed resources',
       'API integration': 'seamless connections',
       'data pipeline': 'flowing information streams',
-      'cybersecurity': 'protection and safety',
-      'automation': 'efficient workflows',
-      'scalability': 'growth and expansion',
-      'infrastructure': 'foundation and support',
-      'algorithm': 'logical patterns',
-      'encryption': 'secure communication',
+      cybersecurity: 'protection and safety',
+      automation: 'efficient workflows',
+      scalability: 'growth and expansion',
+      infrastructure: 'foundation and support',
+      algorithm: 'logical patterns',
+      encryption: 'secure communication',
       'quantum computing': 'advanced computation',
-      'IoT': 'connected devices',
+      IoT: 'connected devices',
       'SaaS platform': 'software services',
       'venture capital': 'investment and growth',
       'startup funding': 'business support',
-      'IPO': 'public market debut',
-      'acquisition': 'business combination',
-      'merger': 'joining forces',
+      IPO: 'public market debut',
+      acquisition: 'business combination',
+      merger: 'joining forces',
     };
 
     let simplified = concept.toLowerCase();
@@ -278,7 +278,7 @@ export class AIImageService {
       'cloud-native',
       'AI-powered',
       'blockchain-based',
-      'quantum-enabled'
+      'quantum-enabled',
     ];
 
     for (const modifier of techModifiers) {
