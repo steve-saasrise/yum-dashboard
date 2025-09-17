@@ -929,7 +929,7 @@ const container = {
 };
 
 const header = {
-  padding: '30px 10px 20px',
+  padding: '6px 10px 20px',
   textAlign: 'center' as const,
 };
 

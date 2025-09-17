@@ -171,22 +171,12 @@ export class NewsSummaryService {
        : '- Focus on: funding rounds, Series A/B/C/D/E/F, seed rounds, acquisitions, valuations, investor names, ALWAYS include exact funding amounts'
    }
 
-For each imagePrompt, create a JSON object with these fields:
+For each imagePrompt, create a simple JSON with just one field:
 {
-  "concept": "Main visual concept (abstract, no text)",
-  "style": "Visual style (modern, professional, tech-forward, etc.)",
-  "mood": "Emotional tone (innovative, secure, growth-oriented, etc.)",
-  "colors": "Color palette description",
-  "elements": ["visual element 1", "visual element 2", "visual element 3"],
-  "composition": "How elements should be arranged",
-  "avoid": ["thing to avoid 1", "thing to avoid 2"]
+  "concept": "a brief, non-technical metaphor for the story (e.g., 'seeds growing' for funding, 'bridge building' for partnership)"
 }
 
-Image prompts should:
-- Be highly specific and contextual to the news item
-- Use abstract visual metaphors or include company logos if 100% certain
-- Never include text except in authentic logos
-- Be suitable for professional email newsletters
+Keep image concepts EXTREMELY SIMPLE - think of peaceful, universal metaphors that anyone would understand.
 - Match the tone and importance of the news
 - Logos are allowed ONLY when absolutely certain of the authentic design
 

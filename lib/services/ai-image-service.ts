@@ -177,242 +177,116 @@ export class AIImageService {
 
   /**
    * Generate a smart prompt based on article metadata
-   * Using JSON structure for better AI understanding and consistency
+   * Using narrative descriptions as recommended by Gemini best practices
    */
   private generatePrompt(options: GenerateImageOptions): string {
     const { title, source, category, description, imagePrompt } = options;
 
-    // If we have a pre-generated prompt from GPT, use it
-    if (imagePrompt) {
-      const enhancedPrompt = {
-        request:
-          'Generate a FULL-BLEED professional editorial image that completely fills the canvas',
-        concept: imagePrompt.concept,
-        style: imagePrompt.style,
-        mood: imagePrompt.mood,
-        colors: imagePrompt.colors,
-        elements: imagePrompt.elements,
-        composition: imagePrompt.composition,
-        technical: {
-          aspectRatio: '1:1 perfect square',
-          format: 'FULL-BLEED image with NO borders whatsoever',
-          coverage: 'Visual content MUST extend to ALL FOUR EDGES',
-          background: 'Extend background patterns/colors to image boundaries',
-          fillRequirement:
-            'The entire 100% of the canvas must be filled with visual content - no empty areas, no borders, no margins, no padding',
-          edgeToEdge:
-            'Image must bleed off all edges - top, bottom, left, and right',
-        },
-        constraints: [
-          ...imagePrompt.avoid,
-          'NO text or typography',
-          'Company logos ARE allowed but ONLY if you are 100% certain of the correct logo design',
-          'NO generic or placeholder logos',
-          'NO words or letters except in authentic logos',
-          'ABSOLUTELY NO borders, frames, or edges',
-          'ABSOLUTELY NO white/gray/neutral borders or margins',
-          'NO empty space around the edges - fill completely',
-          'Background MUST extend to all edges',
-          'suitable for professional email newsletter',
-        ],
-      };
+    // Select a random style for variety
+    const styles = [
+      'minimalist illustration',
+      'soft watercolor painting',
+      'abstract geometric art',
+      'nature photography',
+      'impressionist painting',
+      'flat design illustration'
+    ];
 
-      return `CRITICAL REQUIREMENTS - FULL-BLEED IMAGE:
-- Create a 1:1 square image that COMPLETELY FILLS the canvas
-- The artwork MUST extend to ALL FOUR EDGES with NO borders
-- Background elements/colors MUST reach the image boundaries
-- DO NOT leave any white, gray, or empty space around edges
-- Think of this as a "full-bleed" print design - content goes edge to edge
+    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
 
-Generate based on these specifications:
-${JSON.stringify(enhancedPrompt, null, 2)}
+    // If we have a pre-generated prompt from GPT, use it as inspiration
+    if (imagePrompt && imagePrompt.concept) {
+      const concept = this.simplifyTechConcept(imagePrompt.concept);
 
-REMINDER: The image must look like the second example - with visual content extending fully to all edges, NOT like the first example with borders.`;
+      // Use narrative description as recommended by Gemini docs
+      return `Create a ${randomStyle} that represents ${concept}. The image should feel professional yet approachable, using soft, harmonious colors. Keep the composition simple and balanced with a clear focal point. This is for a business newsletter, so it should look elegant and calming. Absolutely no text, letters, numbers, or words should appear anywhere in the image. Avoid complex technical imagery, circuit boards, or busy patterns. The image should be a perfect square that extends to all edges.`;
     }
 
-    // Fallback to existing prompt generation logic
-
-    // Clean up category name by removing "Coffee" and similar suffixes
+    // Fallback without pre-generated prompt
     const cleanCategory = category
       ? category.replace(/\s*(Coffee|Lounge|Room|Hub)$/i, '').trim()
-      : '';
+      : 'business';
 
-    const categoryThemes: Record<string, any> = {
-      SaaS: {
-        theme: 'cloud-based software services',
-        elements: [
-          'modern technology',
-          'digital transformation',
-          'cloud computing',
-          'software interfaces',
-        ],
-        mood: 'innovative and scalable',
-      },
-      AI: {
-        theme: 'artificial intelligence',
-        elements: [
-          'neural networks',
-          'data patterns',
-          'machine learning',
-          'futuristic technology',
-        ],
-        mood: 'intelligent and futuristic',
-      },
-      Security: {
-        theme: 'cybersecurity and data protection',
-        elements: [
-          'digital shields',
-          'encryption patterns',
-          'secure networks',
-          'protective barriers',
-        ],
-        mood: 'secure and trustworthy',
-      },
-      Startup: {
-        theme: 'entrepreneurship and innovation',
-        elements: [
-          'growth curves',
-          'rocket launches',
-          'building blocks',
-          'collaborative spaces',
-        ],
-        mood: 'dynamic and ambitious',
-      },
-      Finance: {
-        theme: 'financial technology',
-        elements: [
-          'data visualizations',
-          'market trends',
-          'digital currencies',
-          'financial flows',
-        ],
-        mood: 'professional and analytical',
-      },
-      Developer: {
-        theme: 'software development',
-        elements: [
-          'code patterns',
-          'abstract algorithms',
-          'technical architectures',
-          'development workflows',
-        ],
-        mood: 'technical and creative',
-      },
-      Product: {
-        theme: 'product management',
-        elements: [
-          'user interfaces',
-          'design thinking',
-          'product roadmaps',
-          'user journeys',
-        ],
-        mood: 'user-centric and strategic',
-      },
-      Marketing: {
-        theme: 'digital marketing',
-        elements: [
-          'audience engagement',
-          'brand growth',
-          'social connections',
-          'campaign visuals',
-        ],
-        mood: 'engaging and persuasive',
-      },
-      Venture: {
-        theme: 'venture capital and investment',
-        elements: [
-          'investment flows',
-          'portfolio growth',
-          'startup ecosystems',
-          'funding rounds',
-        ],
-        mood: 'ambitious and growth-oriented',
-      },
-      Crypto: {
-        theme: 'blockchain and cryptocurrency',
-        elements: [
-          'blockchain networks',
-          'decentralized nodes',
-          'digital assets',
-          'cryptographic patterns',
-        ],
-        mood: 'decentralized and innovative',
-      },
-      Growth: {
-        theme: 'business growth and scaling',
-        elements: [
-          'expansion patterns',
-          'upward trajectories',
-          'network effects',
-          'scaling metaphors',
-        ],
-        mood: 'expansive and strategic',
-      },
+    // Simple theme mappings
+    const themes: Record<string, string> = {
+      SaaS: 'growth and transformation',
+      AI: 'learning and discovery',
+      Security: 'protection and trust',
+      Startup: 'innovation and ambition',
+      Finance: 'value and stability',
+      Developer: 'creation and building',
+      Product: 'design and user experience',
+      Marketing: 'connection and communication',
+      Venture: 'investment and opportunity',
+      Crypto: 'digital transformation',
+      Growth: 'expansion and success',
     };
 
-    // Build structured prompt
-    const imageSpec = {
-      request:
-        'Generate a professional editorial image with the following specifications',
+    const theme = themes[cleanCategory] || 'innovation and progress';
 
-      theme: categoryThemes[cleanCategory] || {
-        theme: cleanCategory || 'technology and innovation',
-        elements: [
-          'modern design',
-          'abstract patterns',
-          'professional imagery',
-        ],
-        mood: 'professional and engaging',
-      },
+    // Create a simple narrative prompt
+    return `Create a ${randomStyle} that captures the essence of ${theme}. The scene should be calming and professional, suitable for a business newsletter. Use a harmonious color palette with soft tones. Keep the composition simple and elegant with plenty of visual breathing room. The image should feel approachable and optimistic without being overly technical or busy. Make it a perfect square image that fills the entire frame. Most importantly, do not include any text, numbers, letters, or words in the image.`;
+  }
 
-      keywords: title ? this.extractKeywords(title) : [],
-
-      style: {
-        aesthetic: this.getSourceStyle(source),
-        colorScheme: 'professional colors suitable for email newsletters',
-        composition: 'modern, clean, and minimalist while visually engaging',
-      },
-
-      technical: {
-        aspectRatio: '1:1 perfect square',
-        format: 'FULL-BLEED image with NO borders whatsoever',
-        coverage: 'Visual content MUST extend to ALL FOUR EDGES',
-        background: 'Extend background patterns/colors to image boundaries',
-        fillRequirement:
-          'The entire 100% of the canvas must be filled with visual content - no empty areas, no borders, no margins, no padding',
-        edgeToEdge:
-          'Image must bleed off all edges - top, bottom, left, and right',
-      },
-
-      constraints: [
-        'NO text or typography',
-        'Company logos ARE allowed but ONLY if you are 100% certain of the correct logo design',
-        'NO generic or placeholder logos',
-        'NO words or letters except in authentic logos',
-        'ABSOLUTELY NO borders, frames, or edges',
-        'ABSOLUTELY NO white/gray/neutral borders or margins',
-        'NO empty space around the edges - fill completely',
-        'Background MUST extend to all edges',
-        'suitable for professional email newsletter',
-      ],
-
-      visualApproach: description
-        ? `Create imagery inspired by: ${description.substring(0, 100)}`
-        : 'Create abstract visual metaphors for the theme',
+  /**
+   * Simplify overly technical concepts for better visual representation
+   */
+  private simplifyTechConcept(concept: string): string {
+    // Map complex tech terms to simpler visual metaphors
+    const simplifications: { [key: string]: string } = {
+      'artificial intelligence': 'intelligent systems and learning',
+      'machine learning': 'pattern recognition and adaptation',
+      'blockchain': 'connected network of trust',
+      'cryptocurrency': 'digital value exchange',
+      'neural network': 'interconnected pathways',
+      'cloud computing': 'distributed resources',
+      'API integration': 'seamless connections',
+      'data pipeline': 'flowing information streams',
+      'cybersecurity': 'protection and safety',
+      'automation': 'efficient workflows',
+      'scalability': 'growth and expansion',
+      'infrastructure': 'foundation and support',
+      'algorithm': 'logical patterns',
+      'encryption': 'secure communication',
+      'quantum computing': 'advanced computation',
+      'IoT': 'connected devices',
+      'SaaS platform': 'software services',
+      'venture capital': 'investment and growth',
+      'startup funding': 'business support',
+      'IPO': 'public market debut',
+      'acquisition': 'business combination',
+      'merger': 'joining forces',
     };
 
-    // Convert to a clear JSON string for the AI
-    return `CRITICAL REQUIREMENTS - FULL-BLEED IMAGE:
-- Create a 1:1 square image that COMPLETELY FILLS the canvas
-- The artwork MUST extend to ALL FOUR EDGES with NO borders
-- Background elements/colors MUST reach the image boundaries
-- DO NOT leave any white, gray, or empty space around edges
-- Think of this as a "full-bleed" print design - content goes edge to edge
+    let simplified = concept.toLowerCase();
 
-Generate based on these specifications:
-${JSON.stringify(imageSpec, null, 2)}
+    // Replace technical jargon with simpler concepts
+    for (const [tech, simple] of Object.entries(simplifications)) {
+      simplified = simplified.replace(new RegExp(tech, 'gi'), simple);
+    }
 
-REMINDER: Visual content and background MUST extend fully to all edges. No borders or empty space allowed.`;
+    // Remove overly technical modifiers
+    const techModifiers = [
+      'cutting-edge',
+      'next-generation',
+      'revolutionary',
+      'disruptive',
+      'state-of-the-art',
+      'enterprise-grade',
+      'high-performance',
+      'real-time',
+      'cloud-native',
+      'AI-powered',
+      'blockchain-based',
+      'quantum-enabled'
+    ];
+
+    for (const modifier of techModifiers) {
+      simplified = simplified.replace(new RegExp(modifier, 'gi'), '');
+    }
+
+    // Clean up extra spaces and return
+    return simplified.replace(/\s+/g, ' ').trim() || 'business innovation';
   }
 
   /**
@@ -436,6 +310,43 @@ REMINDER: Visual content and background MUST extend fully to all edges. No borde
     };
 
     return sourceStyles[source] || 'modern and professional';
+  }
+
+  /**
+   * Extract simple, non-technical keywords from title
+   */
+  private extractSimpleKeywords(title: string): string[] {
+    // Focus on business concepts rather than technical details
+    const businessTerms = [
+      'growth',
+      'success',
+      'innovation',
+      'partnership',
+      'expansion',
+      'leadership',
+      'transformation',
+      'collaboration',
+      'strategy',
+      'opportunity',
+      'achievement',
+      'milestone',
+      'breakthrough',
+      'launch',
+      'investment',
+    ];
+
+    const keywords: string[] = [];
+    const titleLower = title.toLowerCase();
+
+    // Look for business-oriented terms
+    for (const term of businessTerms) {
+      if (titleLower.includes(term)) {
+        keywords.push(term);
+      }
+    }
+
+    // Avoid technical jargon - return only simple business concepts
+    return keywords.slice(0, 3); // Maximum 3 keywords for simplicity
   }
 
   /**
