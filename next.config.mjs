@@ -127,10 +127,8 @@ const nextConfig = {
   },
   // Use standalone output for Railway
   output: 'standalone',
-  // Disable experimental features
-  experimental: {
-    typedRoutes: false,
-  },
+  // Moved from experimental to stable
+  typedRoutes: false,
 };
 
 export default nextConfig;
