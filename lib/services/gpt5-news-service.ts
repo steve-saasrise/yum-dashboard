@@ -187,16 +187,15 @@ Guidelines:
       let allowedDomains: string[] = [];
 
       if (isSaaS || loungeType.includes('b2b')) {
+        // Limited to 20 domains (OpenAI API limit)
+        // Prioritizing high-quality SaaS and B2B news sources
         allowedDomains = [
           'techcrunch.com',
           'theverge.com',
           'venturebeat.com',
           'siliconangle.com',
           'thesaasnews.com',
-          'saasworthy.com',
-          'getlatka.com',
           'zdnet.com',
-          'arstechnica.com',
           'reuters.com',
           'apnews.com',
           'prnewswire.com',
@@ -206,18 +205,11 @@ Guidelines:
           'betakit.com',
           'eu-startups.com',
           'tech.eu',
-          'techstartups.com',
-          'startupdaily.net',
-          'mattermark.com',
           'crunchbase.com',
           'pitchbook.com',
           'globenewswire.com',
-          'accesswire.com',
-          'einpresswire.com',
-          'openpr.com',
-          'prlog.org',
-          'prnewschannel.com',
-          'prunderground.com',
+          'arstechnica.com',
+          'saasworthy.com',
         ];
       } else if (loungeType.includes('ai')) {
         allowedDomains = [
