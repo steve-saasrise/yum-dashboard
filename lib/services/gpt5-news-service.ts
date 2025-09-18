@@ -298,6 +298,15 @@ Requirements:
 - ONLY use real, verifiable sources (no made-up URLs)
 - Focus on major companies and significant funding rounds in the ${config.loungeType} space
 - Include actual article URLs from the search results
+- CRITICAL DEDUPLICATION RULES:
+  * Never use the same story/URL twice across ANY section
+  * Never report the same news event twice, even from different sources
+  * If a funding story qualifies as a major headline, include it ONLY in bullets, NOT in specialSection
+  * Each section must have completely unique content
+- SOURCE DIVERSITY RULES:
+  * Use at least 5 different publication sources across all sections
+  * Avoid using any single source (like TechCrunch) more than 3 times total
+  * Prioritize variety in your source selection
 
 Essential: Extract and use ACTUAL article URLs from your web search results - do not generate fake URLs.
 

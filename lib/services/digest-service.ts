@@ -59,6 +59,13 @@ interface ContentForDigest {
   };
 }
 
+// Helper function to strip markdown links from text
+function stripMarkdownLinks(text: string | undefined): string | undefined {
+  if (!text) return text;
+  // Remove markdown links like [text](url) and just keep the text
+  return text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+}
+
 export class DigestService {
   /**
    * Get all system lounges
@@ -442,6 +449,27 @@ export class DigestService {
             specialSectionTitle: summary.specialSectionTitle,
             generatedAt: summary.generatedAt,
           };
+
+          // Clean markdown links from summaries
+          if (aiNewsSummary.bigStory && aiNewsSummary.bigStory.summary) {
+            aiNewsSummary.bigStory.summary = stripMarkdownLinks(
+              aiNewsSummary.bigStory.summary
+            ) || aiNewsSummary.bigStory.summary;
+          }
+          if (aiNewsSummary.bullets) {
+            aiNewsSummary.bullets = aiNewsSummary.bullets.map((bullet: any) => ({
+              ...bullet,
+              summary: bullet.summary ? stripMarkdownLinks(bullet.summary) : undefined,
+            }));
+          }
+          if (aiNewsSummary.specialSection) {
+            aiNewsSummary.specialSection = aiNewsSummary.specialSection.map(
+              (item: any) => ({
+                ...item,
+                summary: item.summary ? stripMarkdownLinks(item.summary) : undefined,
+              })
+            );
+          }
 
           // Crop the big story image to ensure perfect fit
           if (aiNewsSummary.bigStory?.imageUrl) {
