@@ -39,7 +39,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`[Cron] Queuing SaaS news generation for lounge: ${saasLounge.name}`);
+    console.log(
+      `[Cron] Queuing SaaS news generation for lounge: ${saasLounge.name}`
+    );
 
     // Queue just the SaaS lounge for processing
     const queueResult = await queueAINewsGeneration([saasLounge], false);

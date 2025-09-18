@@ -202,6 +202,22 @@ Guidelines:
           'prnewswire.com',
           'businesswire.com',
           'producthunt.com',
+          'saastr.com',
+          'betakit.com',
+          'eu-startups.com',
+          'tech.eu',
+          'techstartups.com',
+          'startupdaily.net',
+          'mattermark.com',
+          'crunchbase.com',
+          'pitchbook.com',
+          'globenewswire.com',
+          'accesswire.com',
+          'einpresswire.com',
+          'openpr.com',
+          'prlog.org',
+          'prnewschannel.com',
+          'prunderground.com',
         ];
       } else if (loungeType.includes('ai')) {
         allowedDomains = [
@@ -294,8 +310,8 @@ Requirements:
 Essential: Extract and use ACTUAL article URLs from your web search results - do not generate fake URLs.
 
 Format the results as a JSON digest with:
-1. One big story - the MOST impactful ${config.loungeType} news from today
-2. ${maxBullets} news bullets - diverse important stories from reputable sources
+1. One big story - the MOST impactful ${config.loungeType} news from the last 24 hours
+2. EXACTLY ${maxBullets} news bullets - diverse important stories from reputable sources. You MUST return exactly ${maxBullets} items. If you find fewer than ${maxBullets} major stories, include smaller but still relevant ${config.loungeType} news to reach exactly ${maxBullets} items.
 3. ${fundingInstructions}
 
 IMPORTANT: All sourceUrl fields MUST be actual URLs from your web search results, not generated URLs.
