@@ -221,14 +221,20 @@ export class FinnhubStockService {
 
       // Calculate revenue multiple if we have revenue data
       if (financials?.metric?.revenuePerShareTTM && profile.shareOutstanding) {
-        const totalRevenue =
-          (financials.metric.revenuePerShareTTM * profile.shareOutstanding) /
-          1000000; // in millions
-        const marketCap =
-          profile.marketCapitalization ||
-          (quote.c * profile.shareOutstanding) / 1000000;
-        const revMultiple = marketCap / totalRevenue;
-        revenueMultiple = `${revMultiple.toFixed(1)}x Rev`;
+        // Note: profile.shareOutstanding is already in millions
+        // So total revenue = revenuePerShare * shareOutstanding gives us revenue in millions
+        const totalRevenueMillion = financials.metric.revenuePerShareTTM * profile.shareOutstanding;
+
+        // Market cap is already in millions from the API
+        const marketCapMillion = profile.marketCapitalization ||
+          (quote.c * profile.shareOutstanding);
+
+        const revMultiple = marketCapMillion / totalRevenueMillion;
+
+        // Only show revenue multiple if it's reasonable (between 0.1x and 100x)
+        if (revMultiple > 0.1 && revMultiple < 100) {
+          revenueMultiple = `${revMultiple.toFixed(1)}x Rev`;
+        }
       }
 
       return {

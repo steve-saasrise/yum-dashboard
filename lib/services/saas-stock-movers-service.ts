@@ -189,23 +189,11 @@ export class SaaSStockMoversService {
 
       // Format the financial metrics for each stock
       const formatMetrics = (stock: StockData): StockData => {
-        // Build the metrics string
-        const metrics: string[] = [];
-
-        if (stock.marketCap) {
-          metrics.push(stock.marketCap);
-        }
-
-        if (stock.revenue) {
-          metrics.push(stock.revenue);
-        }
-
-        // For display in email, combine metrics
-        const metricsString = metrics.join(', ');
-
+        // Return stock data as-is - no need to combine metrics
+        // The email template will handle display formatting
         return {
           ...stock,
-          marketCap: metricsString,
+          marketCap: stock.marketCap || undefined,
           revenue: stock.revenue || undefined,
           ebitda: stock.ebitda || undefined,
         };
