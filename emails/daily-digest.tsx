@@ -853,21 +853,23 @@ export const DailyDigestEmail = ({
                                 )}
 
                                 {/* Show author's comment if it's a quote tweet */}
-                                {post.reference_type === 'quote' && post.content_body && (
-                                  <Text
-                                    style={{
-                                      ...socialPostDescription,
-                                      margin: '0',
-                                      marginTop: '2px',
-                                      marginBottom: '12px',
-                                    }}
-                                  >
-                                    {truncateToLines(post.content_body, 150)}
-                                  </Text>
-                                )}
+                                {post.reference_type === 'quote' &&
+                                  post.content_body && (
+                                    <Text
+                                      style={{
+                                        ...socialPostDescription,
+                                        margin: '0',
+                                        marginTop: '2px',
+                                        marginBottom: '12px',
+                                      }}
+                                    >
+                                      {truncateToLines(post.content_body, 150)}
+                                    </Text>
+                                  )}
 
                                 {/* Show referenced content if available */}
-                                {post.referenced_content && post.referenced_content.text ? (
+                                {post.referenced_content &&
+                                post.referenced_content.text ? (
                                   <div
                                     style={{
                                       border: '1px solid #e0e0e0',
@@ -888,8 +890,10 @@ export const DailyDigestEmail = ({
                                         }}
                                       >
                                         {post.referenced_content.author.name ||
-                                          post.referenced_content.author.username}
-                                        {post.referenced_content.author.is_verified && ' ✓'}
+                                          post.referenced_content.author
+                                            .username}
+                                        {post.referenced_content.author
+                                          .is_verified && ' ✓'}
                                       </Text>
                                     )}
                                     <Text
@@ -905,7 +909,8 @@ export const DailyDigestEmail = ({
                                         200
                                       )}
                                     </Text>
-                                    {post.referenced_content.engagement_metrics && (
+                                    {post.referenced_content
+                                      .engagement_metrics && (
                                       <Text
                                         style={{
                                           fontSize: '11px',
@@ -914,9 +919,11 @@ export const DailyDigestEmail = ({
                                           marginTop: '8px',
                                         }}
                                       >
-                                        {post.referenced_content.engagement_metrics.likes &&
+                                        {post.referenced_content
+                                          .engagement_metrics.likes &&
                                           `❤️ ${post.referenced_content.engagement_metrics.likes.toLocaleString()}`}
-                                        {post.referenced_content.engagement_metrics.views &&
+                                        {post.referenced_content
+                                          .engagement_metrics.views &&
                                           ` · ${post.referenced_content.engagement_metrics.views.toLocaleString()} views`}
                                       </Text>
                                     )}
@@ -931,7 +938,9 @@ export const DailyDigestEmail = ({
                                     }}
                                   >
                                     {truncateToLines(
-                                      post.description || post.content_body || '',
+                                      post.description ||
+                                        post.content_body ||
+                                        '',
                                       200
                                     )}
                                   </Text>
