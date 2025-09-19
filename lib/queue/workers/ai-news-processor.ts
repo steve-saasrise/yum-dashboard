@@ -20,18 +20,17 @@ interface AINewsJobData {
   timestamp: string;
 }
 
-export function createAINewsProcessorWorker() {
-  const worker = new Worker<AINewsJobData>(
-    QUEUE_NAMES.AI_NEWS_GENERATION,
-    async (job: Job<AINewsJobData>) => {
-      const startTime = Date.now();
-      const { loungeId, loungeName, loungeDescription, isGeneral } = job.data;
+// Export the processing logic so it can be used directly for testing
+export async function processAINewsGeneration(job: { data: AINewsJobData }) {
+  const startTime = Date.now();
+  const { loungeId, loungeName, loungeDescription, isGeneral } = job.data;
+  const jobId = (job as any).id || 'test-job';
 
-      console.log(
-        `[AI News Worker] Processing news generation for: ${loungeName} (Job ID: ${job.id})`
-      );
+  console.log(
+    `[AI News Worker] Processing news generation for: ${loungeName} (Job ID: ${jobId})`
+  );
 
-      try {
+  try {
         // Initialize Supabase client with service key
         const supabase = createClient<Database>(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -91,7 +90,7 @@ export function createAINewsProcessorWorker() {
               cron_generated: true,
               is_general: isGeneral || false,
               generated_at: newsResult.generatedAt,
-              job_id: job.id,
+              job_id: jobId,
               queue_generated: true,
               bigStory: newsResult.bigStory || null,
               special_section_title: newsResult.specialSectionTitle || null,
@@ -145,9 +144,17 @@ export function createAINewsProcessorWorker() {
           );
         }
 
-        // Re-throw to trigger BullMQ retry mechanism
-        throw error;
-      }
+    // Re-throw to trigger BullMQ retry mechanism
+    throw error;
+  }
+}
+
+export function createAINewsProcessorWorker() {
+  const worker = new Worker<AINewsJobData>(
+    QUEUE_NAMES.AI_NEWS_GENERATION,
+    async (job: Job<AINewsJobData>) => {
+      // Use the shared processing function
+      return processAINewsGeneration(job);
     },
     {
       connection: getRedisConnection(),

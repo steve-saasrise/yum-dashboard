@@ -6,7 +6,7 @@ import { SocialPostSelector } from './social-post-selector';
 import { OpenGraphService } from './opengraph-service';
 import { AIImageService } from './ai-image-service';
 import { ImageOptimizer } from './image-optimizer';
-import { getGPT5StockMoversService } from './gpt5-stock-movers-service';
+import { getSaaSStockMoversService } from './saas-stock-movers-service';
 
 // Lazy initialize Resend client to avoid build-time errors
 let resend: Resend | null = null;
@@ -452,21 +452,27 @@ export class DigestService {
 
           // Clean markdown links from summaries
           if (aiNewsSummary.bigStory && aiNewsSummary.bigStory.summary) {
-            aiNewsSummary.bigStory.summary = stripMarkdownLinks(
-              aiNewsSummary.bigStory.summary
-            ) || aiNewsSummary.bigStory.summary;
+            aiNewsSummary.bigStory.summary =
+              stripMarkdownLinks(aiNewsSummary.bigStory.summary) ||
+              aiNewsSummary.bigStory.summary;
           }
           if (aiNewsSummary.bullets) {
-            aiNewsSummary.bullets = aiNewsSummary.bullets.map((bullet: any) => ({
-              ...bullet,
-              summary: bullet.summary ? stripMarkdownLinks(bullet.summary) : undefined,
-            }));
+            aiNewsSummary.bullets = aiNewsSummary.bullets.map(
+              (bullet: any) => ({
+                ...bullet,
+                summary: bullet.summary
+                  ? stripMarkdownLinks(bullet.summary)
+                  : undefined,
+              })
+            );
           }
           if (aiNewsSummary.specialSection) {
             aiNewsSummary.specialSection = aiNewsSummary.specialSection.map(
               (item: any) => ({
                 ...item,
-                summary: item.summary ? stripMarkdownLinks(item.summary) : undefined,
+                summary: item.summary
+                  ? stripMarkdownLinks(item.summary)
+                  : undefined,
               })
             );
           }
@@ -491,7 +497,7 @@ export class DigestService {
       let stockMovers = undefined;
       if (lounge.name.toLowerCase().includes('saas')) {
         try {
-          const stockMoversService = getGPT5StockMoversService();
+          const stockMoversService = getSaaSStockMoversService();
           stockMovers = await stockMoversService.generateStockMovers();
           console.log('Successfully fetched stock movers for SaaS lounge');
         } catch (stockError) {

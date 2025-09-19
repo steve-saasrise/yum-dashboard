@@ -1,10 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
+import { createBrowserSupabaseClient } from '@/lib/supabase';
+import { toast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, ExternalLink, DollarSign } from 'lucide-react';
+import { RefreshCw, ExternalLink, DollarSign, Mail, Newspaper } from 'lucide-react';
 
 interface NewsItem {
   text: string;
@@ -32,12 +39,80 @@ interface NewsData {
 }
 
 export default function TestNewsPage() {
+  const router = useRouter();
+  const { state } = useAuth();
+  const { user, loading: authLoading } = state;
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [newsData, setNewsData] = useState<NewsData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [emailPreview, setEmailPreview] = useState<string | null>(null);
+  const [saasNewsData, setSaasNewsData] = useState<any>(null);
+  const [digestData, setDigestData] = useState<any>(null);
+
+  useEffect(() => {
+    async function checkAdminAccess() {
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
+
+      if (user.user_metadata?.role === 'admin') {
+        setIsAdmin(true);
+        setCheckingAuth(false);
+        return;
+      }
+
+      const supabase = createBrowserSupabaseClient();
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (userData?.role === 'admin') {
+        setIsAdmin(true);
+        setCheckingAuth(false);
+
+        try {
+          await supabase.auth.updateUser({
+            data: { role: userData.role },
+          });
+        } catch {
+          // Ignore metadata update errors
+        }
+      } else {
+        toast({
+          title: 'Access Denied',
+          description: 'Admin privileges required to access this page',
+          variant: 'destructive',
+        });
+        router.push('/dashboard');
+      }
+    }
+
+    if (!authLoading) {
+      checkAdminAccess();
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading || checkingAuth) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-7xl">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
 
   const generateNews = async () => {
-    setLoading(true);
+    setLoading('gpt5-news');
     setError(null);
 
     try {
@@ -62,48 +137,245 @@ export default function TestNewsPage() {
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setLoading(null);
+    }
+  };
+
+  const triggerSaasNewsGeneration = async () => {
+    setLoading('saas-news');
+    setError(null);
+    try {
+      // Use the synchronous endpoint for local testing
+      const response = await fetch('/api/test-news/generate-saas-news-sync', {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to generate SaaS news');
+      setSaasNewsData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const previewEmailDigest = async () => {
+    setLoading('digest-preview');
+    setError(null);
+    try {
+      const response = await fetch('/api/test-news/preview-digest', {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to generate digest preview');
+      setDigestData(data.digestData);
+      setEmailPreview(data.html);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const sendTestEmail = async () => {
+    setLoading('send-test');
+    setError(null);
+    try {
+      const response = await fetch('/api/test-news/send-test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'steve@saasrise.com'
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to send test email');
+      alert('Test email sent successfully to steve@saasrise.com!');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(null);
     }
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
+    <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-4">GPT-5 News Digest Test</h1>
+        <h1 className="text-4xl font-bold mb-4">Email & News Test Dashboard</h1>
         <p className="text-muted-foreground mb-6">
-          Test the GPT-5 powered SaaS news generation service
+          Test SaaS news generation and preview daily digest emails
         </p>
-
-        <Button
-          onClick={generateNews}
-          disabled={loading}
-          size="lg"
-          className="mb-6"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating News...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Generate SaaS News Digest
-            </>
-          )}
-        </Button>
       </div>
 
       {error && (
-        <Card className="mb-6 border-red-500">
-          <CardContent className="pt-6">
-            <p className="text-red-500">Error: {error}</p>
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-2 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Newspaper className="h-5 w-5" />
+              SaaS News Generation
+            </CardTitle>
+            <CardDescription>
+              Triggers the same process as /api/cron/generate-saas-news
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              onClick={triggerSaasNewsGeneration}
+              disabled={loading === 'saas-news'}
+              className="w-full"
+            >
+              {loading === 'saas-news' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating SaaS News...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Generate SaaS News
+                </>
+              )}
+            </Button>
+
+            {saasNewsData && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Generation Result:</h3>
+                <pre className="text-xs overflow-auto">
+                  {JSON.stringify(saasNewsData, null, 2)}
+                </pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Daily Digest Email
+            </CardTitle>
+            <CardDescription>
+              Preview the email that would be sent by /api/cron/send-daily-digest
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Button
+                onClick={previewEmailDigest}
+                disabled={loading === 'digest-preview'}
+                className="w-full"
+              >
+                {loading === 'digest-preview' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating Preview...
+                  </>
+                ) : (
+                  'Preview Email Digest'
+                )}
+              </Button>
+
+              <Button
+                onClick={sendTestEmail}
+                disabled={loading === 'send-test' || !emailPreview}
+                variant="outline"
+                className="w-full"
+              >
+                {loading === 'send-test' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Test Email to steve@saasrise.com'
+                )}
+              </Button>
+            </div>
+
+            {digestData && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Digest Data:</h3>
+                <pre className="text-xs overflow-auto max-h-48">
+                  {JSON.stringify(digestData, null, 2)}
+                </pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {emailPreview && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Email Preview</CardTitle>
+            <CardDescription>
+              This is how the email will look when rendered
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="rendered" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="rendered">Rendered View</TabsTrigger>
+                <TabsTrigger value="html">HTML Source</TabsTrigger>
+              </TabsList>
+              <TabsContent value="rendered">
+                <div className="border rounded-lg p-4 bg-white">
+                  <iframe
+                    srcDoc={emailPreview}
+                    className="w-full h-[600px] border-0"
+                    title="Email Preview"
+                  />
+                </div>
+              </TabsContent>
+              <TabsContent value="html">
+                <div className="border rounded-lg p-4 bg-muted">
+                  <pre className="text-xs overflow-auto max-h-[600px]">
+                    <code>{emailPreview}</code>
+                  </pre>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       )}
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">GPT-5 News Test</CardTitle>
+          <CardDescription>
+            Test the GPT-5 powered news generation directly
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={generateNews}
+            disabled={loading === 'gpt5-news'}
+            size="lg"
+            className="mb-6"
+          >
+            {loading === 'gpt5-news' ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating News...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Generate GPT-5 SaaS News
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
       {newsData && (
-        <div className="space-y-6">
+        <div className="space-y-6 mt-6">
           {/* Big Story */}
           {newsData.bigStory && (
             <Card className="border-2 border-primary">

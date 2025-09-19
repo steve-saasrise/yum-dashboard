@@ -50,146 +50,155 @@ export class GPT5StockMoversService {
         day: 'numeric',
       });
 
-      // Use the Responses API with web_search tool - same pattern as news service
+      // Use the Responses API with web_search tool and Structured Outputs
       const response = await (this.client as any).responses.create({
         model: this.model,
         reasoning: {
-          effort: 'low', // Low effort for cost efficiency as requested
+          effort: 'low', // Low effort for cost and speed
         },
         tools: [
           {
             type: 'web_search',
-            search_context_size: 'low', // Low context for cost efficiency
+            search_context_size: 'low', // Low context for speed
           },
         ],
         include: ['web_search_call.action.sources'],
-        instructions: `You are a professional financial data curator specializing in SaaS stocks. Today is ${dateStr}. Focus on accuracy and real market data.`,
-        input: `Search for and find the LATEST real-time SaaS stock market data (${dateStr}).
-
-Priority search queries:
-1. "BVP Nasdaq Emerging Cloud Index" OR "EMCLOUD" today price change
-2. "Aventis SaaS Index" OR "Public SaaS Index" performance
-3. "ServiceNow NOW" OR "Snowflake SNOW" OR "Salesforce CRM" stock price today
-4. "HubSpot HUBS" OR "DocuSign DOCU" OR "Okta OKTA" stock price today
-5. "Zoom ZM" OR "Datadog DDOG" OR "MongoDB MDB" stock price today
-6. site:finance.yahoo.com OR site:google.com/finance SaaS stocks biggest gainers losers
-
-Requirements:
-- ONLY use REAL stock data from your web search results
-- Include actual ticker symbols, prices, and percentage changes
-- Focus on well-known SaaS/cloud companies
-- Use real market caps and valuation multiples if available
-
-Format the results as a JSON object with:
-1. Two major SaaS indexes with their daily performance
-2. Top 3 SaaS stock gainers with real data
-3. Top 3 SaaS stock losers with real data
-
-Return ONLY a valid JSON object with this exact structure:
-{
-  "indexes": [
-    {
-      "name": "BVP Cloud Index",
-      "changePercent": <real percent change>,
-      "details": "<revenue multiple>x Rev, <ebitda multiple>x EBITDA"
-    },
-    {
-      "name": "Aventis Public SaaS Index",
-      "changePercent": <real percent change>,
-      "details": "<revenue multiple>x Rev, <ebitda multiple>x EBITDA"
-    }
-  ],
-  "topGainers": [
-    {
-      "symbol": "<REAL_TICKER>",
-      "companyName": "<Real Company Name>",
-      "price": <actual current price>,
-      "change": <actual dollar change>,
-      "changePercent": <actual percent change>,
-      "marketCap": "<actual market cap>B Market Cap",
-      "revenue": "<revenue multiple>x Rev",
-      "ebitda": "<ebitda multiple>x EBITDA"
-    }
-  ],
-  "topLosers": [
-    {
-      "symbol": "<REAL_TICKER>",
-      "companyName": "<Real Company Name>",
-      "price": <actual current price>,
-      "change": <actual negative dollar change>,
-      "changePercent": <actual negative percent>,
-      "marketCap": "<actual market cap>B Market Cap",
-      "revenue": "<revenue multiple>x Rev",
-      "ebitda": "<ebitda multiple>x EBITDA"
-    }
-  ]
-}
-
-IMPORTANT: All data MUST be from actual web search results, not generated.`,
-      });
-
-      // Extract output_text from the response - same pattern as news service
-      let content = '';
-
-      // Handle different response structures based on GPT-5 Responses API
-      if (response.output_text) {
-        content = response.output_text;
-      } else if (response.output && Array.isArray(response.output)) {
-        // Find the output_text item in the output array
-        const outputTextItem = response.output.find(
-          (item: any) =>
-            item.type === 'output_text' ||
-            (item.type === 'message' &&
-              item.content?.[0]?.type === 'output_text')
-        );
-
-        if (outputTextItem) {
-          if (outputTextItem.type === 'output_text') {
-            content = outputTextItem.text || '';
-          } else if (outputTextItem.content?.[0]?.text) {
-            content = outputTextItem.content[0].text;
+        instructions: `Extract real stock prices from web search results. Return actual numbers only, never questions or placeholder text.`,
+        input: `Search for "software stocks gainers today" and "software stocks losers today" to find real stock prices and percentage changes.`,
+        text: {
+          format: {
+            type: 'json_schema',
+            name: 'stock_movers',
+            strict: true,
+            schema: {
+              type: 'object',
+              properties: {
+                indexes: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      changePercent: { type: 'number' },
+                      details: { type: 'string' }
+                    },
+                    required: ['name', 'changePercent', 'details'],
+                    additionalProperties: false
+                  }
+                },
+                topGainers: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      symbol: { type: 'string' },
+                      companyName: { type: 'string' },
+                      price: { type: 'number' },
+                      change: { type: 'number' },
+                      changePercent: { type: 'number' },
+                      marketCap: { type: ['string', 'null'] },
+                      revenue: { type: ['string', 'null'] },
+                      ebitda: { type: ['string', 'null'] }
+                    },
+                    required: ['symbol', 'companyName', 'price', 'change', 'changePercent', 'marketCap', 'revenue', 'ebitda'],
+                    additionalProperties: false
+                  }
+                },
+                topLosers: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      symbol: { type: 'string' },
+                      companyName: { type: 'string' },
+                      price: { type: 'number' },
+                      change: { type: 'number' },
+                      changePercent: { type: 'number' },
+                      marketCap: { type: ['string', 'null'] },
+                      revenue: { type: ['string', 'null'] },
+                      ebitda: { type: ['string', 'null'] }
+                    },
+                    required: ['symbol', 'companyName', 'price', 'change', 'changePercent', 'marketCap', 'revenue', 'ebitda'],
+                    additionalProperties: false
+                  }
+                }
+              },
+              required: ['indexes', 'topGainers', 'topLosers'],
+              additionalProperties: false
+            }
           }
         }
-      } else if (response.text) {
-        // Some responses might have text directly
-        content = response.text;
-      }
+      });
 
-      // Log web search sources if available for debugging
-      if (response.web_search_sources) {
-        console.log(
-          '[GPT-5 Stock Movers] Web search sources found:',
-          response.web_search_sources.length
+      // Extract the structured JSON from the response
+      let parsed: any;
+
+      // With Structured Outputs, the response should have valid JSON
+      if (response.output_text) {
+        // Direct output_text property (preferred with Structured Outputs)
+        console.log('[GPT-5 Stock Movers] Found output_text, length:', response.output_text.length);
+        parsed = JSON.parse(response.output_text);
+      } else if (response.output && Array.isArray(response.output)) {
+        // Find the message item (comes after web_search_call)
+        const messageItem = response.output.find(
+          (item: any) => item.type === 'message'
         );
+
+        if (messageItem?.content) {
+          // Check for refusal first
+          if (Array.isArray(messageItem.content)) {
+            const refusalItem = messageItem.content.find((c: any) => c.type === 'refusal');
+            if (refusalItem) {
+              console.error('[GPT-5 Stock Movers] Model refused request:', refusalItem.refusal);
+              throw new Error(`Model refused: ${refusalItem.refusal}`);
+            }
+
+            // Get the output_text
+            const textItem = messageItem.content.find((c: any) => c.type === 'output_text');
+            if (textItem?.text) {
+              console.log('[GPT-5 Stock Movers] Found output_text in message, parsing JSON');
+              parsed = JSON.parse(textItem.text);
+            }
+          }
+        }
+
+        // Log if we found web search results for debugging
+        const webSearchCall = response.output.find(
+          (item: any) => item.type === 'web_search_call'
+        );
+        if (webSearchCall?.action?.sources) {
+          console.log(`[GPT-5 Stock Movers] Web search found ${webSearchCall.action.sources.length} sources`);
+        }
       }
 
-      if (!content) {
+      if (!parsed) {
         console.error(
-          '[GPT-5 Stock Movers] Response structure:',
+          '[GPT-5 Stock Movers] Could not extract JSON from response:',
           JSON.stringify(response, null, 2).substring(0, 1000)
         );
-        throw new Error('No output_text found in GPT-5 response');
+        throw new Error('Could not extract structured data from GPT-5 response');
       }
 
-      console.log('[GPT-5 Stock Movers] Raw response length:', content.length);
+      // Format market caps if they're just numbers
+      const formatMarketCap = (stock: any) => {
+        if (stock.marketCap && !stock.marketCap.includes('B') && !stock.marketCap.includes('M')) {
+          const num = parseFloat(stock.marketCap);
+          if (num > 1000000000000) {
+            stock.marketCap = `${(num / 1000000000000).toFixed(1)}T Market Cap`;
+          } else if (num > 1000000000) {
+            stock.marketCap = `${(num / 1000000000).toFixed(1)}B Market Cap`;
+          } else if (num > 1000000) {
+            stock.marketCap = `${(num / 1000000).toFixed(1)}M Market Cap`;
+          }
+        }
+        return stock;
+      };
 
-      // Parse the JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error(
-          '[GPT-5 Stock Movers] Response content:',
-          content.substring(0, 500)
-        );
-        throw new Error('No JSON found in GPT-5 response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      // Add generated timestamp
+      // Add generated timestamp and format data
       const result: StockMoversData = {
         indexes: parsed.indexes || [],
-        topGainers: parsed.topGainers || [],
-        topLosers: parsed.topLosers || [],
+        topGainers: (parsed.topGainers || []).map(formatMarketCap),
+        topLosers: (parsed.topLosers || []).map(formatMarketCap),
         generatedAt: new Date().toISOString(),
       };
 
@@ -198,88 +207,22 @@ IMPORTANT: All data MUST be from actual web search results, not generated.`,
           `${result.topGainers.length} gainers, ${result.topLosers.length} losers`
       );
 
+      // Check if we got meaningful data
+      const hasValidData = result.topGainers.length > 0 || result.topLosers.length > 0;
+
+      if (!hasValidData) {
+        console.warn('[GPT-5 Stock Movers] No valid stock data found from web search');
+      }
+
       return result;
     } catch (error: any) {
       console.error('[GPT-5 Stock Movers] Error generating stock data:', error);
 
-      // Return fallback data if API fails
+      // Return empty data - no fake/fallback data
       return {
-        indexes: [
-          {
-            name: 'BVP Cloud Index',
-            changePercent: 1.8,
-            details: '6.3x Rev, 28.1x EBITDA',
-          },
-          {
-            name: 'Aventis Public SaaS Index',
-            changePercent: -0.4,
-            details: '7.1x Rev, 24.2x EBITDA',
-          },
-        ],
-        topGainers: [
-          {
-            symbol: 'NOW',
-            companyName: 'ServiceNow',
-            price: 756.32,
-            change: 24.18,
-            changePercent: 3.3,
-            marketCap: '155.2B Market Cap',
-            revenue: '18.2x Rev',
-            ebitda: '67.3x EBITDA',
-          },
-          {
-            symbol: 'SNOW',
-            companyName: 'Snowflake',
-            price: 142.65,
-            change: 4.23,
-            changePercent: 3.1,
-            marketCap: '46.8B Market Cap',
-            revenue: '15.1x Rev',
-            ebitda: '89.2x EBITDA',
-          },
-          {
-            symbol: 'HUBS',
-            companyName: 'HubSpot',
-            price: 521.89,
-            change: 12.45,
-            changePercent: 2.4,
-            marketCap: '26.4B Market Cap',
-            revenue: '12.3x Rev',
-            ebitda: '45.7x EBITDA',
-          },
-        ],
-        topLosers: [
-          {
-            symbol: 'DOCU',
-            companyName: 'DocuSign',
-            price: 56.23,
-            change: -2.87,
-            changePercent: -4.9,
-            marketCap: '11.2B Market Cap',
-            revenue: '4.8x Rev',
-            ebitda: '22.1x EBITDA',
-          },
-          {
-            symbol: 'ZM',
-            companyName: 'Zoom',
-            price: 67.45,
-            change: -2.34,
-            changePercent: -3.4,
-            marketCap: '20.1B Market Cap',
-            revenue: '4.2x Rev',
-            ebitda: '18.6x EBITDA',
-          },
-          {
-            symbol: 'OKTA',
-            companyName: 'Okta',
-            price: 78.91,
-            change: -1.98,
-            changePercent: -2.4,
-            marketCap: '13.5B Market Cap',
-            revenue: '6.7x Rev',
-            ebitda: '31.8x EBITDA',
-          },
-        ],
+        indexes: [],
+        topGainers: [],
+        topLosers: [],
         generatedAt: new Date().toISOString(),
       };
     }
