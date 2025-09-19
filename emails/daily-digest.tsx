@@ -86,6 +86,14 @@ interface StockMoversData {
   generatedAt: string;
 }
 
+interface EmailAdvertiser {
+  position: number;
+  company_name: string;
+  logo_url: string;
+  link_url: string;
+  tagline: string;
+}
+
 interface DailyDigestEmailProps {
   loungeName: string;
   loungeDescription: string;
@@ -94,6 +102,7 @@ interface DailyDigestEmailProps {
   recipientEmail: string;
   unsubscribeUrl: string;
   date: string;
+  advertisers?: EmailAdvertiser[];
   aiNewsSummary?: {
     bigStory?: {
       title: string;
@@ -183,6 +192,7 @@ export const DailyDigestEmail = ({
   date,
   aiNewsSummary,
   stockMovers,
+  advertisers,
 }: DailyDigestEmailProps) => {
   const previewText = `Your ${loungeName} Daily Digest - ${content.length} updates`;
 
@@ -223,6 +233,39 @@ export const DailyDigestEmail = ({
             <Text style={loungeDesc}>{loungeDescription}</Text>
             <Text style={dateText}>{date}</Text>
           </Section>
+
+          {/* Advertisers Section */}
+          {advertisers && advertisers.length > 0 && (
+            <Section style={advertiserSection}>
+              <Text style={advertiserSectionTitle}>Presented By</Text>
+              <Row>
+                {advertisers.map((advertiser, index) => (
+                  <Column key={advertiser.position} style={advertiserColumn}>
+                    <Link
+                      href={advertiser.link_url}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      <div style={advertiserCard}>
+                        <Img
+                          src={advertiser.logo_url}
+                          alt={advertiser.company_name}
+                          width="120"
+                          height="40"
+                          style={advertiserLogo}
+                        />
+                        <Text style={advertiserTagline}>
+                          {advertiser.tagline}
+                        </Text>
+                      </div>
+                    </Link>
+                    {index === 0 && advertisers.length === 2 && (
+                      <Column style={{ width: '20px' }} />
+                    )}
+                  </Column>
+                ))}
+              </Row>
+            </Section>
+          )}
 
           <Section style={{ padding: '0 10px' }}>
             <Hr style={divider} />
@@ -686,7 +729,6 @@ export const DailyDigestEmail = ({
                       {stockMovers.topGainers.map((stock, i) => (
                         <div key={i} style={stockItem}>
                           <div style={stockItemLeft}>
-                            <Text style={stockItemNumber}>{i + 1}.</Text>
                             <div>
                               <Text style={stockCompanyName}>
                                 {stock.companyName} ({stock.symbol})
@@ -716,7 +758,6 @@ export const DailyDigestEmail = ({
                     {stockMovers.topLosers.map((stock, i) => (
                       <div key={i} style={stockItem}>
                         <div style={stockItemLeft}>
-                          <Text style={stockItemNumber}>{i + 1}.</Text>
                           <div>
                             <Text style={stockCompanyName}>
                               {stock.companyName} ({stock.symbol})
@@ -792,13 +833,8 @@ DailyDigestEmail.PreviewProps = {
     indexes: [
       {
         name: 'BVP Cloud Index',
-        changePercent: 1.8,
-        details: '6.3x Rev, 28.1x EBITDA',
-      },
-      {
-        name: 'Aventis Public SaaS Index',
-        changePercent: -0.4,
-        details: '7.1x Rev, 24.2x EBITDA',
+        changePercent: 2.12,
+        details: '9.1x Rev',
       },
     ],
     topGainers: [
@@ -1395,6 +1431,51 @@ const referencedText = {
   display: 'block',
 };
 
+const advertiserSection = {
+  padding: '12px',
+  backgroundColor: '#f9fafb',
+  borderRadius: '8px',
+  margin: '16px 10px',
+};
+
+const advertiserSectionTitle = {
+  fontSize: '11px',
+  color: '#6b7280',
+  textAlign: 'center' as const,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.5px',
+  marginBottom: '12px',
+  fontWeight: '500',
+};
+
+const advertiserColumn = {
+  width: '50%',
+  padding: '0 8px',
+};
+
+const advertiserCard = {
+  backgroundColor: '#ffffff',
+  border: '1px solid #e5e7eb',
+  borderRadius: '6px',
+  padding: '12px',
+  textAlign: 'center' as const,
+};
+
+const advertiserLogo = {
+  display: 'block',
+  margin: '0 auto 8px',
+  objectFit: 'contain' as const,
+  maxWidth: '120px',
+  height: 'auto',
+};
+
+const advertiserTagline = {
+  fontSize: '11px',
+  color: '#6b7280',
+  lineHeight: '1.4',
+  margin: '0',
+};
+
 const mediaContainer = {
   display: 'flex',
   gap: '4px',
@@ -1617,14 +1698,14 @@ const indexesContainer = {
   backgroundColor: '#f9fafb',
   borderRadius: '8px',
   padding: '12px',
-  marginBottom: '16px',
+  marginBottom: '12px',
 };
 
 const indexesHeader = {
   fontSize: '13px',
   fontWeight: '600',
   color: '#4b5563',
-  marginBottom: '12px',
+  margin: '0 0 8px 0',
   display: 'block',
 };
 
@@ -1632,7 +1713,7 @@ const indexItem = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '10px',
+  marginBottom: '0',
 };
 
 const indexName = {

@@ -1,10 +1,10 @@
 interface FinnhubQuote {
-  c: number;  // Current price
-  d: number;  // Change
+  c: number; // Current price
+  d: number; // Change
   dp: number; // Change percentage
-  h: number;  // High
-  l: number;  // Low
-  o: number;  // Open
+  h: number; // High
+  l: number; // Low
+  o: number; // Open
   pc: number; // Previous close
 }
 
@@ -59,40 +59,40 @@ export class FinnhubStockService {
   // Core SaaS companies to track - prioritized list
   // Top tier (always fetch)
   private readonly TOP_SAAS_COMPANIES = [
-    'CRM',   // Salesforce
-    'NOW',   // ServiceNow
-    'SNOW',  // Snowflake
-    'TEAM',  // Atlassian
-    'HUBS',  // HubSpot
-    'DDOG',  // Datadog
-    'MDB',   // MongoDB
-    'ZM',    // Zoom
-    'OKTA',  // Okta
-    'CRWD',  // CrowdStrike
+    'CRM', // Salesforce
+    'NOW', // ServiceNow
+    'SNOW', // Snowflake
+    'TEAM', // Atlassian
+    'HUBS', // HubSpot
+    'DDOG', // Datadog
+    'MDB', // MongoDB
+    'ZM', // Zoom
+    'OKTA', // Okta
+    'CRWD', // CrowdStrike
   ];
 
   // Extended list (fetch if needed)
   private readonly EXTENDED_SAAS_COMPANIES = [
-    'DOCU',  // DocuSign
-    'TWLO',  // Twilio
-    'VEEV',  // Veeva Systems
-    'WDAY',  // Workday
-    'ZS',    // Zscaler
-    'S',     // SentinelOne
-    'NET',   // Cloudflare
-    'SHOP',  // Shopify
-    'SQ',    // Block (Square)
-    'BILL',  // Bill.com
-    'MNDY',  // Monday.com
-    'GTLB',  // GitLab
-    'CFLT',  // Confluent
-    'U',     // Unity Software
-    'RBLX',  // Roblox
-    'DBX',   // Dropbox
-    'BOX',   // Box
-    'WIX',   // Wix
-    'FROG',  // JFrog
-    'ESTC',  // Elastic
+    'DOCU', // DocuSign
+    'TWLO', // Twilio
+    'VEEV', // Veeva Systems
+    'WDAY', // Workday
+    'ZS', // Zscaler
+    'S', // SentinelOne
+    'NET', // Cloudflare
+    'SHOP', // Shopify
+    'SQ', // Block (Square)
+    'BILL', // Bill.com
+    'MNDY', // Monday.com
+    'GTLB', // GitLab
+    'CFLT', // Confluent
+    'U', // Unity Software
+    'RBLX', // Roblox
+    'DBX', // Dropbox
+    'BOX', // Box
+    'WIX', // Wix
+    'FROG', // JFrog
+    'ESTC', // Elastic
   ];
 
   private get SAAS_COMPANIES() {
@@ -114,7 +114,9 @@ export class FinnhubStockService {
       const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`Finnhub API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Finnhub API error: ${response.status} ${response.statusText}`
+        );
       }
 
       const data = await response.json();
@@ -147,9 +149,13 @@ export class FinnhubStockService {
     }
   }
 
-  async getCompanyProfile(symbol: string): Promise<FinnhubCompanyProfile | null> {
+  async getCompanyProfile(
+    symbol: string
+  ): Promise<FinnhubCompanyProfile | null> {
     try {
-      const data = await this.fetchFromFinnhub(`/stock/profile2?symbol=${symbol}`);
+      const data = await this.fetchFromFinnhub(
+        `/stock/profile2?symbol=${symbol}`
+      );
 
       if (data && data.name) {
         return data;
@@ -164,7 +170,9 @@ export class FinnhubStockService {
 
   async getBasicFinancials(symbol: string): Promise<FinnhubFinancials | null> {
     try {
-      const data = await this.fetchFromFinnhub(`/stock/metric?symbol=${symbol}&metric=all`);
+      const data = await this.fetchFromFinnhub(
+        `/stock/metric?symbol=${symbol}&metric=all`
+      );
 
       if (data && data.metric) {
         return data;
@@ -193,7 +201,7 @@ export class FinnhubStockService {
       // Format market cap
       let marketCapFormatted = '';
       let revenueMultiple = '';
-      let ebitdaMultiple = '';
+      const ebitdaMultiple = '';
 
       if (financials?.metric?.marketCapitalization) {
         const marketCap = financials.metric.marketCapitalization;
@@ -213,8 +221,12 @@ export class FinnhubStockService {
 
       // Calculate revenue multiple if we have revenue data
       if (financials?.metric?.revenuePerShareTTM && profile.shareOutstanding) {
-        const totalRevenue = financials.metric.revenuePerShareTTM * profile.shareOutstanding / 1000000; // in millions
-        const marketCap = profile.marketCapitalization || (quote.c * profile.shareOutstanding / 1000000);
+        const totalRevenue =
+          (financials.metric.revenuePerShareTTM * profile.shareOutstanding) /
+          1000000; // in millions
+        const marketCap =
+          profile.marketCapitalization ||
+          (quote.c * profile.shareOutstanding) / 1000000;
         const revMultiple = marketCap / totalRevenue;
         revenueMultiple = `${revMultiple.toFixed(1)}x Rev`;
       }
@@ -251,31 +263,35 @@ export class FinnhubStockService {
 
     for (let i = 0; i < this.SAAS_COMPANIES.length; i += batchSize) {
       const batch = this.SAAS_COMPANIES.slice(i, i + batchSize);
-      const batchPromises = batch.map(symbol => this.getStockData(symbol));
+      const batchPromises = batch.map((symbol) => this.getStockData(symbol));
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults);
 
       // Add a small delay between batches to avoid rate limits
       if (i + batchSize < this.SAAS_COMPANIES.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
       }
     }
 
     // Filter out null results and sort by change percentage
-    const validStocks = results.filter((data): data is StockData => data !== null);
+    const validStocks = results.filter(
+      (data): data is StockData => data !== null
+    );
 
     // Separate gainers and losers
     const gainers = validStocks
-      .filter(stock => stock.changePercent > 0)
+      .filter((stock) => stock.changePercent > 0)
       .sort((a, b) => b.changePercent - a.changePercent)
       .slice(0, 3); // Top 3 gainers
 
     const losers = validStocks
-      .filter(stock => stock.changePercent < 0)
+      .filter((stock) => stock.changePercent < 0)
       .sort((a, b) => a.changePercent - b.changePercent)
       .slice(0, 3); // Top 3 losers
 
-    console.log(`[Finnhub] Found ${gainers.length} gainers and ${losers.length} losers`);
+    console.log(
+      `[Finnhub] Found ${gainers.length} gainers and ${losers.length} losers`
+    );
 
     return {
       topGainers: gainers,

@@ -212,14 +212,14 @@ export class AIImageService {
   private generatePrompt(options: GenerateImageOptions): string {
     const { title, source, category, description, imagePrompt } = options;
 
-    // Select a random style for variety
+    // Select a random style for variety - all professional and suitable for SaaS/business
     const styles = [
-      'minimalist illustration',
-      'soft watercolor painting',
-      'abstract geometric art',
-      'nature photography',
-      'impressionist painting',
-      'flat design illustration',
+      'minimalist gradient illustration',
+      'clean geometric pattern',
+      'modern flat design',
+      'abstract gradient mesh',
+      'isometric 3D illustration',
+      'soft gradient background with simple shapes',
     ];
 
     const randomStyle = styles[Math.floor(Math.random() * styles.length)];
@@ -228,8 +228,8 @@ export class AIImageService {
     if (imagePrompt && imagePrompt.concept) {
       const concept = this.simplifyTechConcept(imagePrompt.concept);
 
-      // Use narrative description as recommended by Gemini docs
-      return `Create a ${randomStyle} that represents ${concept}. The image should feel professional yet approachable, using soft, harmonious colors. Keep the composition simple and balanced with a clear focal point. This is for a business newsletter, so it should look elegant and calming. Absolutely no text, letters, numbers, or words should appear anywhere in the image. Avoid complex technical imagery, circuit boards, or busy patterns. The image should be a perfect square that extends to all edges.`;
+      // Use narrative description as recommended by Gemini docs - but keep it SIMPLE
+      return `Create a ${randomStyle} that symbolizes ${concept}. Use a minimal design with only 2-3 simple shapes or elements. The image should have lots of empty space and use soft gradient colors typical of modern SaaS websites. Keep it extremely clean and uncluttered. Absolutely no text, letters, numbers, or words in the image. Avoid complex details, patterns, or busy compositions. The image should be a perfect square with a calm, professional aesthetic.`;
     }
 
     // Fallback without pre-generated prompt
@@ -254,8 +254,8 @@ export class AIImageService {
 
     const theme = themes[cleanCategory] || 'innovation and progress';
 
-    // Create a simple narrative prompt
-    return `Create a ${randomStyle} that captures the essence of ${theme}. The scene should be calming and professional, suitable for a business newsletter. Use a harmonious color palette with soft tones. Keep the composition simple and elegant with plenty of visual breathing room. The image should feel approachable and optimistic without being overly technical or busy. Make it a perfect square image that fills the entire frame. Most importantly, do not include any text, numbers, letters, or words in the image.`;
+    // Create a simple narrative prompt - emphasis on MINIMAL
+    return `Create a ${randomStyle} representing ${theme}. Use only 2-3 simple geometric shapes or abstract elements. The design should be extremely minimal with lots of white space. Use soft gradients in professional colors (blues, purples, or teals). Keep everything clean and uncluttered like a modern SaaS landing page hero image. Make it a perfect square. No text, numbers, letters, or words anywhere in the image. Avoid complex patterns, detailed illustrations, or busy compositions.`;
   }
 
   /**

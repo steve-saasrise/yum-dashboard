@@ -69,7 +69,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get news content
-    const newsContent = aiNewsSummary ? [] : await DigestService.getNewsContent(5);
+    const newsContent = aiNewsSummary
+      ? []
+      : await DigestService.getNewsContent(5);
 
     // Get top social posts
     const topSocialPosts = await DigestService.getTopSocialPosts(
@@ -79,7 +81,10 @@ export async function POST(request: NextRequest) {
     );
 
     // Get additional social content
-    const socialContent = await DigestService.getSocialContentForLounge(lounge.id, 10);
+    const socialContent = await DigestService.getSocialContentForLounge(
+      lounge.id,
+      10
+    );
 
     // Combine content
     const content = [...newsContent, ...socialContent];
@@ -104,9 +109,20 @@ export async function POST(request: NextRequest) {
       published_at: item.published_at,
       ai_summary_short: item.ai_summary_short || undefined,
       content_body: item.content_body || undefined,
-      reference_type: item.reference_type as 'quote' | 'retweet' | 'reply' | undefined,
+      reference_type: item.reference_type as
+        | 'quote'
+        | 'retweet'
+        | 'reply'
+        | undefined,
       referenced_content: item.referenced_content || undefined,
     }));
+
+    // Fetch active advertisers
+    const { data: advertisers } = await supabase
+      .from('email_advertisers')
+      .select('position, company_name, logo_url, link_url, tagline')
+      .eq('is_active', true)
+      .order('position');
 
     // Format top social posts
     const formattedTopPosts = topSocialPosts.map((item) => ({
@@ -120,7 +136,11 @@ export async function POST(request: NextRequest) {
       published_at: item.published_at,
       ai_summary_short: item.ai_summary_short || undefined,
       content_body: item.content_body || undefined,
-      reference_type: item.reference_type as 'quote' | 'retweet' | 'reply' | undefined,
+      reference_type: item.reference_type as
+        | 'quote'
+        | 'retweet'
+        | 'reply'
+        | undefined,
       referenced_content: item.referenced_content || undefined,
       engagement_metrics: (item as any).engagement_metrics || undefined,
     }));
@@ -137,6 +157,7 @@ export async function POST(request: NextRequest) {
         date,
         aiNewsSummary,
         stockMovers,
+        advertisers: advertisers || [],
       })
     );
 

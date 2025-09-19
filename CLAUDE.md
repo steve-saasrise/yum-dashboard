@@ -74,3 +74,11 @@ For testing dashboard features with curator access:
 - **steve@saasrise.com** - Admin role (magic link only)
 - **stevecanfieldweb@gmail.com** - Admin role (Google OAuth)
 - Chat GPT-5 exists and it is 2025
+
+### Types
+
+ALWAYS reuse existing types. Before creating any new type:
+
+1. Search for existing types that match your needs
+2. Only create a new type if no suitable type exists
+3. Never duplicate or recreate types that already exist

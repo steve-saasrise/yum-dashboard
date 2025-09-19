@@ -40,19 +40,36 @@ export class AIPromptGenerator {
       const { title, description, source, category, isBigStory } = options;
       const aspectRatio = isBigStory ? '16:9 widescreen' : 'square';
 
-      const systemPrompt = `You are an expert at creating image generation prompts for Gemini AI. Your task is to create detailed, specific prompts that will generate relevant images for news articles in a business newsletter.
+      // Randomly select a style for variety - all professional and suitable for SaaS/business
+      const styles = [
+        'minimalist gradient illustration',
+        'clean geometric pattern',
+        'modern flat design',
+        'abstract gradient mesh',
+        'isometric 3D illustration',
+        'soft gradient background with simple shapes',
+        'corporate Memphis style illustration',
+        'subtle line art illustration',
+        'modern vector illustration',
+        'glassmorphism design',
+      ];
+      const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+
+      const systemPrompt = `You are an expert at creating SIMPLE, CLEAN image generation prompts for Gemini AI. Your task is to create minimal, uncluttered prompts for newsletter images.
 
 IMPORTANT RULES:
 1. The prompt must explicitly state "no text, letters, numbers, or words in the image"
-2. Avoid generic concepts like "innovation" or "progress" - be specific to the article
-3. Focus on visual metaphors and concrete imagery related to the article's content
-4. Keep the style professional and suitable for a business newsletter
-5. The image should be ${aspectRatio} format
+2. Keep concepts SIMPLE and MINIMAL - avoid busy or complex scenes
+3. Use abstract or symbolic representations rather than literal interpretations
+4. Maximum 2-3 visual elements in the entire image
+5. Focus on calm, peaceful compositions with lots of empty space
+6. The image should be ${aspectRatio} format
+7. The style MUST be: ${randomStyle}
 
 Return a JSON object with:
-- prompt: The complete image generation prompt (1-2 sentences)
-- concept: The main visual concept (3-5 words)
-- style: The artistic style (e.g., "minimalist illustration", "watercolor", "geometric art")`;
+- prompt: A SHORT, SIMPLE image generation prompt (max 1 sentence) that creates a MINIMAL, UNCLUTTERED image
+- concept: The main visual concept (2-3 words max)
+- style: MUST be exactly "${randomStyle}" (do not change this)`;
 
       const userPrompt = `Create an image generation prompt for this article:
 Title: ${title}
@@ -68,7 +85,7 @@ Generate a specific, contextual prompt that visually represents the article's co
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.7,
+        temperature: 0.5,
         max_tokens: 200,
         response_format: { type: 'json_object' },
       });

@@ -80,11 +80,11 @@ export class GPT5StockMoversService {
                     properties: {
                       name: { type: 'string' },
                       changePercent: { type: 'number' },
-                      details: { type: 'string' }
+                      details: { type: 'string' },
                     },
                     required: ['name', 'changePercent', 'details'],
-                    additionalProperties: false
-                  }
+                    additionalProperties: false,
+                  },
                 },
                 topGainers: {
                   type: 'array',
@@ -98,11 +98,20 @@ export class GPT5StockMoversService {
                       changePercent: { type: 'number' },
                       marketCap: { type: ['string', 'null'] },
                       revenue: { type: ['string', 'null'] },
-                      ebitda: { type: ['string', 'null'] }
+                      ebitda: { type: ['string', 'null'] },
                     },
-                    required: ['symbol', 'companyName', 'price', 'change', 'changePercent', 'marketCap', 'revenue', 'ebitda'],
-                    additionalProperties: false
-                  }
+                    required: [
+                      'symbol',
+                      'companyName',
+                      'price',
+                      'change',
+                      'changePercent',
+                      'marketCap',
+                      'revenue',
+                      'ebitda',
+                    ],
+                    additionalProperties: false,
+                  },
                 },
                 topLosers: {
                   type: 'array',
@@ -116,18 +125,27 @@ export class GPT5StockMoversService {
                       changePercent: { type: 'number' },
                       marketCap: { type: ['string', 'null'] },
                       revenue: { type: ['string', 'null'] },
-                      ebitda: { type: ['string', 'null'] }
+                      ebitda: { type: ['string', 'null'] },
                     },
-                    required: ['symbol', 'companyName', 'price', 'change', 'changePercent', 'marketCap', 'revenue', 'ebitda'],
-                    additionalProperties: false
-                  }
-                }
+                    required: [
+                      'symbol',
+                      'companyName',
+                      'price',
+                      'change',
+                      'changePercent',
+                      'marketCap',
+                      'revenue',
+                      'ebitda',
+                    ],
+                    additionalProperties: false,
+                  },
+                },
               },
               required: ['indexes', 'topGainers', 'topLosers'],
-              additionalProperties: false
-            }
-          }
-        }
+              additionalProperties: false,
+            },
+          },
+        },
       });
 
       // Extract the structured JSON from the response
@@ -136,7 +154,10 @@ export class GPT5StockMoversService {
       // With Structured Outputs, the response should have valid JSON
       if (response.output_text) {
         // Direct output_text property (preferred with Structured Outputs)
-        console.log('[GPT-5 Stock Movers] Found output_text, length:', response.output_text.length);
+        console.log(
+          '[GPT-5 Stock Movers] Found output_text, length:',
+          response.output_text.length
+        );
         parsed = JSON.parse(response.output_text);
       } else if (response.output && Array.isArray(response.output)) {
         // Find the message item (comes after web_search_call)
@@ -147,16 +168,25 @@ export class GPT5StockMoversService {
         if (messageItem?.content) {
           // Check for refusal first
           if (Array.isArray(messageItem.content)) {
-            const refusalItem = messageItem.content.find((c: any) => c.type === 'refusal');
+            const refusalItem = messageItem.content.find(
+              (c: any) => c.type === 'refusal'
+            );
             if (refusalItem) {
-              console.error('[GPT-5 Stock Movers] Model refused request:', refusalItem.refusal);
+              console.error(
+                '[GPT-5 Stock Movers] Model refused request:',
+                refusalItem.refusal
+              );
               throw new Error(`Model refused: ${refusalItem.refusal}`);
             }
 
             // Get the output_text
-            const textItem = messageItem.content.find((c: any) => c.type === 'output_text');
+            const textItem = messageItem.content.find(
+              (c: any) => c.type === 'output_text'
+            );
             if (textItem?.text) {
-              console.log('[GPT-5 Stock Movers] Found output_text in message, parsing JSON');
+              console.log(
+                '[GPT-5 Stock Movers] Found output_text in message, parsing JSON'
+              );
               parsed = JSON.parse(textItem.text);
             }
           }
@@ -167,7 +197,9 @@ export class GPT5StockMoversService {
           (item: any) => item.type === 'web_search_call'
         );
         if (webSearchCall?.action?.sources) {
-          console.log(`[GPT-5 Stock Movers] Web search found ${webSearchCall.action.sources.length} sources`);
+          console.log(
+            `[GPT-5 Stock Movers] Web search found ${webSearchCall.action.sources.length} sources`
+          );
         }
       }
 
@@ -176,12 +208,18 @@ export class GPT5StockMoversService {
           '[GPT-5 Stock Movers] Could not extract JSON from response:',
           JSON.stringify(response, null, 2).substring(0, 1000)
         );
-        throw new Error('Could not extract structured data from GPT-5 response');
+        throw new Error(
+          'Could not extract structured data from GPT-5 response'
+        );
       }
 
       // Format market caps if they're just numbers
       const formatMarketCap = (stock: any) => {
-        if (stock.marketCap && !stock.marketCap.includes('B') && !stock.marketCap.includes('M')) {
+        if (
+          stock.marketCap &&
+          !stock.marketCap.includes('B') &&
+          !stock.marketCap.includes('M')
+        ) {
           const num = parseFloat(stock.marketCap);
           if (num > 1000000000000) {
             stock.marketCap = `${(num / 1000000000000).toFixed(1)}T Market Cap`;
@@ -208,10 +246,13 @@ export class GPT5StockMoversService {
       );
 
       // Check if we got meaningful data
-      const hasValidData = result.topGainers.length > 0 || result.topLosers.length > 0;
+      const hasValidData =
+        result.topGainers.length > 0 || result.topLosers.length > 0;
 
       if (!hasValidData) {
-        console.warn('[GPT-5 Stock Movers] No valid stock data found from web search');
+        console.warn(
+          '[GPT-5 Stock Movers] No valid stock data found from web search'
+        );
       }
 
       return result;

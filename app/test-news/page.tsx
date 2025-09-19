@@ -7,11 +7,24 @@ import { createBrowserSupabaseClient } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, ExternalLink, DollarSign, Mail, Newspaper } from 'lucide-react';
+import {
+  RefreshCw,
+  ExternalLink,
+  DollarSign,
+  Mail,
+  Newspaper,
+} from 'lucide-react';
+import { EmailAdvertisersManager } from '@/components/email-advertisers-manager';
 
 interface NewsItem {
   text: string;
@@ -150,7 +163,8 @@ export default function TestNewsPage() {
         method: 'POST',
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to generate SaaS news');
+      if (!response.ok)
+        throw new Error(data.error || 'Failed to generate SaaS news');
       setSaasNewsData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -167,7 +181,8 @@ export default function TestNewsPage() {
         method: 'POST',
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to generate digest preview');
+      if (!response.ok)
+        throw new Error(data.error || 'Failed to generate digest preview');
       setDigestData(data.digestData);
       setEmailPreview(data.html);
     } catch (err) {
@@ -185,11 +200,12 @@ export default function TestNewsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: 'steve@saasrise.com'
+          email: 'steve@saasrise.com',
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to send test email');
+      if (!response.ok)
+        throw new Error(data.error || 'Failed to send test email');
       alert('Test email sent successfully to steve@saasrise.com!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -213,7 +229,9 @@ export default function TestNewsPage() {
         </Alert>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2 mb-6">
+      <EmailAdvertisersManager />
+
+      <div className="grid gap-6 md:grid-cols-2 mb-6 mt-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -261,7 +279,8 @@ export default function TestNewsPage() {
               Daily Digest Email
             </CardTitle>
             <CardDescription>
-              Preview the email that would be sent by /api/cron/send-daily-digest
+              Preview the email that would be sent by
+              /api/cron/send-daily-digest
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

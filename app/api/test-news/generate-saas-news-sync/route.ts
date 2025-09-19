@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
   if (authError) return authError;
 
   try {
-    console.log('[Test] Starting synchronous SaaS news generation (bypassing queue)...');
+    console.log(
+      '[Test] Starting synchronous SaaS news generation (bypassing queue)...'
+    );
 
     const supabase = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,7 +40,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Test] Processing SaaS news generation directly for: ${saasLounge.name}`);
+    console.log(
+      `[Test] Processing SaaS news generation directly for: ${saasLounge.name}`
+    );
 
     // Create a mock job object that the worker function expects
     const mockJob = {
@@ -48,7 +52,7 @@ export async function POST(request: NextRequest) {
         loungeDescription: saasLounge.description,
         isBackfill: false,
         timestamp: new Date().toISOString(),
-      }
+      },
     };
 
     // Call the worker function directly (synchronously)

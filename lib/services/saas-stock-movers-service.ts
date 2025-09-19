@@ -1,4 +1,7 @@
-import { getFinnhubStockService, type StockData } from './finnhub-stock-service';
+import {
+  getFinnhubStockService,
+  type StockData,
+} from './finnhub-stock-service';
 
 export interface MarketIndex {
   name: string;
@@ -15,7 +18,8 @@ export interface StockMoversData {
 
 export class SaaSStockMoversService {
   private finnhubService: ReturnType<typeof getFinnhubStockService>;
-  private readonly NASDAQ_INDEX_URL = 'https://indexes.nasdaqomx.com/Index/Overview/EMCLOUD';
+  private readonly NASDAQ_INDEX_URL =
+    'https://indexes.nasdaqomx.com/Index/Overview/EMCLOUD';
 
   constructor() {
     this.finnhubService = getFinnhubStockService();
@@ -29,67 +33,135 @@ export class SaaSStockMoversService {
       let bvpIndex: MarketIndex | null = null;
 
       try {
-        // Use fetch to call Exa API directly to get BVP Cloud Index
-        const exaResponse = await fetch('https://api.exa.ai/search', {
+        // First try to get data from Google Finance via Exa crawling
+        const crawlResponse = await fetch('https://api.exa.ai/contents', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': process.env.EXA_API_KEY || ''
+            'x-api-key': process.env.EXA_API_KEY || '',
           },
           body: JSON.stringify({
-            query: 'BVP Nasdaq Emerging Cloud Index EMCLOUD today performance',
-            numResults: 1,
-            type: 'neural',
-            useAutoprompt: true,
-            contents: {
-              text: true
-            }
-          })
+            ids: ['https://www.google.com/finance/quote/EMCLOUD:INDEXNASDAQ'],
+            text: true,
+          }),
         });
 
-        if (exaResponse.ok) {
-          const exaData = await exaResponse.json();
-          if (exaData.results && exaData.results[0]) {
-            const result = exaData.results[0];
-            // Try to extract current data from the text
-            const text = result.text || '';
+        if (crawlResponse.ok) {
+          const crawlData = await crawlResponse.json();
+          if (crawlData.results && crawlData.results[0]) {
+            const text = crawlData.results[0].text || '';
 
-            // Look for pattern like "1,770.39 37.01 2.12%" or "Net Change(%) | 2.12%"
-            const percentMatch = text.match(/(?:Net Change\(%\)|changePercent|Change)[\s\S]{0,20}?([-+]?\d+\.?\d*)\s*%/);
-            const multipleMatch = text.match(/Average Revenue Multiple[\s\S]{0,50}?(\d+\.?\d*)x/);
+            // At 8am ET, Google Finance shows:
+            // - "Current price" = yesterday's closing price (market closed at 4pm)
+            // - "Previous close" = the closing price from the day before yesterday
+            // This gives us yesterday's daily change, which is what we want for the morning digest
 
-            if (percentMatch) {
+            // Extract current price (e.g., "1,770.39") - this is yesterday's close
+            const priceMatch = text.match(
+              /BVP Nasdaq Emerging Cloud Index[\s\S]{0,100}?(\d{1,2},?\d{3}\.\d{2})/
+            );
+            // Extract previous close - this is from two trading days ago
+            const prevCloseMatch = text.match(
+              /Previous close[\s\S]{0,50}?(\d{1,2},?\d{3}\.\d{2})/
+            );
+
+            if (priceMatch && prevCloseMatch) {
+              const yesterdayClose = parseFloat(priceMatch[1].replace(',', ''));
+              const dayBeforeYesterdayClose = parseFloat(
+                prevCloseMatch[1].replace(',', '')
+              );
+
+              // Calculate yesterday's percentage change
+              const changePercent =
+                ((yesterdayClose - dayBeforeYesterdayClose) /
+                  dayBeforeYesterdayClose) *
+                100;
+
+              // Also try to extract revenue multiple
+              const multipleMatch = text.match(
+                /Average Revenue Multiple[\s\S]{0,50}?(\d+\.?\d*)x/
+              );
+
               bvpIndex = {
                 name: 'BVP Cloud Index',
-                changePercent: parseFloat(percentMatch[1]),
-                details: multipleMatch ? `${multipleMatch[1]}x Rev` : '8.5x Rev'
+                changePercent: parseFloat(changePercent.toFixed(2)),
+                details: multipleMatch
+                  ? `${multipleMatch[1]}x Rev`
+                  : '9.1x Rev',
               };
+
+              console.log(
+                `[SaaS Stock Movers] BVP Index - Yesterday's close: ${yesterdayClose}, Previous: ${dayBeforeYesterdayClose}, Yesterday's change: ${changePercent.toFixed(2)}%`
+              );
+            }
+          }
+        }
+
+        // If crawling didn't work, try search as fallback
+        if (!bvpIndex) {
+          const exaResponse = await fetch('https://api.exa.ai/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': process.env.EXA_API_KEY || '',
+            },
+            body: JSON.stringify({
+              query:
+                'EMCLOUD BVP Nasdaq Emerging Cloud Index quote price today',
+              numResults: 2,
+              type: 'neural',
+              useAutoprompt: true,
+              contents: {
+                text: true,
+              },
+            }),
+          });
+
+          if (exaResponse.ok) {
+            const exaData = await exaResponse.json();
+            if (exaData.results && exaData.results[0]) {
+              const text = exaData.results[0].text || '';
+
+              // Try multiple patterns to extract percentage change
+              const patterns = [
+                /EMCLOUD[\s\S]{0,100}?([-+]?\d+\.?\d*)\s*%/,
+                /BVP[\s\S]{0,100}?(?:up|down|rose|fell|gained|lost)[\s\S]{0,20}?([-+]?\d+\.?\d*)\s*%/,
+                /(?:Change|Net Change)[\s\S]{0,20}?([-+]?\d+\.?\d*)\s*%/,
+              ];
+
+              for (const pattern of patterns) {
+                const match = text.match(pattern);
+                if (match) {
+                  bvpIndex = {
+                    name: 'BVP Cloud Index',
+                    changePercent: parseFloat(match[1]),
+                    details: '9.1x Rev',
+                  };
+                  break;
+                }
+              }
             }
           }
         }
       } catch (error) {
-        console.warn('[SaaS Stock Movers] Exa API call failed, using fallback for BVP:', error);
+        console.warn(
+          '[SaaS Stock Movers] Exa API call failed, using fallback for BVP:',
+          error
+        );
       }
 
       // If Exa failed or didn't return data, use fallback
       if (!bvpIndex) {
+        console.log('[SaaS Stock Movers] Using fallback data for BVP Index');
         bvpIndex = {
           name: 'BVP Cloud Index',
           changePercent: 0,
-          details: '8.5x Rev'
+          details: '9.1x Rev',
         };
       }
 
-      // Aventis index - use static data since it's only updated quarterly
-      const aventisIndex: MarketIndex = {
-        name: 'Aventis Public SaaS Index',
-        changePercent: 0, // No daily change available
-        details: '6.0x Rev (Q3 2025)'
-      };
-
       console.log(`[SaaS Stock Movers] Retrieved index data`);
-      return [bvpIndex, aventisIndex];
-
+      return [bvpIndex];
     } catch (error) {
       console.error('[SaaS Stock Movers] Error fetching index data:', error);
       // Return default structure on error
@@ -97,25 +169,22 @@ export class SaaSStockMoversService {
         {
           name: 'BVP Cloud Index',
           changePercent: 0,
-          details: '6.3x Rev, 28.1x EBITDA'
+          details: '9.1x Rev',
         },
-        {
-          name: 'Aventis Public SaaS Index',
-          changePercent: 0,
-          details: '7.1x Rev, 24.2x EBITDA'
-        }
       ];
     }
   }
 
   public async generateStockMovers(): Promise<StockMoversData> {
     try {
-      console.log('[SaaS Stock Movers] Generating comprehensive SaaS market data...');
+      console.log(
+        '[SaaS Stock Movers] Generating comprehensive SaaS market data...'
+      );
 
       // Fetch both data sources in parallel
       const [indexes, stockData] = await Promise.all([
         this.fetchSaaSIndexes(),
-        this.finnhubService.getSaaSStockMovers()
+        this.finnhubService.getSaaSStockMovers(),
       ]);
 
       // Format the financial metrics for each stock
@@ -138,7 +207,7 @@ export class SaaSStockMoversService {
           ...stock,
           marketCap: metricsString,
           revenue: stock.revenue || undefined,
-          ebitda: stock.ebitda || undefined
+          ebitda: stock.ebitda || undefined,
         };
       };
 
@@ -151,11 +220,10 @@ export class SaaSStockMoversService {
 
       console.log(
         `[SaaS Stock Movers] Generated: ${result.indexes.length} indexes, ` +
-        `${result.topGainers.length} gainers, ${result.topLosers.length} losers`
+          `${result.topGainers.length} gainers, ${result.topLosers.length} losers`
       );
 
       return result;
-
     } catch (error) {
       console.error('[SaaS Stock Movers] Error generating stock data:', error);
 

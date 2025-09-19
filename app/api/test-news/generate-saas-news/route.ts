@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Test] Queuing SaaS news generation for lounge: ${saasLounge.name}`);
+    console.log(
+      `[Test] Queuing SaaS news generation for lounge: ${saasLounge.name}`
+    );
 
     // Queue the SaaS lounge for processing
     const queueResult = await queueAINewsGeneration([saasLounge], false);

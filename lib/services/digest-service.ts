@@ -564,6 +564,14 @@ export class DigestService {
         referenced_content: item.referenced_content || undefined,
       }));
 
+      // Fetch active advertisers
+      const supabase = getSupabaseClient();
+      const { data: advertisers } = await supabase
+        .from('email_advertisers')
+        .select('position, company_name, logo_url, link_url, tagline')
+        .eq('is_active', true)
+        .order('position');
+
       // Format top social posts for email
       const formattedTopPosts = topSocialPosts.map((item) => ({
         id: item.id,
@@ -600,6 +608,7 @@ export class DigestService {
           date,
           aiNewsSummary,
           stockMovers,
+          advertisers: advertisers || [],
         }),
       });
 
