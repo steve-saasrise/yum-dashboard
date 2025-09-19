@@ -217,13 +217,7 @@ export const DailyDigestEmail = ({
 
   return (
     <Html>
-      <Head>
-        <style>{`
-          .button-hover:hover {
-            background-color: #1A8BC4 !important;
-          }
-        `}</style>
-      </Head>
+      <Head />
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
@@ -238,57 +232,132 @@ export const DailyDigestEmail = ({
           {advertisers && advertisers.length > 0 && (
             <Section style={advertiserSection}>
               <Text style={advertiserSectionTitle}>Presented By</Text>
-              {/* Mobile-responsive layout using conditional table structure */}
-              <table
-                width="100%"
-                cellPadding="0"
-                cellSpacing="0"
-                border={0}
-                style={{ width: '100%' }}
-              >
-                <tbody>
-                  <tr>
-                    {advertisers.map((advertiser, index) => (
-                      <td
-                        key={advertiser.position}
-                        className="advertiser-cell"
-                        style={{
-                          padding: '0 6px 12px',
-                          verticalAlign: 'top',
-                        }}
-                      >
+              {advertisers.length === 1 ? (
+                // Single advertiser - center it
+                <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                  <tbody>
+                    <tr>
+                      <td align="center">
                         <Link
-                          href={advertiser.link_url}
-                          style={{ textDecoration: 'none', display: 'block' }}
+                          href={advertisers[0].link_url}
+                          style={{ textDecoration: 'none', display: 'inline-block' }}
                         >
-                          <div style={advertiserCard}>
-                            <Img
-                              src={advertiser.logo_url}
-                              alt={advertiser.company_name}
-                              width="120"
-                              height="40"
-                              style={advertiserLogo}
-                            />
-                            <Text style={advertiserTagline}>
-                              {advertiser.tagline}
-                            </Text>
-                          </div>
+                          <table cellPadding="0" cellSpacing="0" border={0}>
+                            <tbody>
+                              <tr>
+                                <td style={{ ...advertiserCard, maxWidth: '280px' }}>
+                                  <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                                    <tbody>
+                                      <tr>
+                                        <td style={{ padding: '0', textAlign: 'center' }}>
+                                          <Img
+                                            src={advertisers[0].logo_url}
+                                            alt={advertisers[0].company_name}
+                                            width="100"
+                                            style={advertiserLogo}
+                                          />
+                                        </td>
+                                      </tr>
+                                      <tr>
+                                        <td>
+                                          <Text style={advertiserTagline}>
+                                            {advertisers[0].tagline}
+                                          </Text>
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </Link>
                       </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-              {/* Add CSS media query for mobile stacking */}
-              <style dangerouslySetInnerHTML={{ __html: `
-                @media only screen and (max-width: 480px) {
-                  .advertiser-cell {
-                    display: block !important;
-                    width: 100% !important;
-                    padding: 0 0 12px !important;
-                  }
-                }
-              ` }} />
+                    </tr>
+                  </tbody>
+                </table>
+              ) : (
+                // Two advertisers - side by side with proper scaling
+                <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                  <tbody>
+                    <tr>
+                      <td width="49%" style={{ verticalAlign: 'top', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                        <Link
+                          href={advertisers[0].link_url}
+                          style={{ textDecoration: 'none', display: 'block' }}
+                        >
+                          <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                            <tbody>
+                              <tr>
+                                <td style={advertiserCardNoBg}>
+                                  <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                                    <tbody>
+                                      <tr>
+                                        <td style={{ padding: '0', textAlign: 'center' }}>
+                                          <Img
+                                            src={advertisers[0].logo_url}
+                                            alt={advertisers[0].company_name}
+                                            width="100"
+                                            style={advertiserLogo}
+                                          />
+                                        </td>
+                                      </tr>
+                                      <tr>
+                                        <td>
+                                          <Text style={advertiserTagline}>
+                                            {advertisers[0].tagline}
+                                          </Text>
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </Link>
+                      </td>
+                      <td width="12" style={{ width: '12px', minWidth: '12px', maxWidth: '12px' }}></td>
+                      <td width="49%" style={{ verticalAlign: 'top', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                        <Link
+                          href={advertisers[1].link_url}
+                          style={{ textDecoration: 'none', display: 'block' }}
+                        >
+                          <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                            <tbody>
+                              <tr>
+                                <td style={advertiserCardNoBg}>
+                                  <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                                    <tbody>
+                                      <tr>
+                                        <td style={{ padding: '0', textAlign: 'center' }}>
+                                          <Img
+                                            src={advertisers[1].logo_url}
+                                            alt={advertisers[1].company_name}
+                                            width="100"
+                                            style={advertiserLogo}
+                                          />
+                                        </td>
+                                      </tr>
+                                      <tr>
+                                        <td>
+                                          <Text style={advertiserTagline}>
+                                            {advertisers[1].tagline}
+                                          </Text>
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </Link>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
             </Section>
           )}
 
@@ -300,17 +369,11 @@ export const DailyDigestEmail = ({
           {aiNewsSummary?.bigStory && (
             <>
               <Section style={bigStorySection}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
-                    ⭐
+                <div style={{ marginBottom: '12px' }}>
+                  <Text style={{ fontSize: '16px', margin: '0', display: 'inline' }}>
+                    ⭐{' '}
                   </Text>
-                  <Heading as="h3" style={bigStoryTitle}>
+                  <Heading as="h3" style={{ ...bigStoryTitle, display: 'inline' }}>
                     Big Story of the Day
                   </Heading>
                 </div>
@@ -323,7 +386,6 @@ export const DailyDigestEmail = ({
                     style={{
                       width: '100%',
                       maxWidth: '560px',
-                      height: 'auto',
                       display: 'block',
                       borderRadius: '8px',
                       margin: '16px 0',
@@ -372,35 +434,31 @@ export const DailyDigestEmail = ({
           {aiNewsSummary && aiNewsSummary.bullets.length > 0 && (
             <>
               <Section style={newsSummarySection}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
-                    🚀
+                <div style={{ marginBottom: '12px' }}>
+                  <Text style={{ fontSize: '16px', margin: '0', display: 'inline' }}>
+                    🚀{' '}
                   </Text>
-                  <Heading as="h3" style={newsSummaryTitle}>
+                  <Heading as="h3" style={{ ...newsSummaryTitle, display: 'inline' }}>
                     Today's SaaS Headlines
                   </Heading>
                 </div>
                 <div style={{ marginTop: '16px' }}>
                   {aiNewsSummary.bullets.slice(0, 5).map((bullet, index) => (
-                    <div key={index} style={newsItemContainer}>
-                      {bullet.imageUrl && (
-                        <div style={newsItemImageContainer}>
-                          <Img
-                            src={bullet.imageUrl}
-                            width="120"
-                            height="80"
-                            alt=""
-                            style={newsItemImage}
-                          />
-                        </div>
-                      )}
-                      <div style={newsItemContent}>
+                    <table key={index} width="100%" cellPadding="0" cellSpacing="0" border={0} style={newsItemContainer}>
+                      <tbody>
+                        <tr>
+                          {bullet.imageUrl && (
+                            <td width="120" style={{ paddingRight: '16px', verticalAlign: 'top' }}>
+                              <Img
+                                src={bullet.imageUrl}
+                                width="120"
+                                height="80"
+                                alt=""
+                                style={newsItemImage}
+                              />
+                            </td>
+                          )}
+                          <td style={newsItemContent}>
                         <div>
                           <Text style={newsItemText}>
                             {bullet.sourceUrl ? (
@@ -441,8 +499,10 @@ export const DailyDigestEmail = ({
                             </Text>
                           )}
                         </div>
-                      </div>
-                    </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   ))}
                 </div>
               </Section>
@@ -457,19 +517,13 @@ export const DailyDigestEmail = ({
             aiNewsSummary.specialSection.length > 0 && (
               <>
                 <Section style={newsSummarySection}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      marginBottom: '12px',
-                    }}
-                  >
-                    <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
+                  <div style={{ marginBottom: '12px' }}>
+                    <Text style={{ fontSize: '16px', margin: '0', display: 'inline' }}>
                       {aiNewsSummary.specialSectionTitle?.includes('Growth')
                         ? '📊'
-                        : '💰'}
+                        : '💰'}{' '}
                     </Text>
-                    <Heading as="h3" style={newsSummaryTitle}>
+                    <Heading as="h3" style={{ ...newsSummaryTitle, display: 'inline' }}>
                       {aiNewsSummary.specialSectionTitle ||
                         'Special Announcements'}
                     </Heading>
@@ -478,19 +532,21 @@ export const DailyDigestEmail = ({
                     {aiNewsSummary.specialSection
                       .slice(0, 5)
                       .map((item, index) => (
-                        <div key={index} style={newsItemContainer}>
-                          {item.imageUrl && (
-                            <div style={newsItemImageContainer}>
-                              <Img
-                                src={item.imageUrl}
-                                width="120"
-                                height="80"
-                                alt=""
-                                style={newsItemImage}
-                              />
-                            </div>
-                          )}
-                          <div style={newsItemContent}>
+                        <table key={index} width="100%" cellPadding="0" cellSpacing="0" border={0} style={newsItemContainer}>
+                          <tbody>
+                            <tr>
+                              {item.imageUrl && (
+                                <td width="120" style={{ paddingRight: '16px', verticalAlign: 'top' }}>
+                                  <Img
+                                    src={item.imageUrl}
+                                    width="120"
+                                    height="80"
+                                    alt=""
+                                    style={newsItemImage}
+                                  />
+                                </td>
+                              )}
+                              <td style={newsItemContent}>
                             <div>
                               <Text style={newsItemText}>
                                 {item.sourceUrl ? (
@@ -568,8 +624,10 @@ export const DailyDigestEmail = ({
                                 )}
                               </Text>
                             </div>
-                          </div>
-                        </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       ))}
                   </div>
                 </Section>
@@ -583,41 +641,45 @@ export const DailyDigestEmail = ({
           {topSocialPosts && topSocialPosts.length > 0 && (
             <>
               <Section style={socialPostsSection}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
-                    💬
-                  </Text>
-                  <Heading as="h3" style={socialPostsTitle}>
-                    Top SaaS Social Posts
-                  </Heading>
-                </div>
+                <table width="100%" cellPadding="0" cellSpacing="0" border={0} style={{ marginBottom: '12px' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ width: '30px', verticalAlign: 'middle' }}>
+                        <Text style={{ fontSize: '16px', margin: '0' }}>
+                          💬
+                        </Text>
+                      </td>
+                      <td style={{ verticalAlign: 'middle' }}>
+                        <Heading as="h3" style={socialPostsTitle}>
+                          Top SaaS Social Posts
+                        </Heading>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
                 <div style={{ marginTop: '16px' }}>
                   {topSocialPosts.slice(0, 5).map((post, index) => (
-                    <div key={post.id} style={socialPostContainer}>
-                      <div style={socialPostImageContainer}>
-                        {post.thumbnail_url ? (
-                          <Img
-                            src={post.thumbnail_url}
-                            width="120"
-                            height="80"
-                            alt=""
-                            style={socialPostImage}
-                          />
-                        ) : (
-                          <div style={socialPostPlaceholder}>
-                            <Text style={socialPostPlaceholderText}>
-                              {platformIcons[post.platform]?.alt || 'Post'}
-                            </Text>
-                          </div>
-                        )}
-                      </div>
-                      <div style={socialPostContent}>
+                    <table key={post.id} width="100%" cellPadding="0" cellSpacing="0" border={0} style={socialPostContainer}>
+                      <tbody>
+                        <tr>
+                          <td width="120" style={{ paddingRight: '16px', verticalAlign: 'top' }}>
+                            {post.thumbnail_url ? (
+                              <Img
+                                src={post.thumbnail_url}
+                                width="120"
+                                height="80"
+                                alt=""
+                                style={socialPostImage}
+                              />
+                            ) : (
+                              <div style={socialPostPlaceholder}>
+                                <Text style={socialPostPlaceholderText}>
+                                  {platformIcons[post.platform]?.alt || 'Post'}
+                                </Text>
+                              </div>
+                            )}
+                          </td>
+                          <td style={socialPostContent}>
                         <div>
                           <Text style={{ margin: '0', marginBottom: '2px' }}>
                             <Link href={post.url} style={socialPostTitle}>
@@ -687,8 +749,10 @@ export const DailyDigestEmail = ({
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   ))}
                 </div>
               </Section>
@@ -702,20 +766,22 @@ export const DailyDigestEmail = ({
           {stockMovers && (
             <>
               <Section style={stockMoversSection}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginBottom: '16px',
-                  }}
-                >
-                  <Text style={{ fontSize: '16px', margin: '0 8px 0 0' }}>
-                    📈
-                  </Text>
-                  <Heading as="h3" style={stockMoversTitle}>
-                    SaaS Stock Movers
-                  </Heading>
-                </div>
+                <table width="100%" cellPadding="0" cellSpacing="0" border={0} style={{ marginBottom: '16px' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ width: '30px', verticalAlign: 'middle' }}>
+                        <Text style={{ fontSize: '16px', margin: '0' }}>
+                          📈
+                        </Text>
+                      </td>
+                      <td style={{ verticalAlign: 'middle' }}>
+                        <Heading as="h3" style={stockMoversTitle}>
+                          SaaS Stock Movers
+                        </Heading>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
 
                 {/* Market Indexes */}
                 {stockMovers.indexes && stockMovers.indexes.length > 0 && (
@@ -723,26 +789,32 @@ export const DailyDigestEmail = ({
                     <Text style={indexesHeader}>
                       📊 SaaS Indexes (Prior Day)
                     </Text>
-                    {stockMovers.indexes.map((index, i) => (
-                      <div key={i} style={indexItem}>
-                        <div>
-                          <Text style={indexName}>{index.name}</Text>
-                          {index.details && (
-                            <Text style={indexDetails}>{index.details}</Text>
-                          )}
-                        </div>
-                        <Text
-                          style={{
-                            ...indexChange,
-                            color:
-                              index.changePercent >= 0 ? '#10b981' : '#ef4444',
-                          }}
-                        >
-                          {index.changePercent >= 0 ? '+' : ''}
-                          {index.changePercent.toFixed(1)}%
-                        </Text>
-                      </div>
-                    ))}
+                    <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                      <tbody>
+                        {stockMovers.indexes.map((index, i) => (
+                          <tr key={i}>
+                            <td style={{ verticalAlign: 'middle' }}>
+                              <Text style={indexName}>{index.name}</Text>
+                              {index.details && (
+                                <Text style={indexDetails}>{index.details}</Text>
+                              )}
+                            </td>
+                            <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+                              <Text
+                                style={{
+                                  ...indexChange,
+                                  color:
+                                    index.changePercent >= 0 ? '#10b981' : '#ef4444',
+                                }}
+                              >
+                                {index.changePercent >= 0 ? '+' : ''}
+                                {index.changePercent.toFixed(1)}%
+                              </Text>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
 
@@ -858,16 +930,20 @@ DailyDigestEmail.PreviewProps = {
     {
       position: 1,
       company_name: 'VISTA POINT ADVISORS',
-      logo_url: 'https://gtmynspbdgdlxgwlkpye.supabase.co/storage/v1/object/public/advertiser-logos/logos/1-1758254879732.png',
+      logo_url:
+        'https://gtmynspbdgdlxgwlkpye.supabase.co/storage/v1/object/public/advertiser-logos/logos/1-1758254879732.png',
       link_url: 'https://vistapointadvisors.com/',
-      tagline: 'Leading investment bank for founder-led SaaS companies, providing M&A and capital raising advice.',
+      tagline:
+        'Leading investment bank for founder-led SaaS companies, providing M&A and capital raising advice.',
     },
     {
       position: 2,
       company_name: 'SAASRISE',
-      logo_url: 'https://gtmynspbdgdlxgwlkpye.supabase.co/storage/v1/object/public/advertiser-logos/logos/2-1758254980055.png',
+      logo_url:
+        'https://gtmynspbdgdlxgwlkpye.supabase.co/storage/v1/object/public/advertiser-logos/logos/2-1758254980055.png',
       link_url: 'https://saasrise.com',
-      tagline: 'The mastermind community for SaaS CEOs & Founders with $5M+ in ARR.',
+      tagline:
+        'The mastermind community for SaaS CEOs & Founders with $5M+ in ARR.',
     },
   ],
   stockMovers: {
@@ -1186,7 +1262,6 @@ DailyDigestEmail.PreviewProps = {
             url: 'https://pbs.twimg.com/media/GvfqVVkWgAAS4hD.jpg',
             type: 'image',
             width: 1200,
-            height: 800,
           },
         ],
       },
@@ -1233,7 +1308,6 @@ const header = {
 const logo = {
   margin: '0 auto 8px',
   display: 'block',
-  height: '40px',
   width: 'auto',
 };
 
@@ -1436,9 +1510,6 @@ const referencedContentBox = {
 };
 
 const referencedAuthorContainer = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '6px',
   marginBottom: '8px',
 };
 
@@ -1476,7 +1547,7 @@ const advertiserSection = {
   padding: '12px',
   backgroundColor: '#f9fafb',
   borderRadius: '8px',
-  margin: '16px 10px',
+  margin: '12px',
 };
 
 const advertiserSectionTitle = {
@@ -1485,22 +1556,12 @@ const advertiserSectionTitle = {
   textAlign: 'center' as const,
   textTransform: 'uppercase' as const,
   letterSpacing: '0.5px',
+  marginTop: '0',
   marginBottom: '12px',
   fontWeight: '500',
 };
 
-const advertiserContainer = {
-  display: 'flex',
-  flexWrap: 'wrap' as const,
-  gap: '12px',
-  justifyContent: 'center',
-};
-
-const advertiserWrapper = {
-  flex: '1 1 250px',
-  maxWidth: '300px',
-  minWidth: '200px',
-};
+// Removed unused advertiser container styles that had flex/gap
 
 const advertiserColumn = {
   width: '50%',
@@ -1516,29 +1577,31 @@ const advertiserCard = {
   backgroundColor: '#ffffff',
   border: '1px solid #e5e7eb',
   borderRadius: '6px',
-  padding: '12px 8px',
+  padding: '10px 6px',
+  textAlign: 'center' as const,
+};
+
+const advertiserCardNoBg = {
+  padding: '10px 6px',
   textAlign: 'center' as const,
 };
 
 const advertiserLogo = {
   display: 'block',
-  margin: '0 auto 8px',
+  margin: '0 auto 6px',
   objectFit: 'contain' as const,
-  maxWidth: '120px',
-  height: 'auto',
+  maxWidth: '100%',
 };
 
 const advertiserTagline = {
-  fontSize: '10px',
+  fontSize: '11px',
   color: '#6b7280',
-  lineHeight: '1.3',
-  margin: '0',
+  lineHeight: '1.4',
+  margin: '0 2px',
   wordWrap: 'break-word' as const,
 };
 
 const mediaContainer = {
-  display: 'flex',
-  gap: '4px',
   marginTop: '8px',
 };
 
@@ -1571,7 +1634,6 @@ const bigStoryTitle = {
 const bigStoryImage = {
   width: '100%',
   maxWidth: '560px',
-  height: 'auto',
   borderRadius: '8px',
   objectFit: 'cover' as const,
   display: 'block',
@@ -1601,13 +1663,10 @@ const bigStorySummaryText = {
 
 // News item styles
 const newsItemContainer = {
-  display: 'flex',
   marginBottom: '12px',
-  alignItems: 'flex-start',
 };
 
 const newsItemImageContainer = {
-  flexShrink: 0,
   marginRight: '16px',
 };
 
@@ -1617,9 +1676,7 @@ const newsItemImage = {
   display: 'block',
 };
 
-const newsItemContent = {
-  flex: 1,
-};
+const newsItemContent = {};
 
 const newsItemNumber = {
   color: '#6b7280',
@@ -1660,16 +1717,12 @@ const socialPostsTitle = {
 };
 
 const socialPostContainer = {
-  display: 'flex',
   marginBottom: '24px',
-  alignItems: 'flex-start',
 };
 
 const socialPostImageContainer = {
-  flexShrink: 0,
   marginRight: '16px',
   width: '120px',
-  height: '80px',
 };
 
 const socialPostImage = {
@@ -1677,17 +1730,14 @@ const socialPostImage = {
   objectFit: 'cover' as const,
   display: 'block',
   width: '120px',
-  height: '80px',
 };
 
 const socialPostPlaceholder = {
   width: '120px',
-  height: '80px',
   backgroundColor: '#f3f4f6',
   borderRadius: '8px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+  textAlign: 'center' as const,
+  lineHeight: '80px',
 };
 
 const socialPostPlaceholderText = {
@@ -1696,9 +1746,7 @@ const socialPostPlaceholderText = {
   margin: '0',
 };
 
-const socialPostContent = {
-  flex: 1,
-};
+const socialPostContent = {};
 
 const socialPostNumber = {
   color: '#6b7280',
@@ -1770,9 +1818,6 @@ const indexesHeader = {
 };
 
 const indexItem = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
   marginBottom: '0',
 };
 
@@ -1813,16 +1858,9 @@ const stockItem = {
   borderRadius: '6px',
   padding: '12px',
   marginBottom: '8px',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
 };
 
-const stockItemLeft = {
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: '12px',
-};
+const stockItemLeft = {};
 
 const stockItemRight = {
   textAlign: 'right' as const,
