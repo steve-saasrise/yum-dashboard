@@ -240,16 +240,34 @@ export const DailyDigestEmail = ({
                       <td align="center">
                         <Link
                           href={advertisers[0].link_url}
-                          style={{ textDecoration: 'none', display: 'inline-block' }}
+                          style={{
+                            textDecoration: 'none',
+                            display: 'inline-block',
+                          }}
                         >
                           <table cellPadding="0" cellSpacing="0" border={0}>
                             <tbody>
                               <tr>
-                                <td style={{ ...advertiserCard, maxWidth: '280px' }}>
-                                  <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                                <td
+                                  style={{
+                                    ...advertiserCard,
+                                    maxWidth: '280px',
+                                  }}
+                                >
+                                  <table
+                                    width="100%"
+                                    cellPadding="0"
+                                    cellSpacing="0"
+                                    border={0}
+                                  >
                                     <tbody>
                                       <tr>
-                                        <td style={{ padding: '0', textAlign: 'center' }}>
+                                        <td
+                                          style={{
+                                            padding: '0',
+                                            textAlign: 'center',
+                                          }}
+                                        >
                                           <Img
                                             src={advertisers[0].logo_url}
                                             alt={advertisers[0].company_name}
@@ -281,19 +299,42 @@ export const DailyDigestEmail = ({
                 <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
                   <tbody>
                     <tr>
-                      <td width="49%" style={{ verticalAlign: 'top', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                      <td
+                        width="49%"
+                        style={{
+                          verticalAlign: 'top',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '6px',
+                        }}
+                      >
                         <Link
                           href={advertisers[0].link_url}
                           style={{ textDecoration: 'none', display: 'block' }}
                         >
-                          <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                          <table
+                            width="100%"
+                            cellPadding="0"
+                            cellSpacing="0"
+                            border={0}
+                          >
                             <tbody>
                               <tr>
                                 <td style={advertiserCardNoBg}>
-                                  <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                                  <table
+                                    width="100%"
+                                    cellPadding="0"
+                                    cellSpacing="0"
+                                    border={0}
+                                  >
                                     <tbody>
                                       <tr>
-                                        <td style={{ padding: '0', textAlign: 'center' }}>
+                                        <td
+                                          style={{
+                                            padding: '0',
+                                            textAlign: 'center',
+                                          }}
+                                        >
                                           <Img
                                             src={advertisers[0].logo_url}
                                             alt={advertisers[0].company_name}
@@ -317,20 +358,50 @@ export const DailyDigestEmail = ({
                           </table>
                         </Link>
                       </td>
-                      <td width="12" style={{ width: '12px', minWidth: '12px', maxWidth: '12px' }}></td>
-                      <td width="49%" style={{ verticalAlign: 'top', backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                      <td
+                        width="12"
+                        style={{
+                          width: '12px',
+                          minWidth: '12px',
+                          maxWidth: '12px',
+                        }}
+                      ></td>
+                      <td
+                        width="49%"
+                        style={{
+                          verticalAlign: 'top',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '6px',
+                        }}
+                      >
                         <Link
                           href={advertisers[1].link_url}
                           style={{ textDecoration: 'none', display: 'block' }}
                         >
-                          <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                          <table
+                            width="100%"
+                            cellPadding="0"
+                            cellSpacing="0"
+                            border={0}
+                          >
                             <tbody>
                               <tr>
                                 <td style={advertiserCardNoBg}>
-                                  <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                                  <table
+                                    width="100%"
+                                    cellPadding="0"
+                                    cellSpacing="0"
+                                    border={0}
+                                  >
                                     <tbody>
                                       <tr>
-                                        <td style={{ padding: '0', textAlign: 'center' }}>
+                                        <td
+                                          style={{
+                                            padding: '0',
+                                            textAlign: 'center',
+                                          }}
+                                        >
                                           <Img
                                             src={advertisers[1].logo_url}
                                             alt={advertisers[1].company_name}
@@ -370,10 +441,15 @@ export const DailyDigestEmail = ({
             <>
               <Section style={bigStorySection}>
                 <div style={{ marginBottom: '12px' }}>
-                  <Text style={{ fontSize: '16px', margin: '0', display: 'inline' }}>
+                  <Text
+                    style={{ fontSize: '16px', margin: '0', display: 'inline' }}
+                  >
                     ⭐{' '}
                   </Text>
-                  <Heading as="h3" style={{ ...bigStoryTitle, display: 'inline' }}>
+                  <Heading
+                    as="h3"
+                    style={{ ...bigStoryTitle, display: 'inline' }}
+                  >
                     Big Story of the Day
                   </Heading>
                 </div>
@@ -435,20 +511,38 @@ export const DailyDigestEmail = ({
             <>
               <Section style={newsSummarySection}>
                 <div style={{ marginBottom: '12px' }}>
-                  <Text style={{ fontSize: '16px', margin: '0', display: 'inline' }}>
+                  <Text
+                    style={{ fontSize: '16px', margin: '0', display: 'inline' }}
+                  >
                     🚀{' '}
                   </Text>
-                  <Heading as="h3" style={{ ...newsSummaryTitle, display: 'inline' }}>
+                  <Heading
+                    as="h3"
+                    style={{ ...newsSummaryTitle, display: 'inline' }}
+                  >
                     Today's SaaS Headlines
                   </Heading>
                 </div>
                 <div style={{ marginTop: '16px' }}>
                   {aiNewsSummary.bullets.slice(0, 5).map((bullet, index) => (
-                    <table key={index} width="100%" cellPadding="0" cellSpacing="0" border={0} style={newsItemContainer}>
+                    <table
+                      key={index}
+                      width="100%"
+                      cellPadding="0"
+                      cellSpacing="0"
+                      border={0}
+                      style={newsItemContainer}
+                    >
                       <tbody>
                         <tr>
                           {bullet.imageUrl && (
-                            <td width="120" style={{ paddingRight: '16px', verticalAlign: 'top' }}>
+                            <td
+                              width="120"
+                              style={{
+                                paddingRight: '16px',
+                                verticalAlign: 'top',
+                              }}
+                            >
                               <Img
                                 src={bullet.imageUrl}
                                 width="120"
@@ -459,46 +553,46 @@ export const DailyDigestEmail = ({
                             </td>
                           )}
                           <td style={newsItemContent}>
-                        <div>
-                          <Text style={newsItemText}>
-                            {bullet.sourceUrl ? (
-                              <Link
-                                href={bullet.sourceUrl}
-                                style={newsItemLink}
-                              >
-                                {bullet.text}
-                              </Link>
-                            ) : (
-                              bullet.text
-                            )}
-                          </Text>
-                          {bullet.summary && (
-                            <Text
-                              style={{
-                                fontSize: '13px',
-                                color: '#6b7280',
-                                margin: '0',
-                                marginTop: '2px',
-                                lineHeight: '1.4',
-                              }}
-                            >
-                              {bullet.summary}
-                            </Text>
-                          )}
-                          {bullet.source && (
-                            <Text
-                              style={{
-                                fontSize: '12px',
-                                color: '#9ca3af',
-                                fontStyle: 'italic',
-                                margin: '0',
-                                marginTop: '2px',
-                              }}
-                            >
-                              {bullet.source}
-                            </Text>
-                          )}
-                        </div>
+                            <div>
+                              <Text style={newsItemText}>
+                                {bullet.sourceUrl ? (
+                                  <Link
+                                    href={bullet.sourceUrl}
+                                    style={newsItemLink}
+                                  >
+                                    {bullet.text}
+                                  </Link>
+                                ) : (
+                                  bullet.text
+                                )}
+                              </Text>
+                              {bullet.summary && (
+                                <Text
+                                  style={{
+                                    fontSize: '13px',
+                                    color: '#6b7280',
+                                    margin: '0',
+                                    marginTop: '2px',
+                                    lineHeight: '1.4',
+                                  }}
+                                >
+                                  {bullet.summary}
+                                </Text>
+                              )}
+                              {bullet.source && (
+                                <Text
+                                  style={{
+                                    fontSize: '12px',
+                                    color: '#9ca3af',
+                                    fontStyle: 'italic',
+                                    margin: '0',
+                                    marginTop: '2px',
+                                  }}
+                                >
+                                  {bullet.source}
+                                </Text>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       </tbody>
@@ -518,12 +612,21 @@ export const DailyDigestEmail = ({
               <>
                 <Section style={newsSummarySection}>
                   <div style={{ marginBottom: '12px' }}>
-                    <Text style={{ fontSize: '16px', margin: '0', display: 'inline' }}>
+                    <Text
+                      style={{
+                        fontSize: '16px',
+                        margin: '0',
+                        display: 'inline',
+                      }}
+                    >
                       {aiNewsSummary.specialSectionTitle?.includes('Growth')
                         ? '📊'
                         : '💰'}{' '}
                     </Text>
-                    <Heading as="h3" style={{ ...newsSummaryTitle, display: 'inline' }}>
+                    <Heading
+                      as="h3"
+                      style={{ ...newsSummaryTitle, display: 'inline' }}
+                    >
                       {aiNewsSummary.specialSectionTitle ||
                         'Special Announcements'}
                     </Heading>
@@ -532,11 +635,24 @@ export const DailyDigestEmail = ({
                     {aiNewsSummary.specialSection
                       .slice(0, 5)
                       .map((item, index) => (
-                        <table key={index} width="100%" cellPadding="0" cellSpacing="0" border={0} style={newsItemContainer}>
+                        <table
+                          key={index}
+                          width="100%"
+                          cellPadding="0"
+                          cellSpacing="0"
+                          border={0}
+                          style={newsItemContainer}
+                        >
                           <tbody>
                             <tr>
                               {item.imageUrl && (
-                                <td width="120" style={{ paddingRight: '16px', verticalAlign: 'top' }}>
+                                <td
+                                  width="120"
+                                  style={{
+                                    paddingRight: '16px',
+                                    verticalAlign: 'top',
+                                  }}
+                                >
                                   <Img
                                     src={item.imageUrl}
                                     width="120"
@@ -547,83 +663,83 @@ export const DailyDigestEmail = ({
                                 </td>
                               )}
                               <td style={newsItemContent}>
-                            <div>
-                              <Text style={newsItemText}>
-                                {item.sourceUrl ? (
-                                  <Link
-                                    href={item.sourceUrl}
-                                    style={newsItemLink}
-                                  >
-                                    {item.text}
-                                  </Link>
-                                ) : (
-                                  item.text
-                                )}
-                              </Text>
-                              {item.summary && (
-                                <Text
-                                  style={{
-                                    fontSize: '13px',
-                                    color: '#6b7280',
-                                    margin: '0',
-                                    marginTop: '2px',
-                                    lineHeight: '1.4',
-                                  }}
-                                >
-                                  {item.summary}
-                                </Text>
-                              )}
-                              <Text
-                                style={{
-                                  margin: '0',
-                                  marginTop: '4px',
-                                  fontSize: '12px',
-                                }}
-                              >
-                                {item.amount && (
-                                  <span
+                                <div>
+                                  <Text style={newsItemText}>
+                                    {item.sourceUrl ? (
+                                      <Link
+                                        href={item.sourceUrl}
+                                        style={newsItemLink}
+                                      >
+                                        {item.text}
+                                      </Link>
+                                    ) : (
+                                      item.text
+                                    )}
+                                  </Text>
+                                  {item.summary && (
+                                    <Text
+                                      style={{
+                                        fontSize: '13px',
+                                        color: '#6b7280',
+                                        margin: '0',
+                                        marginTop: '2px',
+                                        lineHeight: '1.4',
+                                      }}
+                                    >
+                                      {item.summary}
+                                    </Text>
+                                  )}
+                                  <Text
                                     style={{
-                                      display: 'inline-block',
-                                      padding: '3px 8px',
-                                      backgroundColor: '#d1fae5',
-                                      color: '#065f46',
-                                      borderRadius: '4px',
+                                      margin: '0',
+                                      marginTop: '4px',
                                       fontSize: '12px',
-                                      fontWeight: '600',
-                                      marginRight: '8px',
                                     }}
                                   >
-                                    {item.amount}
-                                  </span>
-                                )}
-                                {item.series && (
-                                  <span
-                                    style={{
-                                      display: 'inline-block',
-                                      padding: '3px 8px',
-                                      backgroundColor: '#dbeafe',
-                                      color: '#1e40af',
-                                      borderRadius: '4px',
-                                      fontSize: '12px',
-                                      fontWeight: '600',
-                                      marginRight: '8px',
-                                    }}
-                                  >
-                                    {item.series}
-                                  </span>
-                                )}
-                                {item.source && (
-                                  <span
-                                    style={{
-                                      color: '#9ca3af',
-                                      fontStyle: 'italic',
-                                    }}
-                                  >
-                                    • {item.source}
-                                  </span>
-                                )}
-                              </Text>
-                            </div>
+                                    {item.amount && (
+                                      <span
+                                        style={{
+                                          display: 'inline-block',
+                                          padding: '3px 8px',
+                                          backgroundColor: '#d1fae5',
+                                          color: '#065f46',
+                                          borderRadius: '4px',
+                                          fontSize: '12px',
+                                          fontWeight: '600',
+                                          marginRight: '8px',
+                                        }}
+                                      >
+                                        {item.amount}
+                                      </span>
+                                    )}
+                                    {item.series && (
+                                      <span
+                                        style={{
+                                          display: 'inline-block',
+                                          padding: '3px 8px',
+                                          backgroundColor: '#dbeafe',
+                                          color: '#1e40af',
+                                          borderRadius: '4px',
+                                          fontSize: '12px',
+                                          fontWeight: '600',
+                                          marginRight: '8px',
+                                        }}
+                                      >
+                                        {item.series}
+                                      </span>
+                                    )}
+                                    {item.source && (
+                                      <span
+                                        style={{
+                                          color: '#9ca3af',
+                                          fontStyle: 'italic',
+                                        }}
+                                      >
+                                        • {item.source}
+                                      </span>
+                                    )}
+                                  </Text>
+                                </div>
                               </td>
                             </tr>
                           </tbody>
@@ -641,7 +757,13 @@ export const DailyDigestEmail = ({
           {topSocialPosts && topSocialPosts.length > 0 && (
             <>
               <Section style={socialPostsSection}>
-                <table width="100%" cellPadding="0" cellSpacing="0" border={0} style={{ marginBottom: '12px' }}>
+                <table
+                  width="100%"
+                  cellPadding="0"
+                  cellSpacing="0"
+                  border={0}
+                  style={{ marginBottom: '12px' }}
+                >
                   <tbody>
                     <tr>
                       <td style={{ width: '30px', verticalAlign: 'middle' }}>
@@ -659,10 +781,23 @@ export const DailyDigestEmail = ({
                 </table>
                 <div style={{ marginTop: '16px' }}>
                   {topSocialPosts.slice(0, 5).map((post, index) => (
-                    <table key={post.id} width="100%" cellPadding="0" cellSpacing="0" border={0} style={socialPostContainer}>
+                    <table
+                      key={post.id}
+                      width="100%"
+                      cellPadding="0"
+                      cellSpacing="0"
+                      border={0}
+                      style={socialPostContainer}
+                    >
                       <tbody>
                         <tr>
-                          <td width="120" style={{ paddingRight: '16px', verticalAlign: 'top' }}>
+                          <td
+                            width="120"
+                            style={{
+                              paddingRight: '16px',
+                              verticalAlign: 'top',
+                            }}
+                          >
                             {post.thumbnail_url ? (
                               <Img
                                 src={post.thumbnail_url}
@@ -680,75 +815,77 @@ export const DailyDigestEmail = ({
                             )}
                           </td>
                           <td style={socialPostContent}>
-                        <div>
-                          <Text style={{ margin: '0', marginBottom: '2px' }}>
-                            <Link href={post.url} style={socialPostTitle}>
-                              {post.title.length > 80
-                                ? post.title.substring(0, 80) + '...'
-                                : post.title}
-                            </Link>
-                          </Text>
-                          <div>
-                            <Text
-                              style={{
-                                ...socialPostDescription,
-                                margin: '0',
-                                marginTop: '2px',
-                              }}
-                            >
-                              {truncateToLines(
-                                post.description || post.content_body || '',
-                                200
-                              )}
-                            </Text>
-                            <div
-                              style={{
-                                ...socialPostMeta,
-                                marginTop: '4px',
-                              }}
-                            >
-                              <table
-                                style={{
-                                  borderSpacing: 0,
-                                  marginBottom: '4px',
-                                }}
+                            <div>
+                              <Text
+                                style={{ margin: '0', marginBottom: '2px' }}
                               >
-                                <tr>
-                                  <td style={{ paddingRight: '6px' }}>
-                                    <Img
-                                      src={
-                                        platformIcons[post.platform]?.src ||
-                                        platformIcons.website.src
-                                      }
-                                      alt={
-                                        platformIcons[post.platform]?.alt ||
-                                        platformIcons.website.alt
-                                      }
-                                      width="14"
-                                      height="14"
-                                      style={platformIconImg}
-                                    />
-                                  </td>
-                                  <td>
-                                    <Text style={socialPostCreator}>
-                                      by {post.creator_name}
-                                    </Text>
-                                  </td>
-                                </tr>
-                              </table>
-                              {post.engagement_metrics && (
-                                <Text style={socialPostEngagement}>
-                                  {post.engagement_metrics.likes &&
-                                    `❤️ ${post.engagement_metrics.likes.toLocaleString()}`}
-                                  {post.engagement_metrics.views &&
-                                    ` · ${post.engagement_metrics.views.toLocaleString()} views`}
-                                  {post.engagement_metrics.comments &&
-                                    ` · 💬 ${post.engagement_metrics.comments.toLocaleString()}`}
+                                <Link href={post.url} style={socialPostTitle}>
+                                  {post.title.length > 80
+                                    ? post.title.substring(0, 80) + '...'
+                                    : post.title}
+                                </Link>
+                              </Text>
+                              <div>
+                                <Text
+                                  style={{
+                                    ...socialPostDescription,
+                                    margin: '0',
+                                    marginTop: '2px',
+                                  }}
+                                >
+                                  {truncateToLines(
+                                    post.description || post.content_body || '',
+                                    200
+                                  )}
                                 </Text>
-                              )}
+                                <div
+                                  style={{
+                                    ...socialPostMeta,
+                                    marginTop: '4px',
+                                  }}
+                                >
+                                  <table
+                                    style={{
+                                      borderSpacing: 0,
+                                      marginBottom: '4px',
+                                    }}
+                                  >
+                                    <tr>
+                                      <td style={{ paddingRight: '6px' }}>
+                                        <Img
+                                          src={
+                                            platformIcons[post.platform]?.src ||
+                                            platformIcons.website.src
+                                          }
+                                          alt={
+                                            platformIcons[post.platform]?.alt ||
+                                            platformIcons.website.alt
+                                          }
+                                          width="14"
+                                          height="14"
+                                          style={platformIconImg}
+                                        />
+                                      </td>
+                                      <td>
+                                        <Text style={socialPostCreator}>
+                                          by {post.creator_name}
+                                        </Text>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                  {post.engagement_metrics && (
+                                    <Text style={socialPostEngagement}>
+                                      {post.engagement_metrics.likes &&
+                                        `❤️ ${post.engagement_metrics.likes.toLocaleString()}`}
+                                      {post.engagement_metrics.views &&
+                                        ` · ${post.engagement_metrics.views.toLocaleString()} views`}
+                                      {post.engagement_metrics.comments &&
+                                        ` · 💬 ${post.engagement_metrics.comments.toLocaleString()}`}
+                                    </Text>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
                           </td>
                         </tr>
                       </tbody>
@@ -766,7 +903,13 @@ export const DailyDigestEmail = ({
           {stockMovers && (
             <>
               <Section style={stockMoversSection}>
-                <table width="100%" cellPadding="0" cellSpacing="0" border={0} style={{ marginBottom: '16px' }}>
+                <table
+                  width="100%"
+                  cellPadding="0"
+                  cellSpacing="0"
+                  border={0}
+                  style={{ marginBottom: '16px' }}
+                >
                   <tbody>
                     <tr>
                       <td style={{ width: '30px', verticalAlign: 'middle' }}>
@@ -789,22 +932,36 @@ export const DailyDigestEmail = ({
                     <Text style={indexesHeader}>
                       📊 SaaS Indexes (Prior Day)
                     </Text>
-                    <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                    <table
+                      width="100%"
+                      cellPadding="0"
+                      cellSpacing="0"
+                      border={0}
+                    >
                       <tbody>
                         {stockMovers.indexes.map((index, i) => (
                           <tr key={i}>
                             <td style={{ verticalAlign: 'middle' }}>
                               <Text style={indexName}>{index.name}</Text>
                               {index.details && (
-                                <Text style={indexDetails}>{index.details}</Text>
+                                <Text style={indexDetails}>
+                                  {index.details}
+                                </Text>
                               )}
                             </td>
-                            <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+                            <td
+                              style={{
+                                textAlign: 'right',
+                                verticalAlign: 'middle',
+                              }}
+                            >
                               <Text
                                 style={{
                                   ...indexChange,
                                   color:
-                                    index.changePercent >= 0 ? '#10b981' : '#ef4444',
+                                    index.changePercent >= 0
+                                      ? '#10b981'
+                                      : '#ef4444',
                                 }}
                               >
                                 {index.changePercent >= 0 ? '+' : ''}
@@ -1547,7 +1704,7 @@ const advertiserSection = {
   padding: '12px',
   backgroundColor: '#f9fafb',
   borderRadius: '8px',
-  margin: '12px',
+  margin: '0px',
 };
 
 const advertiserSectionTitle = {
