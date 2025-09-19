@@ -826,18 +826,116 @@ export const DailyDigestEmail = ({
                                 </Link>
                               </Text>
                               <div>
-                                <Text
-                                  style={{
-                                    ...socialPostDescription,
-                                    margin: '0',
-                                    marginTop: '2px',
-                                  }}
-                                >
-                                  {truncateToLines(
-                                    post.description || post.content_body || '',
-                                    200
-                                  )}
-                                </Text>
+                                {/* Show repost indicator if this is a repost */}
+                                {post.reference_type === 'retweet' && (
+                                  <Text
+                                    style={{
+                                      fontSize: '12px',
+                                      color: '#666',
+                                      margin: '0',
+                                      marginBottom: '8px',
+                                    }}
+                                  >
+                                    🔁 Reposted
+                                  </Text>
+                                )}
+                                {post.reference_type === 'quote' && (
+                                  <Text
+                                    style={{
+                                      fontSize: '12px',
+                                      color: '#666',
+                                      margin: '0',
+                                      marginBottom: '8px',
+                                    }}
+                                  >
+                                    💬 Quoted
+                                  </Text>
+                                )}
+
+                                {/* Show author's comment if it's a quote tweet */}
+                                {post.reference_type === 'quote' && post.content_body && (
+                                  <Text
+                                    style={{
+                                      ...socialPostDescription,
+                                      margin: '0',
+                                      marginTop: '2px',
+                                      marginBottom: '12px',
+                                    }}
+                                  >
+                                    {truncateToLines(post.content_body, 150)}
+                                  </Text>
+                                )}
+
+                                {/* Show referenced content if available */}
+                                {post.referenced_content && post.referenced_content.text ? (
+                                  <div
+                                    style={{
+                                      border: '1px solid #e0e0e0',
+                                      borderRadius: '8px',
+                                      padding: '12px',
+                                      marginBottom: '8px',
+                                      backgroundColor: '#f9f9f9',
+                                    }}
+                                  >
+                                    {post.referenced_content.author && (
+                                      <Text
+                                        style={{
+                                          fontSize: '13px',
+                                          fontWeight: '600',
+                                          color: '#333',
+                                          margin: '0',
+                                          marginBottom: '4px',
+                                        }}
+                                      >
+                                        {post.referenced_content.author.name ||
+                                          post.referenced_content.author.username}
+                                        {post.referenced_content.author.is_verified && ' ✓'}
+                                      </Text>
+                                    )}
+                                    <Text
+                                      style={{
+                                        fontSize: '13px',
+                                        color: '#333',
+                                        margin: '0',
+                                        lineHeight: '1.4',
+                                      }}
+                                    >
+                                      {truncateToLines(
+                                        post.referenced_content.text,
+                                        200
+                                      )}
+                                    </Text>
+                                    {post.referenced_content.engagement_metrics && (
+                                      <Text
+                                        style={{
+                                          fontSize: '11px',
+                                          color: '#666',
+                                          margin: '0',
+                                          marginTop: '8px',
+                                        }}
+                                      >
+                                        {post.referenced_content.engagement_metrics.likes &&
+                                          `❤️ ${post.referenced_content.engagement_metrics.likes.toLocaleString()}`}
+                                        {post.referenced_content.engagement_metrics.views &&
+                                          ` · ${post.referenced_content.engagement_metrics.views.toLocaleString()} views`}
+                                      </Text>
+                                    )}
+                                  </div>
+                                ) : (
+                                  /* Show regular content if no referenced content */
+                                  <Text
+                                    style={{
+                                      ...socialPostDescription,
+                                      margin: '0',
+                                      marginTop: '2px',
+                                    }}
+                                  >
+                                    {truncateToLines(
+                                      post.description || post.content_body || '',
+                                      200
+                                    )}
+                                  </Text>
+                                )}
                                 <div
                                   style={{
                                     ...socialPostMeta,
@@ -1198,15 +1296,28 @@ DailyDigestEmail.PreviewProps = {
     },
     {
       id: 'sp2',
-      title: 'The Complete Guide to SaaS Metrics in 2025',
-      description:
-        "Everything you need to know about CAC, LTV, churn, and the advanced metrics that actually matter for scaling SaaS businesses profitably in today's competitive market",
-      url: 'https://example.com/post2',
-      creator_name: 'Ryan Allis (@ryanallis)',
+      title: 'Tweet by @nathanbenaich',
+      description: '🙏',
+      content_body: '🙏',
+      url: 'https://x.com/nathanbenaich/status/example',
+      creator_name: 'Nathan Benaich',
       platform: 'twitter' as const,
       published_at: new Date().toISOString(),
-      ai_summary_short:
-        'Advanced SaaS metrics guide focusing on profitability over growth',
+      reference_type: 'quote' as const,
+      referenced_content: {
+        id: '12345',
+        text: "I'm running an AI usage survey for the State of AI Report. The results will be open sourced in October '25. It takes 10 mins and I want to hear from everyone, regardless of expertise. Head to stateofai.com/survey",
+        author: {
+          name: 'Nathan Benaich',
+          username: 'nathanbenaich',
+          is_verified: true,
+        },
+        created_at: new Date().toISOString(),
+        engagement_metrics: {
+          likes: 58,
+          views: 37270,
+        },
+      },
       engagement_metrics: {
         likes: 892,
         views: 23400,
@@ -1215,16 +1326,38 @@ DailyDigestEmail.PreviewProps = {
     },
     {
       id: 'sp3',
-      title: 'Hot take: PLG is dead for B2B SaaS',
-      url: 'https://example.com/post3',
-      creator_name: 'Alex Rodriguez (@alexrod)',
+      title: 'Thread by @ryanallis',
+      description: '',
+      content_body: '',
+      url: 'https://threads.net/@ryanallis/example',
+      creator_name: 'Ryan Allis',
       platform: 'threads' as const,
       published_at: new Date().toISOString(),
-      description:
-        "Product-led growth worked in 2020-2022, but the market has fundamentally shifted and buyers expect human interaction. Sales-led motion is making a strong comeback. Here's the data...",
+      reference_type: 'retweet' as const,
+      referenced_content: {
+        id: '67890',
+        text: 'GPT-5 is freaking awesome! The new capabilities include real-time video understanding, 10x faster inference, and native tool use. This changes everything for SaaS builders.',
+        author: {
+          name: 'ChatGPTricks',
+          username: 'chatgptricks',
+          is_verified: true,
+        },
+        created_at: new Date().toISOString(),
+        media_urls: [
+          {
+            url: 'https://pbs.twimg.com/media/GvfqVVkWgAAS4hD.jpg',
+            type: 'image',
+            width: 1200,
+          },
+        ],
+        engagement_metrics: {
+          likes: 2341,
+          views: 67800,
+        },
+      },
       engagement_metrics: {
-        likes: 2341,
-        views: 67800,
+        likes: 45,
+        views: 1200,
       },
     },
     {
