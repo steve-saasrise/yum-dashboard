@@ -238,32 +238,57 @@ export const DailyDigestEmail = ({
           {advertisers && advertisers.length > 0 && (
             <Section style={advertiserSection}>
               <Text style={advertiserSectionTitle}>Presented By</Text>
-              <Row>
-                {advertisers.map((advertiser, index) => (
-                  <Column key={advertiser.position} style={advertiserColumn}>
-                    <Link
-                      href={advertiser.link_url}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <div style={advertiserCard}>
-                        <Img
-                          src={advertiser.logo_url}
-                          alt={advertiser.company_name}
-                          width="120"
-                          height="40"
-                          style={advertiserLogo}
-                        />
-                        <Text style={advertiserTagline}>
-                          {advertiser.tagline}
-                        </Text>
-                      </div>
-                    </Link>
-                    {index === 0 && advertisers.length === 2 && (
-                      <Column style={{ width: '20px' }} />
-                    )}
-                  </Column>
-                ))}
-              </Row>
+              {/* Mobile-responsive layout using conditional table structure */}
+              <table
+                width="100%"
+                cellPadding="0"
+                cellSpacing="0"
+                border={0}
+                style={{ width: '100%' }}
+              >
+                <tbody>
+                  <tr>
+                    {advertisers.map((advertiser, index) => (
+                      <td
+                        key={advertiser.position}
+                        className="advertiser-cell"
+                        style={{
+                          padding: '0 6px 12px',
+                          verticalAlign: 'top',
+                        }}
+                      >
+                        <Link
+                          href={advertiser.link_url}
+                          style={{ textDecoration: 'none', display: 'block' }}
+                        >
+                          <div style={advertiserCard}>
+                            <Img
+                              src={advertiser.logo_url}
+                              alt={advertiser.company_name}
+                              width="120"
+                              height="40"
+                              style={advertiserLogo}
+                            />
+                            <Text style={advertiserTagline}>
+                              {advertiser.tagline}
+                            </Text>
+                          </div>
+                        </Link>
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+              {/* Add CSS media query for mobile stacking */}
+              <style dangerouslySetInnerHTML={{ __html: `
+                @media only screen and (max-width: 480px) {
+                  .advertiser-cell {
+                    display: block !important;
+                    width: 100% !important;
+                    padding: 0 0 12px !important;
+                  }
+                }
+              ` }} />
             </Section>
           )}
 
@@ -829,6 +854,22 @@ DailyDigestEmail.PreviewProps = {
   }),
   recipientEmail: 'user@example.com',
   unsubscribeUrl: 'https://lounge.ai/settings/account',
+  advertisers: [
+    {
+      position: 1,
+      company_name: 'VISTA POINT ADVISORS',
+      logo_url: 'https://gtmynspbdgdlxgwlkpye.supabase.co/storage/v1/object/public/advertiser-logos/logos/1-1758254879732.png',
+      link_url: 'https://vistapointadvisors.com/',
+      tagline: 'Leading investment bank for founder-led SaaS companies, providing M&A and capital raising advice.',
+    },
+    {
+      position: 2,
+      company_name: 'SAASRISE',
+      logo_url: 'https://gtmynspbdgdlxgwlkpye.supabase.co/storage/v1/object/public/advertiser-logos/logos/2-1758254980055.png',
+      link_url: 'https://saasrise.com',
+      tagline: 'The mastermind community for SaaS CEOs & Founders with $5M+ in ARR.',
+    },
+  ],
   stockMovers: {
     indexes: [
       {
@@ -1448,16 +1489,34 @@ const advertiserSectionTitle = {
   fontWeight: '500',
 };
 
+const advertiserContainer = {
+  display: 'flex',
+  flexWrap: 'wrap' as const,
+  gap: '12px',
+  justifyContent: 'center',
+};
+
+const advertiserWrapper = {
+  flex: '1 1 250px',
+  maxWidth: '300px',
+  minWidth: '200px',
+};
+
 const advertiserColumn = {
   width: '50%',
   padding: '0 8px',
+};
+
+const advertiserColumnResponsive = {
+  padding: '8px',
+  verticalAlign: 'top' as const,
 };
 
 const advertiserCard = {
   backgroundColor: '#ffffff',
   border: '1px solid #e5e7eb',
   borderRadius: '6px',
-  padding: '12px',
+  padding: '12px 8px',
   textAlign: 'center' as const,
 };
 
@@ -1470,10 +1529,11 @@ const advertiserLogo = {
 };
 
 const advertiserTagline = {
-  fontSize: '11px',
+  fontSize: '10px',
   color: '#6b7280',
-  lineHeight: '1.4',
+  lineHeight: '1.3',
   margin: '0',
+  wordWrap: 'break-word' as const,
 };
 
 const mediaContainer = {
