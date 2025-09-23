@@ -1151,7 +1151,7 @@ export const DailyDigestEmail = ({
           <Section style={footer}>
             <Text style={footerText}>
               You're receiving this because you're subscribed to the{' '}
-              {loungeName} Daily Digest.
+              {loungeName} Daily Digest from Pulse.
             </Text>
             <Text style={footerLinks}>
               <Link href={unsubscribeUrl} style={footerLink}>
@@ -1170,7 +1170,7 @@ export const DailyDigestEmail = ({
               </Link>
             </Text>
             <Text style={copyright}>
-              © {new Date().getFullYear()} Lounge. All rights reserved.
+              © {new Date().getFullYear()} Pulse. All rights reserved.
             </Text>
           </Section>
         </Container>

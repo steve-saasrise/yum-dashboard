@@ -223,11 +223,12 @@ export class FinnhubStockService {
       if (financials?.metric?.revenuePerShareTTM && profile.shareOutstanding) {
         // Note: profile.shareOutstanding is already in millions
         // So total revenue = revenuePerShare * shareOutstanding gives us revenue in millions
-        const totalRevenueMillion = financials.metric.revenuePerShareTTM * profile.shareOutstanding;
+        const totalRevenueMillion =
+          financials.metric.revenuePerShareTTM * profile.shareOutstanding;
 
         // Market cap is already in millions from the API
-        const marketCapMillion = profile.marketCapitalization ||
-          (quote.c * profile.shareOutstanding);
+        const marketCapMillion =
+          profile.marketCapitalization || quote.c * profile.shareOutstanding;
 
         const revMultiple = marketCapMillion / totalRevenueMillion;
 
