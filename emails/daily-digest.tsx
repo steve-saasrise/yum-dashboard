@@ -213,9 +213,12 @@ export const DailyDigestEmail = ({
       return `${baseUrl}/cryptotimes_logo.png`;
     } else if (lowerName.includes('growth') || lowerName.includes('b2b')) {
       return `${baseUrl}/growthtimes_logo.png`;
+    } else if (lowerName.includes('saas')) {
+      // Use SaaS Pulse logo for SaaS digest
+      return `${baseUrl}/saas-pulse-logo.png`;
     } else {
-      // Default to SaaS Times logo
-      return `${baseUrl}/saastimes_logo.png`;
+      // Default fallback
+      return `${baseUrl}/saas-pulse-logo.png`;
     }
   };
 
