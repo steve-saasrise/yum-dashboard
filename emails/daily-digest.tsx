@@ -27,6 +27,12 @@ interface ContentItem {
   published_at: string;
   ai_summary_short?: string;
   content_body?: string;
+  media_urls?: Array<{
+    url: string;
+    type: string;
+    width?: number;
+    height?: number;
+  }>;
   engagement_metrics?: {
     likes?: number;
     views?: number;
@@ -807,21 +813,35 @@ export const DailyDigestEmail = ({
                               verticalAlign: 'top',
                             }}
                           >
-                            {post.thumbnail_url ? (
-                              <Img
-                                src={post.thumbnail_url}
-                                width="120"
-                                height="80"
-                                alt=""
-                                style={socialPostImage}
-                              />
-                            ) : (
-                              <div style={socialPostPlaceholder}>
-                                <Text style={socialPostPlaceholderText}>
-                                  {platformIcons[post.platform]?.alt || 'Post'}
-                                </Text>
-                              </div>
-                            )}
+                            {(() => {
+                              // First check for images in media_urls array
+                              const firstImage = post.media_urls?.find(
+                                (media) => media.type === 'image'
+                              );
+                              const imageUrl =
+                                firstImage?.url || post.thumbnail_url;
+
+                              if (imageUrl) {
+                                return (
+                                  <Img
+                                    src={imageUrl}
+                                    width="120"
+                                    height="80"
+                                    alt=""
+                                    style={socialPostImage}
+                                  />
+                                );
+                              } else {
+                                return (
+                                  <div style={socialPostPlaceholder}>
+                                    <Text style={socialPostPlaceholderText}>
+                                      {platformIcons[post.platform]?.alt ||
+                                        'Post'}
+                                    </Text>
+                                  </div>
+                                );
+                              }
+                            })()}
                           </td>
                           <td style={socialPostContent}>
                             <div>

@@ -14,6 +14,7 @@ interface SocialPost {
   content_body: string | null;
   reference_type: string | null;
   referenced_content: any | null;
+  media_urls?: any[] | null;
   engagement_metrics?: {
     likes?: number;
     views?: number;

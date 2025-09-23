@@ -184,6 +184,22 @@ export class DigestService {
       const promptGenerator = new AIPromptGenerator();
 
       const imagePromises = postsNeedingImages.map(async (post) => {
+        // Check if the post has user-posted images in media_urls
+        if (post.media_urls && post.media_urls.length > 0) {
+          // Find the first image in media_urls
+          const firstImage = post.media_urls.find(
+            (media: any) => media.type === 'image'
+          );
+
+          if (firstImage && firstImage.url) {
+            // Use the actual user-posted image
+            post.thumbnail_url = firstImage.url;
+            console.log(`Using user-posted image for: ${post.url}`);
+            return post;
+          }
+        }
+
+        // Only generate images if no user-posted images exist
         // Clean the title by removing platform-specific prefixes
         let cleanedTitle = post.title;
         const platformPrefixes = [
