@@ -264,14 +264,17 @@ export const DailyDigestEmail = ({
                                       <tr>
                                         <td
                                           style={{
-                                            padding: '0',
+                                            padding: '4px',
                                             textAlign: 'center',
+                                            height: '25px',
+                                            verticalAlign: 'middle',
+                                            backgroundColor: '#ffffff',
+                                            borderRadius: '4px',
                                           }}
                                         >
                                           <Img
                                             src={advertisers[0].logo_url}
                                             alt={advertisers[0].company_name}
-                                            width="100"
                                             style={advertiserLogo}
                                           />
                                         </td>
@@ -331,14 +334,17 @@ export const DailyDigestEmail = ({
                                       <tr>
                                         <td
                                           style={{
-                                            padding: '0',
+                                            padding: '4px',
                                             textAlign: 'center',
+                                            height: '25px',
+                                            verticalAlign: 'middle',
+                                            backgroundColor: '#ffffff',
+                                            borderRadius: '4px',
                                           }}
                                         >
                                           <Img
                                             src={advertisers[0].logo_url}
                                             alt={advertisers[0].company_name}
-                                            width="100"
                                             style={advertiserLogo}
                                           />
                                         </td>
@@ -398,14 +404,17 @@ export const DailyDigestEmail = ({
                                       <tr>
                                         <td
                                           style={{
-                                            padding: '0',
+                                            padding: '4px',
                                             textAlign: 'center',
+                                            height: '25px',
+                                            verticalAlign: 'middle',
+                                            backgroundColor: '#ffffff',
+                                            borderRadius: '4px',
                                           }}
                                         >
                                           <Img
                                             src={advertisers[1].logo_url}
                                             alt={advertisers[1].company_name}
-                                            width="100"
                                             style={advertiserLogo}
                                           />
                                         </td>
@@ -1886,10 +1895,12 @@ const advertiserCardNoBg = {
 };
 
 const advertiserLogo = {
-  display: 'block',
-  margin: '0 auto 6px',
-  objectFit: 'contain' as const,
-  maxWidth: '100%',
+  display: 'inline',
+  margin: '0 auto',
+  maxHeight: '25px',
+  maxWidth: '90%',
+  height: 'auto',
+  width: 'auto',
 };
 
 const advertiserTagline = {

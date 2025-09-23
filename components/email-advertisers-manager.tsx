@@ -156,7 +156,10 @@ export function EmailAdvertisersManager() {
   };
 
   const uploadLogo = async (position: number, file: File) => {
-    if (!file) return;
+    if (!file) {
+      console.error('No file provided');
+      return;
+    }
 
     console.log(
       'Starting upload for position',
@@ -173,6 +176,10 @@ export function EmailAdvertisersManager() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
+    // Check auth session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('Auth session:', session ? 'exists' : 'missing', 'error:', sessionError);
+
     try {
       // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
@@ -185,17 +192,35 @@ export function EmailAdvertisersManager() {
       const filePath = `logos/${fileName}`;
 
       console.log('Uploading to path:', filePath);
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
 
-      // Upload the file
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Upload the file with timeout
+      console.log('Calling supabase.storage.upload...');
+
+      const uploadPromise = supabase.storage
         .from('advertiser-logos')
         .upload(filePath, file, {
           upsert: true,
           cacheControl: '3600',
         });
 
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+      );
+
+      const { data: uploadData, error: uploadError } = await Promise.race([
+        uploadPromise,
+        timeoutPromise,
+      ]).catch(err => ({ data: null, error: err })) as any;
+
+      console.log('Upload response - data:', uploadData, 'error:', uploadError);
+
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        console.error('Upload error details:', {
+          message: uploadError.message,
+          statusCode: uploadError.statusCode,
+          error: uploadError,
+        });
         throw uploadError;
       }
 
@@ -210,11 +235,16 @@ export function EmailAdvertisersManager() {
 
       // Update the advertiser with the new logo URL
       updateAdvertiser(position, 'logo_url', publicUrl);
+
+      // Don't auto-save, just update the state
+      // User can save manually with the Save Changes button
       toast.success('Logo uploaded successfully');
     } catch (error: any) {
-      console.error('Error uploading logo:', error);
+      console.error('Full error object:', error);
+      console.error('Error stack:', error.stack);
       toast.error(error.message || 'Failed to upload logo');
     } finally {
+      console.log('Setting uploading to null');
       setUploading(null);
     }
   };
@@ -290,6 +320,22 @@ export function EmailAdvertisersManager() {
                 <div>
                   <Label htmlFor={`logo-${position}`}>Logo</Label>
                   <div className="space-y-2">
+                    <input
+                      ref={(el) => {
+                        fileInputRefs.current[position] = el;
+                      }}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          uploadLogo(position, file);
+                        }
+                        // Reset the input so the same file can be selected again
+                        e.target.value = '';
+                      }}
+                    />
                     {advertiser.logo_url ? (
                       <div className="flex items-center gap-4">
                         <img
@@ -315,20 +361,6 @@ export function EmailAdvertisersManager() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <input
-                          ref={(el) => {
-                            fileInputRefs.current[position] = el;
-                          }}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              uploadLogo(position, file);
-                            }
-                          }}
-                        />
                         <Button
                           type="button"
                           variant="outline"
