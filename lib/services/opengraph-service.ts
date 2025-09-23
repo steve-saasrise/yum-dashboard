@@ -1,6 +1,8 @@
 // OpenGraph service for fetching metadata from URLs
 import { fetchOpenGraphMetadata } from './opengraph-fetcher';
 import { AIImageService } from './ai-image-service';
+import { UnsplashImageService } from './unsplash-image-service';
+import { AIPromptGenerator } from './ai-prompt-generator';
 
 interface OpenGraphData {
   title?: string;
@@ -95,32 +97,81 @@ export class OpenGraphService {
       });
     }
 
-    // Generate AI images for failed items
-    if (
-      failedItems.length > 0 &&
-      (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)
-    ) {
+    // Try Unsplash first, then fall back to AI if needed
+    if (failedItems.length > 0) {
       console.log(
-        `Generating AI fallback images for ${failedItems.length} articles`
+        `Finding images for ${failedItems.length} articles without OG images`
       );
 
-      const aiImages = await aiImageService.generateBulkFallbackImages(
-        failedItems.map((item) => ({
-          url: item.url,
-          title: item.title,
-          source: item.source,
-          category: category || 'Technology',
-          isBigStory: item.isBigStory,
-          imagePrompt: item.imagePrompt,
-        }))
-      );
+      const unsplashService = UnsplashImageService.getInstance();
+      const promptGenerator = new AIPromptGenerator();
+      const stillNeedImages: typeof failedItems = [];
 
-      // Update results with AI-generated images
-      aiImages.forEach((image, url) => {
-        if (image && image.imageUrl) {
-          results.set(url, image.imageUrl);
+      // Try Unsplash for each failed item
+      for (const item of failedItems) {
+        try {
+          // Generate smart search keywords
+          const keywords = await promptGenerator.generateUnsplashKeywords({
+            title: item.title || '',
+            description: item.source,
+            category: category,
+            isBigStory: item.isBigStory,
+          });
+
+          if (keywords) {
+            const unsplashImage = await unsplashService.searchImage({
+              url: item.url,
+              title: item.title,
+              source: item.source,
+              category: category,
+              isBigStory: item.isBigStory,
+              searchKeywords: keywords,
+            });
+
+            if (unsplashImage) {
+              results.set(item.url, unsplashImage.imageUrl);
+              console.log(
+                `Found Unsplash image for: ${item.title || item.url}`
+              );
+            } else {
+              stillNeedImages.push(item);
+            }
+          } else {
+            stillNeedImages.push(item);
+          }
+        } catch (error) {
+          console.error(`Unsplash error for ${item.url}:`, error);
+          stillNeedImages.push(item);
         }
-      });
+      }
+
+      // Fall back to AI for any remaining items
+      if (
+        stillNeedImages.length > 0 &&
+        (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)
+      ) {
+        console.log(
+          `Using AI fallback for ${stillNeedImages.length} remaining articles`
+        );
+
+        const aiImages = await aiImageService.generateBulkFallbackImages(
+          stillNeedImages.map((item) => ({
+            url: item.url,
+            title: item.title,
+            source: item.source,
+            category: category || 'Technology',
+            isBigStory: item.isBigStory,
+            imagePrompt: item.imagePrompt,
+          }))
+        );
+
+        // Update results with AI-generated images
+        aiImages.forEach((image, url) => {
+          if (image && image.imageUrl) {
+            results.set(url, image.imageUrl);
+          }
+        });
+      }
     }
 
     return results;

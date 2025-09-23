@@ -177,8 +177,16 @@ export function EmailAdvertisersManager() {
     );
 
     // Check auth session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('Auth session:', session ? 'exists' : 'missing', 'error:', sessionError);
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    console.log(
+      'Auth session:',
+      session ? 'exists' : 'missing',
+      'error:',
+      sessionError
+    );
 
     try {
       // Check file size (max 5MB)
@@ -205,13 +213,16 @@ export function EmailAdvertisersManager() {
         });
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+        setTimeout(
+          () => reject(new Error('Upload timeout after 30 seconds')),
+          30000
+        )
       );
 
-      const { data: uploadData, error: uploadError } = await Promise.race([
+      const { data: uploadData, error: uploadError } = (await Promise.race([
         uploadPromise,
         timeoutPromise,
-      ]).catch(err => ({ data: null, error: err })) as any;
+      ]).catch((err) => ({ data: null, error: err }))) as any;
 
       console.log('Upload response - data:', uploadData, 'error:', uploadError);
 

@@ -5,6 +5,8 @@ import { NewsSummaryService } from './news-summary-service';
 import { SocialPostSelector } from './social-post-selector';
 import { OpenGraphService } from './opengraph-service';
 import { AIImageService } from './ai-image-service';
+import { UnsplashImageService } from './unsplash-image-service';
+import { AIPromptGenerator } from './ai-prompt-generator';
 import { ImageOptimizer } from './image-optimizer';
 import { getSaaSStockMoversService } from './saas-stock-movers-service';
 
@@ -173,11 +175,14 @@ export class DigestService {
 
     if (postsNeedingImages.length > 0) {
       console.log(
-        `Generating AI images for ${postsNeedingImages.length} social posts`
+        `Finding images for ${postsNeedingImages.length} social posts`
       );
 
-      // Generate AI images for posts without thumbnails
+      // Try Unsplash first, fallback to AI generation if needed
+      const unsplashService = UnsplashImageService.getInstance();
       const aiImageService = AIImageService.getInstance();
+      const promptGenerator = new AIPromptGenerator();
+
       const imagePromises = postsNeedingImages.map(async (post) => {
         // Clean the title by removing platform-specific prefixes
         let cleanedTitle = post.title;
@@ -203,18 +208,60 @@ export class DigestService {
         const titleForImage =
           cleanedTitle || post.description || post.ai_summary_short || '';
 
-        const generatedImage = await aiImageService.generateFallbackImage({
-          url: post.url,
+        // First, try to find an image on Unsplash
+        let imageUrl: string | null = null;
+
+        // Generate Unsplash search keywords using AI
+        const searchKeywords = await promptGenerator.generateUnsplashKeywords({
           title: titleForImage,
+          description: post.description || post.ai_summary_short || undefined,
           source: post.creator.display_name,
           category: loungeTheme,
-          description: post.description || post.ai_summary_short || undefined,
-          isBigStory: false, // Square images for social posts
+          isBigStory: false,
         });
 
-        if (generatedImage) {
-          post.thumbnail_url = generatedImage.imageUrl;
-          (post as any).aiGeneratedImage = true;
+        if (searchKeywords) {
+          const unsplashImage = await unsplashService.searchImage({
+            url: post.url,
+            title: titleForImage,
+            source: post.creator.display_name,
+            category: loungeTheme,
+            description: post.description || post.ai_summary_short || undefined,
+            searchKeywords,
+          });
+
+          if (unsplashImage) {
+            imageUrl = unsplashImage.imageUrl;
+            console.log(`Found Unsplash image for post: ${post.url}`);
+          }
+        }
+
+        // If Unsplash didn't work, fall back to AI generation
+        if (!imageUrl) {
+          console.log(
+            `No Unsplash image found, generating AI image for: ${post.url}`
+          );
+          const generatedImage = await aiImageService.generateFallbackImage({
+            url: post.url,
+            title: titleForImage,
+            source: post.creator.display_name,
+            category: loungeTheme,
+            description: post.description || post.ai_summary_short || undefined,
+            isBigStory: false, // Square images for social posts
+          });
+
+          if (generatedImage) {
+            imageUrl = generatedImage.imageUrl;
+            (post as any).aiGeneratedImage = true;
+          }
+        }
+
+        // Update the post with the found or generated image
+        if (imageUrl) {
+          post.thumbnail_url = imageUrl;
+          if (!(post as any).aiGeneratedImage) {
+            (post as any).unsplashImage = true;
+          }
         }
 
         return post;
