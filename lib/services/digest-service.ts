@@ -125,6 +125,7 @@ export class DigestService {
         content_body,
         reference_type,
         referenced_content,
+        engagement_metrics,
         creators!inner(
           display_name
         )
@@ -374,6 +375,7 @@ export class DigestService {
           content_body,
           reference_type,
           referenced_content,
+          engagement_metrics,
           creators!inner(
             display_name
           )
@@ -426,6 +428,7 @@ export class DigestService {
           content_body,
           reference_type,
           referenced_content,
+          engagement_metrics,
           creators!inner(
             display_name
           )
@@ -625,6 +628,7 @@ export class DigestService {
           | 'reply'
           | undefined,
         referenced_content: item.referenced_content || undefined,
+        engagement_metrics: (item as any).engagement_metrics || undefined,
       }));
 
       // Fetch active advertisers
