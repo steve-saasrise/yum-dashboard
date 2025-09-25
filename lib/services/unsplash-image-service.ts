@@ -52,6 +52,7 @@ export class UnsplashImageService {
   private accessKey: string | null = null;
   private static instance: UnsplashImageService | null = null;
   private readonly baseUrl = 'https://api.unsplash.com';
+  private sessionUsedImages = new Set<string>(); // Track images used in current session
 
   constructor() {
     this.initializeServices();
@@ -79,6 +80,14 @@ export class UnsplashImageService {
       UnsplashImageService.instance = new UnsplashImageService();
     }
     return UnsplashImageService.instance;
+  }
+
+  /**
+   * Clear session-used images (call at start of each digest run)
+   */
+  clearSessionCache(): void {
+    this.sessionUsedImages.clear();
+    console.log('Cleared Unsplash session image cache');
   }
 
   /**
@@ -207,20 +216,32 @@ export class UnsplashImageService {
       // Get previously used image IDs to avoid repetition
       const usedIds = await this.getRecentlyUsedIds();
 
-      // Filter out recently used images
+      // Filter out recently used images AND session-used images
       const availablePhotos = data.results.filter(
-        (photo: UnsplashAPIPhoto) => !usedIds.includes(photo.id)
+        (photo: UnsplashAPIPhoto) =>
+          !usedIds.includes(photo.id) &&
+          !this.sessionUsedImages.has(photo.id)
       );
 
       // If all photos have been used, just use the original results
       const photosToChooseFrom =
         availablePhotos.length > 0 ? availablePhotos : data.results;
 
-      // Randomly select from top results for variety
+      // Try to find an unused image from the results
+      for (const photo of photosToChooseFrom) {
+        if (!this.sessionUsedImages.has(photo.id)) {
+          this.sessionUsedImages.add(photo.id);
+          return photo;
+        }
+      }
+
+      // If all are used in session, pick randomly from top results
       const maxIndex = Math.min(10, photosToChooseFrom.length);
       const randomIndex = Math.floor(Math.random() * maxIndex);
+      const selected = photosToChooseFrom[randomIndex];
+      this.sessionUsedImages.add(selected.id);
 
-      return photosToChooseFrom[randomIndex];
+      return selected;
     } catch (error) {
       console.error('Error calling Unsplash API:', error);
       return null;

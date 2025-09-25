@@ -14,6 +14,15 @@ interface OpenGraphData {
 }
 
 export class OpenGraphService {
+  private static sessionImageUrls = new Map<string, string>(); // Track first valid image per domain
+
+  /**
+   * Clear session cache (call at start of each digest run)
+   */
+  static clearSessionCache(): void {
+    this.sessionImageUrls.clear();
+    console.log('Cleared OpenGraph session image cache');
+  }
   /**
    * Fetch OpenGraph metadata from a URL
    * Now uses direct function call instead of HTTP request for better performance
@@ -54,6 +63,12 @@ export class OpenGraphService {
   ): Promise<Map<string, string | null>> {
     const results = new Map<string, string | null>();
     const aiImageService = AIImageService.getInstance();
+    const unsplashService = UnsplashImageService.getInstance();
+
+    // Clear session caches at the start of bulk processing
+    this.clearSessionCache();
+    unsplashService.clearSessionCache();
+
     const failedItems: Array<{
       url: string;
       title?: string;
@@ -72,7 +87,6 @@ export class OpenGraphService {
 
     // Track which images have been used to prevent duplicates
     const usedImages = new Set<string>();
-    const domainImageCount = new Map<string, number>();
 
     // Process in batches to avoid overwhelming the service
     const batchSize = 5;
@@ -101,29 +115,16 @@ export class OpenGraphService {
           }
 
           // Extract domain from article URL
-          const domain = new URL(item.url).hostname;
-          const domainCount = domainImageCount.get(domain) || 0;
+          const domain = new URL(item.url).hostname.replace('www.', '');
 
-          // Check if we've already seen this domain
-          if (domainCount > 0) {
-            // Extract domain from image URL for comparison
-            let imageDomain = '';
-            try {
-              imageDomain = new URL(metadata.imageUrl).hostname;
-            } catch (e) {
-              // Invalid URL, skip domain check
-            }
+          // Check if this domain already has a representative image
+          const existingDomainImage = this.sessionImageUrls.get(domain);
 
-            // Check if image URL contains the article domain OR if domains match
-            // This catches cases like thesaasnews.com images on cdn.thesaasnews.com
-            const isDomainLogo =
-              metadata.imageUrl.includes(domain.replace('www.', '')) ||
-              imageDomain.includes(domain.replace('www.', '')) ||
-              domain.includes(imageDomain.replace('www.', '').replace('cdn.', ''));
-
-            if (isDomainLogo) {
+          if (existingDomainImage) {
+            // Check if this is the same image (domain logo/default image)
+            if (metadata.imageUrl === existingDomainImage) {
               console.log(
-                `✓ Likely duplicate domain logo for ${domain}, will use fallback`
+                `✓ Duplicate domain image for ${domain}, will use fallback`
               );
               failedItems.push({
                 url: item.url,
@@ -134,12 +135,14 @@ export class OpenGraphService {
               });
               return { url: item.url, imageUrl: null };
             }
+          } else {
+            // First image from this domain, store it
+            this.sessionImageUrls.set(domain, metadata.imageUrl);
+            console.log(`First image for domain ${domain}: ${metadata.imageUrl}`);
           }
 
           // Mark this image as used
           usedImages.add(metadata.imageUrl);
-          domainImageCount.set(domain, domainCount + 1);
-          console.log(`Domain ${domain} now has ${domainCount + 1} images`);
 
           return { url: item.url, imageUrl: metadata.imageUrl };
         } else {
@@ -167,7 +170,6 @@ export class OpenGraphService {
         `Finding images for ${failedItems.length} articles without OG images`
       );
 
-      const unsplashService = UnsplashImageService.getInstance();
       const promptGenerator = new AIPromptGenerator();
       const stillNeedImages: typeof failedItems = [];
 
