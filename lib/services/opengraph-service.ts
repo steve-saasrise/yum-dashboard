@@ -82,9 +82,13 @@ export class OpenGraphService {
         const metadata = await this.fetchMetadata(item.url);
 
         if (metadata?.imageUrl) {
-          // Check if this image has already been used
+          console.log(`OG image found for ${item.url}: ${metadata.imageUrl}`);
+
+          // Check if this exact image URL has already been used
           if (usedImages.has(metadata.imageUrl)) {
-            console.log(`Duplicate OG image detected for ${item.url}, will use fallback`);
+            console.log(
+              `✓ Duplicate OG image detected for ${item.url}, will use fallback`
+            );
             // Track as failed to trigger fallback image generation
             failedItems.push({
               url: item.url,
@@ -96,26 +100,46 @@ export class OpenGraphService {
             return { url: item.url, imageUrl: null };
           }
 
-          // Extract domain from URL to track per-domain usage
+          // Extract domain from article URL
           const domain = new URL(item.url).hostname;
           const domainCount = domainImageCount.get(domain) || 0;
 
-          // If this domain already has an image and it's likely a default logo, skip it
-          if (domainCount > 0 && metadata.imageUrl.includes(domain)) {
-            console.log(`Likely duplicate domain logo for ${domain}, will use fallback`);
-            failedItems.push({
-              url: item.url,
-              title: item.title,
-              source: item.source,
-              isBigStory: item.isBigStory,
-              imagePrompt: item.imagePrompt,
-            });
-            return { url: item.url, imageUrl: null };
+          // Check if we've already seen this domain
+          if (domainCount > 0) {
+            // Extract domain from image URL for comparison
+            let imageDomain = '';
+            try {
+              imageDomain = new URL(metadata.imageUrl).hostname;
+            } catch (e) {
+              // Invalid URL, skip domain check
+            }
+
+            // Check if image URL contains the article domain OR if domains match
+            // This catches cases like thesaasnews.com images on cdn.thesaasnews.com
+            const isDomainLogo =
+              metadata.imageUrl.includes(domain.replace('www.', '')) ||
+              imageDomain.includes(domain.replace('www.', '')) ||
+              domain.includes(imageDomain.replace('www.', '').replace('cdn.', ''));
+
+            if (isDomainLogo) {
+              console.log(
+                `✓ Likely duplicate domain logo for ${domain}, will use fallback`
+              );
+              failedItems.push({
+                url: item.url,
+                title: item.title,
+                source: item.source,
+                isBigStory: item.isBigStory,
+                imagePrompt: item.imagePrompt,
+              });
+              return { url: item.url, imageUrl: null };
+            }
           }
 
           // Mark this image as used
           usedImages.add(metadata.imageUrl);
           domainImageCount.set(domain, domainCount + 1);
+          console.log(`Domain ${domain} now has ${domainCount + 1} images`);
 
           return { url: item.url, imageUrl: metadata.imageUrl };
         } else {
