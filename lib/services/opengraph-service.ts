@@ -70,13 +70,53 @@ export class OpenGraphService {
       };
     }> = [];
 
+    // Track which images have been used to prevent duplicates
+    const usedImages = new Set<string>();
+    const domainImageCount = new Map<string, number>();
+
     // Process in batches to avoid overwhelming the service
     const batchSize = 5;
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
       const promises = batch.map(async (item) => {
         const metadata = await this.fetchMetadata(item.url);
+
         if (metadata?.imageUrl) {
+          // Check if this image has already been used
+          if (usedImages.has(metadata.imageUrl)) {
+            console.log(`Duplicate OG image detected for ${item.url}, will use fallback`);
+            // Track as failed to trigger fallback image generation
+            failedItems.push({
+              url: item.url,
+              title: item.title,
+              source: item.source,
+              isBigStory: item.isBigStory,
+              imagePrompt: item.imagePrompt,
+            });
+            return { url: item.url, imageUrl: null };
+          }
+
+          // Extract domain from URL to track per-domain usage
+          const domain = new URL(item.url).hostname;
+          const domainCount = domainImageCount.get(domain) || 0;
+
+          // If this domain already has an image and it's likely a default logo, skip it
+          if (domainCount > 0 && metadata.imageUrl.includes(domain)) {
+            console.log(`Likely duplicate domain logo for ${domain}, will use fallback`);
+            failedItems.push({
+              url: item.url,
+              title: item.title,
+              source: item.source,
+              isBigStory: item.isBigStory,
+              imagePrompt: item.imagePrompt,
+            });
+            return { url: item.url, imageUrl: null };
+          }
+
+          // Mark this image as used
+          usedImages.add(metadata.imageUrl);
+          domainImageCount.set(domain, domainCount + 1);
+
           return { url: item.url, imageUrl: metadata.imageUrl };
         } else {
           // Track items that need AI fallback

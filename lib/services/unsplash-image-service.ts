@@ -93,25 +93,8 @@ export class UnsplashImageService {
     }
 
     try {
-      // Create a hash of the URL for caching
-      const urlHash = crypto
-        .createHash('sha256')
-        .update(options.url)
-        .digest('hex');
-
-      // Check if we already have a cached image for this URL
-      const cachedImage = await this.getCachedImage(urlHash);
-      if (cachedImage) {
-        console.log(`Using cached Unsplash image for: ${options.url}`);
-        return {
-          imageUrl: cachedImage.image_url,
-          thumbnailUrl: cachedImage.thumbnail_url,
-          photographerName: cachedImage.photographer_name,
-          photographerUrl: cachedImage.photographer_url,
-          unsplashUrl: cachedImage.unsplash_url,
-          cached: true,
-        };
-      }
+      // Skip caching - always get fresh images for variety
+      // This ensures digest emails get different images each time
 
       // Use provided keywords or generate basic ones from title
       let searchQuery: string;
@@ -166,8 +149,8 @@ export class UnsplashImageService {
         cached: false,
       };
 
-      // Cache the image data
-      await this.cacheImage(urlHash, options.url, imageData, searchQuery);
+      // Skip caching to ensure fresh images each time
+      // await this.cacheImage(urlHash, options.url, imageData, searchQuery);
 
       // Track download for Unsplash API guidelines
       await this.trackDownload(photo.links.html);
