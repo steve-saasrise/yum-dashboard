@@ -249,16 +249,21 @@ export class AIImageService {
     } else {
       // Last resort - extract the first noun from the title
       const titleWords = (title || '').split(' ');
-      const techWord = titleWords.find(word =>
-        word.length > 4 &&
-        !['with', 'from', 'into', 'over', 'under'].includes(word.toLowerCase())
+      const techWord = titleWords.find(
+        (word) =>
+          word.length > 4 &&
+          !['with', 'from', 'into', 'over', 'under'].includes(
+            word.toLowerCase()
+          )
       );
       visualElement = techWord
         ? `${techWord.toLowerCase()} technology interface`
         : 'modern technology workspace';
     }
 
-    const composition = isBigStory ? 'wide angle, cinematic' : 'centered, balanced';
+    const composition = isBigStory
+      ? 'wide angle, cinematic'
+      : 'centered, balanced';
 
     // Create contextual photorealistic prompt
     const prompt = `Photorealistic image of ${visualElement}, ${composition} composition, natural lighting, professional photography style, high quality, detailed, no text or logos`;
@@ -270,7 +275,13 @@ export class AIImageService {
    * Simplified fallback if needed
    */
   private generateSimplePrompt(): string {
-    const concepts = ['innovation', 'growth', 'technology', 'collaboration', 'progress'];
+    const concepts = [
+      'innovation',
+      'growth',
+      'technology',
+      'collaboration',
+      'progress',
+    ];
     const randomConcept = concepts[Math.floor(Math.random() * concepts.length)];
     return `Professional photograph representing ${randomConcept}, modern aesthetic, clean composition, photorealistic`;
   }

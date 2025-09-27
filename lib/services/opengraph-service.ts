@@ -23,7 +23,10 @@ export class OpenGraphService {
     this.sessionActive = true;
     this.sessionImageUrls.clear();
     this.globalUsedImages.clear();
-    console.log('[OpenGraphService] Started new digest session - sessionActive set to:', this.sessionActive);
+    console.log(
+      '[OpenGraphService] Started new digest session - sessionActive set to:',
+      this.sessionActive
+    );
   }
 
   /**
@@ -89,7 +92,10 @@ export class OpenGraphService {
     const aiImageService = AIImageService.getInstance();
 
     // Only clear caches if not in an active session
-    console.log('[OpenGraphService] Session active status:', this.sessionActive);
+    console.log(
+      '[OpenGraphService] Session active status:',
+      this.sessionActive
+    );
     if (!this.sessionActive) {
       console.log('[OpenGraphService] No active session, clearing caches');
       this.clearSessionCache();

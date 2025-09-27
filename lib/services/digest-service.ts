@@ -200,12 +200,14 @@ export class DigestService {
 
         // For social posts, use the actual content body for image generation
         // This ensures we get contextually relevant images based on what the post is actually about
-        const postContent = post.content_body || post.description || post.ai_summary_short || '';
+        const postContent =
+          post.content_body || post.description || post.ai_summary_short || '';
 
         // Extract the first 200 chars of content for a meaningful title
-        const contentSnippet = postContent.length > 200
-          ? postContent.substring(0, 200) + '...'
-          : postContent;
+        const contentSnippet =
+          postContent.length > 200
+            ? postContent.substring(0, 200) + '...'
+            : postContent;
 
         console.log(
           `Generating AI image for social post with content: ${contentSnippet.substring(0, 100)}...`
@@ -622,14 +624,11 @@ export class DigestService {
 
         // Log engagement metrics for debugging
         if (item.platform === 'threads' || item.platform === 'linkedin') {
-          console.log(
-            `[DigestService] ${item.platform} post being sent:`,
-            {
-              title: item.title,
-              url: item.url,
-              engagement_metrics: formatted.engagement_metrics,
-            }
-          );
+          console.log(`[DigestService] ${item.platform} post being sent:`, {
+            title: item.title,
+            url: item.url,
+            engagement_metrics: formatted.engagement_metrics,
+          });
         }
 
         return formatted;

@@ -1015,15 +1015,15 @@ export const DailyDigestEmail = ({
                                   {post.engagement_metrics &&
                                     post.platform !== 'threads' &&
                                     post.platform !== 'linkedin' && (
-                                    <Text style={socialPostEngagement}>
-                                      {post.engagement_metrics.likes &&
-                                        `❤️ ${post.engagement_metrics.likes.toLocaleString()}`}
-                                      {post.engagement_metrics.views &&
-                                        ` · ${post.engagement_metrics.views.toLocaleString()} views`}
-                                      {post.engagement_metrics.comments &&
-                                        ` · 💬 ${post.engagement_metrics.comments.toLocaleString()}`}
-                                    </Text>
-                                  )}
+                                      <Text style={socialPostEngagement}>
+                                        {post.engagement_metrics.likes &&
+                                          `❤️ ${post.engagement_metrics.likes.toLocaleString()}`}
+                                        {post.engagement_metrics.views &&
+                                          ` · ${post.engagement_metrics.views.toLocaleString()} views`}
+                                        {post.engagement_metrics.comments &&
+                                          ` · 💬 ${post.engagement_metrics.comments.toLocaleString()}`}
+                                      </Text>
+                                    )}
                                 </div>
                               </div>
                             </div>

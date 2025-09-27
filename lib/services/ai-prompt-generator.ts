@@ -14,7 +14,6 @@ interface GeneratedPrompt {
   style: string;
 }
 
-
 export class AIPromptGenerator {
   private openai: OpenAI | null = null;
 
@@ -25,7 +24,6 @@ export class AIPromptGenerator {
       });
     }
   }
-
 
   /**
    * Generate an image prompt using GPT-4o-mini
@@ -63,9 +61,10 @@ export class AIPromptGenerator {
         'Show the view from a unique angle',
         'Depict time progression',
         'Focus on patterns or repetition',
-        'Show the emotional or human element'
+        'Show the emotional or human element',
       ];
-      const randomPerspective = perspectives[Math.floor(Math.random() * perspectives.length)];
+      const randomPerspective =
+        perspectives[Math.floor(Math.random() * perspectives.length)];
 
       const systemPrompt = `You are creating an image generation prompt for Gemini AI.
 
@@ -98,7 +97,7 @@ ${category ? `Category: ${category}` : ''}`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.8,  // Increased from 0.5 for more variety
+        temperature: 0.8, // Increased from 0.5 for more variety
         max_tokens: 200,
         response_format: { type: 'json_object' },
       });

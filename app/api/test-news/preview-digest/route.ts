@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
     console.log('[Test] Generating digest preview...');
 
     // Import services for session management
-    const { OpenGraphService } = await import('@/lib/services/opengraph-service');
+    const { OpenGraphService } = await import(
+      '@/lib/services/opengraph-service'
+    );
 
     // Start digest session to prevent duplicate images
     OpenGraphService.startDigestSession();
@@ -188,7 +190,9 @@ export async function POST(request: NextRequest) {
 
     // End session even on error to clean up
     try {
-      const { OpenGraphService } = await import('@/lib/services/opengraph-service');
+      const { OpenGraphService } = await import(
+        '@/lib/services/opengraph-service'
+      );
       OpenGraphService.endDigestSession();
     } catch (cleanupError) {
       console.error('Error cleaning up session:', cleanupError);
