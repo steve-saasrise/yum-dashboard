@@ -18,6 +18,12 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Test] Generating digest preview...');
 
+    // Import services for session management
+    const { OpenGraphService } = await import('@/lib/services/opengraph-service');
+
+    // Start digest session to prevent duplicate images
+    OpenGraphService.startDigestSession();
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_KEY!
@@ -27,7 +33,7 @@ export async function POST(request: NextRequest) {
     const { data: lounge, error: loungeError } = await supabase
       .from('lounges')
       .select('id, name, description, theme_description')
-      .eq('name', 'SaaS Times')
+      .eq('name', 'SaaS Pulse')
       .eq('is_system_lounge', true)
       .single();
 
@@ -161,6 +167,9 @@ export async function POST(request: NextRequest) {
       })
     );
 
+    // End digest session before returning success
+    OpenGraphService.endDigestSession();
+
     return NextResponse.json({
       success: true,
       html: emailHtml,
@@ -176,6 +185,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error generating digest preview:', error);
+
+    // End session even on error to clean up
+    try {
+      const { OpenGraphService } = await import('@/lib/services/opengraph-service');
+      OpenGraphService.endDigestSession();
+    } catch (cleanupError) {
+      console.error('Error cleaning up session:', cleanupError);
+    }
+
     return NextResponse.json(
       {
         error: 'Failed to generate digest preview',

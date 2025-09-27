@@ -1,8 +1,6 @@
 // OpenGraph service for fetching metadata from URLs
 import { fetchOpenGraphMetadata } from './opengraph-fetcher';
 import { AIImageService } from './ai-image-service';
-import { UnsplashImageService } from './unsplash-image-service';
-import { AIPromptGenerator } from './ai-prompt-generator';
 
 interface OpenGraphData {
   title?: string;
@@ -15,13 +13,39 @@ interface OpenGraphData {
 
 export class OpenGraphService {
   private static sessionImageUrls = new Map<string, string>(); // Track first valid image per domain
+  private static globalUsedImages = new Set<string>(); // Track all used images across the entire digest session
+  private static sessionActive = false; // Track if we're in an active session
 
   /**
-   * Clear session cache (call at start of each digest run)
+   * Start a new digest session (call at the beginning of digest generation)
+   */
+  static startDigestSession(): void {
+    this.sessionActive = true;
+    this.sessionImageUrls.clear();
+    this.globalUsedImages.clear();
+    console.log('[OpenGraphService] Started new digest session - sessionActive set to:', this.sessionActive);
+  }
+
+  /**
+   * End the digest session (call at the end of digest generation)
+   */
+  static endDigestSession(): void {
+    this.sessionActive = false;
+    this.sessionImageUrls.clear();
+    this.globalUsedImages.clear();
+    console.log('Ended digest session - cleared all image caches');
+  }
+
+  /**
+   * Clear session cache (deprecated - use startDigestSession instead)
    */
   static clearSessionCache(): void {
-    this.sessionImageUrls.clear();
-    console.log('Cleared OpenGraph session image cache');
+    // Only clear if not in an active session
+    if (!this.sessionActive) {
+      this.sessionImageUrls.clear();
+      this.globalUsedImages.clear();
+      console.log('Cleared OpenGraph session image cache');
+    }
   }
   /**
    * Fetch OpenGraph metadata from a URL
@@ -63,11 +87,15 @@ export class OpenGraphService {
   ): Promise<Map<string, string | null>> {
     const results = new Map<string, string | null>();
     const aiImageService = AIImageService.getInstance();
-    const unsplashService = UnsplashImageService.getInstance();
 
-    // Clear session caches at the start of bulk processing
-    this.clearSessionCache();
-    unsplashService.clearSessionCache();
+    // Only clear caches if not in an active session
+    console.log('[OpenGraphService] Session active status:', this.sessionActive);
+    if (!this.sessionActive) {
+      console.log('[OpenGraphService] No active session, clearing caches');
+      this.clearSessionCache();
+    } else {
+      console.log('[OpenGraphService] Session is active, NOT clearing caches');
+    }
 
     const failedItems: Array<{
       url: string;
@@ -85,9 +113,6 @@ export class OpenGraphService {
       };
     }> = [];
 
-    // Track which images have been used to prevent duplicates
-    const usedImages = new Set<string>();
-
     // Process in batches to avoid overwhelming the service
     const batchSize = 5;
     for (let i = 0; i < items.length; i += batchSize) {
@@ -98,10 +123,10 @@ export class OpenGraphService {
         if (metadata?.imageUrl) {
           console.log(`OG image found for ${item.url}: ${metadata.imageUrl}`);
 
-          // Check if this exact image URL has already been used
-          if (usedImages.has(metadata.imageUrl)) {
+          // Check if this exact image URL has already been used globally
+          if (this.globalUsedImages.has(metadata.imageUrl)) {
             console.log(
-              `✓ Duplicate OG image detected for ${item.url}, will use fallback`
+              `✓ Duplicate OG image detected globally for ${item.url}, will use fallback`
             );
             // Track as failed to trigger fallback image generation
             failedItems.push({
@@ -138,11 +163,13 @@ export class OpenGraphService {
           } else {
             // First image from this domain, store it
             this.sessionImageUrls.set(domain, metadata.imageUrl);
-            console.log(`First image for domain ${domain}: ${metadata.imageUrl}`);
+            console.log(
+              `First image for domain ${domain}: ${metadata.imageUrl}`
+            );
           }
 
-          // Mark this image as used
-          usedImages.add(metadata.imageUrl);
+          // Mark this image as used globally
+          this.globalUsedImages.add(metadata.imageUrl);
 
           return { url: item.url, imageUrl: metadata.imageUrl };
         } else {
@@ -164,80 +191,31 @@ export class OpenGraphService {
       });
     }
 
-    // Try Unsplash first, then fall back to AI if needed
+    // Use AI generation exclusively for all items needing images
     if (failedItems.length > 0) {
       console.log(
-        `Finding images for ${failedItems.length} articles without OG images`
+        `Generating AI images for ${failedItems.length} articles without OG images`
       );
 
-      const promptGenerator = new AIPromptGenerator();
-      const stillNeedImages: typeof failedItems = [];
+      // Generate AI images for ALL failed items
+      const aiImages = await aiImageService.generateBulkFallbackImages(
+        failedItems.map((item) => ({
+          url: item.url,
+          title: item.title,
+          source: item.source,
+          category: category || 'Technology',
+          isBigStory: item.isBigStory,
+          imagePrompt: item.imagePrompt,
+        }))
+      );
 
-      // Try Unsplash for each failed item
-      for (const item of failedItems) {
-        try {
-          // Generate smart search keywords
-          const keywords = await promptGenerator.generateUnsplashKeywords({
-            title: item.title || '',
-            description: item.source,
-            category: category,
-            isBigStory: item.isBigStory,
-          });
-
-          if (keywords) {
-            const unsplashImage = await unsplashService.searchImage({
-              url: item.url,
-              title: item.title,
-              source: item.source,
-              category: category,
-              isBigStory: item.isBigStory,
-              searchKeywords: keywords,
-            });
-
-            if (unsplashImage) {
-              results.set(item.url, unsplashImage.imageUrl);
-              console.log(
-                `Found Unsplash image for: ${item.title || item.url}`
-              );
-            } else {
-              stillNeedImages.push(item);
-            }
-          } else {
-            stillNeedImages.push(item);
-          }
-        } catch (error) {
-          console.error(`Unsplash error for ${item.url}:`, error);
-          stillNeedImages.push(item);
+      // Update results with AI-generated images
+      aiImages.forEach((image, url) => {
+        if (image && image.imageUrl) {
+          results.set(url, image.imageUrl);
+          console.log(`AI generated photorealistic image for: ${url}`);
         }
-      }
-
-      // Fall back to AI for any remaining items
-      if (
-        stillNeedImages.length > 0 &&
-        (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY)
-      ) {
-        console.log(
-          `Using AI fallback for ${stillNeedImages.length} remaining articles`
-        );
-
-        const aiImages = await aiImageService.generateBulkFallbackImages(
-          stillNeedImages.map((item) => ({
-            url: item.url,
-            title: item.title,
-            source: item.source,
-            category: category || 'Technology',
-            isBigStory: item.isBigStory,
-            imagePrompt: item.imagePrompt,
-          }))
-        );
-
-        // Update results with AI-generated images
-        aiImages.forEach((image, url) => {
-          if (image && image.imageUrl) {
-            results.set(url, image.imageUrl);
-          }
-        });
-      }
+      });
     }
 
     return results;

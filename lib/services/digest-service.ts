@@ -5,8 +5,6 @@ import { NewsSummaryService } from './news-summary-service';
 import { SocialPostSelector } from './social-post-selector';
 import { OpenGraphService } from './opengraph-service';
 import { AIImageService } from './ai-image-service';
-import { UnsplashImageService } from './unsplash-image-service';
-import { AIPromptGenerator } from './ai-prompt-generator';
 import { ImageOptimizer } from './image-optimizer';
 import { getSaaSStockMoversService } from './saas-stock-movers-service';
 
@@ -179,10 +177,8 @@ export class DigestService {
         `Finding images for ${postsNeedingImages.length} social posts`
       );
 
-      // Try Unsplash first, fallback to AI generation if needed
-      const unsplashService = UnsplashImageService.getInstance();
+      // Use AI generation for all images to ensure photorealistic, contextually relevant results
       const aiImageService = AIImageService.getInstance();
-      const promptGenerator = new AIPromptGenerator();
 
       const imagePromises = postsNeedingImages.map(async (post) => {
         // Check if the post has user-posted images in media_urls
@@ -201,76 +197,35 @@ export class DigestService {
         }
 
         // Only generate images if no user-posted images exist
-        // Clean the title by removing platform-specific prefixes
-        let cleanedTitle = post.title;
-        const platformPrefixes = [
-          'Tweet by @',
-          'Tweet by ',
-          'Thread by @',
-          'Thread by ',
-          'Post by @',
-          'Post by ',
-          'Update by @',
-          'Update by ',
-        ];
 
-        for (const prefix of platformPrefixes) {
-          if (cleanedTitle.toLowerCase().startsWith(prefix.toLowerCase())) {
-            cleanedTitle = ''; // Don't use platform-specific titles for image generation
-            break;
-          }
-        }
+        // For social posts, use the actual content body for image generation
+        // This ensures we get contextually relevant images based on what the post is actually about
+        const postContent = post.content_body || post.description || post.ai_summary_short || '';
 
-        // If title was a platform prefix, use description or summary instead
-        const titleForImage =
-          cleanedTitle || post.description || post.ai_summary_short || '';
+        // Extract the first 200 chars of content for a meaningful title
+        const contentSnippet = postContent.length > 200
+          ? postContent.substring(0, 200) + '...'
+          : postContent;
 
-        // First, try to find an image on Unsplash
-        let imageUrl: string | null = null;
+        console.log(
+          `Generating AI image for social post with content: ${contentSnippet.substring(0, 100)}...`
+        );
 
-        // Generate Unsplash search keywords using AI
-        const searchKeywords = await promptGenerator.generateUnsplashKeywords({
-          title: titleForImage,
-          description: post.description || post.ai_summary_short || undefined,
+        // Always use AI generation for photorealistic, contextually relevant images
+        const generatedImage = await aiImageService.generateFallbackImage({
+          url: post.url,
+          title: contentSnippet, // Use actual content instead of generic title
           source: post.creator.display_name,
           category: loungeTheme,
-          isBigStory: false,
+          description: postContent, // Full content as description for better context
+          isBigStory: false, // Square images for social posts
         });
 
-        if (searchKeywords) {
-          const unsplashImage = await unsplashService.searchImage({
-            url: post.url,
-            title: titleForImage,
-            source: post.creator.display_name,
-            category: loungeTheme,
-            description: post.description || post.ai_summary_short || undefined,
-            searchKeywords,
-          });
-
-          if (unsplashImage) {
-            imageUrl = unsplashImage.imageUrl;
-            console.log(`Found Unsplash image for post: ${post.url}`);
-          }
-        }
-
-        // If Unsplash didn't work, fall back to AI generation
-        if (!imageUrl) {
-          console.log(
-            `No Unsplash image found, generating AI image for: ${post.url}`
-          );
-          const generatedImage = await aiImageService.generateFallbackImage({
-            url: post.url,
-            title: titleForImage,
-            source: post.creator.display_name,
-            category: loungeTheme,
-            description: post.description || post.ai_summary_short || undefined,
-            isBigStory: false, // Square images for social posts
-          });
-
-          if (generatedImage) {
-            imageUrl = generatedImage.imageUrl;
-            (post as any).aiGeneratedImage = true;
-          }
+        let imageUrl: string | null = null;
+        if (generatedImage) {
+          imageUrl = generatedImage.imageUrl;
+          (post as any).aiGeneratedImage = true;
+          console.log(`AI generated image for social post: ${post.url}`);
         }
 
         // Update the post with the found or generated image
@@ -472,6 +427,10 @@ export class DigestService {
     unsubscribeToken?: string
   ): Promise<void> {
     try {
+      // Start a new digest session to track duplicate images
+      const { OpenGraphService } = await import('./opengraph-service');
+      OpenGraphService.startDigestSession();
+
       // Get AI-generated news summary for this lounge
       let aiNewsSummary:
         | {
@@ -640,25 +599,41 @@ export class DigestService {
         .order('position');
 
       // Format top social posts for email
-      const formattedTopPosts = topSocialPosts.map((item) => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || undefined,
-        url: item.url,
-        creator_name: item.creator.display_name,
-        platform: item.platform,
-        thumbnail_url: item.thumbnail_url || undefined,
-        published_at: item.published_at,
-        ai_summary_short: item.ai_summary_short || undefined,
-        content_body: item.content_body || undefined,
-        reference_type: item.reference_type as
-          | 'quote'
-          | 'retweet'
-          | 'reply'
-          | undefined,
-        referenced_content: item.referenced_content || undefined,
-        engagement_metrics: (item as any).engagement_metrics || undefined,
-      }));
+      const formattedTopPosts = topSocialPosts.map((item) => {
+        const formatted = {
+          id: item.id,
+          title: item.title,
+          description: item.description || undefined,
+          url: item.url,
+          creator_name: item.creator.display_name,
+          platform: item.platform,
+          thumbnail_url: item.thumbnail_url || undefined,
+          published_at: item.published_at,
+          ai_summary_short: item.ai_summary_short || undefined,
+          content_body: item.content_body || undefined,
+          reference_type: item.reference_type as
+            | 'quote'
+            | 'retweet'
+            | 'reply'
+            | undefined,
+          referenced_content: item.referenced_content || undefined,
+          engagement_metrics: (item as any).engagement_metrics || undefined,
+        };
+
+        // Log engagement metrics for debugging
+        if (item.platform === 'threads' || item.platform === 'linkedin') {
+          console.log(
+            `[DigestService] ${item.platform} post being sent:`,
+            {
+              title: item.title,
+              url: item.url,
+              engagement_metrics: formatted.engagement_metrics,
+            }
+          );
+        }
+
+        return formatted;
+      });
 
       // Send email
       const { error } = await getResendClient().emails.send({
@@ -693,8 +668,20 @@ export class DigestService {
 
       // Update last_sent timestamp in email_digests table
       await this.updateLastSent(recipientEmail, lounge.id);
+
+      // End the digest session to clear image caches
+      OpenGraphService.endDigestSession();
     } catch (error) {
       console.error(`Error sending digest for ${lounge.name}:`, error);
+
+      // End session even on error to clean up
+      try {
+        const { OpenGraphService } = await import('./opengraph-service');
+        OpenGraphService.endDigestSession();
+      } catch (cleanupError) {
+        console.error('Error cleaning up session:', cleanupError);
+      }
+
       throw error;
     }
   }

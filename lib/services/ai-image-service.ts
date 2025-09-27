@@ -80,16 +80,16 @@ export class AIImageService {
         .update(options.url)
         .digest('hex');
 
-      // Check if we already have a generated image for this URL
-      const cachedImage = await this.getCachedImage(urlHash);
-      if (cachedImage) {
-        console.log(`Using cached AI image for: ${options.url}`);
-        return {
-          imageUrl: cachedImage.generated_image_url,
-          prompt: cachedImage.prompt_used,
-          cached: true,
-        };
-      }
+      // CACHING DISABLED - Always generate fresh images
+      // const cachedImage = await this.getCachedImage(urlHash);
+      // if (cachedImage) {
+      //   console.log(`Using cached AI image for: ${options.url}`);
+      //   return {
+      //     imageUrl: cachedImage.generated_image_url,
+      //     prompt: cachedImage.prompt_used,
+      //     cached: true,
+      //   };
+      // }
 
       // First, try to generate a smart prompt using GPT-4o-mini if we have title
       let prompt: string;
@@ -162,12 +162,12 @@ export class AIImageService {
       // Convert base64 to a data URL for temporary storage
       const generatedImageUrl = `data:image/png;base64,${base64Image}`;
 
-      // Store the generated image URL in our cache and get permanent URL
-      let permanentUrl = await this.cacheGeneratedImage(
-        urlHash,
-        options.url,
+      // Store the image permanently but don't cache for reuse
+      // Generate a unique filename using timestamp and random string to avoid conflicts
+      const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      let permanentUrl = await this.storePermanentImage(
         generatedImageUrl,
-        prompt
+        uniqueId
       );
 
       if (!permanentUrl) {
@@ -176,7 +176,7 @@ export class AIImageService {
         await new Promise((resolve) => setTimeout(resolve, 3000));
         permanentUrl = await this.storePermanentImage(
           generatedImageUrl,
-          urlHash
+          uniqueId
         );
 
         if (!permanentUrl) {
@@ -206,56 +206,73 @@ export class AIImageService {
   }
 
   /**
-   * Generate a smart prompt based on article metadata
-   * Using narrative descriptions as recommended by Gemini best practices
+   * Generate a simple, effective prompt for article images
    */
   private generatePrompt(options: GenerateImageOptions): string {
-    const { title, source, category, description, imagePrompt } = options;
+    const { title, description, isBigStory } = options;
 
-    // Select a random style for variety - all professional and suitable for SaaS/business
-    const styles = [
-      'minimalist gradient illustration',
-      'clean geometric pattern',
-      'modern flat design',
-      'abstract gradient mesh',
-      'isometric 3D illustration',
-      'soft gradient background with simple shapes',
-    ];
+    // Extract key concept from the article
+    const text = `${title || ''} ${description || ''}`.toLowerCase();
 
-    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+    // Try to identify specific technologies or products mentioned
+    let visualElement = '';
 
-    // If we have a pre-generated prompt from GPT, use it as inspiration
-    if (imagePrompt && imagePrompt.concept) {
-      const concept = this.simplifyTechConcept(imagePrompt.concept);
-
-      // Use narrative description as recommended by Gemini docs - but keep it SIMPLE
-      return `Create a ${randomStyle} that symbolizes ${concept}. Use a minimal design with only 2-3 simple shapes or elements. The image should have lots of empty space and use soft gradient colors typical of modern SaaS websites. Keep it extremely clean and uncluttered. Absolutely no text, letters, numbers, or words in the image. Avoid complex details, patterns, or busy compositions. The image should be a perfect square with a calm, professional aesthetic.`;
+    // Check for specific technology mentions
+    if (text.includes('ai') || text.includes('artificial intelligence')) {
+      visualElement = 'neural network visualization on computer screen';
+    } else if (text.includes('cloud')) {
+      visualElement = 'modern data center with server racks';
+    } else if (text.includes('app') || text.includes('application')) {
+      visualElement = 'mobile app interface on smartphone';
+    } else if (text.includes('api')) {
+      visualElement = 'API documentation and code on developer screen';
+    } else if (text.includes('database') || text.includes('data')) {
+      visualElement = 'database schema and analytics dashboard';
+    } else if (text.includes('security') || text.includes('cyber')) {
+      visualElement = 'cybersecurity monitoring dashboard';
+    } else if (text.includes('code') || text.includes('programming')) {
+      visualElement = 'developer writing code on multiple monitors';
+    } else if (text.includes('startup')) {
+      visualElement = 'startup workspace with whiteboards and laptops';
+    } else if (text.includes('investment') || text.includes('funding')) {
+      visualElement = 'financial charts and investment documents';
+    } else if (text.includes('automation')) {
+      visualElement = 'automated workflow diagram on screen';
+    } else if (text.includes('blockchain') || text.includes('crypto')) {
+      visualElement = 'blockchain network visualization';
+    } else if (text.includes('machine learning') || text.includes('ml')) {
+      visualElement = 'machine learning model training graphs';
+    } else if (text.includes('devops')) {
+      visualElement = 'CI/CD pipeline dashboard';
+    } else if (text.includes('saas')) {
+      visualElement = 'SaaS dashboard with metrics and charts';
+    } else {
+      // Last resort - extract the first noun from the title
+      const titleWords = (title || '').split(' ');
+      const techWord = titleWords.find(word =>
+        word.length > 4 &&
+        !['with', 'from', 'into', 'over', 'under'].includes(word.toLowerCase())
+      );
+      visualElement = techWord
+        ? `${techWord.toLowerCase()} technology interface`
+        : 'modern technology workspace';
     }
 
-    // Fallback without pre-generated prompt
-    const cleanCategory = category
-      ? category.replace(/\s*(Coffee|Lounge|Room|Hub)$/i, '').trim()
-      : 'business';
+    const composition = isBigStory ? 'wide angle, cinematic' : 'centered, balanced';
 
-    // Simple theme mappings
-    const themes: Record<string, string> = {
-      SaaS: 'growth and transformation',
-      AI: 'learning and discovery',
-      Security: 'protection and trust',
-      Startup: 'innovation and ambition',
-      Finance: 'value and stability',
-      Developer: 'creation and building',
-      Product: 'design and user experience',
-      Marketing: 'connection and communication',
-      Venture: 'investment and opportunity',
-      Crypto: 'digital transformation',
-      Growth: 'expansion and success',
-    };
+    // Create contextual photorealistic prompt
+    const prompt = `Photorealistic image of ${visualElement}, ${composition} composition, natural lighting, professional photography style, high quality, detailed, no text or logos`;
 
-    const theme = themes[cleanCategory] || 'innovation and progress';
+    return prompt;
+  }
 
-    // Create a simple narrative prompt - emphasis on MINIMAL
-    return `Create a ${randomStyle} representing ${theme}. Use only 2-3 simple geometric shapes or abstract elements. The design should be extremely minimal with lots of white space. Use soft gradients in professional colors (blues, purples, or teals). Keep everything clean and uncluttered like a modern SaaS landing page hero image. Make it a perfect square. No text, numbers, letters, or words anywhere in the image. Avoid complex patterns, detailed illustrations, or busy compositions.`;
+  /**
+   * Simplified fallback if needed
+   */
+  private generateSimplePrompt(): string {
+    const concepts = ['innovation', 'growth', 'technology', 'collaboration', 'progress'];
+    const randomConcept = concepts[Math.floor(Math.random() * concepts.length)];
+    return `Professional photograph representing ${randomConcept}, modern aesthetic, clean composition, photorealistic`;
   }
 
   /**

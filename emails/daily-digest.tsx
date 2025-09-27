@@ -1012,7 +1012,9 @@ export const DailyDigestEmail = ({
                                       </td>
                                     </tr>
                                   </table>
-                                  {post.engagement_metrics && (
+                                  {post.engagement_metrics &&
+                                    post.platform !== 'threads' &&
+                                    post.platform !== 'linkedin' && (
                                     <Text style={socialPostEngagement}>
                                       {post.engagement_metrics.likes &&
                                         `❤️ ${post.engagement_metrics.likes.toLocaleString()}`}
