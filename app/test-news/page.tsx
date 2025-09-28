@@ -62,6 +62,7 @@ export default function TestNewsPage() {
   const [error, setError] = useState<string | null>(null);
   const [emailPreview, setEmailPreview] = useState<string | null>(null);
   const [saasNewsData, setSaasNewsData] = useState<any>(null);
+  const [hybridNewsData, setHybridNewsData] = useState<any>(null);
   const [digestData, setDigestData] = useState<any>(null);
 
   useEffect(() => {
@@ -173,6 +174,39 @@ export default function TestNewsPage() {
     }
   };
 
+  const triggerHybridNewsGeneration = async () => {
+    setLoading('hybrid-news');
+    setError(null);
+    try {
+      // Use the new hybrid endpoint (RSS + GPT-5)
+      const response = await fetch('/api/test-news/generate-saas-news-hybrid?mode=hybrid');
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || 'Failed to generate hybrid news');
+      setHybridNewsData(data);
+
+      // Automatically trigger email preview after successful hybrid news generation
+      setLoading('digest-preview');
+      try {
+        const previewResponse = await fetch('/api/test-news/preview-digest', {
+          method: 'POST',
+        });
+        const previewData = await previewResponse.json();
+        if (!previewResponse.ok)
+          throw new Error(previewData.error || 'Failed to generate digest preview');
+        setDigestData(previewData.digestData);
+        setEmailPreview(previewData.html);
+      } catch (previewErr) {
+        console.error('Failed to generate email preview:', previewErr);
+        // Don't show error for preview failure, as hybrid news was successful
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const previewEmailDigest = async () => {
     setLoading('digest-preview');
     setError(null);
@@ -236,10 +270,10 @@ export default function TestNewsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Newspaper className="h-5 w-5" />
-              SaaS News Generation
+              SaaS News (Pure GPT-5)
             </CardTitle>
             <CardDescription>
-              Triggers the same process as /api/cron/generate-saas-news
+              Old method - Pure GPT-5 generation (may have fake URLs)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -247,25 +281,72 @@ export default function TestNewsPage() {
               onClick={triggerSaasNewsGeneration}
               disabled={loading === 'saas-news'}
               className="w-full"
+              variant="outline"
             >
               {loading === 'saas-news' ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating SaaS News...
+                  Generating (Old Method)...
                 </>
               ) : (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Generate SaaS News
+                  Generate (Old Method)
                 </>
               )}
             </Button>
 
             {saasNewsData && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
-                <h3 className="font-semibold mb-2">Generation Result:</h3>
+                <h3 className="font-semibold mb-2">Old Method Result:</h3>
                 <pre className="text-xs overflow-auto">
                   {JSON.stringify(saasNewsData, null, 2)}
+                </pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Newspaper className="h-5 w-5" />
+              Hybrid News (RSS + GPT-5)
+              <Badge className="ml-2">NEW</Badge>
+            </CardTitle>
+            <CardDescription>
+              New method - Real RSS feeds + GPT-5 curation
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              onClick={triggerHybridNewsGeneration}
+              disabled={loading === 'hybrid-news'}
+              className="w-full"
+            >
+              {loading === 'hybrid-news' ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Fetching RSS & Curating...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Generate Hybrid News
+                </>
+              )}
+            </Button>
+
+            {hybridNewsData && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold mb-2">Hybrid Result:</h3>
+                {hybridNewsData.success && (
+                  <div className="mb-2 text-sm text-green-600">
+                    ✅ Mode: {hybridNewsData.mode} | Duration: {hybridNewsData.duration}ms
+                  </div>
+                )}
+                <pre className="text-xs overflow-auto">
+                  {JSON.stringify(hybridNewsData, null, 2)}
                 </pre>
               </div>
             )}
