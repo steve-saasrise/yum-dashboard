@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SAAS_RSS_FEEDS, RSSFeedSource, getRSSFeedService } from '@/lib/services/rss-feed-service';
+import {
+  SAAS_RSS_FEEDS,
+  RSSFeedSource,
+  getRSSFeedService,
+} from '@/lib/services/rss-feed-service';
 import Parser from 'rss-parser';
 
 export async function GET(request: NextRequest) {
@@ -64,14 +68,16 @@ export async function GET(request: NextRequest) {
         // Get sample titles (first 3)
         feedResult.sampleTitles = articles
           .slice(0, 3)
-          .map(a => a.title || 'No title')
+          .map((a) => a.title || 'No title')
           .filter(Boolean);
 
-        console.log(`${feed.name}: ${feedResult.articleCount} total, ${feedResult.last24h} in 24h, ${feedResult.last48h} in 48h (${Date.now() - startTime}ms)`);
-
+        console.log(
+          `${feed.name}: ${feedResult.articleCount} total, ${feedResult.last24h} in 24h, ${feedResult.last48h} in 48h (${Date.now() - startTime}ms)`
+        );
       } catch (error) {
         feedResult.status = 'error';
-        feedResult.error = error instanceof Error ? error.message : 'Unknown error';
+        feedResult.error =
+          error instanceof Error ? error.message : 'Unknown error';
         console.error(`Failed to fetch ${feed.name}:`, error);
       }
 
@@ -97,10 +103,10 @@ export async function GET(request: NextRequest) {
         },
       },
       health: {
-        working: results.filter(r => r.status === 'success').length,
-        failed: results.filter(r => r.status === 'error').length,
-        feeds24h: results.filter(r => r.last24h > 0).length,
-        feeds48h: results.filter(r => r.last48h > 0).length,
+        working: results.filter((r) => r.status === 'success').length,
+        failed: results.filter((r) => r.status === 'error').length,
+        feeds24h: results.filter((r) => r.last24h > 0).length,
+        feeds48h: results.filter((r) => r.last48h > 0).length,
       },
     };
 
@@ -108,15 +114,14 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
     });
-
   } catch (error) {
     console.error('[Test RSS] Error:', error);
     return NextResponse.json(
       {
         error: 'Failed to test RSS feeds',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

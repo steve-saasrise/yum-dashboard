@@ -99,7 +99,7 @@ async function testFeed(feed) {
     let last24h = 0;
     let last48h = 0;
 
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.pubDate) {
         const pubDate = new Date(item.pubDate).getTime();
         const age = now - pubDate;
@@ -109,24 +109,52 @@ async function testFeed(feed) {
     });
 
     // Check if titles look like news (not guides/reviews)
-    const newsKeywords = ['announces', 'launches', 'raises', 'acquires', 'reports', 'files', 'partners'];
-    const opinionKeywords = ['how to', 'guide', 'review', 'best', 'top 10', 'why you'];
+    const newsKeywords = [
+      'announces',
+      'launches',
+      'raises',
+      'acquires',
+      'reports',
+      'files',
+      'partners',
+    ];
+    const opinionKeywords = [
+      'how to',
+      'guide',
+      'review',
+      'best',
+      'top 10',
+      'why you',
+    ];
 
     let newsCount = 0;
     let opinionCount = 0;
 
-    items.slice(0, 5).forEach(item => {
+    items.slice(0, 5).forEach((item) => {
       const title = (item.title || '').toLowerCase();
-      if (newsKeywords.some(keyword => title.includes(keyword))) newsCount++;
-      if (opinionKeywords.some(keyword => title.includes(keyword))) opinionCount++;
+      if (newsKeywords.some((keyword) => title.includes(keyword))) newsCount++;
+      if (opinionKeywords.some((keyword) => title.includes(keyword)))
+        opinionCount++;
     });
 
-    console.log(`✅ ${feed.name}: ${items.length} total, ${last24h} in 24h, ${last48h} in 48h`);
-    console.log(`   Content: ${newsCount} news-like, ${opinionCount} opinion-like in first 5`);
+    console.log(
+      `✅ ${feed.name}: ${items.length} total, ${last24h} in 24h, ${last48h} in 48h`
+    );
+    console.log(
+      `   Content: ${newsCount} news-like, ${opinionCount} opinion-like in first 5`
+    );
     if (items.length > 0) {
       console.log(`   Sample: "${items[0].title}"`);
     }
-    return { ...feed, working: true, total: items.length, last24h, last48h, newsCount, opinionCount };
+    return {
+      ...feed,
+      working: true,
+      total: items.length,
+      last24h,
+      last48h,
+      newsCount,
+      opinionCount,
+    };
   } catch (error) {
     console.log(`❌ ${feed.name}: ${error.message}`);
     return { ...feed, working: false, error: error.message };
@@ -145,9 +173,9 @@ async function main() {
 
   console.log('=== SUMMARY ===\n');
 
-  const working = results.filter(r => r.working);
-  const withRecent = working.filter(r => r.last24h > 0);
-  const newsOriented = working.filter(r => r.newsCount >= r.opinionCount);
+  const working = results.filter((r) => r.working);
+  const withRecent = working.filter((r) => r.last24h > 0);
+  const newsOriented = working.filter((r) => r.newsCount >= r.opinionCount);
 
   console.log(`Working feeds: ${working.length}/${results.length}`);
   console.log(`Feeds with 24h content: ${withRecent.length}`);
@@ -155,16 +183,16 @@ async function main() {
 
   console.log('\n✅ Best news feeds (working + recent content):');
   working
-    .filter(f => f.last24h > 0 || f.last48h > 5)
+    .filter((f) => f.last24h > 0 || f.last48h > 5)
     .sort((a, b) => b.last24h - a.last24h)
-    .forEach(f => {
+    .forEach((f) => {
       console.log(`  - ${f.name}: ${f.total} articles (${f.last24h} in 24h)`);
     });
 
-  const failed = results.filter(r => !r.working);
+  const failed = results.filter((r) => !r.working);
   if (failed.length > 0) {
     console.log('\n❌ Failed feeds:');
-    failed.forEach(f => {
+    failed.forEach((f) => {
       console.log(`  - ${f.name}: ${f.error}`);
     });
   }

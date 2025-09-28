@@ -8,7 +8,9 @@ export async function GET(request: NextRequest) {
     const maxResults = parseInt(searchParams.get('maxResults') || '10');
     const timeframe = searchParams.get('timeframe') || '24h';
 
-    console.log(`[Test Funding] Starting funding search for ${loungeType} (timeframe: ${timeframe})`);
+    console.log(
+      `[Test Funding] Starting funding search for ${loungeType} (timeframe: ${timeframe})`
+    );
 
     const fundingService = getGPT5MiniFundingService();
     const startTime = Date.now();
@@ -27,29 +29,34 @@ export async function GET(request: NextRequest) {
       duration: `${duration}ms`,
       timeframe,
       loungeType,
-      sources: [...new Set(result.fundingItems.map(item => item.source))],
-      thesaasnewsCount: result.fundingItems.filter(
-        item => item.sourceUrl.includes('thesaasnews.com')
+      sources: [...new Set(result.fundingItems.map((item) => item.source))],
+      thesaasnewsCount: result.fundingItems.filter((item) =>
+        item.sourceUrl.includes('thesaasnews.com')
       ).length,
-      averageAmountLength: result.fundingItems
-        .map(item => item.amount?.length || 0)
-        .reduce((a, b) => a + b, 0) / (result.fundingItems.length || 1),
-      seriesBreakdown: result.fundingItems.reduce((acc, item) => {
-        const series = item.series || 'Unknown';
-        acc[series] = (acc[series] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>),
-      industries: [...new Set(result.fundingItems
-        .map(item => item.industry)
-        .filter(Boolean)
-      )],
+      averageAmountLength:
+        result.fundingItems
+          .map((item) => item.amount?.length || 0)
+          .reduce((a, b) => a + b, 0) / (result.fundingItems.length || 1),
+      seriesBreakdown: result.fundingItems.reduce(
+        (acc, item) => {
+          const series = item.series || 'Unknown';
+          acc[series] = (acc[series] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
+      industries: [
+        ...new Set(
+          result.fundingItems.map((item) => item.industry).filter(Boolean)
+        ),
+      ],
       hasRealUrls: result.fundingItems.every(
-        item => item.sourceUrl && item.sourceUrl.startsWith('http')
+        (item) => item.sourceUrl && item.sourceUrl.startsWith('http')
       ),
     };
 
     // Sample funding items for inspection
-    const sampleItems = result.fundingItems.slice(0, 3).map(item => ({
+    const sampleItems = result.fundingItems.slice(0, 3).map((item) => ({
       company: item.company,
       amount: item.amount,
       series: item.series,

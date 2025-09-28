@@ -85,7 +85,7 @@ async function testFeed(feed) {
     let last48h = 0;
     let lastWeek = 0;
 
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.pubDate) {
         const pubDate = new Date(item.pubDate).getTime();
         const age = now - pubDate;
@@ -96,7 +96,9 @@ async function testFeed(feed) {
     });
 
     console.log(`✅ ${feed.name}: ${items.length} articles`);
-    console.log(`   Recent: ${last24h} (24h), ${last48h} (48h), ${lastWeek} (week)`);
+    console.log(
+      `   Recent: ${last24h} (24h), ${last48h} (48h), ${lastWeek} (week)`
+    );
     if (items.length > 0) {
       console.log(`   Latest: "${items[0].title}"`);
     }
@@ -106,7 +108,7 @@ async function testFeed(feed) {
       total: items.length,
       last24h,
       last48h,
-      lastWeek
+      lastWeek,
     };
   } catch (error) {
     console.log(`❌ ${feed.name}: ${error.message}`);
@@ -126,9 +128,9 @@ async function main() {
 
   console.log('=== SUMMARY ===\n');
 
-  const working = results.filter(r => r.working);
-  const withDaily = working.filter(r => r.last24h > 0);
-  const withWeekly = working.filter(r => r.lastWeek > 0);
+  const working = results.filter((r) => r.working);
+  const withDaily = working.filter((r) => r.last24h > 0);
+  const withWeekly = working.filter((r) => r.lastWeek > 0);
 
   console.log(`Working feeds: ${working.length}/${results.length}`);
   console.log(`Feeds with daily content: ${withDaily.length}`);
@@ -136,17 +138,18 @@ async function main() {
 
   console.log('\n✅ Best SaaS feeds (working + recent content):');
   working
-    .filter(f => f.lastWeek > 0)
+    .filter((f) => f.lastWeek > 0)
     .sort((a, b) => b.lastWeek - a.lastWeek)
-    .forEach(f => {
-      const frequency = f.last24h > 0 ? 'daily' : f.last48h > 0 ? '2-3 days' : 'weekly';
+    .forEach((f) => {
+      const frequency =
+        f.last24h > 0 ? 'daily' : f.last48h > 0 ? '2-3 days' : 'weekly';
       console.log(`  - ${f.name}: ${f.total} articles (updates ${frequency})`);
     });
 
-  const failed = results.filter(r => !r.working);
+  const failed = results.filter((r) => !r.working);
   if (failed.length > 0) {
     console.log('\n❌ Failed feeds:');
-    failed.forEach(f => {
+    failed.forEach((f) => {
       console.log(`  - ${f.name}: ${f.error}`);
     });
   }

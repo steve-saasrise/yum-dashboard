@@ -1,6 +1,10 @@
 import OpenAI from 'openai';
 import type { RSSArticle } from './rss-feed-service';
-import type { NewsItem, BigStory, GenerateNewsResult } from './gpt5-news-service';
+import type {
+  NewsItem,
+  BigStory,
+  GenerateNewsResult,
+} from './gpt5-news-service';
 
 interface CurationConfig {
   loungeType: string;
@@ -61,12 +65,15 @@ export class GPT5CuratorService {
         reasoning: {
           effort: 'medium',
         },
-        instructions: `You are a professional SaaS news curator. Today's date is ${new Date().toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })}. Your task is to select and summarize the most important news from the provided RSS articles.`,
+        instructions: `You are a professional SaaS news curator. Today's date is ${new Date().toLocaleDateString(
+          'en-US',
+          {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }
+        )}. Your task is to select and summarize the most important news from the provided RSS articles.`,
         input: prompt,
       });
 
@@ -78,12 +85,14 @@ export class GPT5CuratorService {
         const outputTextItem = response.output.find(
           (item: any) =>
             item.type === 'output_text' ||
-            (item.type === 'message' && item.content?.[0]?.type === 'output_text')
+            (item.type === 'message' &&
+              item.content?.[0]?.type === 'output_text')
         );
         if (outputTextItem) {
-          content = outputTextItem.type === 'output_text'
-            ? outputTextItem.text
-            : outputTextItem.content?.[0]?.text || '';
+          content =
+            outputTextItem.type === 'output_text'
+              ? outputTextItem.text
+              : outputTextItem.content?.[0]?.text || '';
         }
       } else if (response.text) {
         content = response.text;
@@ -105,7 +114,9 @@ export class GPT5CuratorService {
       const result: GenerateNewsResult = {
         items: this.validateAndFormatItems(curated.bullets || []),
         bigStory: this.validateBigStory(curated.bigStory),
-        specialSection: this.validateAndFormatItems(curated.specialSection || []),
+        specialSection: this.validateAndFormatItems(
+          curated.specialSection || []
+        ),
         specialSectionTitle: 'SaaS Funding & M&A',
         topic: config.loungeType,
         generatedAt: new Date().toISOString(),
@@ -114,7 +125,7 @@ export class GPT5CuratorService {
       const duration = Date.now() - startTime;
       console.log(
         `[GPT-5 Curator] Curated in ${duration}ms: ` +
-        `${result.items.length} bullets, ${result.specialSection?.length || 0} funding items`
+          `${result.items.length} bullets, ${result.specialSection?.length || 0} funding items`
       );
 
       return result;
@@ -216,7 +227,9 @@ Return ONLY valid JSON with this structure:
     };
   }
 
-  async fallbackToGeneration(config: CurationConfig): Promise<GenerateNewsResult> {
+  async fallbackToGeneration(
+    config: CurationConfig
+  ): Promise<GenerateNewsResult> {
     console.log('[GPT-5 Curator] Falling back to pure generation mode');
 
     // This is a simplified fallback that generates news without RSS input
@@ -231,7 +244,8 @@ Return ONLY valid JSON with this structure:
       messages: [
         {
           role: 'system',
-          content: 'You are a SaaS industry news expert. Generate realistic, current news.',
+          content:
+            'You are a SaaS industry news expert. Generate realistic, current news.',
         },
         {
           role: 'user',
@@ -253,7 +267,9 @@ Return ONLY valid JSON with this structure:
     return {
       items: this.validateAndFormatItems(generated.bullets || []),
       bigStory: this.validateBigStory(generated.bigStory),
-      specialSection: this.validateAndFormatItems(generated.specialSection || []),
+      specialSection: this.validateAndFormatItems(
+        generated.specialSection || []
+      ),
       specialSectionTitle: 'SaaS Funding & M&A',
       topic: config.loungeType,
       generatedAt: new Date().toISOString(),

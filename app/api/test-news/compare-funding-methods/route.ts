@@ -39,16 +39,19 @@ export async function GET(request: NextRequest) {
     const comparison = {
       withDedicatedFunding: {
         fundingCount: withDedicatedFunding.specialSection?.length || 0,
-        sources: [...new Set(
-          (withDedicatedFunding.specialSection || [])
-            .map(item => item.source)
-            .filter(Boolean)
-        )],
-        hasTheSaasNews: (withDedicatedFunding.specialSection || [])
-          .some(item => item.sourceUrl?.includes('thesaasnews.com')),
+        sources: [
+          ...new Set(
+            (withDedicatedFunding.specialSection || [])
+              .map((item) => item.source)
+              .filter(Boolean)
+          ),
+        ],
+        hasTheSaasNews: (withDedicatedFunding.specialSection || []).some(
+          (item) => item.sourceUrl?.includes('thesaasnews.com')
+        ),
         sampleFunding: (withDedicatedFunding.specialSection || [])
           .slice(0, 2)
-          .map(item => ({
+          .map((item) => ({
             text: item.text,
             amount: item.amount,
             source: item.source,
@@ -57,16 +60,19 @@ export async function GET(request: NextRequest) {
       },
       withoutDedicatedFunding: {
         fundingCount: withoutDedicatedFunding.specialSection?.length || 0,
-        sources: [...new Set(
-          (withoutDedicatedFunding.specialSection || [])
-            .map(item => item.source)
-            .filter(Boolean)
-        )],
-        hasTheSaasNews: (withoutDedicatedFunding.specialSection || [])
-          .some(item => item.sourceUrl?.includes('thesaasnews.com')),
+        sources: [
+          ...new Set(
+            (withoutDedicatedFunding.specialSection || [])
+              .map((item) => item.source)
+              .filter(Boolean)
+          ),
+        ],
+        hasTheSaasNews: (withoutDedicatedFunding.specialSection || []).some(
+          (item) => item.sourceUrl?.includes('thesaasnews.com')
+        ),
         sampleFunding: (withoutDedicatedFunding.specialSection || [])
           .slice(0, 2)
-          .map(item => ({
+          .map((item) => ({
             text: item.text,
             amount: item.amount,
             source: item.source,
@@ -78,17 +84,27 @@ export async function GET(request: NextRequest) {
           (withDedicatedFunding.specialSection?.length || 0) -
           (withoutDedicatedFunding.specialSection?.length || 0),
         dedicatedHasMoreSources:
-          [...new Set((withDedicatedFunding.specialSection || [])
-            .map(item => item.source)
-            .filter(Boolean))].length >
-          [...new Set((withoutDedicatedFunding.specialSection || [])
-            .map(item => item.source)
-            .filter(Boolean))].length,
+          [
+            ...new Set(
+              (withDedicatedFunding.specialSection || [])
+                .map((item) => item.source)
+                .filter(Boolean)
+            ),
+          ].length >
+          [
+            ...new Set(
+              (withoutDedicatedFunding.specialSection || [])
+                .map((item) => item.source)
+                .filter(Boolean)
+            ),
+          ].length,
         bothHaveRealUrls:
-          (withDedicatedFunding.specialSection || [])
-            .every(item => item.sourceUrl?.startsWith('http')) &&
-          (withoutDedicatedFunding.specialSection || [])
-            .every(item => item.sourceUrl?.startsWith('http')),
+          (withDedicatedFunding.specialSection || []).every((item) =>
+            item.sourceUrl?.startsWith('http')
+          ) &&
+          (withoutDedicatedFunding.specialSection || []).every((item) =>
+            item.sourceUrl?.startsWith('http')
+          ),
       },
     };
 
@@ -96,7 +112,8 @@ export async function GET(request: NextRequest) {
       success: true,
       loungeType,
       comparison,
-      message: 'Comparison complete. Check the results to see the difference between dedicated funding search and RSS-only approach.',
+      message:
+        'Comparison complete. Check the results to see the difference between dedicated funding search and RSS-only approach.',
     });
   } catch (error: any) {
     console.error('[Compare Funding] Error:', error);

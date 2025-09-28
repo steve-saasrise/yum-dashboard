@@ -146,7 +146,8 @@ export class RSSFeedService {
           pubDate: item.pubDate || new Date().toISOString(),
           content: this.cleanText(item.content || item.description || ''),
           contentSnippet: this.cleanText(
-            item.contentSnippet || this.extractSnippet(item.content || item.description || '')
+            item.contentSnippet ||
+              this.extractSnippet(item.content || item.description || '')
           ),
           source: feedSource.name,
           sourceCategory: feedSource.category,
@@ -264,8 +265,12 @@ export class RSSFeedService {
       } else {
         // Keep the article with higher priority source
         const existing = seen.get(key)!;
-        const existingPriority = SAAS_RSS_FEEDS.find(f => f.name === existing.source)?.priority || 999;
-        const currentPriority = SAAS_RSS_FEEDS.find(f => f.name === article.source)?.priority || 999;
+        const existingPriority =
+          SAAS_RSS_FEEDS.find((f) => f.name === existing.source)?.priority ||
+          999;
+        const currentPriority =
+          SAAS_RSS_FEEDS.find((f) => f.name === article.source)?.priority ||
+          999;
 
         if (currentPriority < existingPriority) {
           seen.set(key, article);
@@ -290,8 +295,12 @@ export class RSSFeedService {
     const amount = amountMatch ? amountMatch[0] : '';
 
     // Extract company name (usually first few words before "raises" or "secures")
-    const companyMatch = title.match(/^([^,]+?)(?:\s+raises|\s+secures|\s+closes|\s+gets)/i);
-    const company = companyMatch ? companyMatch[1].trim() : title.substring(0, 30);
+    const companyMatch = title.match(
+      /^([^,]+?)(?:\s+raises|\s+secures|\s+closes|\s+gets)/i
+    );
+    const company = companyMatch
+      ? companyMatch[1].trim()
+      : title.substring(0, 30);
 
     // Create key from company + amount (if funding) or just normalized title
     if (amount && company) {
@@ -299,9 +308,7 @@ export class RSSFeedService {
     }
 
     // Fallback to normalized title
-    return title
-      .substring(0, 50)
-      .replace(/[^a-z0-9]/g, '');
+    return title.substring(0, 50).replace(/[^a-z0-9]/g, '');
   }
 
   categorizeArticles(articles: RSSArticle[]): {
@@ -320,12 +327,25 @@ export class RSSFeedService {
 
       // Check if it's a funding article based on keywords
       const fundingKeywords = [
-        'raises', 'secures', 'funding', 'series', 'seed',
-        'investment', 'valuation', 'acquires', 'acquisition',
-        'merger', 'm&a', 'ipo', 'closes $', 'raises $'
+        'raises',
+        'secures',
+        'funding',
+        'series',
+        'seed',
+        'investment',
+        'valuation',
+        'acquires',
+        'acquisition',
+        'merger',
+        'm&a',
+        'ipo',
+        'closes $',
+        'raises $',
       ];
 
-      const isFunding = fundingKeywords.some(keyword => titleLower.includes(keyword));
+      const isFunding = fundingKeywords.some((keyword) =>
+        titleLower.includes(keyword)
+      );
 
       if (isFunding || article.sourceCategory === 'funding') {
         categorized.funding.push(article);
@@ -338,7 +358,7 @@ export class RSSFeedService {
 
     console.log(
       `[RSS Feed] Categorized: ${categorized.funding.length} funding, ` +
-      `${categorized.news.length} news, ${categorized.wire.length} wire`
+        `${categorized.news.length} news, ${categorized.wire.length} wire`
     );
 
     return categorized;

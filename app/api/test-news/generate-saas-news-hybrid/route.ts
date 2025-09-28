@@ -11,7 +11,10 @@ export async function GET(request: NextRequest) {
   try {
     // Check for API key in headers
     const apiKey = request.headers.get('x-api-key');
-    if (apiKey !== process.env.TEST_API_KEY && process.env.NODE_ENV === 'production') {
+    if (
+      apiKey !== process.env.TEST_API_KEY &&
+      process.env.NODE_ENV === 'production'
+    ) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -32,14 +35,14 @@ export async function GET(request: NextRequest) {
         success: true,
         mode: 'rss-test',
         totalArticles: articles.length,
-        articles: articles.slice(0, 10).map(a => ({
+        articles: articles.slice(0, 10).map((a) => ({
           title: a.title,
           source: a.source,
           url: a.link,
           pubDate: a.pubDate,
           category: a.sourceCategory,
         })),
-        sources: [...new Set(articles.map(a => a.source))],
+        sources: [...new Set(articles.map((a) => a.source))],
       });
     }
 
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     // Check if we got real URLs (from RSS) vs generated ones
     const realUrls = result.items.filter(
-      item => item.sourceUrl && item.sourceUrl.startsWith('http')
+      (item) => item.sourceUrl && item.sourceUrl.startsWith('http')
     ).length;
 
     // Save the generated news to the database for the email preview
@@ -84,7 +87,7 @@ export async function GET(request: NextRequest) {
         // Format the result to match the expected structure
         const summaryToSave = {
           bigStory: result.bigStory,
-          bullets: result.items.map(item => ({
+          bullets: result.items.map((item) => ({
             text: item.text,
             summary: item.summary,
             sourceUrl: item.sourceUrl,
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
             amount: item.amount,
             series: item.series,
           })),
-          specialSection: result.specialSection?.map(item => ({
+          specialSection: result.specialSection?.map((item) => ({
             text: item.text,
             summary: item.summary,
             sourceUrl: item.sourceUrl,
@@ -111,10 +114,16 @@ export async function GET(request: NextRequest) {
         };
 
         await summaryService.saveSummary(summaryToSave);
-        console.log('[Test Hybrid News] Saved news summary to database for lounge:', lounge.id);
+        console.log(
+          '[Test Hybrid News] Saved news summary to database for lounge:',
+          lounge.id
+        );
       }
     } catch (saveError) {
-      console.error('[Test Hybrid News] Failed to save summary to database:', saveError);
+      console.error(
+        '[Test Hybrid News] Failed to save summary to database:',
+        saveError
+      );
       // Don't fail the request if saving fails, just log the error
     }
 
@@ -154,7 +163,10 @@ export async function POST(request: NextRequest) {
   try {
     // Check for API key in headers
     const apiKey = request.headers.get('x-api-key');
-    if (apiKey !== process.env.TEST_API_KEY && process.env.NODE_ENV === 'production') {
+    if (
+      apiKey !== process.env.TEST_API_KEY &&
+      process.env.NODE_ENV === 'production'
+    ) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

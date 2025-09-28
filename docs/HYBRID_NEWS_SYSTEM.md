@@ -13,6 +13,7 @@ RSS Feeds → Parser → Deduplication → GPT-5 Curator → Formatted Digest
 ## Key Components
 
 ### 1. RSS Feed Service (`lib/services/rss-feed-service.ts`)
+
 - Fetches from 7 primary SaaS news sources
 - Filters articles from last 24 hours (prefers fresh content)
 - Falls back to 48 hours if fewer than 10 articles found
@@ -20,12 +21,14 @@ RSS Feeds → Parser → Deduplication → GPT-5 Curator → Formatted Digest
 - Categorizes into funding, news, and wire services
 
 ### 2. GPT-5 Curator Service (`lib/services/gpt5-curator-service.ts`)
+
 - Takes RSS articles as input
 - Uses GPT-5 to select most impactful stories
 - Generates summaries explaining why each story matters
 - Ensures no duplicate stories across sections
 
 ### 3. Hybrid News Service (`lib/services/hybrid-news-service.ts`)
+
 - Orchestrates the entire flow
 - Handles fallback to pure generation if RSS fails
 - Prioritizes articles by relevance
@@ -33,15 +36,15 @@ RSS Feeds → Parser → Deduplication → GPT-5 Curator → Formatted Digest
 
 ## RSS Feed Sources
 
-| Source | Category | Priority | Focus |
-|--------|----------|----------|-------|
-| TechCrunch | Mixed | 1 | Breaking tech/SaaS news |
-| TechCrunch Funding | Funding | 1 | VC and funding rounds |
-| The SaaS News | Funding | 1 | Specialized SaaS funding |
-| Crunchbase News | Funding | 1 | Verified funding data |
-| VentureBeat | News | 2 | Enterprise tech |
-| PR Newswire | Wire | 2 | Official announcements |
-| Business Wire | Wire | 3 | SEC filings, IPOs |
+| Source             | Category | Priority | Focus                    |
+| ------------------ | -------- | -------- | ------------------------ |
+| TechCrunch         | Mixed    | 1        | Breaking tech/SaaS news  |
+| TechCrunch Funding | Funding  | 1        | VC and funding rounds    |
+| The SaaS News      | Funding  | 1        | Specialized SaaS funding |
+| Crunchbase News    | Funding  | 1        | Verified funding data    |
+| VentureBeat        | News     | 2        | Enterprise tech          |
+| PR Newswire        | Wire     | 2        | Official announcements   |
+| Business Wire      | Wire     | 3        | SEC filings, IPOs        |
 
 ## Configuration
 
@@ -85,16 +88,19 @@ await queueAINewsGeneration([saasLounge], false);
 ### Testing Endpoints
 
 #### Test RSS Feeds Only
+
 ```bash
 GET /api/test-news/generate-saas-news-hybrid?testRss=true
 ```
 
 #### Test Hybrid Generation
+
 ```bash
 GET /api/test-news/generate-saas-news-hybrid?mode=hybrid
 ```
 
 #### Test with Custom Config
+
 ```bash
 POST /api/test-news/generate-saas-news-hybrid
 {
@@ -118,6 +124,7 @@ POST /api/test-news/generate-saas-news-hybrid
 ## Monitoring
 
 The system logs detailed information:
+
 - RSS feed fetch status and counts
 - Article deduplication stats
 - GPT-5 curation results
@@ -127,6 +134,7 @@ The system logs detailed information:
 ## Database Storage
 
 News is saved with metadata indicating source:
+
 - `model_used`: "hybrid-gpt5-rss" or "gpt-5"
 - `generation_mode`: "hybrid" or "pure"
 - `articles_found`: Number of RSS articles

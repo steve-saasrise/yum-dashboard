@@ -21,14 +21,16 @@ interface AINewsJobData {
 // Feature flag to enable/disable hybrid mode
 const USE_HYBRID_MODE = process.env.USE_HYBRID_NEWS === 'true';
 
-export async function processAINewsGenerationHybrid(job: { data: AINewsJobData }) {
+export async function processAINewsGenerationHybrid(job: {
+  data: AINewsJobData;
+}) {
   const startTime = Date.now();
   const { loungeId, loungeName, loungeDescription, isGeneral } = job.data;
   const jobId = (job as any).id || 'test-job';
 
   console.log(
     `[AI News Worker] Processing news generation for: ${loungeName} (Job ID: ${jobId}) ` +
-    `[Mode: ${USE_HYBRID_MODE ? 'HYBRID RSS+GPT5' : 'Pure GPT5'}]`
+      `[Mode: ${USE_HYBRID_MODE ? 'HYBRID RSS+GPT5' : 'Pure GPT5'}]`
   );
 
   try {
@@ -146,7 +148,7 @@ export async function processAINewsGenerationHybrid(job: { data: AINewsJobData }
     const processingTime = Date.now() - startTime;
     console.log(
       `[AI News Worker] Successfully generated news for ${loungeName} in ${processingTime}ms ` +
-      `(Summary ID: ${savedSummary.id}) [Mode: ${USE_HYBRID_MODE ? 'HYBRID' : 'Pure'}]`
+        `(Summary ID: ${savedSummary.id}) [Mode: ${USE_HYBRID_MODE ? 'HYBRID' : 'Pure'}]`
     );
 
     return {
@@ -208,7 +210,7 @@ export function createAINewsProcessorWorkerHybrid() {
   worker.on('completed', (job) => {
     console.log(
       `[AI News Worker] Job ${job.id} completed for ${job.data.loungeName} ` +
-      `[Mode: ${USE_HYBRID_MODE ? 'HYBRID' : 'Pure'}]`
+        `[Mode: ${USE_HYBRID_MODE ? 'HYBRID' : 'Pure'}]`
     );
   });
 
@@ -225,7 +227,7 @@ export function createAINewsProcessorWorkerHybrid() {
 
   console.log(
     `[AI News Worker] Started with concurrency: ${WORKER_CONCURRENCY.AI_NEWS_GENERATION} ` +
-    `[Mode: ${USE_HYBRID_MODE ? 'HYBRID RSS+GPT5' : 'Pure GPT5'}]`
+      `[Mode: ${USE_HYBRID_MODE ? 'HYBRID RSS+GPT5' : 'Pure GPT5'}]`
   );
 
   return worker;

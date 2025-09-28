@@ -1,4 +1,8 @@
-import { getRSSFeedService, SAAS_RSS_FEEDS, type RSSFeedSource } from './rss-feed-service';
+import {
+  getRSSFeedService,
+  SAAS_RSS_FEEDS,
+  type RSSFeedSource,
+} from './rss-feed-service';
 import { getGPT5CuratorService } from './gpt5-curator-service';
 import { getGPT5NewsService } from './gpt5-news-service';
 import { getGPT5MiniFundingService } from './gpt5-mini-funding-service';
@@ -35,7 +39,7 @@ export class HybridNewsService {
 
     console.log(
       `[Hybrid News] Starting generation for ${loungeType} ` +
-      `(RSS: ${useRSSFeeds}, Fallback: ${fallbackToPureGeneration})`
+        `(RSS: ${useRSSFeeds}, Fallback: ${fallbackToPureGeneration})`
     );
 
     // If RSS feeds are disabled, use pure generation
@@ -68,7 +72,7 @@ export class HybridNewsService {
       if (dedupedArticles.length < minArticlesRequired) {
         console.log(
           `[Hybrid News] Only ${dedupedArticles.length} articles found, ` +
-          `minimum ${minArticlesRequired} required`
+            `minimum ${minArticlesRequired} required`
         );
 
         if (fallbackToPureGeneration) {
@@ -94,14 +98,11 @@ export class HybridNewsService {
       // Step 6: Run parallel tasks - RSS curation and funding search
       const [rssResult, fundingResult] = await Promise.all([
         // Curate RSS articles with GPT-5
-        this.curatorService.curateNewsFromRSS(
-          prioritizedArticles,
-          {
-            loungeType,
-            maxBullets,
-            maxSpecialSection: useDedicatedFundingSearch ? 0 : maxSpecialSection, // Skip funding if using dedicated search
-          }
-        ),
+        this.curatorService.curateNewsFromRSS(prioritizedArticles, {
+          loungeType,
+          maxBullets,
+          maxSpecialSection: useDedicatedFundingSearch ? 0 : maxSpecialSection, // Skip funding if using dedicated search
+        }),
         // Search for funding news with GPT-5-mini (if enabled)
         useDedicatedFundingSearch
           ? this.fundingService.searchFundingNews({
@@ -113,7 +114,7 @@ export class HybridNewsService {
       ]);
 
       // Step 7: Merge results
-      let result = rssResult;
+      const result = rssResult;
 
       if (fundingResult && fundingResult.fundingItems.length > 0) {
         // Replace or add funding section with dedicated search results
@@ -135,7 +136,7 @@ export class HybridNewsService {
       const duration = Date.now() - startTime;
       console.log(
         `[Hybrid News] Generated successfully in ${duration}ms ` +
-        `(${result.items.length} bullets, ${result.specialSection?.length || 0} funding)`
+          `(${result.items.length} bullets, ${result.specialSection?.length || 0} funding)`
       );
 
       return result;
@@ -207,15 +208,24 @@ export class HybridNewsService {
     const prioritized: any[] = [];
 
     // Take top funding articles first (most important for SaaS digest)
-    const fundingToTake = Math.min(categorized.funding.length, Math.floor(limit * 0.4));
+    const fundingToTake = Math.min(
+      categorized.funding.length,
+      Math.floor(limit * 0.4)
+    );
     prioritized.push(...categorized.funding.slice(0, fundingToTake));
 
     // Then news articles
-    const newsToTake = Math.min(categorized.news.length, Math.floor(limit * 0.4));
+    const newsToTake = Math.min(
+      categorized.news.length,
+      Math.floor(limit * 0.4)
+    );
     prioritized.push(...categorized.news.slice(0, newsToTake));
 
     // Then wire articles
-    const wireToTake = Math.min(categorized.wire.length, Math.floor(limit * 0.2));
+    const wireToTake = Math.min(
+      categorized.wire.length,
+      Math.floor(limit * 0.2)
+    );
     prioritized.push(...categorized.wire.slice(0, wireToTake));
 
     // Fill remaining slots with any articles not yet included
@@ -228,13 +238,15 @@ export class HybridNewsService {
 
     console.log(
       `[Hybrid News] Prioritized ${prioritized.length} articles ` +
-      `(${fundingToTake} funding, ${newsToTake} news, ${wireToTake} wire)`
+        `(${fundingToTake} funding, ${newsToTake} news, ${wireToTake} wire)`
     );
 
     return prioritized.slice(0, limit);
   }
 
-  async testRSSFeeds(): Promise<{ feedName: string; status: string; count: number }[]> {
+  async testRSSFeeds(): Promise<
+    { feedName: string; status: string; count: number }[]
+  > {
     console.log('[Hybrid News] Testing RSS feeds...');
     const results = [];
 

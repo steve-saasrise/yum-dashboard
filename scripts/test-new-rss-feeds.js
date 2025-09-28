@@ -66,7 +66,7 @@ async function testFeed(feed) {
     const fortyEightHours = 48 * 60 * 60 * 1000;
     let recent = 0;
 
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.pubDate) {
         const pubDate = new Date(item.pubDate).getTime();
         if (now - pubDate <= fortyEightHours) {
@@ -75,7 +75,9 @@ async function testFeed(feed) {
       }
     });
 
-    console.log(`✅ ${feed.name}: ${items.length} total, ${recent} in last 48h`);
+    console.log(
+      `✅ ${feed.name}: ${items.length} total, ${recent} in last 48h`
+    );
     if (items.length > 0) {
       console.log(`   Sample: "${items[0].title}"`);
     }
@@ -96,26 +98,26 @@ async function main() {
   }
 
   console.log('\n=== SUMMARY ===');
-  const working = results.filter(r => r.working);
-  const failed = results.filter(r => !r.working);
+  const working = results.filter((r) => r.working);
+  const failed = results.filter((r) => !r.working);
 
   console.log(`\nWorking feeds: ${working.length}/${results.length}`);
-  working.forEach(f => {
+  working.forEach((f) => {
     console.log(`  ✅ ${f.name}: ${f.count} articles (${f.recent} recent)`);
   });
 
   if (failed.length > 0) {
     console.log(`\nFailed feeds: ${failed.length}`);
-    failed.forEach(f => {
+    failed.forEach((f) => {
       console.log(`  ❌ ${f.name}: ${f.error}`);
     });
   }
 
   console.log('\nRecommended feeds to add (with recent content):');
   working
-    .filter(f => f.recent > 0)
+    .filter((f) => f.recent > 0)
     .sort((a, b) => b.recent - a.recent)
-    .forEach(f => {
+    .forEach((f) => {
       console.log(`  - ${f.name}: ${f.url}`);
     });
 }

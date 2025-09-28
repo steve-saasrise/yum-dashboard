@@ -22,13 +22,18 @@ export interface CreateResponseParams {
       name: string;
       strict?: boolean;
       schema: any;
-    }
+    };
   };
   stream?: boolean;
 }
 
 export interface Tool {
-  type: 'web_search' | 'web_search_preview' | 'file_search' | 'code_interpreter' | 'function';
+  type:
+    | 'web_search'
+    | 'web_search_preview'
+    | 'file_search'
+    | 'code_interpreter'
+    | 'function';
   search_context_size?: 'low' | 'medium' | 'high';
   filters?: {
     allowed_domains?: string[];
@@ -55,7 +60,13 @@ export interface ResponseObject {
   id: string;
   object: 'response';
   created_at: number;
-  status: 'completed' | 'failed' | 'in_progress' | 'cancelled' | 'queued' | 'incomplete';
+  status:
+    | 'completed'
+    | 'failed'
+    | 'in_progress'
+    | 'cancelled'
+    | 'queued'
+    | 'incomplete';
   model: string;
   output?: OutputItem[];
   output_text?: string; // SDK-only aggregated text

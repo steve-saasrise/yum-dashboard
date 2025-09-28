@@ -179,7 +179,9 @@ export default function TestNewsPage() {
     setError(null);
     try {
       // Use the new hybrid endpoint (RSS + GPT-5)
-      const response = await fetch('/api/test-news/generate-saas-news-hybrid?mode=hybrid');
+      const response = await fetch(
+        '/api/test-news/generate-saas-news-hybrid?mode=hybrid'
+      );
       const data = await response.json();
       if (!response.ok)
         throw new Error(data.error || 'Failed to generate hybrid news');
@@ -193,7 +195,9 @@ export default function TestNewsPage() {
         });
         const previewData = await previewResponse.json();
         if (!previewResponse.ok)
-          throw new Error(previewData.error || 'Failed to generate digest preview');
+          throw new Error(
+            previewData.error || 'Failed to generate digest preview'
+          );
         setDigestData(previewData.digestData);
         setEmailPreview(previewData.html);
       } catch (previewErr) {
@@ -342,7 +346,8 @@ export default function TestNewsPage() {
                 <h3 className="font-semibold mb-2">Hybrid Result:</h3>
                 {hybridNewsData.success && (
                   <div className="mb-2 text-sm text-green-600">
-                    ✅ Mode: {hybridNewsData.mode} | Duration: {hybridNewsData.duration}ms
+                    ✅ Mode: {hybridNewsData.mode} | Duration:{' '}
+                    {hybridNewsData.duration}ms
                   </div>
                 )}
                 <pre className="text-xs overflow-auto">

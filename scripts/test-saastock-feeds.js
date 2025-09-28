@@ -17,7 +17,7 @@ async function testFeed(url, name) {
     const fortyEightHours = 48 * 60 * 60 * 1000;
 
     let recent = 0;
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.pubDate) {
         const pubDate = new Date(item.pubDate).getTime();
         if (now - pubDate <= fortyEightHours) {

@@ -41,33 +41,24 @@ export class GPT5MiniFundingService {
   private getAllowedDomains(loungeType: string): string[] {
     const baseDomains = [
       'thesaasnews.com', // Primary funding source - no RSS feed
-      'crunchbase.com',  // Funding database
-      'pitchbook.com',   // VC and PE data
-      'techcrunch.com',  // Major tech news
+      'crunchbase.com', // Funding database
+      'pitchbook.com', // VC and PE data
+      'techcrunch.com', // Major tech news
       'venturebeat.com', // Tech funding news
-      'sifted.eu',       // European startups
+      'sifted.eu', // European startups
       'eu-startups.com', // EU funding
-      'betakit.com',     // Canadian startups
-      'tech.eu',         // European tech
-      'prnewswire.com',  // Press releases
+      'betakit.com', // Canadian startups
+      'tech.eu', // European tech
+      'prnewswire.com', // Press releases
       'businesswire.com', // Business announcements
       'globenewswire.com', // Global announcements
     ];
 
     // Add specialized domains based on lounge type
     if (loungeType.includes('crypto')) {
-      return [
-        ...baseDomains,
-        'coindesk.com',
-        'theblock.co',
-        'decrypt.co',
-      ];
+      return [...baseDomains, 'coindesk.com', 'theblock.co', 'decrypt.co'];
     } else if (loungeType.includes('ai')) {
-      return [
-        ...baseDomains,
-        'aiindex.stanford.edu',
-        'theaivalley.com',
-      ];
+      return [...baseDomains, 'aiindex.stanford.edu', 'theaivalley.com'];
     } else if (loungeType.includes('health') || loungeType.includes('bio')) {
       return [
         ...baseDomains,
@@ -91,21 +82,45 @@ export class GPT5MiniFundingService {
 
     // Type-specific queries
     if (loungeType.includes('saas') || loungeType.includes('b2b')) {
-      queries.push(`"SaaS startup" OR "B2B software" funding "Series A" OR "Series B" OR "Series C"`);
-      queries.push(`site:crunchbase.com SaaS OR "software as a service" funding`);
-      queries.push(`"enterprise software" OR "cloud computing" raises OR secures`);
+      queries.push(
+        `"SaaS startup" OR "B2B software" funding "Series A" OR "Series B" OR "Series C"`
+      );
+      queries.push(
+        `site:crunchbase.com SaaS OR "software as a service" funding`
+      );
+      queries.push(
+        `"enterprise software" OR "cloud computing" raises OR secures`
+      );
     } else if (loungeType.includes('ai')) {
-      queries.push(`"AI startup" OR "artificial intelligence" funding OR investment from:${timeframe}`);
-      queries.push(`"machine learning" OR "deep learning" OR "LLM" raises from:${timeframe}`);
-      queries.push(`site:crunchbase.com AI OR "artificial intelligence" Series from:${timeframe}`);
+      queries.push(
+        `"AI startup" OR "artificial intelligence" funding OR investment from:${timeframe}`
+      );
+      queries.push(
+        `"machine learning" OR "deep learning" OR "LLM" raises from:${timeframe}`
+      );
+      queries.push(
+        `site:crunchbase.com AI OR "artificial intelligence" Series from:${timeframe}`
+      );
     } else if (loungeType.includes('crypto')) {
-      queries.push(`"crypto startup" OR "blockchain" funding OR investment from:${timeframe}`);
-      queries.push(`"DeFi" OR "Web3" OR "NFT" raises OR secures from:${timeframe}`);
-      queries.push(`cryptocurrency OR token "Series A" OR "seed funding" from:${timeframe}`);
+      queries.push(
+        `"crypto startup" OR "blockchain" funding OR investment from:${timeframe}`
+      );
+      queries.push(
+        `"DeFi" OR "Web3" OR "NFT" raises OR secures from:${timeframe}`
+      );
+      queries.push(
+        `cryptocurrency OR token "Series A" OR "seed funding" from:${timeframe}`
+      );
     } else if (loungeType.includes('venture')) {
-      queries.push(`"venture capital" OR "VC funding" "closes fund" OR "raises fund" from:${timeframe}`);
-      queries.push(`"Series A" OR "Series B" OR "Series C" OR "Series D" from:${timeframe}`);
-      queries.push(`startup funding OR investment "led by" OR "participated" from:${timeframe}`);
+      queries.push(
+        `"venture capital" OR "VC funding" "closes fund" OR "raises fund" from:${timeframe}`
+      );
+      queries.push(
+        `"Series A" OR "Series B" OR "Series C" OR "Series D" from:${timeframe}`
+      );
+      queries.push(
+        `startup funding OR investment "led by" OR "participated" from:${timeframe}`
+      );
     }
 
     // General funding queries (broader search without time restriction)
@@ -198,7 +213,8 @@ IMPORTANT:
         const outputTextItem = response.output.find(
           (item: any) =>
             item.type === 'output_text' ||
-            (item.type === 'message' && item.content?.[0]?.type === 'output_text')
+            (item.type === 'message' &&
+              item.content?.[0]?.type === 'output_text')
         );
 
         if (outputTextItem) {
@@ -214,8 +230,8 @@ IMPORTANT:
 
       // Log web search sources for debugging
       if (response.web_search_sources) {
-        const saasnewsSources = response.web_search_sources.filter(
-          (s: any) => s.url?.includes('thesaasnews.com')
+        const saasnewsSources = response.web_search_sources.filter((s: any) =>
+          s.url?.includes('thesaasnews.com')
         );
         console.log(
           `[GPT-5-mini Funding] Found ${response.web_search_sources.length} sources (${saasnewsSources.length} from thesaasnews.com)`
@@ -226,19 +242,29 @@ IMPORTANT:
         throw new Error('No output_text found in GPT-5-mini response');
       }
 
-      console.log('[GPT-5-mini Funding] Response content length:', content.length);
+      console.log(
+        '[GPT-5-mini Funding] Response content length:',
+        content.length
+      );
 
       // Parse JSON from response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        console.error('[GPT-5-mini Funding] Response content (first 500 chars):', content.substring(0, 500));
+        console.error(
+          '[GPT-5-mini Funding] Response content (first 500 chars):',
+          content.substring(0, 500)
+        );
 
         // If no JSON found, check if it's a "no results" message
-        if (content.toLowerCase().includes('blocked') ||
-            content.toLowerCase().includes('no ') ||
-            content.toLowerCase().includes('unable') ||
-            content.toLowerCase().includes('cannot find')) {
-          console.log('[GPT-5-mini Funding] No funding items found in search window');
+        if (
+          content.toLowerCase().includes('blocked') ||
+          content.toLowerCase().includes('no ') ||
+          content.toLowerCase().includes('unable') ||
+          content.toLowerCase().includes('cannot find')
+        ) {
+          console.log(
+            '[GPT-5-mini Funding] No funding items found in search window'
+          );
           return {
             fundingItems: [],
             searchedAt: new Date().toISOString(),
@@ -280,19 +306,26 @@ IMPORTANT:
       if (fundingItems.length > 0) {
         const sources = fundingItems.map((item: FundingItem) => item.source);
         const uniqueSources = [...new Set(sources)];
-        console.log(`[GPT-5-mini Funding] Sources used: ${uniqueSources.join(', ')}`);
+        console.log(
+          `[GPT-5-mini Funding] Sources used: ${uniqueSources.join(', ')}`
+        );
 
-        const thesaasnewsCount = fundingItems.filter(
-          (item: FundingItem) => item.sourceUrl.includes('thesaasnews.com')
+        const thesaasnewsCount = fundingItems.filter((item: FundingItem) =>
+          item.sourceUrl.includes('thesaasnews.com')
         ).length;
         if (thesaasnewsCount > 0) {
-          console.log(`[GPT-5-mini Funding] ${thesaasnewsCount} items from thesaasnews.com`);
+          console.log(
+            `[GPT-5-mini Funding] ${thesaasnewsCount} items from thesaasnews.com`
+          );
         }
       }
 
       return result;
     } catch (error: any) {
-      console.error('[GPT-5-mini Funding] Error searching funding news:', error);
+      console.error(
+        '[GPT-5-mini Funding] Error searching funding news:',
+        error
+      );
 
       // Return empty result on error
       return {
