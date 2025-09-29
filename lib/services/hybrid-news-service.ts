@@ -34,7 +34,7 @@ export class HybridNewsService {
       customFeeds,
       minArticlesRequired = 10,
       useDedicatedFundingSearch = true,
-      fundingSearchTimeframe = '48h',
+      fundingSearchTimeframe = '24h',
     } = config;
 
     console.log(

@@ -23,7 +23,7 @@ export interface FundingSearchResult {
 export interface FundingSearchConfig {
   loungeType?: string;
   maxResults?: number;
-  timeframe?: string; // e.g., "24h", "7d", "30d"
+  timeframe?: string; // e.g., "24h", "7d", "30d" (Eastern Time)
   minAmount?: string; // e.g., "$1M", "$10M"
 }
 
@@ -40,18 +40,26 @@ export class GPT5MiniFundingService {
 
   private getAllowedDomains(loungeType: string): string[] {
     const baseDomains = [
-      'thesaasnews.com', // Primary funding source - no RSS feed
-      'crunchbase.com', // Funding database
-      'pitchbook.com', // VC and PE data
-      'techcrunch.com', // Major tech news
-      'venturebeat.com', // Tech funding news
-      'sifted.eu', // European startups
-      'eu-startups.com', // EU funding
-      'betakit.com', // Canadian startups
-      'tech.eu', // European tech
-      'prnewswire.com', // Press releases
-      'businesswire.com', // Business announcements
-      'globenewswire.com', // Global announcements
+      'thesaasnews.com', // Primary funding source - no RSS feed, won't duplicate
+      'crunchbase.com', // Funding database - has RSS but different content
+      'pitchbook.com', // VC and PE data - no RSS feed
+      'techcrunch.com', // Already in RSS - may have duplicates
+      'venturebeat.com', // Already in RSS - may have duplicates
+      'sifted.eu', // Already in RSS - may have duplicates
+      'eu-startups.com', // Already in RSS - may have duplicates
+      'betakit.com', // Canadian startups - no RSS in main feeds
+      'tech.eu', // European tech - no RSS in main feeds
+      'prnewswire.com', // Press releases - unique content
+      'businesswire.com', // Business announcements - unique content
+      'globenewswire.com', // Global announcements - unique content
+      'forbes.com', // Major business news - no RSS in main feeds
+      'axios.com', // Tech/business news - no RSS in main feeds
+      'bloomberg.com', // Financial news - no RSS in main feeds
+      'reuters.com', // Global business - no RSS in main feeds
+      'techstartups.com', // Already in RSS - may have duplicates
+      'geekwire.com', // Pacific Northwest tech - no RSS in main feeds
+      'bizjournals.com', // Local business news - no RSS in main feeds
+      'wsj.com', // Wall Street Journal - no RSS in main feeds
     ];
 
     // Add specialized domains based on lounge type
@@ -73,7 +81,7 @@ export class GPT5MiniFundingService {
 
   private buildSearchQueries(config: FundingSearchConfig): string {
     const loungeType = config.loungeType?.toLowerCase() || 'saas';
-    const timeframe = config.timeframe || '24h';
+    const timeframe = config.timeframe || '24h'; // Default to 24 hours Eastern Time
 
     const queries = [];
 
@@ -123,9 +131,9 @@ export class GPT5MiniFundingService {
       );
     }
 
-    // General funding queries (broader search without time restriction)
-    queries.push(`"$" million OR billion "Series" OR "funding round"`);
-    queries.push(`"M&A" OR acquisition OR "acquires" OR "acquired by" tech`);
+    // General funding queries - also apply time restriction
+    queries.push(`"$" million OR billion "Series" OR "funding round" from:${timeframe}`);
+    queries.push(`"M&A" OR acquisition OR "acquires" OR "acquired by" tech from:${timeframe}`);
 
     return queries.join('\n');
   }
@@ -167,7 +175,7 @@ Priority search queries:
 ${searchQueries}
 
 CRITICAL REQUIREMENTS:
-1. Include RECENT funding news (prioritize last ${config.timeframe || '48 hours'} but include older if needed)
+1. ONLY include funding news from the last ${config.timeframe || '24 hours'} Eastern Time - DO NOT include older articles
 2. MUST have actual funding amounts (e.g., "$15 million", "$2.5 billion")
 3. MUST use real article URLs from search results - NO fake URLs
 4. Focus on thesaasnews.com as primary source when available
@@ -175,7 +183,7 @@ CRITICAL REQUIREMENTS:
 6. Prioritize larger funding rounds and well-known companies
 7. Include both funding rounds AND acquisitions/M&A deals
 
-Extract funding items and return as JSON. If no funding news is found, return empty array.
+Extract funding items and return as JSON. ONLY include articles from the specified timeframe. If no recent funding news is found within the timeframe, return empty array rather than including old articles.
 
 ALWAYS return this EXACT JSON structure (even with 0 items):
 
